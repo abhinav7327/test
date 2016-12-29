@@ -30,7 +30,7 @@
                                         );
 			}
 			
-			xenos.ns.views.instrumentEntryAmend.showNext = function (){
+	 		xenos.ns.views.instrumentEntryAmend.showNext = function (){
 				if($("#actionType").val() == "ENTRY" || $("#actionType").val() == "entry"){
 					$("#formActionArea > div > div > .wizNext > .inputBtnStyle").css('display','block');
 				}
