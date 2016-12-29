@@ -1,0 +1,844 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+<div class="entryContainer paddingFour">
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/inf/fieldvalidator.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+	
+	<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+	<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+	<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>		
+        <jsp:body>
+
+        var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+                    var context = $xenos$Wizard.$context;
+		        	var baseUrl = xenos.context.path + "/secure/ref/account/entry";
+		        	
+		   if("${commandForm.account.counterPartyDetailType}" == "INTERNAL"){
+                $("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','block');
+                $("#formActionArea > div > div > .wizPrev > .inputBtnStyle").css('display','block');
+            }     	
+                    
+        /**
+		* Common variables declaration to be used for future reference.
+		*/
+			var item = {};
+			var rowId =0;
+			var commissionGrid = null;
+			var commissionGridData =[];
+            
+        /**
+        * A common request handler to be used server communication.
+        */
+            var xenos$Handler$RequestHandler = xenos$Handler$function({						
+                get: {
+                    contentType: 'json',
+                    requestType: xenos$Handler$default.requestType.asynchronous
+                },	
+                settings: {
+                    beforeSend: function(request) {
+                        request.setRequestHeader('Accept', 'application/json');
+                    },
+                    type: 'POST'
+                }
+            });
+
+        /**
+		* Column definition of Commission Grid
+		*/
+			var commissionGridColumns = [		
+							{name:"<spring:message code="ref.account.label.commissionid" htmlEscape="false"/>", 		field:"taxFeeId",			id:"taxFeeId", 			width:150},
+							{name:"<spring:message code="ref.account.label.calculationmethod" htmlEscape="false"/>", 	field:"taxFeeCalcType",		id:"taxFeeCalcType", 	width:150},
+							{name:"<spring:message code="ref.account.label.issuecountry" htmlEscape="false"/>", 		field:"issueCountry",		id:"issueCountry", 		width:100},
+							{name:"<spring:message code="ref.account.label.mandatoryoptionalarea.securitytype" htmlEscape="false"/>", 		field:"instrumentType",		id:"instrumentType", 	width:150},
+							{name:"<spring:message code="ref.account.label.buysell" htmlEscape="false"/>", 				field:"buySellFlagExp",		id:"buySellFlagExp", 	width:100},
+							{name:"<spring:message code="ref.account.label.rate" htmlEscape="false"/>", 				field:"chargeRateStr",		id:"chargeRateStr", 	cssClass:'xenos-grid-number',width:150},
+							{name:"<spring:message code="ref.account.label.ratetype" htmlEscape="false"/>", 			field:"rateType",			id:"rateType", 			width:150},
+							{name:"<spring:message code="ref.account.label.startdate" htmlEscape="false"/>", 			field:"ruleStartDateStr",	id:"ruleStartDateStr",	width:150},
+							{name:"<spring:message code="ref.account.label.enddate" htmlEscape="false"/>", 				field:"ruleEndDateStr",		id:"ruleEndDateStr", 	width:150},
+							{name:"<spring:message code="ref.account.label.max" htmlEscape="false"/>", 					field:"defaultMaxStr",		id:"defaultMaxStr", 	cssClass:'xenos-grid-number',width:150},
+							{name:"<spring:message code="ref.account.label.min" htmlEscape="false"/>", 					field:"defaultMinStr",		id:"defaultMinStr", 	cssClass:'xenos-grid-number',width:150},
+							{name:"<spring:message code="ref.account.label.chargeamount" htmlEscape="false"/>", 		field:"chargeAmountStr",	id:"chargeAmountStr", 	cssClass:'xenos-grid-number',width:150},
+							{name:"<spring:message code="ref.account.label.chargeunit" htmlEscape="false"/>", 			field:"chargeUnitStr",		id:"chargeUnitStr", 	cssClass:'xenos-grid-number',width:150},
+							{name:"<spring:message code="ref.account.label.tableid" htmlEscape="false"/>", 				field:"tableId",			id:"tableId", 			width:150},
+							{name:"<spring:message code="ref.account.label.discount" htmlEscape="false"/>", 			field:"discountStr",		id:"discountStr", 		cssClass:'xenos-grid-number',width:150}
+					];
+                      
+        /**
+		* Configuration of Commission Grid.
+		*/			
+			var commissionGridConfig = {
+						forceFitColumns		: true,
+						editMode 			: 'both',
+						editCallback 		: commissionEditHandler,
+						deleteCallback		: commissionDeleteHandler
+						
+					};
+
+        <xenos:out escapeXml="false">
+			<c:forEach items="${commandForm.otherAttributes.commissionDynaBeans}" var="dl">
+				item = {};
+				rowId+=1;
+				item.id = "xenos_" + rowId;
+				item.taxFeeId =  "<c:out value="${dl.map.taxFeeId}" />";
+				item.taxFeeCalcType =  "<c:out value="${dl.map.taxFeeCalcType}" />";
+				item.issueCountry = "<c:out value="${xenosfn:escapeJS(dl.map.issueCountry)}" />";
+				item.instrumentType = "<c:out value="${dl.map.instrumentType}" />";
+				item.buySellFlagExp = "<c:out value="${dl.map.buySellFlagExp}" />";
+				item.chargeRateStr = "<c:out value="${dl.map.chargeRateStr}" />";
+				item.rateType = "<c:out value="${dl.map.rateType}" />";
+				item.ruleStartDateStr = "<c:out value="${dl.map.ruleStartDateStr}" />";
+				item.ruleEndDateStr = "<c:out value="${dl.map.ruleEndDateStr}" />";
+				item.defaultMaxStr = "<c:out value="${dl.map.defaultMaxStr}" />";
+				item.defaultMinStr = "<c:out value="${dl.map.defaultMinStr}" />";
+				item.chargeAmountStr = "<c:out value="${dl.map.chargeAmountStr}" />";
+				item.chargeUnitStr = "<c:out value="${dl.map.chargeUnitStr}" />";
+				if(item.taxFeeCalcType == 'SLIDING'){
+					item.tableId = "<c:out value="${dl.map.chargeSlidingTableId}" />";
+				} else if(item.taxFeeCalcType == 'SLIDING_PRICE'){
+					item.tableId = "<c:out value="${dl.map.chargeSlidingTableIdPrc}" />";
+				}
+				item.discountStr = "<c:out value="${dl.map.discountStr}" />";
+				commissionGridData.push(item);
+			</c:forEach>
+			</xenos:out>
+            
+            commissionGrid = $("#commissionGrid").xenoseditablegrid(commissionGridData, commissionGridColumns, commissionGridConfig);
+            
+            /**
+			*   Event handlers for the different  events like change
+			*/
+			function onChangeCommissionCalculationType(e){
+				var selectedValue = $(this).val();
+				hideAllCalculationTypeRelatedElements();
+				switch (selectedValue)
+				{
+					case "FIXED_RATE":
+						$('.IRate').css('display','block');
+						$('.IMinMax').css('display','block');
+                        $('.ICharge').css('display','none');
+                        $('.ISliding').css('display','none');
+						$("#chargeAmountStr").val("");
+						$("#discountStr").val("");
+						$("#chargeUnitStr").val("");
+						$("#chargeSlidingTableId").val("");        
+						$("#chargeSlidingTableIdPrc").val("");        
+						break;
+
+					case "FIXED_AMOUNT":
+						$('.ICharge').css('display','block');
+						$('.IAmountLbl').css('display','block');
+						//$('.IamountFld').css('display','block');
+						$('.IUnitLbl').css('display','none');
+                        $('.IRate').css('display','none');
+						$('.IMinMax').css('display','none');
+                        $('.ISliding').css('display','none');
+						$("#chargeSlidingTableId").val("");        
+						$("#chargeSlidingTableIdPrc").val("");        
+						$("#chargeSlidingTableIdPa").val("");
+						
+						$("#chargeRateStr").val("");
+						$("#defaultMinStr").val("");
+						$("#defaultMaxStr").val("");
+						$("#chargeUnitStr").val("");
+						$("#discountStr").val("");
+						$("#rateType").val("");
+						break;
+					case "PRN_UNIT":
+					case "LOT_UNIT":
+					case "NOM_UNIT":
+						$("#chargeSlidingTableId").val("");        
+						$("#chargeSlidingTableIdPrc").val("");   
+						$("#chargeSlidingTableIdPa").val("");						
+						$('.IMinMax').css('display','block');
+						$('.ICharge').css('display','block');
+						$('.IUnitLbl').css('display','block');
+						$('.IAmountLbl').css('display','block');
+                        $('.IRate').css('display','none');
+                        $('.ISliding').css('display','none');
+                        
+
+						$("#chargeRateStr").val("");
+						$("#discountStr").val("");
+						$("#rateType").val("");
+
+						break;
+					case "SLIDING":
+						$('.ISliding').css('display','block');
+						$('.slidingGen').css('display','block');
+						$('.slidingPrc').css('display','none');
+                        $('.IRate').css('display','none');
+						$('.IMinMax').css('display','none');
+                        $('.ICharge').css('display','none');
+                        
+						$("#chargeRateStr").val("");
+						$("#defaultMinStr").val("");
+						$("#defaultMaxStr").val("");
+						$("#chargeUnitStr").val("");
+						$("#chargeAmountStr").val("");
+						$("#rateType").val("");
+						$("#chargeSlidingTableIdPrc").val(""); 
+						$("#chargeSlidingTableIdPa").val("");	
+						
+						break;
+					
+					case "SLIDING_PRICE":
+						$('.ISliding').css('display','block');
+						$('.slidingGen').css('display','none');
+						$('.slidingPrc').css('display','block');
+                        $('.IRate').css('display','none');
+						$('.IMinMax').css('display','none');
+                        $('.ICharge').css('display','none');
+						$("#chargeRateStr").val("");
+						$("#defaultMinStr").val("");
+						$("#defaultMaxStr").val("");
+						$("#chargeUnitStr").val("");
+						$("#chargeAmountStr").val("");
+						$("#chargeSlidingTableId").val("");        
+						$("#rateType").val("");    
+						break;
+						
+					default:
+						$('.IRate').css('display','none');
+						$('.IMinMax').css('display','none');
+						$('.ICharge').css('display','none');
+						
+						$('.IUnitLbl').css('display','none');
+						$('.IAmountLbl').css('display','none');
+						$('.ISliding').css('display','none');    
+						
+						$("#chargeSlidingTableId").val("");        
+						$("#chargeSlidingTableIdPrc").val("");   
+						$("#chargeSlidingTableIdPa").val("");
+						$("#chargeRateStr").val("");
+						$("#defaultMinStr").val("");
+						$("#defaultMaxStr").val("");
+						$("#chargeUnitStr").val("");
+						$("#chargeAmountStr").val("");
+						$("#discountStr").val("");            
+						$('.slidingGen').css('display','none');
+						$("#rateType").val("");
+
+						break;
+				}
+			}
+			
+			function hideAllCalculationTypeRelatedElements(){
+				$('.IRate', '.IMinMax', '.ICharge', '.IUnitLbl', '.IAmountLbl', '.ISliding').css('display','none');
+			}
+            
+            //****************************	VALIDATION ***********************************
+			/**
+			* Validate Commission to be added or updated.
+			*/
+			var validationMessages =[];
+			function validateOnAddToCommission(){
+				validationMessages =[];
+				var startdate=$("#ruleStartDateStr").val();
+				var enddate=$("#ruleEndDateStr").val();
+				var value = $("#cmbTaxFeeId").val();
+				if( VALIDATOR.isNullValue(value)){
+				    validationMessages.push(xenos$REF$i18n.account.commission.commissionid_empty);
+				}
+				value = $("#cmbTaxFeeCalcType").val();
+				if( VALIDATOR.isNullValue(value)){
+				     validationMessages.push(xenos$REF$i18n.account.common.calculation_method_empty);
+				}
+                if(VALIDATOR.isNullValue($("#instrumentType").val())){
+                    validationMessages.push(xenos$REF$i18n.account.common.security_type_empty);    
+                }
+                if( VALIDATOR.isNullValue(startdate)){
+				     validationMessages.push(xenos$REF$i18n.account.common.start_date_empty);
+				}
+                else if(!isDateCustom(startdate)){
+                    validationMessages.push(xenos$REF$i18n.account.common.start_date_invalid);
+                }
+                if(!isDateCustom(enddate) &amp;&amp; !VALIDATOR.isNullValue(enddate)){
+                    validationMessages.push(xenos$REF$i18n.account.common.end_date_invalid);
+                }
+				
+				if(!validateNumericFields()) {
+					return false;
+				}
+				
+				if( VALIDATOR.isNullValue(startdate)==false &amp;&amp; VALIDATOR.isNullValue(enddate)==false &amp;&amp; isDateCustom(startdate) &amp;&amp; isDateCustom(enddate))
+				{          
+					if(!isValidDateRange(startdate,enddate))
+					    validationMessages.push(xenos$REF$i18n.account.common.start_date_after_end_date);
+				}
+					
+				if ( validationMessages.length >0)
+				{
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+					 return false;
+				}
+				else {
+					$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+				}
+			 
+				return true;
+			}
+			
+			function validateNumericFields() {
+			
+				switch ($("#cmbTaxFeeCalcType").val())
+				{
+					case "FIXED_RATE":
+						value = $("#chargeRateStr").val();
+						if( VALIDATOR.isNullValue(value)){
+						    validationMessages.push(xenos$REF$i18n.account.common.rate_empty);
+						}
+						else if(!formatRate($('#chargeRateStr'),4,8,null,$('#chargeRateStr').parent().parent().find('label').text())){
+                            return false;
+                        }
+						value = $("#rateType").val();
+						if( VALIDATOR.isNullValue(value)){
+						    validationMessages.push(xenos$REF$i18n.account.common.rate_type_empty);
+						}
+						value = $('#defaultMaxStr').val();
+                        if(!VALIDATOR.isNullValue(value)) {
+                            if(!formatAmount($('#defaultMaxStr'),15,3,null,$('#defaultMaxStr').parent().parent().find('label').text()))
+                                return false;
+                        }
+						value = $('#defaultMinStr').val();
+                        if(!VALIDATOR.isNullValue(value)) {
+                            if(!formatAmount($('#defaultMinStr'),15,3,null,$('#defaultMinStr').parent().parent().find('label').text()))
+                                return false;
+                        }
+						break;
+					case "FIXED_AMOUNT":
+						value = $("#chargeAmountStr").val();
+						if( VALIDATOR.isNullValue(value)){
+						    validationMessages.push(xenos$REF$i18n.account.common.amount_empty);
+						}
+						else if(!formatAmount($('#chargeAmountStr'),15,3,null,$('#chargeAmountStr').parent().parent().find('label').text())){
+                            return false;
+                        }
+						break;
+					case "PRN_UNIT":
+					case "LOT_UNIT":
+					case "NOM_UNIT":
+						value = $("#chargeAmountStr").val();
+						if( VALIDATOR.isNullValue(value)){
+						    validationMessages.push(xenos$REF$i18n.account.common.amount_empty);
+						}
+						else if(!formatAmount($('#chargeAmountStr'),15,3,null,$('#chargeAmountStr').parent().parent().find('label').text())){
+                            return false;
+                        }
+						value = $("#chargeUnitStr").val();
+						if( VALIDATOR.isNullValue(value)){
+						     validationMessages.push(xenos$REF$i18n.account.common.unit_empty); 
+						}
+						else if(!formatAmount($('#chargeUnitStr'),15,3,null,$('#chargeUnitStr').parent().parent().find('label').text())){
+                            return false;
+                        }
+						value = $('#defaultMaxStr').val();
+                        if(!VALIDATOR.isNullValue(value)) {
+                            if(!formatAmount($('#defaultMaxStr'),15,3,null,$('#defaultMaxStr').parent().parent().find('label').text()))
+                                return false;
+                        }
+						value = $('#defaultMinStr').val();
+                        if(!VALIDATOR.isNullValue(value)) {
+                            if(!formatAmount($('#defaultMinStr'),15,3,null,$('#defaultMinStr').parent().parent().find('label').text()))
+                                return false;
+                        }
+						break;
+					case "SLIDING":
+						value = $("#chargeSlidingTableId").val();
+						if( VALIDATOR.isNullValue(value)){
+						    validationMessages.push(xenos$REF$i18n.account.common.table_id_slidingid_empty);
+						}
+						value = $('#discountStr').val();
+                        if(!VALIDATOR.isNullValue(value)) {
+                            if(!formatAmount($('#discountStr'),15,3,null,$('#discountStr').parent().parent().find('label').text()))
+                                return false;
+                        }
+						break;
+					case "SLIDING_PRICE":
+						value = $("#chargeSlidingTableIdPrc").val();
+						if( VALIDATOR.isNullValue(value)){
+						    validationMessages.push(xenos$REF$i18n.account.common.table_id_slidingprc_empty);
+						}
+						value = $('#discountStr').val();
+                        if(!VALIDATOR.isNullValue(value)) {
+                            if(!formatAmount($('#discountStr'),15,3,null,$('#discountStr').parent().parent().find('label').text()))
+                                return false;
+                        }
+						break;
+                        
+				}
+				
+				return true;
+			}
+            
+            //*******************************ADD, EDIT, CANCEL, DELETE and UPDATE handler******************************			
+			function commissionEditHandler(rowIndex, dataContext){
+				var requestUrl = baseUrl + "/editCommission.json?commandFormId=" + $('[name=commandFormId]').val();
+				xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+															settings: {data : {"editIndexCommission" : rowIndex}},
+															onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	populateCommissionForm(content.value[0]);
+																	$('#cmbTaxFeeCalcType').trigger('change');
+																	$('.editBtn').css('display','block'); 
+																	$('.addBtn').css('display','none'); 
+																} else {
+																	xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																}
+																return true;
+															}
+														 }
+											);
+				
+			}
+			
+			/**
+			* Commission Delete handler
+			*/
+			function commissionDeleteHandler(rowIndex, dataContext){
+				var requestUrl = baseUrl + "/deleteCommission/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+					xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+															onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertCommission(content.value[0]);
+																	$('.editBtn').hide();
+																	$('.addBtn').show();
+																} else {
+																	xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																}
+															}
+														 }
+											);
+			}
+			
+			/**
+			* New Commission Add handler
+			*/
+			function onClickAddCommission(e){
+			    // Make the client Side validation
+				var valid = validateOnAddToCommission();
+				if(valid){
+					var requestUrl = baseUrl + "/addCommission.json?commandFormId=" + $('[name=commandFormId]').val();
+					
+					xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+															settings: {data : $('form').serialize()},
+															onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertCommission( content.value[0]);
+																	$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+																} else {
+																	xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																}
+															}
+														 }
+											);
+					
+				}
+			}
+			/**
+			* On Edit Commission, Save handler
+			*/
+			function onClickSaveCommission(e){
+				var valid = validateOnAddToCommission();
+				if(valid){
+					var requestUrl = baseUrl + "/updateCommission.json?commandFormId=" + $('[name=commandFormId]').val();
+					
+					xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+															settings: {data : $('form').serialize()},
+															onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertCommission(content.value[0]);
+																	$('.editBtn').css('display','none'); 
+																	$('.addBtn').css('display','block'); 
+																} else {
+																	xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																}
+															}
+														 }
+											);
+				}
+			}
+			
+			/**
+			* On Edit Commission, Cancel handler
+			*/
+			function onClickCxlCommission(e){
+				var requestUrl = baseUrl + "/cancelCommission.json?commandFormId=" + $('[name=commandFormId]').val();
+				xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+														onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertCommission(content.value[0]);
+																	$('.editBtn').css('display','none'); 
+																	$('.addBtn').css('display','block');  
+																} else {
+																	xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																}
+																return true;
+															}
+														 }
+											);
+			}
+			
+			/**
+			* Insert/Update Commission
+			*/
+			function upsertCommission(data){
+				rowId = 0;
+				var result = data.otherAttributes.commissionDynaBeans;
+				if(result){
+					commissionGrid.clearData();
+					for(var i in result){
+						item	=	{};
+						rowId+=1;
+						item.id = "xenos_" + rowId;
+						item.taxFeeId =  $.trim(result[i].map.taxFeeId);
+						item.taxFeeCalcType =  $.trim(result[i].map.taxFeeCalcType);
+						item.issueCountry = $.trim(result[i].map.issueCountry);
+						item.instrumentType = $.trim(result[i].map.instrumentType);
+						item.buySellFlagExp = $.trim(result[i].map.buySellFlagExp);
+						item.chargeRateStr = $.trim(result[i].map.chargeRateStr);
+						item.rateType = $.trim(result[i].map.rateType);
+						item.ruleStartDateStr = $.trim(result[i].map.ruleStartDateStr);
+						item.ruleEndDateStr = $.trim(result[i].map.ruleEndDateStr);
+						item.defaultMaxStr = $.trim(result[i].map.defaultMaxStr);
+						item.defaultMinStr = $.trim(result[i].map.defaultMinStr);
+						item.chargeAmountStr = $.trim(result[i].map.chargeAmountStr);
+						item.chargeUnitStr = $.trim(result[i].map.chargeUnitStr);
+						if($.trim(result[i].map.taxFeeCalcType) == 'SLIDING'){
+							item.tableId = $.trim(result[i].map.chargeSlidingTableId);
+						}else if($.trim(result[i].map.taxFeeCalcType) == 'SLIDING_PRICE'){
+							item.tableId = $.trim(result[i].map.chargeSlidingTableIdPrc);
+                            }
+						item.discountStr = $.trim(result[i].map.discountStr);
+						commissionGrid.addOrUpdateRow(item,{});
+					}
+					
+				}
+				//Reset all fields 
+				populateCommissionForm(data);
+								
+				$('#cmbTaxFeeCalcType').trigger('change');
+				
+				xenos.utils.clearGrowlMessage();
+				
+			}
+			/**
+			* Populate the Commission Form fields with values from the server side
+			*/
+			function populateCommissionForm(result){
+				if(result){
+					$('#cmbTaxFeeId').val(result.commissionTax.taxFeeId);
+					$('#cmbTaxFeeCalcType').val(result.commissionTax.taxFeeCalcType);
+					$('#issueCountry').val(result.commissionTax.issueCountry);
+					$('#instrumentType').val(result.commissionTax.instrumentType);
+					$('#cmbBuySellFlag').val(result.commissionTax.buySellFlag);
+					$('#chargeRateStr').val(result.commissionTax.chargeRateStr);
+					$('#rateType').val(result.commissionTax.rateType);
+					$('#cmbTaxFeeId').focus();
+					var valDateStr = $.trim(result.commissionTax.ruleStartDateStr);
+					var dateFormat,myDate;
+					if (xenos$Cache.get('globalPrefs')) {
+						dateFormat = xenos$Cache.get('globalPrefs')['mappedUiDisplayDateFormat'];
+					}
+					if(valDateStr != ''){
+						myDate = $.datepicker.parseDate(dateFormat,valDateStr);
+						$('#ruleStartDateStr').datepicker('setDate',myDate);
+					} else{
+						$('#ruleStartDateStr').datepicker('setDate','');
+					}
+					valDateStr = $.trim(result.commissionTax.ruleEndDateStr);
+					
+					if(valDateStr != ''){
+						myDate = $.datepicker.parseDate(dateFormat,valDateStr);
+						$('#ruleEndDateStr').datepicker('setDate',myDate);
+						
+					} else{
+						$('#ruleEndDateStr').datepicker('setDate','');
+					}
+					
+					$('#defaultMaxStr').val(result.commissionTax.defaultMaxStr);
+					$('#defaultMinStr').val(result.commissionTax.defaultMinStr);
+					$('#chargeAmountStr').val(result.commissionTax.chargeAmountStr);
+					$('#chargeUnitStr').val(result.commissionTax.chargeUnitStr);
+					
+					$('#discountStr').val(result.commissionTax.discountStr);
+					
+					if(result.commissionTax.taxFeeCalcType == 'SLIDING'){
+						$('#chargeSlidingTableId').val(result.commissionTax.chargeSlidingTableId);
+					}else if(result.commissionTax.taxFeeCalcType == 'SLIDING_PRICE'){
+						$('#chargeSlidingTableIdPrc').val(result.commissionTax.chargeSlidingTableIdPrc);
+					}
+				}
+			}
+			
+			/** 
+			* Bind the Event Listeners to the components
+			*/
+			
+			
+			$('#cmbTaxFeeCalcType').bind('change',onChangeCommissionCalculationType);
+			$('#cmbTaxFeeCalcType').trigger('change');
+           
+			
+			$('#addTaxFee',context).bind('click',onClickAddCommission);
+			$('#saveTaxFee',context).bind('click',onClickSaveCommission);
+			$('#cancelTaxFee',context).bind('click',onClickCxlCommission);
+			
+			
+			var unloadHook = function(){
+				//cleanup code
+                $('#cmbTaxFeeCalcType').unbind('change');
+                $('#addTaxFee',context).unbind('click',onClickAddCommission);
+                $('#saveTaxFee',context).unbind('click',onClickSaveCommission);
+                $('#cancelTaxFee',context).unbind('click',onClickCxlCommission);
+				$xenos$Wizard.deregister('submit',submitValidateHook);
+				$xenos$Wizard.deregister('next',nextValidateHook);
+				$xenos$Wizard.deregister('previous',preValidateHook);
+				$xenos$Wizard.deregister('unload',unloadHook);
+				commissionGrid.destroy();
+				delete commissionGrid;
+			}
+            
+			var preValidateHook = function() {	
+					return validateNumericFields();
+				} 
+				
+            var nextValidateHook = function() {
+					return validateNumericFields();
+				}
+                
+            var submitValidateHook = function() {	
+					return validateNumericFields();
+				} 
+			
+            $xenos$Wizard.register('next',nextValidateHook);
+			$xenos$Wizard.register('submit',submitValidateHook);
+			$xenos$Wizard.register('unload',unloadHook);
+			$xenos$Wizard.register('previous',preValidateHook);
+			<!--Assigning shortcuts for form items-->
+			xenos.utils.afterFormRenderScuts();
+		};
+              
+		   
+			function formatDate(target){
+				var value=target.value;
+				if(value.length == 7){
+					$("#"+target.id).val(value.substr(0,6)+"0"+value.substr(6));
+				}
+			}      
+		</jsp:body>
+    </jsp:element>
+	
+	<!--<div class="formItemBlock topitems blkMarginBtm">-->
+    <c:if test="${success =='false'}">
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+
+		<div>
+			<h1 class="msgHead"><spring:message code="ref.account.entry.label.commission.title" htmlEscape="false"/></h1>
+		</div>
+		
+		<table class="tableStyle sixCol">
+            <tr>
+                <td><label><spring:message code="ref.account.label.accountno" htmlEscape="false"/></label></td>
+                <td>${commandForm.accountNoExp}</td>
+                <td><label><spring:message code="ref.account.entry.label.shortname" htmlEscape="false"/></label></td>
+                <td>${commandForm.shortNameExp}</td>	
+            </tr>
+        </table>
+    
+	<div class="entryBlkArea twoCols">
+		<div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.account.label.commissioninformation" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+		</div>
+		<div class="formItemBlock topitems dottedBg">
+			<!-- Commission Id /Name -->
+			<div class="formItem commFld">
+				<form:label path="commandForm.commissionTax.taxFeeId" class="required"><spring:message code="ref.account.label.mandatoryoptionalarea.commissionid" htmlEscape="false"/></form:label> 
+				<span>
+					<xenos:select id="cmbTaxFeeId" path="commandForm.commissionTax.taxFeeId" class="dropdowninput bigInput">
+                    <form:option value="" />
+						<form:options items="${commandForm.dropDownListValues.taxIdCommissionList}" itemLabel="label" itemValue="value"/>
+					</xenos:select>
+				</span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- calculation method -->
+			<div class="formItem commFld">
+				<form:label path="commandForm.commissionTax.taxFeeCalcType" class="required"><spring:message code="ref.account.label.mandatoryoptionalarea.calculationmethod" htmlEscape="false"/></form:label> 
+				<span>
+					<xenos:select id="cmbTaxFeeCalcType" path="commandForm.commissionTax.taxFeeCalcType" class="dropdowninput">
+                    <form:option value="" />
+						<form:options items="${commandForm.dropDownListValues.calculationMethodList}"/>
+					</xenos:select>
+				</span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		
+			<!-- Issue Country -->
+			<div class="formItem commFld">
+				<form:label path="commandForm.commissionTax.issueCountry"><spring:message code="ref.account.label.mandatoryoptionalarea.issuecountry" htmlEscape="false"/></form:label>
+				<span><form:input id="issueCountry" value="" path="commandForm.commissionTax.issueCountry"  class="textBox" /></span>
+				<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="issueCountry" popType="nationality"/></div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<!-- Security Type -->
+			<div class="formItem commFld">
+				<form:label path="commandForm.commissionTax.instrumentType" class="required"><spring:message code="ref.account.label.mandatoryoptionalarea.securitytype" htmlEscape="false"/></form:label> 
+				<span><form:input id="instrumentType" value="" path="commandForm.commissionTax.instrumentType"  class="textBox instrumentType" /></span>	
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+            
+			
+			<!-- buy/sell -->
+			<div class="formItem commFld twoCols">
+				<form:label path="commandForm.commissionTax.buySellFlag"><spring:message code="ref.account.label.mandatoryoptionalarea.buysell" htmlEscape="false"/></form:label> 
+				<span>
+					<xenos:select id="cmbBuySellFlag" path="commandForm.commissionTax.buySellFlag" class="dropdowninput">
+                    <form:option value="" />
+						<form:options items="${commandForm.dropDownListValues.buySellFlagList}" itemLabel="label" itemValue="value"/>
+					</xenos:select>
+				</span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+
+			<!-- Start Date -->
+			<div class="formItem">
+				<form:label path="commandForm.commissionTax.ruleStartDateStr" class="required"><spring:message code="ref.account.label.mandatoryoptionalarea.startdate" htmlEscape="false"/></form:label> 
+				<span><form:input id="ruleStartDateStr" value="" path="commandForm.commissionTax.ruleStartDateStr" class="dateinput" onblur="if(!checkDate(this))
+																							{xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage
+																							(xenos.i18n.datevalidationmessage.incorrect_date,[this.value]))}else{formatDate(this)};" /></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<!-- End Date -->
+			<div class="formItem">
+				<form:label path="commandForm.commissionTax.ruleEndDateStr"><spring:message code="ref.account.label.enddate" htmlEscape="false"/></form:label> 
+				<span><form:input id="ruleEndDateStr" value="" path="commandForm.commissionTax.ruleEndDateStr" class="dateinput"  onblur="if(!checkDate(this))
+																							{xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage
+																							(xenos.i18n.datevalidationmessage.incorrect_date,[this.value]))}else{formatDate(this)};"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<!-- As Rate-->
+			<div class="formItem IRate">
+				<form:label path="commandForm.commissionTax.chargeRateStr" class="required"><spring:message code="ref.account.label.mandatoryoptionalarea.rate" htmlEscape="false"/></form:label> 
+				<span><form:input id="chargeRateStr" value="" path="commandForm.commissionTax.chargeRateStr"  class="txtNormal" onblur="return formatRate($('#chargeRateStr'),4,8,null,$('#chargeRateStr').parent().parent().find('label').text())"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<!-- As Rate Type-->
+			<div class="formItem IRate" >
+				<form:label path="commandForm.commissionTax.rateType" class="required"><spring:message code="ref.account.label.mandatoryoptionalarea.ratetype" htmlEscape="false"/></form:label> 
+				<span>
+					<xenos:select id="rateType" path="commandForm.commissionTax.rateType" class="dropdowninput">
+                    <form:option value="" />
+						<form:options items="${commandForm.dropDownListValues.rateTypeList}" itemLabel="label" itemValue="value"/>
+					</xenos:select>
+				</span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<!-- Max-->
+			<div class="formItem IMinMax" >
+				<form:label path="commandForm.commissionTax.defaultMaxStr"><spring:message code="ref.account.label.max" htmlEscape="false"/></form:label> 
+				<span><form:input id="defaultMaxStr" value="" path="commandForm.commissionTax.defaultMaxStr"  class="txtNormal formatAmount" onblur="return formatAmount($('#defaultMaxStr'),15,3,null,$('#defaultMaxStr').parent().parent().find('label').text())"/></span> 
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<!-- Min -->
+			<div class="formItem IMinMax" >
+				<form:label path="commandForm.commissionTax.defaultMinStr" ><spring:message code="ref.account.label.min" htmlEscape="false"/></form:label> 
+				<span><form:input id="defaultMinStr" value="" path="commandForm.commissionTax.defaultMinStr"  class="txtNormal formatAmount defaultMinStr" onblur="return formatAmount($('#defaultMinStr'),15,3,null,$('#defaultMinStr').parent().parent().find('label').text())"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<!-- chargeamount -->
+			<div class="formItem ICharge IAmountLbl" >
+				<form:label path="commandForm.commissionTax.chargeAmountStr" class="required"><spring:message code="ref.account.label.mandatoryoptionalarea.chargeamount" htmlEscape="false"/></form:label> 
+				<span><form:input id="chargeAmountStr" value="" path="commandForm.commissionTax.chargeAmountStr"  class="txtNormal chargeAmountStr" onblur="return formatAmount($('#chargeAmountStr'),15,3,null,$('#chargeAmountStr').parent().parent().find('label').text())"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<!-- chargeUnitStr -->
+			<div class="formItem ICharge IUnitLbl" >
+				<form:label path="commandForm.commissionTax.chargeUnitStr" class="required"><spring:message code="ref.account.label.mandatoryoptionalarea.chargeunit" htmlEscape="false"/></form:label> 
+				<span><form:input id="chargeUnitStr" value="" path="commandForm.commissionTax.chargeUnitStr"  class="txtNormal chargeUnitStr" onblur="return formatAmount($('#chargeUnitStr'),15,3,null,$('#chargeUnitStr').parent().parent().find('label').text())"/></span> 
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<!-- tableid -->
+			<div class="formItem ISliding">
+				<form:label path="commandForm.commissionTax.chargeSlidingTableId" class="required"><spring:message code="ref.account.label.mandatoryoptionalarea.tableid" htmlEscape="false"/></form:label> 
+				<span class="slidingGen" >
+					<xenos:select id="chargeSlidingTableId" path="commandForm.commissionTax.chargeSlidingTableId" class="dropdowninput chargeSlidingTableId">
+						<form:option value=""/>
+						<form:options items="${commandForm.dropDownListValues.chargeSlidingList}"/>
+					</xenos:select>
+				</span> 
+				<span class="slidingPrc" >
+					<xenos:select id="chargeSlidingTableIdPrc" path="commandForm.commissionTax.chargeSlidingTableIdPrc" class="dropdowninput chargeSlidingTableIdPrc">
+						<form:option value=""/>
+                        <form:options items="${commandForm.dropDownListValues.chargePrcSlidingList}"/>
+					</xenos:select>
+				</span> 
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<!-- discountStr -->
+			<div class="formItem ISliding" >
+				<form:label path="commandForm.commissionTax.discountStr"><spring:message code="ref.account.label.discount" htmlEscape="false"/></form:label> 
+				<span><form:input id="discountStr" value="" path="commandForm.commissionTax.discountStr"  class="txtNormal" onblur="return formatAmount($('#discountStr'),15,3,null,$('#discountStr').parent().parent().find('label').text())" /></span> <!-- onblur format should be done -->
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			<!-- Add Button -->
+            <div id="formActionArea" class="gridBtnMargin AddBtnformActionAreaBg">
+                <div class="right">
+                    <div class="btnWrapStyle submitBtn gridAddBtn">
+                        <span class="addBtn" style="display:block"><input id="addTaxFee" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+                    </div>
+                    <span class="editBtn" style="display:none">	
+                        <div class="btnWrapStyle submitBtn"><input id="saveTaxFee" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                        <div class="btnWrapStyle resetBtn"><input id="cancelTaxFee" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                    </span>
+                   
+                </div>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            
+		</div>
+		<!-- Commission Area -->
+			<div class="entryGrid">
+				<div id="commissionGrid" class="xenos-grid" style="width:100%;height:300px;"><spring:message text="" htmlEscape="false"/></div>	
+			</div>
+	</div>
+	
+</div>
+	
+</jsp:root>

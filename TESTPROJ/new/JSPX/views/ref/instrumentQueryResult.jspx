@@ -1,0 +1,121 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+	xmlns:spring="http://www.springframework.org/tags"
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+
+	<jsp:directive.page contentType="text/html;charset=UTF-8" />
+	<jsp:output	omit-xml-declaration="yes" />
+
+	
+
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [
+                {name:"<spring:message code="ref.instrument.label.instrumentcode" htmlEscape="false"/>", field:"instrumentCode", id:"instrumentCode", width:150, sortable:true,formatter:Slick.Formatters.InstrumentDetailViewFormater},
+                {name:"<spring:message code="ref.instrument.label.securityname" htmlEscape="false"/>", field:"shortName", id:"shortName", width:319, sortable:true},
+                {name:"<spring:message code="ref.instrument.label.alternate.securitycode" htmlEscape="false"/>", field:"alternateSecurityCode", id:"alternateSecurityCode", width:200, sortable:true},
+                {name:"<spring:message code="ref.instrument.label.sedolcode" htmlEscape="false"/>", field:"sedolCode", id:"sedolCode", width:109, sortable:true},
+                {name:"<spring:message code="ref.instrument.label.isincode" htmlEscape="false"/>", field:"isInCode", id:"isInCode", width:109, sortable:true},
+                {name:"<spring:message code="ref.instrument.label.securitytype" htmlEscape="false"/>", field:"instrumentType", id:"instrumentType", width:150, sortable:true},
+                {name:"<spring:message code="ref.instrument.label.countrycode" htmlEscape="false"/>", field:"countryCode", id:"countryCode", width:109, sortable:true},
+                {name:"<spring:message code="ref.label.instrument.issueccy" htmlEscape="false"/>", field:"tradingCcyCode", id:"tradingCcyCode", width:109, sortable:true},
+                {name:"<spring:message code="ref.label.instrument.bondtype" htmlEscape="false"/>", field:"discountCouponType", id:"discountCouponType", width:109, sortable:true},
+				{name:"<spring:message code="ref.label.instrument.issuedate" htmlEscape="false"/>", field:"issueDateStr", id:"issueDateStr", width:109, sortable:true},
+				{name:"<spring:message code="ref.label.instrument.maturitydate" htmlEscape="false"/>", field:"maturityDateStr", id:"maturityDateStr", width:109, sortable:true},
+				{name:"<spring:message code="ref.label.instrument.linkedtype" htmlEscape="false"/>", field:"linkType", id:"linkType", width:109, sortable:true},
+				{name:"<spring:message code="ref.label.instrument.couponrate" htmlEscape="false"/>", field:"ratestr", id:"ratestr", width:109, cssClass:'xenos-grid-number', sortable:true},
+				{name:"<spring:message code="ref.instrument.label.tickvalue" htmlEscape="false"/>", field:"tickvaluestr", id:"tickvaluestr", width:109, cssClass:'xenos-grid-number', sortable:true},
+				{name:"<spring:message code="ref.instrument.label.quantityperunit" htmlEscape="false"/>", field:"quantityPerUnitStr", id:"quantityPerUnitStr", width:200, cssClass:'xenos-grid-number', sortable:true},
+				{name:"<spring:message code="ref.label.instrument.status" htmlEscape="false"/>", field:"status", id:"status", width:109, sortable:true,formatter:Slick.Formatters.CancelRecordFormatter},
+				{name:"<spring:message code="ref.instrument.label.posxenos" htmlEscape="false"/>", field:"posXenos", id:"posXenos", width:109, sortable:true},
+				{name:"<spring:message code="ref.instrument.label.postx" htmlEscape="false"/>", field:"posTx",id:"posTx", width:109,sortable:true},
+			    {name:"<spring:message code="ref.instrument.label.pospx" htmlEscape="false"/>", field:"posPx",id:"posPx", width:109,sortable:true}
+            ];
+			var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:true,
+				buttons:{
+					print:true,
+					xls:true,
+					pdf:true,	
+					xlsPref:true,
+					columnPicker:true,
+					save:true
+				},
+				pagingInfo:{
+					isNext : isNext,
+					url: '/secure/ref/instrument/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/ref/instrument/query/result.json?fetch=next',
+					prevPage : '/secure/ref/instrument/query/result.json?fetch=previous',
+					pdfReport: '/secure/ref/instrument/query/report.json?outputType=pdf',
+					xlsReport: '/secure/ref/instrument/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/ref/instrument/query/reportPref.json?outputType=xls'
+				},
+				moduleParam:"instrument",
+				defaultInvisibleColumns: ["posXenos","posTx","posPx"]
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+				<c:forEach items="${value}" var="dl">
+					rec = {};
+					row_id+=1;
+					rec.id = "xenos_" + row_id;
+					rec.instrumentPk= "<c:out value="${dl.instrumentPk}" />";
+					rec.instrumentPkValue= "<c:out value="${dl.instrumentPkValue}" />";
+					rec.instrumentCode = "<c:out value="${xenosfn:escapeJS(dl.instrumentCode)}" />";
+					rec.shortName = "<c:out value="${xenosfn:escapeJS(dl.shortName)}" />";
+					rec.alternateSecurityCode = "<c:out value="${xenosfn:escapeJS(dl.alternateSecurityCode)}" />";
+					rec.sedolCode = "<c:out value="${xenosfn:escapeJS(dl.sedolCode)}" />";
+					rec.isInCode = "<c:out value="${xenosfn:escapeJS(dl.isInCode)}" />";
+					rec.instrumentType = "<c:out value="${dl.instrumentType}" />";
+					rec.countryCode = "<c:out value="${dl.countryCode}" />";
+					rec.tradingCcyCode = "<c:out value="${xenosfn:escapeJS(dl.tradingCcyCode)}" />";
+					rec.discountCouponType = "<c:out value="${dl.discountCouponType}" />";
+					rec.issueDateStr = "<c:out value="${dl.issueDateStr}" />";
+					rec.maturityDateStr = "<c:out value="${dl.maturityDateStr}" />";
+					rec.linkType = "<c:out value="${dl.linkType}" />";
+					rec.ratestr = "<c:out value="${dl.ratestr}" />";
+					rec.tickvaluestr = "<c:out value="${dl.tickvaluestr}" />";
+					rec.quantityPerUnitStr = "<c:out value="${dl.quantityPerUnitStr}" />";
+					rec.status = "<c:out value="${dl.status}" />";
+					rec.posXenos = "<c:out value="${dl.posXenos}" />";
+					rec.posTx= "<c:out value="${dl.posTx}"/>";  
+					rec.posPx= "<c:out value="${dl.posPx}"/>";  
+					grid_result_data.push(rec);
+				</c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+    
+    <div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	
+		<c:forEach items="${navAction}" var="record">
+			  <a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'REFINSAM')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-amendIco.png" title="${record.actionName}" id="amend" status="ready" alt="Amend" /></c:when>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'REFINSCX')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}"  id="cancel" status="ready" alt="Cancel" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			  </a>
+		</c:forEach>	  
+	</div>
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/ref/instrumentQueryResult.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+	
+</jsp:root>

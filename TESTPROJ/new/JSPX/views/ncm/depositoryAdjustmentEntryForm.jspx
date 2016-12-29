@@ -1,0 +1,423 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles"
+	 xmlns:util="urn:jsptagdir:/WEB-INF/tags/util">
+	 
+<div class="entryContainer paddingFour">
+	 
+	<!-- Java script include -->
+	 <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		
+		var populateBankDetailsForFund;
+		var populateBankDetailsForBank;
+		var xenos$Wizard$onPageLoad${commandForm.uniqueId}  = function($xenos$Wizard){ 
+			
+			$('#accountNo').attr('bankCodeContext',$("#tgtbankCode").val());
+			$('#accountNo').attr('fundCodeContext',$("#tgtfundCode").val());
+			$('#bankCode').attr('fundCodeContext',$("#tgtfundCode").val());
+			
+			$('#tgtfundCode').removeClass('textBox').addClass('txtBox');
+			$('#tgtfundCode').css("text-transform","uppercase");
+			
+			var context = $xenos$Wizard.$context;
+			var baseUrl = xenos.context.path + context.find('form').attr('action');
+			var validateHook = function(){		
+				var validationMessages = [];
+				var fundCode 			= $('#tgtfundCode',context).val();
+				var accountNo 			= $('#tgtaccountNo',context).val();
+				var securityCode		= $('#tgtsecurityCode',context).val();
+				var quantity			= $('#quantity',context).val();
+				var adjustmentDate		= $('#inOutDateStr',context).val();
+				var adjustmentType		= $('#adjustmentType',context).val();
+				var bankCode		    = $('#tgtbankCode',context).val();
+				
+			   if(VALIDATOR.isNullValue(fundCode)){
+						validationMessages.push(xenos$NCM$i18n.depoadjentry.validation.fundcode_empty);
+				}
+				
+			   if(VALIDATOR.isNullValue(securityCode)){
+					validationMessages.push(xenos$NCM$i18n.depoadjentry.validation.securityCode_empty);
+				}
+				if(VALIDATOR.isNullValue(bankCode)){
+						validationMessages.push(xenos$NCM$i18n.depoadjentry.validation.bankcode_empty);
+				}
+				if(VALIDATOR.isNullValue(accountNo)){
+					validationMessages.push(xenos$NCM$i18n.depoadjentry.validation.accountno_nempty);
+				}
+				if(VALIDATOR.isNullValue(quantity)){
+					validationMessages.push(xenos$NCM$i18n.depoadjentry.validation.quantity_empty);
+				}	
+				else{
+					if(!formatQuantity($('#quantity'),14,3,validationMessages,$('#quantity').parent().parent().find('label').text())){
+						validationMessages.push();
+					}
+				}
+				if(VALIDATOR.isNullValue(adjustmentDate)){
+						validationMessages.push(xenos$NCM$i18n.depoadjentry.validation.adjustmentDate_empty);
+				}else{
+						if($.trim(adjustmentDate).length> 0 <![CDATA[&&]]> isDateCustom($.trim(adjustmentDate))==false){
+							validationMessages.push(xenos$NCM$i18n.depoadjentry.validation.invalid_date);
+						}
+				}
+				
+				if (validationMessages.length > 0){
+					$('.formHeader').find('.formTabErrorIco')
+									.css('display', 'block')
+									.off('click')
+									.on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+					return false;
+				}
+				else {
+					 $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+				}
+				return true;
+			};
+					
+			var unloadHook = function(){
+				//$xenos$Wizard.deregister('submit',validateHook);
+				$xenos$Wizard.deregister('unload',unloadHook);
+				$('#fundCode',context).unbind('change');
+				$('#bankCode',context).unbind('change');
+			};
+				
+			$xenos$Wizard.register('submit',validateHook);
+			$xenos$Wizard.register('unload',unloadHook);
+				
+					
+			/**
+			* A common request handler to be used server communication.
+			*/
+			var xenos$Handler$RequestHandler = xenos$Handler$function({
+				get: {
+					contentType: 'json',
+					requestType: xenos$Handler$default.requestType.asynchronous
+				},	
+				settings: {
+					beforeSend: function(request) {
+						request.setRequestHeader('Accept', 'application/json');
+					},
+					type: 'POST'
+				}
+			});
+			
+			
+			$('#tgtbankCode',context).bind('change', onChangeBankCode);
+			$('#bankCode',context).bind('change', onChangeBankCode);
+			$('#quantity',context).bind('change', onChangeQuantity);
+			$('#inOutDateStr').unbind('change').bind('change',onChangeDate);
+				
+			function onChangeQuantity(){
+				var temp = [];
+				if(!formatQuantity($('#quantity'),14,3,null,$('#quantity').parent().parent().find('label').text())){
+					//$('#quantity').val("");
+				}
+			}
+			
+			function onChangeDate(e){
+			 	if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos.i18n.datevalidationmessage.incorrect_date,[this.value]))
+				}else{
+					formatDate(this)
+				}
+			}
+			
+			function formatDate(date){
+				if(date.value.length == 7){
+					if(date.id=="inOutDateStr"){
+						$("#inOutDateStr").val(date.value.substr(0,6)+"0"+date.value.substr(6));
+					}
+				}
+			}
+			var preAccNo;
+			var preBankCode;
+			var preFundCode;
+			populateBankDetailsForFund = function(e){
+					preAccNo = $.trim($('#tgtaccountNo',context).val());
+					preBankCode = $.trim($('#tgtbankCode',context).val());
+					preFundCode = $.trim($('#tgtfundCode',context).val()).toUpperCase();
+				if("${commandForm.entry.fundCode}" == preFundCode <![CDATA[&&]]> "${commandForm.entry.bankCode}" == preBankCode <![CDATA[&&]]> "${commandForm.entry.bankAccountNo}" == preAccNo){
+					return;
+				}
+				$xenospopup$remove('bankCode', 'both');
+				$xenospopup$remove('accountNo', 'both');
+				var requestUrl = baseUrl + "/populateforfund.json?commandFormId=" + $('[name=commandFormId]').val();
+				var reqObj = {
+					"entry.fundCode"	:	$.trim($('#tgtfundCode',context).val()),
+					"entry.bankCode"	:	$.trim($('#bankCode',context).val())
+				};
+				if($.trim($('#tgtfundCode',context).val()).length &gt; 0){
+					xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+													settings: {data : reqObj},
+													onJsonContent :  function(e, options, $target, content) {
+														if(content.success == true){
+															$('#accountNo').attr('fundCodeContext', $("#tgtfundCode", context).val());
+															$('#bankCode').attr('fundCodeContext', $("#tgtfundCode", context).val());
+															populatebankforfund(content.value[0]);
+														} else {
+															xenos.utils.displayGrowlMessage(xenos.notice.type.error,content.value);
+														}
+													}	
+												}
+											 );
+										}
+			}
+			
+			populateBankDetailsForBank = function(e){
+				
+				$xenospopup$remove('accountNo', 'both');
+				var requestUrl = baseUrl + "/populateforbank.json?commandFormId=" + $('[name=commandFormId]').val();
+				var reqObj = {
+					"entry.fundCode"	:	$.trim($('#tgtfundCode',context).val()),
+					"entry.bankCode"	:	$.trim($('#tgtbankCode',context).val())
+				};
+				if($.trim($('#tgtfundCode',context).val()).length &gt; 0){
+					xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+													settings: {data : reqObj},
+													onJsonContent :  function(e, options, $target, content) {
+														if(content.success == true){
+															$('#accountNo').attr('bankCodeContext', $("#tgtbankCode", context).val());
+															populatebankforbank(content.value[0]);
+														} else {
+															xenos.utils.displayGrowlMessage(xenos.notice.type.error,content.value);
+														}
+													}	
+												}
+											 );
+										}
+			}
+				
+			function onChangeBankCode(e){
+				if($("#tgtbankCode").val()==""){
+				   $('#accountNo').attr('bankCodeContext',$("#tgtbankCode").val());
+				}	
+			}
+			
+				
+			function populatebankforfund(data){
+				 var result =data.entry;
+				 jQuery('#tgtbankCode').val(result.bankCode).change();
+				 jQuery('#tgtaccountNo').val(result.bankAccountNo).change();
+				 $('#accountNo').attr('bankCodeContext',$("#tgtbankCode").val());
+			};
+			
+			function populatebankforbank(data){
+				 var result =data.entry;
+				 jQuery('#tgtaccountNo').val(result.bankAccountNo).change();
+				 $('#accountNo').attr('bankCodeContext',$("#tgtbankCode").val());
+			};
+			
+	    }
+		
+		function accountNameResolver(e, resolvedName) {
+			$('#accountShortName').val(resolvedName);
+		}
+		
+		function trdaccountNameResolver(e, resolvedName) {
+			$('#tradingAccountShortName').val(resolvedName);
+		}	
+		
+		function securityNameResolver(e, resolvedName) {
+			$('#securityName').val(resolvedName);
+		}
+		
+		function fundNameResolver(e, resolvedName) {
+			$('#fundName').val(resolvedName);
+		}	
+		
+		function accountPreResolve(e) {
+			if(e.type == 'blur'){
+				populateBankDetailsForFund(e);
+			}
+		}
+		function bankCodePreResolve(e){
+			if(e.type == 'blur'){
+				populateBankDetailsForBank(e);
+			}
+		}		
+		
+		</jsp:body>
+    </jsp:element>
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+	
+	<div class="entryBlkArea ">
+		<div class="formItemBlock dottedBg">
+			<!-- Fund Code -->
+				<div class="formItem twoCols">
+				<form:label path="commandForm.entry.fundCode" class="required"><spring:message code="ref.fund.label.fundcode" htmlEscape="false"/></form:label>
+					<util:xenospopup 
+					id="fundCode"					
+					path="commandForm.entry.fundCode" 
+					showResolvedName="true"					 
+					popType="fundCode" 					 
+					event="blur" 
+					preResolveHook="accountPreResolve"
+					endpoint="secure/ref/nameresolver/fundcode"
+					postResolveHook="fundNameResolver"
+					/>	            
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem" style="display:none;">
+					<span><form:input id="fundName" value="" path="commandForm.entry.fundName" class="textBox"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>				
+				
+			<!--  Adjustment Type -->
+				<div class="formItem twoCols">
+					<form:label path="commandForm.entry.adjustmentType" class="required"><spring:message code="ncm.adjustment.label.adjustmenttype" htmlEscape="false"/></form:label>
+					<span>
+					<form:select id="adjustmentType" path="commandForm.entry.adjustmentType" class="dropdowninput">
+							<form:options items="${commandForm.actionFormList.adjustmentTypeList}" itemLabel="label" itemValue="value"/>
+					</form:select>
+					</span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			
+			<!-- Bank -->
+				<div class="formItem twoCols" >
+					<form:label path="commandForm.entry.bankCode"  class="required"><spring:message code="ncm.adjustment.label.bankcustodiancode" htmlEscape="false"/></form:label>
+					<util:xenospopup 
+					id="bankCode"
+					path="commandForm.entry.bankCode"
+					showResolvedName="true"
+					popType="fininstForFundPopup"
+					fundCodeContext="" 
+					preResolveHook="bankCodePreResolve"
+					instRoleTypeCtx="Bank/Custodian"
+					event="change blur" 
+					endpoint="secure/ref/nameresolver/finInst"
+					/>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+			<!-- Account No -->
+				<div class="formItem twoCols">
+					<form:label path="commandForm.entry.bankAccountNo" class="required"><spring:message code="ncm.label.bankaccountno" htmlEscape="false"/></form:label>
+					<util:xenospopup 
+					id="accountNo" 
+					path="commandForm.entry.bankAccountNo"
+					showResolvedName="true"
+					popType="settleAccFund"
+					fundCodeContext="" 
+					bankCodeContext="" 
+					event="change focusout" 
+					endpoint="secure/ref/nameresolver/account"
+					postResolveHook="accountNameResolver"
+					/>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem" style="display:none;">
+					<span><form:input id="accountShortName" value="" path="commandForm.entry.accountShortName" maxlength="19" class="textBox"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+			<!-- Security Code -->           		
+           		<div class="formItem twoCols" >
+					<form:label path="commandForm.entry.securityCode" class="required"><spring:message code="ncm.transactionquery.label.securitycode" htmlEscape="false"/></form:label> 
+					<util:xenospopup 
+					id="securityCode" 
+					path="commandForm.entry.securityCode"
+					showResolvedName="true"
+					popType="security"
+					event="change focusout" 
+					endpoint="secure/ref/nameresolver/security"
+					postResolveHook="securityNameResolver"
+					/>
+					
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem" style="display:none;">
+					<span><form:input id="securityName" value="" path="commandForm.entry.securityName" class="textBox"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			<!-- quantity -->				
+				<div class="formItem twoCols">
+					<form:label path="commandForm.entry.amountStr" class="required txtNormal"><spring:message code="ncm.depositoryadjustmentquery.label.quantity" htmlEscape="false"/></form:label>
+					<span><form:input id="quantity" value="" path="commandForm.entry.amountStr" /></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+			<!--  Adjustment Date -->
+				<div class="formItem twoCols">
+					<form:label path="commandForm.entry.inOutDateStr" class="required"><spring:message code="ncm.adjustment.label.adjustmentdate" htmlEscape="false"/></form:label>
+					<span><form:input id="inOutDateStr" value="" path="commandForm.entry.inOutDateStr" size="15" class="dateinput" onchange="checkDate(this);"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+							
+			<!--  Adjustment Reason -->
+				<div class="formItem twoCols">
+					<form:label path="commandForm.entry.reasonCode" class="required"><spring:message code="ncm.adjustment.label.adjustmentreason" htmlEscape="false"/></form:label>
+					<span>
+					<form:select id="adjustmentReason" path="commandForm.entry.reasonCode" class="dropdowninput">
+							<form:options items="${commandForm.actionFormList.reasonCodeList}" itemLabel="label" itemValue="value"/>
+					</form:select>
+					</span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!-- Trading Account No --> 
+				<div class="formItem twoCols">
+				    <form:label path="commandForm.entry.tradingAccountNo"><spring:message code="ncm.label.tradingac" htmlEscape="false"/></form:label>
+					<util:xenospopup 
+					id="tradingAccountNo" 
+					path="commandForm.entry.tradingAccountNo"
+					showResolvedName="true"
+					popType="cpAccount"
+					actTypeContext="T|B"
+					actStatusContext="OPEN"
+					event="change focusout" 
+					endpoint="secure/ref/nameresolver/account"
+					postResolveHook="trdaccountNameResolver"
+					/>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem" style="display:none;">
+					<span><form:input id="tradingAccountShortName" value="" path="commandForm.entry.tradingAccountShortName" class="textBox"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+			<!-- Ledger Code -->
+				<div class="formItem twoCols">
+					<form:label path="commandForm.entry.ledger"><spring:message code="ncm.label.ledger" htmlEscape="false"/></form:label>
+					<span>
+					<form:select id="ledgerCode" path="commandForm.entry.ledger" class="dropdowninput">
+							<form:option value="" />
+							<form:options items="${commandForm.actionFormList.ledgerList}"/>
+					</form:select>
+					</span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+			<!--  Remarks -->
+				<div class="formItem twoCols">
+					<form:label path="commandForm.entry.remarks"><spring:message code="ncm.label.remarks" htmlEscape="false"/></form:label>
+					<form:input id="remarks" value="" path="commandForm.entry.remarks" maxlength="100" class="txtNormal fullWidthInput"/>
+				</div>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>				
+		</div>
+		</div>
+   <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/inf/utilCommons.js"/></jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/inf/datevalidation.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>	
+	</div>
+	
+</jsp:root>

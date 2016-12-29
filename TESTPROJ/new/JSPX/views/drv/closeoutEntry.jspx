@@ -1,0 +1,258 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0" 
+xmlns:jsp="http://java.sun.com/JSP/Page" 
+xmlns:c="http://java.sun.com/jsp/jstl/core" 
+xmlns:form="http://www.springframework.org/tags/form" 
+xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+xmlns:spring="http://www.springframework.org/tags" 
+xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation" 
+xmlns:xenos="http://www.nri.co.jp/xenos" 
+xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions" 
+xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	<div class="formItemArea entryContainerConfirm paddingFour">
+		<jsp:directive.page contentType="text/html;charset=UTF-8" />
+		<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>		
+		<jsp:body>
+			// Loding the localized scripts
+			xenos.loadLocalizedScript([
+				{path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+				{path: xenos.context.path + '/scripts/drv/xenos-drv-i18n', async: false}
+			]);
+			// Loading required scripts before validator is called
+			xenos.loadScript([
+				{path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},
+				{path: xenos.context.path + '/scripts/drv/xenos/closeoutEntry.js', async: false}
+			]);
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+				// row color handling
+				var context = $xenos$Wizard.$context;
+				var cached = xenos$Cache.get('globalPrefs');
+				var evenRowColor = cached.zebraColorEven ? cached.zebraColorEven:'#F9F9F9';
+				var oddRowColor = cached.zebraColorOdd ?cached.zebraColorOdd:'#E5E9ED';
+				$('tr.evenRowColor',context).css('background-color',evenRowColor);
+				$('tr.oddRowColor',context).css('background-color',oddRowColor);
+				// clear all
+				$('.openTradeCloseQty').val('');
+				$('.closeTradeCloseQty').val('');
+				// select open trade radio button and set value for closeout quantity
+				var openTradeRadioIndex = '${commandForm.openTradeRadio}';
+				if(openTradeRadioIndex.length > 0) {
+					<c:if test="${commandForm.openTradeRadio != ''}">
+						<c:set var="oTrdClsOutQtyVal" value="${commandForm.openTradeCloseOutQty[commandForm.openTradeRadio]}"/>
+					</c:if>
+					var openTradeCloseOutQtyVal = "<c:out value="${oTrdClsOutQtyVal}" />";
+					$('#openTradeRadioBtn_' + openTradeRadioIndex).attr('checked',true);
+					$('#openTradeRadio').val(openTradeRadioIndex);
+					$('#openTradeCloseQty_' + openTradeRadioIndex).val(openTradeCloseOutQtyVal);
+				}
+				// select close trade radio button and set value for closeout quantity
+				var closeTradeRadioIndex = '${commandForm.closeTradeRadio}';
+				if(closeTradeRadioIndex.length > 0) {
+					<c:if test="${commandForm.closeTradeRadio != ''}">
+						<c:set var="cTrdClsOutQtyVal" value="${commandForm.closeTradeCloseOutQty[commandForm.closeTradeRadio]}"/>
+					</c:if>
+					var closeTradeCloseOutQtyVal = "<c:out value="${cTrdClsOutQtyVal}" />";
+					$('#closeTradeRadioBtn_' + closeTradeRadioIndex).attr('checked',true);
+					$('#closeTradeRadio').val(closeTradeRadioIndex);
+					$('#closeTradeCloseQty_' + closeTradeRadioIndex).val(closeTradeCloseOutQtyVal);
+				}
+				// submit hooks
+				var xenos$ns$views$drvCloseoutEntry$onSubmitHook = function() {
+					xenos.ns.views.closeoutEntry.populateQuantityString();
+					return xenos.ns.views.closeoutEntry.validateCloseoutEntry();
+				};
+				var xenos$ns$views$drvCloseoutEntry$unloadHook = function(){
+					$xenos$Wizard.deregister('submit',xenos$ns$views$drvCloseoutEntry$onSubmitHook);
+					$xenos$Wizard.deregister('unload',xenos$ns$views$drvCloseoutEntry$unloadHook);
+				}
+				$xenos$Wizard.register('submit',xenos$ns$views$drvCloseoutEntry$onSubmitHook);
+				$xenos$Wizard.register('unload',xenos$ns$views$drvCloseoutEntry$unloadHook);
+				// hide the reset button
+				$("#formActionArea .btnsArea .wizReset .inputBtnStyle").hide();
+				// following code will return control from entry system confirmation page to query result page
+				if('${commandForm.actionType}' == 'entry'){
+					$xenos$Wizard.apply({ navigations : {
+						okHandler : 'backToQuerySummary',
+						backHandler:'backToQuerySummary'
+						}
+					});
+				}
+				// handler for open trade radio button
+				xenos$ns$views$drvCloseoutEntry$openRadioHandler = 	function(){
+					var openTrdSelectedIndx = $(this).attr('id').match(/-?\d+\.?\d*/);
+					var openQtyId = "openTradeCloseQty_" + openTrdSelectedIndx;
+					if ($(this).is(':checked')) {
+						$('#openTradeRadio').val(openTrdSelectedIndx);
+						$('.openTradeCloseQty').val('');
+						$('#' + openQtyId).val($('#hid_openBalanceQuantity_' + openTrdSelectedIndx).val());
+					}
+				}
+				// handler for close trade radio button
+				xenos$ns$views$drvCloseoutEntry$closeRadioHandler =	function(){
+					var closeTrdSelectedIndx = $(this).attr('id').match(/-?\d+\.?\d*/);
+					var closeQtyId = "closeTradeCloseQty_" + closeTrdSelectedIndx;
+					if ($(this).is(':checked')) {
+						$('#closeTradeRadio').val(closeTrdSelectedIndx);
+						$('.closeTradeCloseQty').val('');
+						$('#' + closeQtyId).val($('#hid_closeBalanceQuantity_' + closeTrdSelectedIndx).val());
+					}
+				}
+				$('input:radio[name="openTradeRadioBtn"]').unbind('change');
+				$('input:radio[name="openTradeRadioBtn"]').bind('change',xenos$ns$views$drvCloseoutEntry$openRadioHandler);
+				$('input:radio[name="closeTradeRadioBtn"]').unbind('change');
+				$('input:radio[name="closeTradeRadioBtn"]').bind('change',xenos$ns$views$drvCloseoutEntry$closeRadioHandler);
+			};
+		</jsp:body>
+		</jsp:element>
+		<jsp:output	omit-xml-declaration="yes" /> 
+		<c:if test="${success =='false'}">
+			<!-- Error message Area -->
+			<ul class="xenosError">
+				<c:forEach items="${value}" var="dl">
+					<li><spring:message text="${dl}" htmlEscape="false" /></li>
+				</c:forEach>
+			</ul>
+		</c:if>
+		<form:form id="entryForm" modelAttribute="commandForm">
+			<div class="detailBlock entrySingleCol dtlInfoBlock " style="padding-bottom:7px; padding-top:5px; font-weight:900;">
+				<spring:message code="drv.label.contractinfo" htmlEscape="false"/> ${"["} 
+				<spring:message code="drv.label.contractreferenceno" htmlEscape="false"/> ${"-"} 
+				${commandForm.closeOutQuerySummaryView.contractReferenceNo} ${"]"}
+			</div>
+			<div class="detailBlock entrySingleCol dtlInfoBlock">
+				<table class="reportTbl">
+					<tr>
+						<th><spring:message code="drv.label.closeoutreferenceno" htmlEscape="false" /></th>
+						<th><spring:message code="drv.label.securitycode" htmlEscape="false" /></th>
+						<th><spring:message code="drv.label.accountno" htmlEscape="false" /></th>
+						<th><spring:message code="drv.label.fundaccountno" htmlEscape="false" /></th>
+						<th><spring:message code="drv.label.fundcode" htmlEscape="false" /></th>
+						<th><spring:message code="drv.label.expirystatus" htmlEscape="false" /></th>
+					</tr>
+					<tr class="evenRowColor">
+						<td>${commandForm.closeOutQuerySummaryView.contractReferenceNo}${"-"}${commandForm.closeOutQuerySummaryView.versionNo}</td>
+						<td>${commandForm.closeOutQuerySummaryView.securityId}</td>
+						<td>${commandForm.closeOutQuerySummaryView.cpAccountNo}</td>
+						<td>${commandForm.closeOutQuerySummaryView.inventoryAccountNo}</td>
+						<td>${commandForm.closeOutQuerySummaryView.fundCode}</td>
+						<td>${commandForm.closeOutQuerySummaryView.expiryStatus}</td>
+					</tr>
+				</table>
+			</div>
+			<div class="detailBlock entrySingleCol dtlInfoBlock">
+				<div style="padding-bottom:7px; padding-top:5px; font-weight:900;" >
+					<spring:message code="drv.label.tradeinfo" htmlEscape="false"/>
+				</div>
+				<div style="width:49.5%; display:inline-block;">
+					<div style="padding-bottom:7px; padding-top:5px; font-weight:900;" >
+						<spring:message code="drv.label.opentrades" htmlEscape="false"/>
+					</div>
+					<input type="hidden" id="openTradeRadio" name="openTradeRadio" />
+					<input type="hidden" id="openTradeQtyStr" name="openTradeQtyStr" />
+					<table class="reportTbl">
+						<tr>
+							<th></th>
+							<th><spring:message code="drv.label.tradereferenceno" htmlEscape="false" /></th>
+							<th><spring:message code="drv.label.openbalqty" htmlEscape="false" /></th>
+							<th><spring:message code="drv.label.price" htmlEscape="false" /></th>
+							<th><spring:message code="drv.label.closebalqty" htmlEscape="false" /></th>
+							<th><spring:message code="drv.label.long.short" htmlEscape="false" /></th>
+							<th><spring:message code="drv.label.executionoffice" htmlEscape="false" /></th>
+						</tr>
+						<c:forEach items="${commandForm.openTradeList}" var="dl" varStatus="loopStatus">
+							<tr	class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">
+								<td>
+									<div class="formItem">
+										<div class="radio">
+											<input type="radio" id="openTradeRadioBtn_${loopStatus.index}" name="openTradeRadioBtn" />
+										</div>
+									</div>
+								</td>
+								<td>
+									<div class = "hyperlink-relative-div">
+										<span class="detailTxtVal detail-view-hyperlink" 
+											  href="/secure/drv/trade/details/${dl.tradePk}?popup=true" 
+											  view="drvTradeDetailView" 
+											  dialogTitle="[${dl.tradeReferenceNo}] Derivative Trade Details View"  
+											  style="outline:0;" >
+											${dl.tradeReferenceNo}${"-"}${dl.versionNo}
+										</span>
+									 </div>
+								</td>
+								<td>
+									${dl.openBalanceQuantity}
+									<input type="hidden" value="${dl.openBalanceQuantity}" id="hid_openBalanceQuantity_${loopStatus.index}" />
+								</td>
+								<td>${dl.priceStr}</td>
+								<td>
+									<div class="formItem">
+										<form:input id="openTradeCloseQty_${loopStatus.index}" path="openTradeCloseOutQty" 
+										class="textNormal openTradeCloseQty" onfocusout="return formatSignedRate($('#openTradeCloseQty_${loopStatus.index}'),15,3,null,'Open trade closeout quantity');"/>
+									</div> 
+								</td>
+								<td>${dl.longShortStr}</td>
+								<td>${dl.executionOffice}</td>
+							</tr>
+						</c:forEach>
+					</table>
+				</div>
+				<div style="width:49.5%; display:inline-block; padding-left: 10px;">
+					<div style="padding-bottom:7px; padding-top:5px; font-weight:900;" >
+						<spring:message code="drv.label.closetrades" htmlEscape="false"/>
+					</div>
+					<input type="hidden" id="closeTradeRadio" name="closeTradeRadio" />
+					<input type="hidden" id="closeTradeQtyStr" name="closeTradeQtyStr" />
+					<table class="reportTbl">
+						<tr>
+							<th></th>
+							<th><spring:message code="drv.label.tradereferenceno" htmlEscape="false" /></th>
+							<th><spring:message code="drv.label.openbalqty" htmlEscape="false" /></th>
+							<th><spring:message code="drv.label.price" htmlEscape="false" /></th>
+							<th><spring:message code="drv.label.closebalqty" htmlEscape="false" /></th>
+							<th><spring:message code="drv.label.long.short" htmlEscape="false" /></th>
+							<th><spring:message code="drv.label.executionoffice" htmlEscape="false" /></th>
+						</tr>
+						<c:forEach items="${commandForm.closeTradeList}" var="dl" varStatus="loopStatus">
+							<tr	class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">
+								<td>
+									<div class="formItem">
+										<div class="radio">
+											<input type="radio" id="closeTradeRadioBtn_${loopStatus.index}" name="closeTradeRadioBtn" />
+										</div>
+									</div>
+								</td>
+								<td>
+									<div class = "hyperlink-relative-div">
+										<span class="detailTxtVal detail-view-hyperlink" 
+											  href="/secure/drv/trade/details/${dl.tradePk}?popup=true" 
+											  view="drvTradeDetailView" 
+											  dialogTitle="[${dl.tradeReferenceNo}] Derivative Trade Details View"  
+											  style="outline:0;" >
+											${dl.tradeReferenceNo}${"-"}${dl.versionNo}
+										</span>
+									 </div>
+								</td>
+								<td>
+									${dl.openBalanceQuantity}
+									<input type="hidden" value="${dl.openBalanceQuantity}" id="hid_closeBalanceQuantity_${loopStatus.index}" />
+								</td>
+								<td>${dl.priceStr}</td>
+								<td>
+									<div class="formItem">
+										<form:input id="closeTradeCloseQty_${loopStatus.index}" path="closeTradeCloseOutQty" 
+										class="textNormal closeTradeCloseQty" onfocusout="return formatSignedRate($('#closeTradeCloseQty_${loopStatus.index}'),15,3,null,'Close trade closeout quantity');"/>
+									</div>
+								</td>
+								<td>${dl.longShortStr}</td>
+								<td>${dl.executionOffice}</td>
+							</tr>
+						</c:forEach>
+					</table>
+				</div>
+			</div>
+		</form:form>
+	</div>
+</jsp:root>

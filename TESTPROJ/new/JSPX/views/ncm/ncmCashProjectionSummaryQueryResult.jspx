@@ -1,0 +1,121 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+	 xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:form="http://www.springframework.org/tags/form"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:jsp="http://java.sun.com/JSP/Page">
+	 
+<div class="formItemArea">
+	
+    <jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" /> 
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>	     
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+			
+            var grid_result_columns = [];
+			
+			grid_result_columns.push({name:"<spring:message code="ncm.cash.projection.query.label.fundCode" htmlEscape="false"/>", field:"fundCode", id:"fundCode", sortable: true, width:120, formatter:Slick.Formatters.FundDetailViewFormatter});
+           	grid_result_columns.push({name:"<spring:message code="ncm.cash.projection.summary.query.label.ccy" htmlEscape="false"/>", field:"currency", id:"currency", sortable: true, width:120, formatter:Slick.Formatters.InstrumentDetailViewFormater});
+           	grid_result_columns.push({name:"<spring:message code="ncm.cash.projection.summary.query.label.exrate" htmlEscape="false"/>", field:"exchangeRate", id:"exchangeRate", sortable: true, width:120});
+           	grid_result_columns.push({name:"&lt;div&gt;&lt;/div&gt;",field:"currencyStr", id:"currencyStr", width:70 });
+           	
+			<c:if test = "${not empty value[0].fromDateStr}">
+			grid_result_columns.push({name:"<c:out value="${value[0].fromDateStr}" />",field:"openingBalanceDisplay", id:"openingBalanceDisplay", cssClass: 'xenos-grid-number', width:200 });
+			</c:if>
+			<c:if test = "${empty value[0].fromDateStr}">
+			grid_result_columns.push({name:"&lt;div&gt;&lt;/div&gt;",field:"openingBalanceDisplay", id:"openingBalanceDisplay", cssClass: 'xenos-grid-number', width:200 });
+			</c:if>
+           	<c:forEach items="${value[0].dateRangeList}" var="i" varStatus="loop">
+				grid_result_columns.push({name:"<c:out value="${value[0].dateRangeList[loop.index]}"/>",field:"amountDateDisplay<c:out value="${loop.index+1}"/>", id:"amountDateDisplay<c:out value="${loop.index+1}"/>", cssClass: 'xenos-grid-number', width:200 });
+           	</c:forEach>
+			
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,	
+					xlsPref:false,
+					columnPicker:true,	
+					save:false	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+					url: '/secure/ncm/cash/projectionsummary/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/ncm/cash/projectionsummary/query/result.json?fetch=next',
+					prevPage : '/secure/ncm/cash/projectionsummary/query/result.json?fetch=previous',
+					pdfReport: '/secure/ncm/cash/projectionsummary/query/report.json?outputType=pdf',
+					xlsReport: '/secure/ncm/cash/projectionsummary/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/ncm/cash/projectionsummary/query/reportPref.json?outputType=xls'
+				},resolveBgColor : function(row){
+					if(row.exchangeRate === 'Total(Cash)') {
+						return '#FFCCCC';
+					} else if (row.exchangeRate === 'Total(Depo &amp;'+ 'amp' +'; Margin)'){
+						return '#FFCCCC';
+					} else if (row.exchangeRate === 'Grand Total'){
+						return '#FFCCFF';
+					}
+					return '';
+				},
+				events:{
+					onDataUpdate: function(data,continueUpdate){
+						for(i in data.value){
+							data.value[i].instrumentPk = data.value[i].localCcyPk;
+						}
+						continueUpdate(data);
+					}
+				},
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				rec.fundCode= "<c:out value="${dl.fundCode}"/>";
+				rec.fundPk= "<c:out value="${dl.fundPk}"/>";
+				rec.currency = "<c:out value="${dl.currency}"/>";
+				rec.instrumentPk = "<c:out value="${dl.localCcyPk}" />";
+				rec.currencyStr = "<c:out value="${dl.currencyStr}"/>";
+                rec.exchangeRate = "<c:out value="${dl.exchangeRate}" />";
+				rec.openingBalanceDisplay = "<c:out value="${dl.openingBalanceDisplay}" />";
+				rec.amountDateDisplay1 = "<c:out value="${dl.amountDateDisplay1}" />";
+				rec.amountDateDisplay2 = "<c:out value="${dl.amountDateDisplay2}" />";
+				rec.amountDateDisplay3 = "<c:out value="${dl.amountDateDisplay3}" />";
+				rec.amountDateDisplay4 = "<c:out value="${dl.amountDateDisplay4}" />";
+				rec.amountDateDisplay5 = "<c:out value="${dl.amountDateDisplay5}" />";
+				rec.amountDateDisplay6 = "<c:out value="${dl.amountDateDisplay6}" />";
+				rec.amountDateDisplay7 = "<c:out value="${dl.amountDateDisplay7}" />";
+				rec.amountDateDisplay8 = "<c:out value="${dl.amountDateDisplay8}" />";
+				rec.amountDateDisplay9 = "<c:out value="${dl.amountDateDisplay9}" />";
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+			
+			
+		</jsp:body>
+    </jsp:element>
+	</div>
+	</jsp:root>

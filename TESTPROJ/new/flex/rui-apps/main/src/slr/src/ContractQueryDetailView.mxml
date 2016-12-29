@@ -1,0 +1,651 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+     xmlns:flexlib="http://code.google.com/p/flexlib/"
+     layout="vertical" 
+     xmlns:cntrls="com.nri.rui.core.controls.*" 
+     xmlns:controls="*" width="100%" height="100%" 
+     creationComplete="submitQueryResult()">
+   
+    <mx:Script>
+        <![CDATA[
+            import mx.utils.StringUtil;
+            import com.nri.rui.core.utils.ProcessResultUtil;
+            import mx.collections.XMLListCollection;
+            import com.nri.rui.core.containers.SummaryPopup;
+            
+            import mx.rpc.events.ResultEvent;
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.utils.XenosPopupUtils;
+            [Bindable]private var contractPk:String = null;
+            [Bindable]private var allRec:String;
+            [Bindable]private var queryResult:XML= new XML();
+            [Bindable]public var actions:XMLListCollection = new XMLListCollection();
+            private var sortUtil: ProcessResultUtil= new ProcessResultUtil();
+            
+             public function submitQueryResult():void{
+                parseUrlString();
+                var requestObj :Object = new Object();
+                requestObj.method = 'contractDetailsQueryExecute';
+                requestObj.contractPk = contractPk;
+                requestObj.allRecord =allRec;
+                requestObj.SCREEN_KEY = 123;
+                //requestObj.actionType = 'VIEW';
+                ContractQueryDetailRequest.request = requestObj; 
+                ContractQueryDetailRequest.send();
+                PopUpManager.centerPopUp(this);
+            }
+            
+             public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split("&"); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if (tempA[0] == "contractPk") {
+                            contractPk = tempA[1]; 
+                        }
+                        
+                        else if(tempA[0] == "allRecord"){
+                            allRec = tempA[1]; 
+                        } 
+                        //XenosAlert.info("contract Pk as parameter "+contractPk);
+                    } 
+                    
+                } catch (e:Error) {
+                    trace(e);
+                }
+            }
+            
+            
+                /**
+    * This method works as the result handler of the Submit Query Http Services.
+    * 
+    */
+    public function LoadResultPage(event:ResultEvent):void {
+        //var xmlData:XML = new XML();
+        if (null != event) {            
+            if(null == event.result){
+                //queryResult.removeAll(); // clear previous data if any as there is no result now.
+                if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+                  //  errPage.clearError(event); //clears the errors if any
+                    XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+                } else { // Must be error
+                    //errPage.displayError(event);  
+                }               
+            }else {
+                
+                    queryResult = event.result as XML;
+                    this.actions=new XMLListCollection(queryResult.securities.security);
+                    //XenosAlert.info(queryResult);
+                    hasOriginal(queryResult.originalContractPk);
+                    hasTarget(queryResult.targetContractPk);
+                    
+            } 
+        }else {
+            //queryResult.removeAll();
+            XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+        }
+    }   
+       /**
+       * This method is used for loading FinInstPopUp module 
+       * 
+       */  
+       public function showFinInstPopUp(finInstPkStr:String):void{
+            
+                var parentApp :UIComponent = UIComponent(this.parentApplication);
+                
+                XenosPopupUtils.showFinInstDetails(finInstPkStr,parentApp);
+                
+       }
+       /**
+       * This method is used for loading Account Details popup module
+       * 
+       */  
+       public function showAccountDetail(accPk:String):void{
+        var parentApp :UIComponent = UIComponent(this.parentApplication);
+                XenosPopupUtils.showAccountSummary(accPk,parentApp);
+                
+       }
+       
+       /**
+	   * This method is used for loading Fund Code popup module
+	   * 
+	   */  
+	   public function showFundCode(fundPkStr:String):void{
+	   					
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+							
+				XenosPopupUtils.showFundCodeDetails(fundPkStr,parentApp);
+	   }
+       
+       private function displayVersionNo(item:Object,column : DataGridColumn):String{
+                return item.refNo+"-"+item.verNo;
+                
+            }
+            
+             private function populateAltSecCode(item:Object,column : DataGridColumn):String{
+                if(item.alternateSecurityId!=null&&StringUtil.trim(item.alternateSecurityId)!=""){
+                    return item.alternateSecurityId+"/"+item.alternateInstrumentCodeType;
+                }
+                else{
+                    return null;
+                }
+            }
+           /*
+           * Method to open detail page for original contract (if any)
+           */
+            public function hasOriginal(contractPkStr:String):void{
+                //XenosAlert.info("org con pk ::"+contractPkStr+"::");
+                if(contractPkStr!=null&&StringUtil.trim(contractPkStr)!=""){
+                    this.orgContractNo.addEventListener(MouseEvent.CLICK,clckOrg);
+                    this.orgContractNo.useHandCursor=true;
+                    this.orgContractNo.styleName ="TextLink";
+                    this.orgContractNo.buttonMode =true;
+                    this.orgContractNo.mouseChildren=false;
+                }
+       }
+       /*
+           * Method to open detail page for target contract (if any)
+           */
+            public function hasTarget(targetContractPkStr:String):void{
+                if(targetContractPkStr!=null&&StringUtil.trim(targetContractPkStr)!=""){
+                    this.trgtContractNo.addEventListener(MouseEvent.CLICK,clckTrgt);
+                    this.trgtContractNo.useHandCursor=true;
+                    this.trgtContractNo.styleName ="TextLink";
+                    this.trgtContractNo.buttonMode =true;
+                    this.trgtContractNo.mouseChildren=false;
+                }
+       }
+       
+       
+       private function clckOrg(event:Event):void{
+        showDetail(queryResult.originalContractPk,"yes"); 
+       }
+        private function clckTrgt(event:Event):void{
+        showDetail(queryResult.originalContractPk,""); 
+       }
+       
+       private function showDetail(cntrctPk:String,allRecStr:String):void{
+        var sPopup : SummaryPopup;  
+        var parentApp :UIComponent = UIComponent(this.parentApplication);
+            sPopup= SummaryPopup(PopUpManager.createPopUp(parentApp,SummaryPopup,false));
+            sPopup.title = this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.contractdetails');
+            sPopup.width = 700;
+            sPopup.height = 460;
+            PopUpManager.centerPopUp(sPopup);
+            if(allRecStr=="yes")
+            {
+                sPopup.moduleUrl = "assets/appl/slr/ContractQueryDetailView.swf?&allRecord=yes&contractPk="+cntrctPk;
+            }
+            else{
+                sPopup.moduleUrl = "assets/appl/slr/ContractQueryDetailView.swf?&contractPk=" +cntrctPk;
+            }
+         
+       }
+        private function showActionHistory():void{
+            
+            var sPopup : SummaryPopup;
+            var parentApp :UIComponent = UIComponent(this.parentApplication);
+            var contractPKStr:String;
+           
+            contractPKStr = queryResult.contractPK; 
+            
+            sPopup= SummaryPopup(PopUpManager.createPopUp(parentApp,SummaryPopup,true));
+            sPopup.title = this.parentApplication.xResourceManager.getKeyValue('slr.action.label.actionhistorydetails');
+            sPopup.width = 650;
+            sPopup.height = 250;
+            PopUpManager.centerPopUp(sPopup);
+
+           sPopup.moduleUrl = "assets/appl/slr/ActionHistoryDetailView.swf?&contractPK="+contractPKStr;
+           
+}
+        ]]>
+    </mx:Script>
+    
+     <cntrls:XenosHTTPService id="ContractQueryDetailRequest"
+         showBusyCursor="true"
+         method="POST" 
+         url="slr/ContractDetailsDispatch.action?" 
+         result="LoadResultPage(event)"  
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('slr.label.erroroccured') + event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService> 
+     <mx:Canvas width="100%" height="100%">
+    <mx:VBox width="100%" height="100%" styleName="Padding">
+         <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+        <mx:HBox width="100%" height="100%"  styleName="Padding">
+        <mx:VBox width="100%">
+        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.fundinfo')}" fontWeight="bold"/>    
+        <mx:Grid label="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.fundinfo')}" verticalGap="0" horizontalGap="0" width="100%">
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.fundcode')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                <mx:Label text="{queryResult.fundCode}" click="showFundCode(queryResult.fundPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.fundname')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                <mx:Label text="{queryResult.fundName}"  useHandCursor="true" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.firmaccode')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                <mx:Label text="{queryResult.inventoryAccount}" click="showAccountDetail(queryResult.inventoryAccountPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.firmacname')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                <mx:Label text="{queryResult.firmAcName}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.brokercode')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                <mx:Label text="{queryResult.brokerCode}" click="showFinInstPopUp(queryResult.executionMarketPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+                </mx:GridItem>           
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.brokername')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                <mx:Label text="{queryResult.brokerName}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.boxaccount.label.accountno')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                <mx:Label text="{queryResult.accountNo}" click="showAccountDetail(queryResult.accountPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.instrument.label.shortname')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                <mx:Label text="{queryResult.cpAccShortName}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.salescode')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                <mx:Label text="{queryResult.cpAccSalesCode}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                <mx:Label text=""/>
+                </mx:GridItem>
+            </mx:GridRow>  
+        </mx:Grid>
+        </mx:VBox>
+        </mx:HBox>
+        
+        <!--   End of account Info section -->
+                
+        <!--   Start of contract Info section -->
+        <mx:VBox>
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.contractinformation')}" width="100%" fontWeight="bold"/>
+        </mx:VBox>
+        <mx:Grid label="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.contractinformation')}" verticalGap="0" horizontalGap="0" width="100%">
+            <mx:GridRow width="100%">
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.contractno')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label  id="orgContractNo" text="{queryResult.contractNumber}-{queryResult.versionNo}"  selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.externalrefno')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.extRefNo}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.status')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.status}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            
+            <mx:GridRow width="100%">
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.tradetype')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.tradeType}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.subtradetype')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.subTradeType}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.haircut')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.hairCut}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            
+            <mx:GridRow width="100%">
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.rr')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.rrName}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.executingrr')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.executingRrName}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.traderid')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.traderName}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.rrcode')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.rr}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.executingrrcode')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.executingRr}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.traderidcode')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.traderId}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <!--<mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.accountbalancetype')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.accountBalanceTypeValue}" selectable="true"/>
+                </mx:GridItem>-->
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.sublimit')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.subLimit}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.tradecurrency')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.tradeCurrency}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.settlementcurrency')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.settlementCurrency}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.tradedate')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.tradeDate}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.startdate')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.startDate}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.commission')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.commission}" selectable="true" textAlign="right"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.tradetime')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.tradeTime}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.enddate')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.endDate}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.openended')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.openEnded}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_regi_date')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.appRegiDate}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_upd_date')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.appUpdDate}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                </mx:GridItem>
+            </mx:GridRow>
+          </mx:Grid>
+      <flexlib:WindowShade id="ws5" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws5" tabChildren="{ws5.opened=false}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('slr.label.moreinfo')}" width="100%" >
+        <mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+            <mx:GridRow width="100%">
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.interestrate')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.interestRate}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.accrualdays')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.accrualDays}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.accruedinterest')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.accruedInterest}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>    
+            <mx:GridRow width="100%">
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.createdby')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.createdBy}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.updatedby')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.updatedBy}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.dividendrate')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.dividendRate}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.creation_date')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.creatDateStr}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.update_date')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.updateDateStr}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.action.label.allocationdate')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.allocationDate}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.datasource')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.dataSource}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.brokerreferenceno')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.brokerReferenceNo}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.requestedcolvalue')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.reqColValue}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            
+            <mx:GridRow width="100%">
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.remarks')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.remarks}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.targetcontractno')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label  id="trgtContractNo" text="{queryResult.targetContractNo}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.totalcolvalue')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.totalMarketValue}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            
+            <mx:GridRow width="100%">
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.allocationstatus')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.allocationStatus}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="15%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.slr01suppressed')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                    <mx:Label text="{queryResult.noSlr01ReqFlag}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" styleName="LabelBgColor">
+                </mx:GridItem>
+                <mx:GridItem width="20%">
+                </mx:GridItem>
+            </mx:GridRow>
+        </mx:Grid>
+        </flexlib:WindowShade>
+        <mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.actionhistory')}" verticalGap="0" horizontalGap="0" width="100%">
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.actionhistory')}" width="100%" fontWeight="bold"/>
+        <mx:HBox width="100%">
+            <mx:Box width="100%" paddingRight="1">
+                <mx:DataGrid dataProvider="{actions}" width="100%" height="100%" rowCount="{actions.length}">
+                    <mx:columns>
+                        <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('slr.action.label.refno')}" labelFunction="displayVersionNo" visible="true" sortCompareFunction="sortUtil.sortString" itemRenderer="com.nri.rui.slr.renderers.ActionDetailRenderer"/>
+                        <mx:DataGridColumn  textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('slr.action.label.legtype')}" dataField="legType" sortCompareFunction="sortUtil.sortString" />
+                        <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('slr.action.label.actiontype')}" dataField="actionType" sortCompareFunction="sortUtil.sortString" />
+                        <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('slr.action.label.valuedate')}" dataField="valueDate" sortCompareFunction="sortUtil.sortString" />
+                        <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('slr.action.label.seccode')}"  dataField="securityCode" itemRenderer="com.nri.rui.slr.renderers.instrDetailRenderer" sortCompareFunction="sortUtil.sortString" />
+                        <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('slr.action.label.alternatesecuritycode')}" labelFunction="populateAltSecCode" sortCompareFunction="sortUtil.sortString" />
+                        <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('slr.action.label.rate')}" dataField="rate" sortCompareFunction="sortUtil.sortString" />
+                        <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('slr.action.label.price')}" dataField="price" sortCompareFunction="sortUtil.sortString" />
+                        <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('slr.action.label.quantity')}"  dataField="quantity" sortCompareFunction="sortUtil.sortString" />
+                        <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('slr.action.label.principal')}" dataField="principalAmount" sortCompareFunction="sortUtil.sortString" />
+                        <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('slr.action.label.accrualdays')}" dataField="accrualDays" sortCompareFunction="sortUtil.sortString" />
+                        <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('slr.action.label.interest')}" dataField="interest" sortCompareFunction="sortUtil.sortString" />
+                        <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('slr.action.label.netamount')}"  dataField="netAmount" sortCompareFunction="sortUtil.sortString" />
+                        <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('slr.action.label.status')}" dataField="status"  itemRenderer="com.nri.rui.core.renderers.StatusRenderer" sortCompareFunction="sortUtil.sortString" />
+                    </mx:columns>
+                </mx:DataGrid>
+            </mx:Box>
+        </mx:HBox>
+        </mx:VBox>
+        <mx:HBox id = "button" width="100%" styleName="ButtonBackPanel">
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('slr.label.actionsummary')}" styleName="BtnStyle" click="showActionHistory()"/> 
+            </mx:HBox>
+    </mx:VBox>
+     </mx:Canvas>
+</mx:Module>

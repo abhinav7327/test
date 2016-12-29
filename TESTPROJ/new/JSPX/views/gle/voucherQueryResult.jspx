@@ -1,0 +1,100 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root xmlns:c="http://java.sun.com/jsp/jstl/core" xmlns:fn="http://java.sun.com/jsp/jstl/functions" xmlns:jsp="http://java.sun.com/JSP/Page" xmlns:spring="http://www.springframework.org/tags" xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" xmlns:xenos="http://www.nri.co.jp/xenos" xmlns:xenosfn="http://www.nri.co.jp/jstl/functions" version="2.0">
+   <div class="formItemArea">
+		<jsp:directive.page contentType="text/html;charset=UTF-8"/> 
+		<jsp:output omit-xml-declaration="yes"/>	
+
+		<!--Start Javascript for Grid configurations-->
+
+		<jsp:element name="script">
+            <jsp:attribute name="type">text/javascript</jsp:attribute>
+            <jsp:body>
+				var isNext = <c:out value="${isNext}" />;
+				var grid_result_data = []; 
+				var grid_result_columns = [
+				
+				    {name:"<spring:message code="gle.voucherqueryresult.label.ref_no" htmlEscape="false"/>", field:"referenceNo", id:"referenceNo", width:200, sortable:true, formatter:Slick.Formatters.GleVoucherFormater},
+					{name:"<spring:message code="gle.voucherqueryresult.label.cxl_ref_no" htmlEscape="false"/>", field: "cxlReferenceNo", id: "cxlReferenceNo", width: 100, sortable: true},
+					{name:"<spring:message code="gle.voucherqueryresult.label.tran_date" htmlEscape="false"/>", field: "transactionDateStr", id: "transactionDateStr", width: 100, sortable: true, cssClass: 'xenos-grid-date'},
+					{name:"<spring:message code="gle.voucherqueryresult.label.book_date" htmlEscape="false"/>", field: "bookDateStr", id: "bookDateStr", width: 100, sortable: true, cssClass: 'xenos-grid-date'},
+					{name:"<spring:message code="gle.voucherqueryresult.label.entrydate" htmlEscape="false"/>", field: "entryDateStr", id: "entryDateStr", width: 100, sortable: true, cssClass: 'xenos-grid-date'},
+					{name:"<spring:message code="gle.voucherqueryresult.label.extrefnumber" htmlEscape="false"/>", field: "extReferenceNo", id: "extReferenceNo", width: 100, sortable: true},
+					{name:"<spring:message code="gle.voucherqueryresult.label.batch_file_no" htmlEscape="false"/>", field: "batchFileNo", id: "batchFileNo", width: 100, sortable: true},
+					{name:"<spring:message code="gle.voucherqueryresult.label.currency" htmlEscape="false"/>", field: "currency", id: "currency", width: 100, sortable: true},
+					{name:"<spring:message code="gle.voucherqueryresult.label.amount" htmlEscape="false"/>", field: "amountStr", id: "amountStr", width: 100, sortable: true, cssClass: 'xenos-grid-number'},
+					{name:"<spring:message code="ref.label.created_by" htmlEscape="false"/>", field: "enterBy", id: "enterBy", width: 100, sortable: true},
+					{name:"<spring:message code="ref.instrument.label.updatedby" htmlEscape="false"/>", field: "updatedBy", id: "updatedBy", width: 100, sortable: true, cssClass: 'xenos-grid-date'},
+					{name:"<spring:message code="gle.voucherqueryresult.label.status" htmlEscape="false"/>", field: "status", id: "status", width: 100, sortable: true, formatter:Slick.Formatters.CancelRecordFormatter}
+				];
+		
+				var grid_result_settings = {
+					enableToolbar:true,
+					consolidateActionFlag:true,
+					emptyColumnCheck : false,
+					forceFitColumns:true,
+					buttons: {
+						print:true,	
+						xls:true,	
+						pdf:true,
+						xlsPref:true,
+						columnPicker:true,	
+						save:true	
+					},
+					pagingInfo:{
+						isNext : isNext, 
+						url: '/secure/gle/voucher/query/count.json'
+					}, 
+					urls:{
+						nextPage : '/secure/gle/voucher/query/result.json?fetch=next', 
+						prevPage : '/secure/gle/voucher/query/result.json?fetch=previous', 
+						pdfReport: '/secure/gle/voucher/query/report.json?outputType=pdf', 
+						xlsReport: '/secure/gle/voucher/query/report.json?outputType=xls',
+						xlsCurrent:'/secure/gle/voucher/query/reportPref.json?outputType=xls'
+					},
+				};
+		
+				var row_id = 0; 
+				var rec = {};
+				<xenos:out escapeXml="false"> 
+					<c:forEach items="${value}" var="dl">
+						rec = {};
+						row_id+=1;
+						rec.id = "xenos_" + row_id;
+						rec.voucherPk = "<c:out value="${dl.voucherPk}" />";
+						rec.referenceNo= "<c:out value="${dl.referenceNo}" />";
+						rec.cxlReferenceNo= "<c:out value="${dl.cxlReferenceNo}" />";
+						rec.transactionDateStr= "<c:out value="${dl.transactionDateStr}" />";
+						rec.bookDateStr= "<c:out value="${dl.bookDateStr}" />";
+						rec.entryDateStr= "<c:out value="${dl.entryDateStr}" />";
+						rec.extReferenceNo= "<c:out value="${dl.extReferenceNo}" />";
+						rec.batchFileNo= "<c:out value="${dl.batchFileNo}" />";
+						rec.currency= "<c:out value="${dl.currency}" />";
+						rec.amountStr= "<c:out value="${dl.amountStr}" />";
+						rec.enterBy= "<c:out value="${dl.enterBy}" />";
+						rec.updatedBy= "<c:out value="${dl.updatedBy}" />";
+						rec.status= "<c:out value="${dl.status}" />";
+						grid_result_data.push(rec); 
+					</c:forEach> 
+				</xenos:out> 
+		</jsp:body>
+        </jsp:element>
+	<div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			  <a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'GLEVCX')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}"  id="cancel" status="ready" alt="Cancel" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			  </a>
+		</c:forEach>	  
+	</div>
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/gle/gleVoucherQueryResult.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+    </div>
+</jsp:root>

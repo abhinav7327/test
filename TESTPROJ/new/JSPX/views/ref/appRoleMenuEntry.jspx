@@ -1,0 +1,284 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	
+<div class="entryContainer paddingFour"> 
+	
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+	<!-- Java script include -->
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+			var actionType = "<c:out value="${commandForm.options.actionType}" />";
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+	        
+	            // A common request handler to be used server communication.
+				var xenos$Handler$RequestHandler = xenos$Handler$function({
+					 get: {
+						 contentType: 'json',
+						 requestType: xenos$Handler$default.requestType.asynchronous
+					 },  
+					 settings: {
+						 beforeSend: function(request) {
+							 request.setRequestHeader('Accept', 'application/json');
+						 },
+						 type: 'POST'
+					 }
+				});
+							
+				var onSelectTimer = false;
+	            
+				function menuTreeViewHandler (treeData) {
+					$("#menuTreeView").dynatree({
+						checkbox: true,
+						selectMode: 2,
+						wizard: $xenos$Wizard,
+						children: treeData,				
+						onSelect: function(select, node) {
+							
+							if(onSelectTimer){
+								clearTimeout(onSelectTimer);
+							}
+							
+	                        var isSelectAllClicked = $(node).data("selectAllClicked");
+	                        var isDeselectAllClicked = $(node).data("deselectAllClicked");
+	                    
+	                        if ((isSelectAllClicked !== true) &amp;&amp; (isDeselectAllClicked !== true)) {
+								if (node) {
+	                                var isSelected = node.bSelected;
+	
+	                                if (isSelected === true) {
+	                                    if (node.parent) {
+	                                        node.parent.select(true);
+	                                    }
+	                                } else {
+	                                    node.visit(function(childNode) {
+	                                        if (childNode) {
+	                                            childNode.select(false);
+	                                        }
+	                                    });
+	                                }
+	                            }
+								
+								onSelectTimer = setTimeout(function(){
+									doOnSelect(node.tree.getSelectedNodes());
+								},500);
+								
+							}
+						},
+						onDblClick: function(node, event) {
+							node.toggleSelect();
+						},
+	                    onPostInit: function(isReloading, isError) {
+							var selectedNodes = this.getSelectedNodes();
+							
+							if (selectedNodes.length > 0) {
+								$("#menuTreeView").dynatree("getRoot").childList[0].select(true);
+							}
+						},
+						debugLevel: 0
+					});			
+				};
+				
+				function doOnSelect(nodes) {
+					$xenos$Wizard.menuActionSelection = {};
+					
+					if (nodes === null || nodes === undefined) {
+						nodes = $("#menuTreeView").dynatree("getTree").getSelectedNodes();
+					}
+					
+					var selectedNodes = $.map(nodes, function(node){
+					   
+						var myNode = node;
+						var nodeSet = '';
+						while (myNode &amp;&amp; myNode.data.menuAction) {
+							if (myNode.data.menuAction.action) {
+								if (!$xenos$Wizard.menuActionSelection[myNode.data.menuAction.subActionId]) {
+								$xenos$Wizard.menuActionSelection[myNode.data.menuAction.subActionId] = true;
+							nodeSet += myNode.data.menuAction.menuPk + ':' + $.trim(myNode.data.menuAction.actionId) + ':' + $.trim(myNode.data.menuAction.subActionId) + ':' + myNode.data.menuAction.action + ',';
+								}
+							} else {
+							if (!$xenos$Wizard.menuActionSelection[myNode.data.menuAction.menuPk]) {
+								$xenos$Wizard.menuActionSelection[myNode.data.menuAction.menuPk] = true;
+							nodeSet += myNode.data.menuAction.menuPk + ':' + $.trim(myNode.data.menuAction.actionId) + ':' + $.trim(myNode.data.menuAction.subActionId) + ':' + myNode.data.menuAction.action + ',';
+								}
+							}
+							
+							myNode = myNode.parent;
+						}
+						
+						return nodeSet;
+					});
+											
+					$("#menuActionInfo").val(selectedNodes.join(''));
+					$("#isOnSelectFired").val('true');
+				};
+				if ($xenos$Wizard.menuActionTree) {
+					menuTreeViewHandler($xenos$Wizard.menuActionTree);
+				} else {
+					xenos.loadScript([{path: xenos.context.path + '/scripts/jquery.dynatree.js'}], {
+					  success: function() {
+					    var uri = xenos.context.path + $xenos$Wizard.$context.find('form').attr('action') + "/menuActionNameTree.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	
+							requestUri: uri,
+							onJsonContent :  function(undefined, options, $target, content) {
+								console.log(content);
+								if(content.success == true){
+									$xenos$Wizard.menuActionTree = content.menuActionNameTreeJson;
+									$xenos$Wizard.menuActionSelection = {};
+									
+									<c:forEach items="${commandForm.menuActions}" var="menuAction">
+										<c:choose>	
+											<c:when test="${menuAction.actionFlag == 'N'}">
+												$xenos$Wizard.menuActionSelection['<c:out value="${menuAction.menuPk}"/>'] = true;
+											</c:when>
+											<c:otherwise>
+												$xenos$Wizard.menuActionSelection['<c:out value="${menuAction.subActionId}"/>'] = true;
+											</c:otherwise>
+										</c:choose>
+									</c:forEach>
+									
+									menuTreeViewHandler(content.menuActionNameTreeJson);
+									
+								} else {
+									xenos.postNotice(xenos.notice.type.error, content.value[0]);
+								}
+							}
+						});
+					  }
+					});
+				}
+							
+				/*************************** page load hooks ****************************/
+							
+				$(".btnDeselectAll").click(function(){
+				  $("#menuTreeView").dynatree("getRoot").visit(function(node){
+					if (node !== null) {
+	                    $(node).data("deselectAllClicked", true);
+						
+						var isSelected = node.bSelected;
+						
+						if (isSelected !== false) {
+							node.select(false);
+						}
+						
+						$(node).data("deselectAllClicked", false);
+					}
+				  });
+				  
+				  doOnSelect();
+				  
+				  return false;
+				});
+				
+				$(".btnSelectAll").click(function(){
+				  $("#menuTreeView").dynatree("getRoot").visit(function(node){
+					if (node !== null) {
+	                    $(node).data("selectAllClicked", true);
+						
+						var isSelected = node.bSelected;
+						
+						if (isSelected !== true) {
+							node.select(true);
+						}
+						
+						$(node).data("selectAllClicked", false);
+					}
+				  });
+				  
+				  doOnSelect();
+				  			  
+				  return false;
+				});
+				
+				var validateHook = function() {
+					var validationMessages = [];
+					
+					if(validationMessages.length >0){
+						xenos.postNotice(xenos.notice.type.error, validationMessages);			
+						return false;
+					}
+					
+					return true;
+				};
+				
+				var unloadHook = function(){
+					$xenos$Wizard.deregister('next',validateHook);
+					$xenos$Wizard.deregister('submit',validateHook);
+					$xenos$Wizard.deregister('unload',unloadHook);				
+				};
+				$xenos$Wizard.register('next',validateHook);
+				$xenos$Wizard.register('reset',function() {
+					$xenos$Wizard.menuActionSelection = {};
+					if($.trim(actionType) == 'AMEND'){
+						<c:forEach items="${commandForm.menuActions}" var="menuAction">
+							<c:choose>	
+								<c:when test="${menuAction.actionFlag == 'N'}">
+									$xenos$Wizard.menuActionSelection['<c:out value="${menuAction.menuPk}"/>'] = true;
+								</c:when>
+								<c:otherwise>
+									$xenos$Wizard.menuActionSelection['<c:out value="${menuAction.subActionId}"/>'] = true;
+								</c:otherwise>
+							</c:choose>
+						</c:forEach>
+					}
+				});
+				$xenos$Wizard.register('submit',validateHook);
+				$xenos$Wizard.register('unload',unloadHook);
+				
+			}; 
+		</jsp:body>
+    </jsp:element>
+	
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+	<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+	<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+	<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+		
+	<!-- Menu Restriction Info Block -->
+	<h1><spring:message code="ref.applrole.label.menurestrictioninfo" htmlEscape="false"/></h1>
+	<div class="entryBlkArea">
+		<div class="selectOpt">
+			<p>
+				<a href="#" class="btnSelectAll detail-view-hyperlink"><spring:message code="ref.applrole.label.selectAll" htmlEscape="false"/></a> -
+				<a href="#" class="btnDeselectAll detail-view-hyperlink"><spring:message code="ref.applrole.label.deSelectAll" htmlEscape="false"/></a> -
+			</p>
+		</div>
+		<div class="formItemBlock">
+			<div id="menuTreeView"><spring:message text="" htmlEscape="false"/></div>
+			<form:input type="hidden" id="menuActionInfo" value="" path="commandForm.menuActionInfo"/>
+			<form:input type="hidden" id="isOnSelectFired" value="" path="commandForm.onSelectForMenuTreeFired"/>
+		</div>
+        <div class="selectOpt">
+			<p>
+				<a href="#" class="btnSelectAll detail-view-hyperlink"><spring:message code="ref.applrole.label.selectAll" htmlEscape="false"/></a> -
+				<a href="#" class="btnDeselectAll detail-view-hyperlink"><spring:message code="ref.applrole.label.deSelectAll" htmlEscape="false"/></a> -
+			</p>
+		</div>
+		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	<!-- /Menu Restriction Info Block -->
+	
+</div>
+</jsp:root>

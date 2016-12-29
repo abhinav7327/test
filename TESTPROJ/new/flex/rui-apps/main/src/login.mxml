@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:cntrls="com.nri.rui.core.controls.*" layout="vertical" width="100%" height="100%"   
+    creationComplete="focusManager.setFocus(username);">
+<mx:Style source="assets/css/LoginStyle.css"/>
+<mx:Script>
+    <![CDATA[
+    	import mx.messaging.messages.ErrorMessage;
+    	import com.nri.rui.core.controls.XenosAlert;
+    	import com.nri.rui.core.Globals;
+        import mx.rpc.events.FaultEvent;
+        import mx.rpc.events.ResultEvent;
+        import mx.controls.Alert;
+        import flash.net.URLRequest;
+        import flash.net.sendToURL;
+		[Bindable]
+		public var userLSO :SharedObject;
+        private function onResult(event:ResultEvent):void {
+			//trace(event);
+			if(event.result.hasOwnProperty("error") && event.result.error.status=="fail"){
+			    SharedObject.getLocal(Globals.LSO_USER,Globals.LSO_PATH).clear();
+				XenosAlert.error(event.result.error.msg);
+				return;
+			}
+            var url:String = "main.action?unique="+new Date().getTime();
+            var request:URLRequest = new URLRequest(url);
+            request.method = "POST";
+           // Store the Uid in Shared Object
+			userLSO = SharedObject.getLocal(Globals.LSO_USER,Globals.LSO_PATH);
+			if(userLSO.data.uname != username.text){
+				//Not yet present. So set and flush
+				userLSO.data.uname = username.text;
+				userLSO.flush();				
+			}	
+			
+            try {
+                navigateToURL(request,"_top");
+            }
+            catch (e:Error) {
+                // handle error here
+                trace(e);
+            }
+        }
+    
+        private function onFault(event:FaultEvent):void {
+        	// Called after http error
+            trace(event);
+            var errorMsg:String=new String();
+            SharedObject.getLocal(Globals.LSO_USER,Globals.LSO_PATH).clear();
+            errorMsg=event.fault.faultString+". Fault code: "+event.fault.faultCode;
+            XenosAlert.error(errorMsg);
+            
+        }
+
+        private function sumitLogin(event:MouseEvent):void {
+           if( (username.text.length!=0 ) && (password.text.length!=0) ){
+            var req : Object = new Object();
+            req.j_username = username.text;
+            req.j_password = password.text;
+            req.unique = new Date().getTime() + "";
+			loginService.url= "j_security_check?unique="+new Date().getTime();
+            loginService.request = req;            
+            loginService.send();
+           }else{
+           	Alert.show("Required fields missing");
+           }
+        }
+    ]]>
+</mx:Script>
+
+<mx:HTTPService id="loginService" url="j_security_check" method="POST" result="onResult(event)" fault="onFault(event)" showBusyCursor="true">
+    <!--<mx:request>
+        <j_username>{username.text}</j_username>
+        <j_password>{password.text}</j_password>
+    </mx:request>-->
+</mx:HTTPService>
+
+
+
+
+<mx:StringValidator source="{username}" property="text" required="true"
+    trigger="{login_1}" triggerEvent="click" requiredFieldError="{username} is a mandatory field"/>
+    
+<mx:StringValidator source="{password}" property="text" required="true"
+    trigger="{login_1}" triggerEvent="click" requiredFieldError="{password} is a mandatory field" />
+    
+    <mx:Canvas width="305" height="246" styleName="Loginbg">
+        
+	    <mx:Panel id="panel" width="100%" height="100%" paddingTop="10" paddingLeft="0" paddingRight="0" paddingBottom="0" verticalCenter="true" verticalAlign="middle" layout="vertical" horizontalAlign="center" headerHeight="0" horizontalGap="0" verticalGap="10">
+
+		    <mx:Form id="form" defaultButton="{login_1}" width="100%" height="100%">
+		    	<mx:Label  text="" id="directions" fontWeight="bold" width="100%" fontSize="12" color="#073f68" height="50"></mx:Label>        
+        
+		        <mx:FormItem label="Username" required="true" textAlign="left" verticalGap="10" >
+            		<mx:TextInput id="username" tabIndex="1" tabEnabled="true" focusEnabled="true"/>
+        		</mx:FormItem>
+
+		        <mx:FormItem label="Password" required="true" verticalGap="10">
+            		<mx:TextInput id="password" displayAsPassword="true" tabIndex="2" tabEnabled="true" focusEnabled="true"/>
+        		</mx:FormItem>
+
+		        <!--mx:FormItem id="passwordConfirmItem" label="Confirm:" visible="true">
+            		<mx:TextInput id="passwordConfirm" displayAsPassword="true"/>
+		        </mx:FormItem-->
+		        
+		        <mx:FormItem label=" ">
+		            <mx:Button label="Proceed" id="login_1" click="sumitLogin(event);" tabIndex="3" tabEnabled="true" focusEnabled="true"/>
+        		</mx:FormItem>
+    		</mx:Form> 
+
+		</mx:Panel> 
+
+	</mx:Canvas>
+
+</mx:Application>

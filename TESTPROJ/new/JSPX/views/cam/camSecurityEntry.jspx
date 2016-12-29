@@ -1,0 +1,480 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles"
+	 xmlns:util="urn:jsptagdir:/WEB-INF/tags/util">
+	 
+<div class="entryContainer">
+    <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/inf/utilCommons.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>	 
+	<!-- Java script include -->
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>		
+        <jsp:body>
+		var actionType = "<c:out value="${commandForm.actionType}"/>";
+		var inOutType = "<c:out value="${commandForm.inOutType}"/>";
+		var acctBalanceTypeVisibleFlag = "<c:out value="${commandForm.entry.acctBalanceTypeVisibleFlag}"/>";
+		var obj = {};
+		obj.loadBankAndBankAccount = function() {};
+		var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+			
+			var $context = $xenos$Wizard.$context;
+			
+			/**
+			 * A common request handler to be used server communication.
+			 */
+			 var xenos$Handler$RequestHandler = xenos$Handler$function({
+				 get: {
+					 contentType: 'json',
+					 requestType: xenos$Handler$default.requestType.asynchronous
+				 },  
+				 settings: {
+					 beforeSend: function(request) {
+						 request.setRequestHeader('Accept', 'application/json;type=ajax');
+					 },
+					 type: 'POST'
+				 }
+			 });
+		
+			//Converting Date Type input fields to Date Fields.
+			xenos.loadScript([{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+							{path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},
+							{path: xenos.context.path + '/scripts/xenos-datepicker.js'},
+							{path: xenos.context.path + '/scripts/cam/xenos/camSecuritySubmitValidator.js'}], {
+				success: function() {	    	
+					$('.dateinput').xenosdatepicker();					
+					if($.trim(actionType) == "amend"){
+						$('#secInDateStr,#secOutDateStr').parent().find('button').attr('disabled','disabled');						
+					}
+				}
+			});
+			xenos.loadLocalizedScript([{path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+									{path: xenos.context.path + '/scripts/cam/xenos-cam-i18n.js', async: false}]);
+			
+			var camSecurityIoEntry$validateHook = function() {
+				return xenos.ns.views.camSecurityIoEntry.validateSubmit(acctBalanceTypeVisibleFlag,$context);
+			}
+			var camSecurityIoEntry$unloadHook = function(){				
+				$('#generateBookValue',$context).unbind('click', generateBookValue);
+				$('#generateBookValueBC',$context).unbind('click', generateBookValueBC);
+				$('#generateAcruedIntPaidBc',$context).unbind('click', generateAcruedIntPaidBC);	
+				$('#custodianBankListPopUp',$context).unbind('click', bankListPopUpValidator);							
+				$xenos$Wizard.deregister('submit',camSecurityIoEntry$validateHook);
+				$xenos$Wizard.deregister('unload',camSecurityIoEntry$unloadHook);
+			}
+			<!-- Added For Using common Own SSI PopUp  -->
+			 xenos.ns.ownSSIPopup = {
+				CamSecurityIoOwnSSIReq : function(){
+					var validationMessages = [];
+					if(VALIDATOR.isNullValue($.trim($('#accountNo',$context).val()))){
+						validationMessages.push(xenos$CAM$i18n.secIO.accountno_empty_new);
+					}
+					<!--if(VALIDATOR.isNullValue($.trim($('#securityCode',$context).val()))){
+						validationMessages.push(xenos$CAM$i18n.secIO.seccode_empty);
+					}-->
+					if ( validationMessages.length >0){                 
+						xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+						return false;
+					}else{
+						xenos.utils.clearGrowlMessage();
+					}
+					var reqObj = {};
+					<!--reqObj['securityCash'] = "<c:out value="${commandForm.secCashFlag}"/>";
+					reqObj['pageType'] = "<c:out value="${commandForm.pageType}"/>";-->
+					reqObj['tradingAc'] = $.trim($('#accountNo',$context).val()); 
+					reqObj['securityCode'] = $.trim($('#securityCode',$context).val()); 
+					reqObj['deliveryMethod'] = $.trim($('#form',$context).val()); 
+
+					return reqObj;
+				}
+			}
+			function generateBookValue(e){
+				var validationMessages = [];
+					if(VALIDATOR.isNullValue($.trim($('#tgtaccountNo',$context).val()))){
+						validationMessages.push(xenos$CAM$i18n.secIO.accountno_empty_new);
+					}					
+					if(VALIDATOR.isNullValue($.trim($('#tgtsecurityCode',$context).val()))){
+						validationMessages.push(xenos$CAM$i18n.secIO.seccode_empty_new);
+					}
+					if(VALIDATOR.isNullValue($.trim($('#amountStr',$context).val()))){
+						validationMessages.push(xenos$CAM$i18n.secIO.quantity_empty_new);
+					}					
+					var secInDateStr = $('#secInDateStr',$context).val();
+					if(VALIDATOR.isNullValue($.trim(secInDateStr))){
+						validationMessages.push(xenos$CAM$i18n.secIO.secindate_empty_new);
+						}
+					else{
+						if(isDateCustom($.trim(secInDateStr))== false){
+							validationMessages.push(xenos$CAM$i18n.secIO.date_format_check + $.trim(secInDateStr));
+						}
+					}
+				if ( validationMessages.length >0){
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+					return false;
+				}else{
+					xenos.utils.clearGrowlMessage();
+				}
+				var baseUrl = xenos.context.path + $context.find('form').attr('action');
+				var requestUrl = baseUrl + "/generateBookValue.json";
+				xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+											settings: {
+												data : $context.find('form').serialize()
+											},
+											onJsonContent :  function(e, options, $target, content) {											
+											  if(content.success == true){
+												jQuery('#bookValueStr').val(content.commandForm.entry.bookValueStr);
+											  } else {
+												  xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+											  }
+										  }
+									   }
+						  );
+			}
+			
+			function generateBookValueBC(e){
+				var validationMessages = [];
+					if(VALIDATOR.isNullValue($.trim($('#tgtaccountNo',$context).val()))){
+						validationMessages.push(xenos$CAM$i18n.secIO.accountno_empty_new);
+					}					
+					if(VALIDATOR.isNullValue($.trim($('#tgtsecurityCode',$context).val()))){
+						validationMessages.push(xenos$CAM$i18n.secIO.seccode_empty_new);
+					}					
+				if ( validationMessages.length >0){
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+					return false;
+				}else{
+					xenos.utils.clearGrowlMessage();
+				}
+				var baseUrl = xenos.context.path + $context.find('form').attr('action');
+				var requestUrl = baseUrl + "/generateBookValueBC.json";
+				xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+											settings: {data : $context.find('form').serialize()},
+											onJsonContent :  function(e, options, $target, content) {
+											  if(content.success == true){
+												jQuery('#bookValueBc').val(content.commandForm.entry.bookValueBC);
+											  } else {
+												  xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+											  }
+										  }
+									   }
+						  );
+			}
+
+			function generateAcruedIntPaidBC(e){
+				var validationMessages = [];
+					if(VALIDATOR.isNullValue($.trim($('#tgtaccountNo',$context).val()))){
+						validationMessages.push(xenos$CAM$i18n.secIO.accountno_empty_new);
+					}					
+					if(VALIDATOR.isNullValue($.trim($('#tgtsecurityCode',$context).val()))){
+						validationMessages.push(xenos$CAM$i18n.secIO.seccode_empty_new);
+					}					
+				if ( validationMessages.length >0){
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+					return false;
+				}else{
+					xenos.utils.clearGrowlMessage();
+				}
+				var baseUrl = xenos.context.path + $context.find('form').attr('action');
+				var requestUrl = baseUrl + "/generateAcruedIntPaidBC.json";
+				xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+											settings: {data : $context.find('form').serialize()},
+											onJsonContent :  function(e, options, $target, content) {
+											  if(content.success == true){
+												jQuery('#accruedInterestPaidBc').val(content.commandForm.entry.acruedIntPaidBC);
+											  } else {
+												  xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+											  }
+										  }
+									   }
+						  );
+			}
+			<!--Function to call server side function to populate custodian bank and settle account -->
+			obj.loadBankAndBankAccount = function(e){
+			var fundAccountNo = $.trim($('#tgtaccountNo',$context).val());				
+			if(fundAccountNo != 'null' <![CDATA[&&]]> fundAccountNo != ''){
+				var baseUrl = xenos.context.path + $context.find('form').attr('action');					
+				var requestUrl = baseUrl + "/populateCustBnkNStlAcc.json";
+				xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+											settings: {data : $context.find('form').serialize()},
+											onJsonContent :  function(e, options, $target, content) {
+											  if(content.success == true){												
+												var warningMessage = content.commandForm.entry.warningMultipleBank;												
+												if(!(VALIDATOR.isNullValue($.trim(warningMessage))) <![CDATA[&&]]> ${empty value}){						
+													xenos.utils.displayGrowlMessage(xenos.notice.type.warning, $.trim(warningMessage));
+												} else {
+													xenos.utils.clearGrowlMessage();
+												}
+												jQuery('#tgtcustodianbank').val(content.commandForm.entry.custodianBank).change();																										
+												jQuery('#tgtourSettleAccountNo').val(content.commandForm.entry.ourSettleAccountNo).change();																											
+											  } else {																					
+												xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+											  }
+										  }
+									   }
+						  );
+			}
+		}			
+		
+		/**
+		 *  To validate whether the fields which are required to open Bank List Pop-up have values or not.
+		 *
+		 */
+		function bankListPopUpValidator(e){  
+            var validationMessages = [];
+			if(VALIDATOR.isNullValue($.trim($('#tgtaccountNo',$context).val()))){
+						validationMessages.push(xenos$CAM$i18n.secIO.accountno_empty_new);
+					}			
+					
+			if (validationMessages.length > 0){						
+				xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+				return false;				
+			} else{
+				xenos.utils.clearGrowlMessage();
+			}
+					
+			return true;														
+		}			
+				
+				
+			$('#generateBookValue',$context).bind('click', generateBookValue);
+			$('#generateBookValueBC',$context).bind('click', generateBookValueBC);
+			$('#generateAcruedIntPaidBc',$context).bind('click', generateAcruedIntPaidBC);	
+			$('#custodianBankListPopUp',$context).bind('click', bankListPopUpValidator);		
+			$xenos$Wizard.register('submit',camSecurityIoEntry$validateHook);
+			$xenos$Wizard.register('unload',camSecurityIoEntry$unloadHook);			
+
+			<!--if($.trim(actionType) == "amend"){
+				$('.makeDisable',$context).attr('disabled','disabled').removeClass('dateinput');
+			}-->
+			
+			function applyInPageTabindex() {
+ 				console.log('from page');
+ 				var context = $context;
+ 				var inclusionList = 'input, select, .ui-multiselect-input, textarea, button, submit';
+ 				var exclusionList = 'input[type=hidden], input[readonly=readonly], input[id="accountNo"], input[id="custodianbank"],input[id="ourSettleAccountNo"],input[id="securityCode"],.ui-datepicker-trigger, .treeInitBtnIco, .treeResetBtnIco';
+ 
+ 				$(inclusionList, context).not(exclusionList).each(function(i) {
+ 				  var $input = $(this);
+ 				  $input.attr("tabindex", i+1);
+ 				});
+ 			}
+	
+ 			
+ 			$('#tgtaccountNo', $context).on('focus', applyInPageTabindex);
+		}		
+		
+		accountPreResolve = function(e) {
+			if(e.type == 'focusout'){
+				obj.loadBankAndBankAccount(e);					
+				}
+		};
+
+		$("#tgtaccountNo").on('focusout', function() {
+			if (!this.value) {
+				$('#tgtcustodianbank').val("").change();
+				$('#tgtourSettleAccountNo').val("").change();
+			}
+		});
+		</jsp:body>
+    </jsp:element>
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+	<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+	<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+	<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+	<form:input id="acctBalanceTypeVisibleFlag" type="hidden" value="" path="commandForm.entry.accountBalanceTypeStr"/>
+	<form:input id="custodianBankName" type="hidden" value="" path="commandForm.entry.custodianBankName"/>
+	<form:input id="ourSettleAcName" type="hidden" value="" path="commandForm.entry.ourSettleAccountName"/>			
+		<div class="entryBlkArea spaceForGenerateValue">
+			<div class="formItemBlock dottedBg">
+				<!--Fund Account No.--> 			
+				<div class="formItem twoCols valPlaceHolder">
+				<form:label path="commandForm.entry.accountNo" class="required"><spring:message code="cam.securityinentry.label.fundaccountno" htmlEscape="false"/></form:label>
+					<util:xenospopup 
+					id="accountNo"					
+					path="commandForm.entry.accountNo" 
+					showResolvedName="true"					 
+					popType="cpAccount" 					 
+					actCPTypeContext="INTERNAL"
+					actStatusContext="OPEN"
+					event="change focusout" 
+					preResolveHook="accountPreResolve"
+					endpoint="secure/ref/nameresolver/fund"
+					/>	            
+				</div>
+				<!--Custodian Bank--> 	
+				<div class="BtnPosWrapper">
+			
+					<div class="formItem twoCols valPlaceHolder">
+					<form:label path="commandForm.entry.custodianBank" class="required"><spring:message code="cam.securityinentry.label.custodianbank" htmlEscape="false"/>
+            			<span class="listBtnPos popupBtn">
+							<input id="custodianBankListPopUp" class="inputBtnStyle small-btn-style" type="button" value="List"  poptype="custodianBankList" tgt="tgtcustodianbank" hiddenTgt="tgtourSettleAccountNo:accountNo" populatereq="CamSecurityIoOwnSSIReq"/>				
+						</span>
+				    </form:label>
+						<util:xenospopup 
+						id="custodianbank"						
+						path="commandForm.entry.custodianBank" 
+						showResolvedName="true"						
+						popType="finInstRoleType"
+						finInstRoleCtx="Bank/Custodian|Central Depository|Security Broker|Stock Exchange"
+						event="change focusout" 
+						endpoint="secure/ref/nameresolver/finInst"
+						/>
+					</div>
+				</div>
+				<!--Our settle Account--> 
+				<div class="formItem">
+				<form:label path="commandForm.entry.ourSettleAccountNo" class="required"><spring:message code="cam.securityinentry.label.oursettleac" htmlEscape="false"/></form:label>
+					<util:xenospopup 
+					id="ourSettleAccountNo" 					
+					path="commandForm.entry.ourSettleAccountNo" 
+					showResolvedName="true"										
+					popType="cpAccount"
+					actTypeContext="S|B"
+					actCPTypeContext="BANK/CUSTODIAN"
+					actStatusContext="OPEN"
+					event="change focusout" 
+					endpoint="secure/ref/nameresolver/account"
+					/>
+				</div>
+				<!--Accrued Interest Paid(LC) -->				
+				<div class="formItem">
+					<form:label path="commandForm.entry.acruedIntPaid"><spring:message code="cam.securityinentry.label.acruedintpaidlc" htmlEscape="false"/></form:label>
+					<span><form:input id="accruedInterestPaidLc" value="" path="commandForm.entry.acruedIntPaid"   onchange="return formatAmount($('#accruedInterestPaidLc'),15,3,null,$('#accruedInterestPaidLc').parent().parent().find('label').text())"/></span>	
+				</div>				
+				<!--Security Code -->
+				<div class="formItem twoCols valPlaceHolder">
+				<form:label path="commandForm.entry.securityCode" class="required"><spring:message code="cam.securityinentry.label.securitycode" htmlEscape="false"/></form:label>
+				<util:xenospopup 
+					id="securityCode" 					
+					path="commandForm.entry.securityCode"					
+					showResolvedName="true" 					
+					popType="security" 					 
+					event="change focusout" 
+					endpoint="secure/ref/nameresolver/security"
+					/>
+				</div>	
+				<!--Quantity -->
+				<div class="formItem twoCols">
+					<form:label path="commandForm.entry.amountStr" class="required"><spring:message code="cam.securityinentry.label.quantity" htmlEscape="false"/></form:label>
+					<span><form:input id="amountStr" value="" path="commandForm.entry.amountStr" onchange="return formatQuantity($('#amountStr'),15,3,null,$('#amountStr').parent().parent().find('label').text())"/></span>            
+				</div>
+				<!--Security In/Out Date-->
+				<div id="secInOutDate">
+					<div class="formItem withoutVal">
+						<c:if test="${commandForm.inOutType == 'I'}">
+							<form:label path="commandForm.entry.inOutDateStr" class="required"><spring:message code="cam.securityinentry.label.securityindate" htmlEscape="false"/></form:label>
+						</c:if>
+						<c:if test="${commandForm.inOutType == 'O'}">
+							<form:label path="commandForm.entry.inOutDateStr" class="required"><spring:message code="cam.securityinentry.label.securityoutdate" htmlEscape="false"/></form:label>
+						</c:if>
+						<span><form:input id="secInDateStr" value="" path="commandForm.entry.inOutDateStr" class="dateinput" onblur="if(!checkDate(this))
+																																		{xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage
+																																		(xenos.i18n.datevalidationmessage.incorrect_date,[this.value]))}else{camSecurityIo$formateDate(this.value,this.id)};" /></span>            
+					</div>
+				</div>
+				
+				<!--Book Value(LC) -->
+				<div class="formItem BtnPosWrapper">
+					<form:label path="commandForm.entry.bookValueStr" class="required"><spring:message code="cam.security.label.bookvaluelc" htmlEscape="false"/>
+            <span><input id = "generateBookValue" class="small-btn-style" type="button" value="Generate" /></span>					
+					</form:label>
+					<span><form:input id="bookValueStr" value="" path="commandForm.entry.bookValueStr"  maxlength="100" onchange="return formatAmount($('#bookValueStr'),15,3,null,$('#bookValueStr').parent().parent().find('label').text())"/></span>						
+				</div>
+				<!--Adjustment Reason -->
+				
+				<div class="formItem twoCols">
+					<form:label path="commandForm.entry.reasonCode" class="required"><spring:message code="cam.securityinentry.label.adjustmentreason" htmlEscape="false"/></form:label> 
+					<span>
+					<form:select id="secInReasonCode" path="commandForm.entry.reasonCode" class="dropdowninput ">
+						<option value=""></option>
+						<form:options items="${commandForm.actionFormList.reasonCodeList}" itemLabel="label" itemValue="value"/>
+					</form:select>
+					</span>
+				</div>
+				<!--Remarks -->
+				<div class="formItem twoCols">
+					<form:label path="commandForm.entry.remarks"><spring:message code="cam.securityinentry.label.remarks" htmlEscape="false"/></form:label>
+					<form:input id="remarks" value="" path="commandForm.entry.remarks" maxlength="100" class="txtNormal fullWidthInput"/>
+				</div>
+				<!-- Statement Description-->
+				<div class="formItem twoCols">
+					<form:label path="commandForm.entry.statementDescription"><spring:message code="cam.securityinentry.label.statement" htmlEscape="false"/></form:label>
+					<form:input id="statementDescription" value="" path="commandForm.entry.statementDescription"  maxlength="400" class="txtNormal fullWidthInput"/>
+				</div>	
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>					
+			</div>
+			<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>			
+		</div>		
+
+	<div class="moreHandle">
+		 <h1 class="msgHead">
+			<spring:message code="cam.securityinentry.label.bcinfo" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler" id="camMoreSection"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		 </h1>
+	</div>
+	<div class="more">
+		 <div class="formItemBlock topitems dottedBg">
+				<!--Spot Calculation Date-->				
+				<div class="formItem twoCols">
+					<form:label path="commandForm.entry.spotCalcDate"><spring:message code="cam.security.label.sptcalculationdate" htmlEscape="false"/></form:label>
+					<span><form:input id="spotCalculationDateStr" value="" path="commandForm.entry.spotCalcDate" class="dateinput" onblur="if(!checkDate(this))
+																																						{xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage
+																																						(xenos.i18n.datevalidationmessage.incorrect_date,[this.value]))}else{camSecurityIo$formateDate(this.value,this.id)};" /></span>
+				</div>
+				<!--Book Value(BC) -->
+				<div class="formItem twoCols BtnPosWrapper">
+					<form:label path="commandForm.entry.bookValueBC"><spring:message code="cam.security.label.bookvaluebc" htmlEscape="false"/><span>
+						<input id="generateBookValueBC" class="inputBtnStyle small-btn-style" type="button" value="Generate"  />
+					</span>					
+					</form:label>
+					<span><form:input id="bookValueBc" value="" path="commandForm.entry.bookValueBC"   maxlength="100" onchange="return formatAmount($('#bookValueBc'),15,3,null,$('#bookValueBc').parent().parent().find('label').text())" /></span>							
+				</div>
+				<!--Accrued Interest Paid(BC) -->
+				<div class="formItem twoCols BtnPosWrapper">
+					<form:label path="commandForm.entry.acruedIntPaidBC"><spring:message code="cam.security.label.accruedinterestpaidbc" htmlEscape="false"/><span>
+						<input id="generateAcruedIntPaidBc" class="inputBtnStyle small-btn-style" type="button" value="Generate"  />
+					</span>					
+					</form:label>
+					<span><form:input id="accruedInterestPaidBc" value="" path="commandForm.entry.acruedIntPaidBC"   maxlength="100" onchange="return formatAmount($('#accruedInterestPaidBc'),15,3,null,$('#accruedInterestPaidBc').parent().parent().find('label').text())"/></span>							
+				</div>				
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>					
+			<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>			
+		</div>
+	</div>
+    <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/inf/utilCommons.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>	
+
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/cam/xenos/camSecurityEntryValidator.js"/></jsp:attribute>
+		<jsp:body>			
+		</jsp:body>
+	</jsp:element>		
+</div>	 	 
+</jsp:root>		

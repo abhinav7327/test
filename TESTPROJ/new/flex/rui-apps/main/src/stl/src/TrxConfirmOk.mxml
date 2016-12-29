@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Account Summary Implementation for Displaying the account information in brief -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" xmlns:controls="*" width="100%" height="100%">
+	<mx:Script>
+		<![CDATA[
+			import mx.utils.StringUtil;
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import mx.collections.ArrayCollection;
+			[Bindable]
+			private var dataSource:ArrayCollection;
+			
+			public function set dataProvider(value:ArrayCollection):void {
+				this.dataSource = value;
+			}
+			
+			private function getLocalAccountNo(item:Object, column:DataGridColumn):String{
+                 return item.localAccountNo;
+            }
+            
+            private function getAltSecurityCode(item:Object, column:DataGridColumn):String{
+                 return item.altSecurityCode;
+            }
+			
+			private function getFirmBrokerCode(item:Object,column : DataGridColumn):String {
+				var obj:XML = XML(item);
+				
+				if(obj.child("brokerCode").length()>0) 
+					return item.displayAccountNo+"("+item.brokerCode+")";
+				else
+					return item.displayAccountNo+"()";
+            }
+            
+            private function getReferenceNo(item:Object,column : DataGridColumn):String {
+            	return item.settlementReferenceNo+"-"+item.versionNo;
+            }
+            
+            private function getTrxStatus(item:Object,column : DataGridColumn):String {
+            	
+            	if(item.status == "CANCEL") 
+            		return "CANCELLED";
+            	else 
+            		return item.transmissionStatus;
+            }
+            
+            private function getAckStatus(item:Object,column : DataGridColumn):String{
+            	
+            	var obj:XML = XML(item);
+            	            		 
+            	var acceptanceStatus:String = obj.child("acceptanceStatus").toString();
+            	
+            	if(StringUtil.trim(acceptanceStatus) == Globals.EMPTY_STRING) {
+            		acceptanceStatus = "";
+            	}
+            	            	
+            	if(item.status == Globals.STATUS_NORMAL) {
+            		if(item.transReqdForCxl == "N") {
+            			return "(Marked)";
+            		} else {
+            			return acceptanceStatus;
+            		}
+            	}
+            	return acceptanceStatus;
+            }
+            
+            private function getCxlAckStatus(item:Object,column : DataGridColumn):String{
+            	
+            	var obj:XML = XML(item);
+            	
+            	if(item.status == Globals.STATUS_CANCEL) {
+            		if(item.transReqdForCxl == "N") {
+            			if(item.acceptanceStatus == "NG") {
+            				return XenosStringUtils.EMPTY_STR;
+            			} else {
+            				return "(Reset)";
+            			}
+            		} else if(item.transReqdForCxl == "Y") {
+            			return item.cxlAcceptanceStatus;
+            		} else if(!obj.child("transReqdForCxl").length()>0) {
+            			return "(Expired)";
+            		}
+            	}
+            	return "";
+            }
+		]]>
+	</mx:Script>
+	
+     
+	
+	<mx:VBox width="100%" height="100%" id="other" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >
+	         	
+	         	<mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text=""/> 
+	         	<mx:DataGrid id="inxSummary4" width="100%" height="100%" dataProvider="{dataSource}" editable="true" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto">
+	             <mx:columns>
+	             	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.stlrefnoversion')}" width="130" dataField="" labelFunction="getReferenceNo" editable="false"/>
+		         	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.valuedate')}" dataField="valueDateStr" visible="false" editable="false"/>
+		         	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.counterpartyac')}" dataField="cpTradingAccount" editable="false" visible="false"/>
+		         	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.localac')}" dataField="localAccountNo" visible="false" labelFunction="getLocalAccountNo" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer"/>
+		         	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundaccountno')}" dataField="fundAccountNo" editable="false"/>
+		        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.delrec')}" dataField="deliverReceiveDisplay" editable="false"/>
+		        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.securitycode')}" dataField="instrumentCode" editable="false"/>
+		        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.securityname')}" dataField="securityShortName" editable="false"/>
+		        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.altsec')}" dataField="altSecurityCode" labelFunction="getAltSecurityCode" visible="false" editable="false"/>
+		        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.quantity')}" dataField="instructionQuantityStr" textAlign="right" editable="false"/>
+		        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ccy')}" dataField="ccyCode" editable="false"/>
+		        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.amount')}" dataField="instructionAmountStr" textAlign="right" editable="false"/>
+		        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.brokerbank')}" dataField="cpBankDisplay" editable="false"/>
+		             <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.psetcode')}" dataField="psetDisplay" editable="false"/>
+		             <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.receiverbic')}" dataField="firmBank" editable="false"/>
+		             <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.firmac')}" dataField="" labelFunction="getFirmBrokerCode" editable="false"/>
+		             <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.transmissionstatus')}" dataField="" labelFunction="getTrxStatus" editable="false"/>
+		             <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.ackstatus')}" dataField="status" labelFunction="getAckStatus" editable="false"/>
+		             <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.cxlackstatus')}" dataField="acceptanceStatus" labelFunction="getCxlAckStatus" editable="false" visible="false"/>
+	            </mx:columns>
+	            </mx:DataGrid> 
+	       	</mx:VBox>
+</mx:Module>

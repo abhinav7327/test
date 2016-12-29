@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+
+
+-->
+
+<!--Mxml file for Derivative Expiry Query Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" 
+    xmlns:containers="com.nri.rui.core.containers.*" 
+    xmlns:flexlib="http://code.google.com/p/flexlib/" 
+    xmlns:cntrls="com.nri.rui.core.controls.*" 
+    xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+    percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" 
+    verticalScrollPolicy="off" creationComplete="loadAll();focusManager.setFocus(submit);  ">
+    
+    <mx:Script>
+        <![CDATA[ 
+        	import mx.events.DataGridEvent;
+        	import com.nri.rui.ref.popupImpl.FundPopup;
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.containers.TitleWindow;
+            import mx.collections.ArrayCollection;
+            import mx.events.CloseEvent;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import mx.controls.CheckBox;
+            import mx.managers.PopUpManager;
+            import com.nri.rui.core.controls.CustomDataGrid;
+            import com.nri.rui.core.controls.XenosAlert;
+                        
+            /**
+             *  Change the state to result.
+             */
+            private function changeCurrentState():void{
+                currentState = "result";
+                app.submitButtonInstance = null;
+            }
+                       /**
+            * Retrieve and return the Instrument Name for dataTip.
+            */
+            private function getSecurityShortName(item:Object):String {
+                return item.securityShortName;
+            }
+ 
+            /**
+            * Retrieve and return the Fund Account Number.
+            */
+            private function getFundAccNo(item:Object,column : DataGridColumn):String {
+                return item.inventoryAccountNo;
+            }  
+            
+             /**
+            * Retrieve and return the Broker Account Number.
+            */
+            private function  getBrokerAccNo (item:Object,column : DataGridColumn):String {
+                return item.cpAccountNo;
+            } 
+                                
+            /**
+ 			*  datagrid header release event handler to handle datagridcolumn sorting
+ 			*/
+			public function dataGrid_headerRelease(evt:DataGridEvent):void {				
+				var dg:CustomDataGrid = CustomDataGrid(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];	
+			}
+                          
+        ]]>
+    </mx:Script>
+    <mx:Script source="actionscripts/DrvExpiryQuery.as"/>
+    
+    <mx:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+        	<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </mx:states>
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+    
+      <cntrls:XenosHTTPService id="initializeDrvExpiryQuery" fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)" 
+             method="POST" useProxy="false" result="initPage(event)" showBusyCursor="true"/>    
+
+    <cntrls:XenosHTTPService id="drvExpiryQueryRequest" 
+         url="drv/drvExpiryQuery.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         result="loadSummaryPage(event)" showBusyCursor="true">
+        
+    </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="drvResetQueryRequest" url="drv/drvExpiryQuery.action?method=resetQuery"
+        result="initPage(event)" showBusyCursor="true">
+    </cntrls:XenosHTTPService>
+    
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0">    
+        <mx:HBox width="100%" styleName="ExCoBgPanel">
+        	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;" />    	
+        	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+        	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres';app.submitButtonInstance = submit;"/>    	
+        </mx:HBox>
+        <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    
+    <mx:Canvas width="100%" height="100%">
+    
+    <mx:VBox width="100%" height="100%">  
+    <mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="initPageStart()"  >
+    <!--<containers:CollapsibleHDividedBox id="hdbox1" width="100%" height="100%" liveDragging="true" paddingBottom="6" paddingLeft="6" paddingRight="6" paddingTop="6" creationComplete="initPageStart()">-->
+    <mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        <mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" width="100%" height="100%" styleName="HDivideStyle" >
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+            <mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+            <!--flexlib:WindowShade id="ws1" tabChildren="{ws1.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.important.fields')}" width="100%" -->
+                <mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundcode')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:FundPopUpHbox id="fundPopUp"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundaccountno')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:AccountPopUpHbox id="actPopUp" retContextItem="{returnContextItem}" recContextItem="{populateContext()}"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.accountno')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:AccountPopUpHbox id="brkAccountNo" retContextItem="{returnContextItem}" recContextItem="{populateInvActContext()}"/>                           
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.contractreferenceno')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="contractReferenceNo" restrict="{Globals.INPUT_PATTERN}"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">                         
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securitycode')}" />
+                        </mx:GridItem> 
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:InstrumentPopUpHbox id="securityId"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.underlyingsecuritycode')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:InstrumentPopUpHbox id="underlyingSecurityId"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">                         
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.failreason')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="failReason" restrict="{Globals.INPUT_PATTERN}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            
+                        </mx:GridItem>
+                    </mx:GridRow>
+                </mx:Grid>                
+
+            <mx:HBox width="100%" styleName="ButtonBackPanel">    
+         		<cntrls:XenosButton id="submit" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="this.submitQuery();" />
+	           	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle"  click="this.resetQuery();"/>	           	
+    	   	</mx:HBox>
+
+        </mx:VBox>
+        </mx:Canvas>
+        <mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >                        
+            <cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" />                
+            <cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="true"  variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()" headerRelease="dataGrid_headerRelease(event)">
+                <cntrls:columns>                      
+                   <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.contractreferenceno')}" dataField="contractReferenceNo" itemRenderer="com.nri.rui.drv.rendrers.ContractDetailsRenderer" sortCompareFunction="sortUtil.sortString" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securitycode')}" dataField="securityId" showDataTips="true" dataTipFunction="getSecurityShortName" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer" visible="true" sortCompareFunction="sortUtil.sortString" />                       
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securityshortname')}" dataField="securityShortName" sortCompareFunction="sortUtil.sortString" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.common.label.alternatesecurityid')}" dataField="alternateSecCodeDisp" sortCompareFunction="sortUtil.sortString" />
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.underlyingshortname')}" dataField="underlyingShortName" sortCompareFunction="sortUtil.sortString" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.accountno')}" dataField="cpAccountPk" labelFunction="getBrokerAccNo" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer" sortCompareFunction="sortUtil.sortString" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.accountname')}" dataField="cpAccountName" visible="false"  sortCompareFunction="sortUtil.sortString" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundaccountno')}" dataField="fundAccPk" labelFunction="getFundAccNo" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer" sortCompareFunction="sortUtil.sortString" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundaccountname')}" dataField="inventoryAccountName" visible="false" sortCompareFunction="sortUtil.sortString" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundcode')}" dataField="fundCode" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer" visible="true" sortCompareFunction="sortUtil.sortString" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundname')}" dataField="fundName" visible="true" sortCompareFunction="sortUtil.sortString" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.settlementtype')}" dataField="drvSettlementType" visible="true" sortCompareFunction="sortUtil.sortString" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.marketprice')}" textAlign="right" dataField="marketPriceDisp" visible="true" sortCompareFunction="sortUtil.sortString" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.openbalqty')}" dataField="openQuantityStr" textAlign="right"  visible="true" sortCompareFunction="sortUtil.sortString" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.expiredquantity')}" dataField="expiredQuantityStr"  textAlign="right"  visible="true" sortCompareFunction="sortUtil.sortString" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.marketvalue')}" textAlign="right" dataField="marketValueDisp" visible="true" sortCompareFunction="sortUtil.sortString" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.expiryamount')}" dataField="expiryAmountDisp"  textAlign="right"  visible="true" sortCompareFunction="sortUtil.sortString" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.failreason')}" dataField="failReason" visible="true" sortCompareFunction="sortUtil.sortString" />
+                   	
+              </cntrls:columns>
+         </cntrls:CustomDataGrid>
+        </mx:VBox>
+    </mx:HDividedBox>
+    </mx:VBox>
+    
+   </mx:Canvas> 
+</mx:Module>

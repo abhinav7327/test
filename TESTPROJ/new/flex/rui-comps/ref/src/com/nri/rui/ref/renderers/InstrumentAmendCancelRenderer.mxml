@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%" horizontalAlign="center">
+    <mx:Script>
+        <![CDATA[
+        	import mx.events.CloseEvent;            
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.Globals;
+            
+            import flash.events.MouseEvent;        
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            
+			 private var sPopup : SummaryPopup;	
+            [Bindable] public var _mode:String = "amend";
+
+    		/**
+        	 * Mouse Click event handler to open a popup with initialization and passing values.
+        	 * 
+        	 */ 
+            public function handleMouseClick(event:MouseEvent):void {
+        			
+        		var parentApp :UIComponent = UIComponent(this.parentApplication);	
+        		sPopup= SummaryPopup(PopUpManager.createPopUp(parentApp,SummaryPopup,true));
+        		
+                //set the width and height of the popup
+                sPopup.width = parentApp.width - 50;
+    			sPopup.height = parentApp.height - 50;  
+    			
+                		
+        		/* sPopup.horizontalScrollPolicy="off";
+        		sPopup.verticalScrollPolicy="off"; */
+        		PopUpManager.centerPopUp(sPopup);        		
+        		var queryString:String = "mode=" + this._mode + "&instrumentPk=" + data['instrumentPk'];
+        		if (_mode == "amend") {        			
+					sPopup.title = this.parentApplication.xResourceManager.getKeyValue('ref.instrumentamend.title.renderer.amend');
+        		   	sPopup.moduleUrl = Globals.INSTRUMENT_AMEND_SWF + Globals.QS_SIGN + queryString;
+        		} else {
+        			sPopup.title = this.parentApplication.xResourceManager.getKeyValue('ref.instrumentamend.title.renderer.cancel');
+        			sPopup.moduleUrl = Globals.INSTRUMENT_CANCEL_SWF + Globals.QS_SIGN + queryString;
+        		}
+        		sPopup.addEventListener("OkSystemConfirm",handleOkSystemConfirm,false,0,true);    
+        		
+        		
+        	}
+        	
+        	/**
+        	 * Event Handler for the custom event "OkSystemConfirm"
+        	 */
+        	public function handleOkSystemConfirm(event:Event):void {
+        		
+        		this.parentDocument.currentState = "";
+                /* if(_mode == "amend")
+                  this.parentDocument.dispatchEvent(new Event("amendReset"));
+                else if(_mode == "cancel")
+                  this.parentDocument.dispatchEvent(new Event("cancelReset")); */
+                  parentDocument.resetQuery();
+                  
+                  sPopup.removeMe();
+                
+            }
+        ]]>
+    </mx:Script>
+    <mx:Button id="editRemarks" styleName="{_mode == 'amend' ? 'BtnEdit' : 'BtnDelete'}" width="18" height="18" label="{_mode == 'amend' ? 'Edit' : 'Cancel'}" click="handleMouseClick(event)"/>
+</mx:VBox>

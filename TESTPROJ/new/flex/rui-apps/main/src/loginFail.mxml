@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:cntrls="com.nri.rui.core.controls.*" layout="vertical" width="100%" height="100%"
+	creationComplete="init();">
+<mx:HTTPService id="logout" method="POST" result="onResult(event)" fault="onFault(event)" />
+<mx:Style source="assets/css/LoginFailStyle.css"/>	
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.SWFLoader;
+			import flash.net.navigateToURL;
+			import mx.controls.Alert;
+			import flash.net.SharedObject;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.events.FaultEvent;
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.core.controls.*;
+			import flash.net.URLRequest;
+
+
+			public function init():void
+			{
+				failMsg.text = "User is not registered. Please try again.";
+			}
+	
+			private function doLogout():void {
+				    //Destroy LSO
+				    SharedObject.getLocal(Globals.LSO_USER,Globals.LSO_PATH).clear();
+				    var req : Object = new Object();
+				    logout.url="logout.action?unique="+ new Date().getTime();
+				    logout.request = req;
+				    logout.send();
+			}
+			private function onResult(event:ResultEvent) : void {
+            var url:String = "main.action?unique="+ new Date().getTime() +"";
+            var request:URLRequest = new URLRequest(url);
+            request.method = "POST";
+            SharedObject.getLocal(Globals.LSO_USER,Globals.LSO_PATH).clear();
+            try {
+                navigateToURL(request,"_self");
+
+            }
+            catch (e:Error) {
+                trace(e);
+            }
+		}
+
+		private function onFault(event:FaultEvent) : void {
+		    trace(event);
+		    SharedObject.getLocal(Globals.LSO_USER,Globals.LSO_PATH).clear();
+		    XenosAlert.error("Error while Redirecting to login page."+event.fault.faultString);
+		}
+		]]>
+	</mx:Script>
+
+ <mx:Canvas width="495" height="300" styleName="Loginbg">
+        <mx:Image source="@Embed('assets/img/sessionOut.png')"  x="204" y="20"/>
+	    <mx:Panel id="panel" width="417" height="160" paddingTop="10" paddingLeft="0" paddingRight="0" paddingBottom="0" verticalCenter="12" verticalAlign="middle" layout="vertical" horizontalAlign="center" headerHeight="0" horizontalGap="0" verticalGap="10" x="39">
+	        <mx:HBox backgroundColor="#F8F2F2" width="381">
+				<mx:Label id="failMsg" textAlign="center" fontWeight="bold" width="381" height="49" color="red" fontSize="12" />	        	
+	        </mx:HBox>
+			<mx:Button click="doLogout()"  label="Back" width="72" height="34" styleName="RoundButton" buttonMode="true"/>
+		</mx:Panel> 
+
+</mx:Canvas>
+</mx:Application>

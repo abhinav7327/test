@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ModulePanel xmlns="com.nri.rui.core.controls.*" xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" width="100%" height="100%" creationComplete="initModule()" close="closeWindow()">
+	<mx:Script>
+        <![CDATA[
+        	import com.nri.rui.core.utils.XenosStringUtils;
+        	import mx.core.Container;
+        	import mx.events.FlexEvent;
+        	import mx.rpc.events.ResultEvent;
+        	import com.nri.rui.core.Globals;
+        	import mx.modules.Module;
+        	import com.nri.rui.core.startup.XenosApplication;
+        import mx.rpc.events.FaultEvent;
+        import mx.controls.Alert;
+        import mx.events.ModuleEvent;
+        import mx.modules.ModuleManager;
+        import mx.modules.IModuleInfo;
+		import flash.events.ProgressEvent;
+
+        public var info:IModuleInfo;
+        public var instance:Module;
+        
+        private var module:String = "";
+        
+        private function initModule():void {
+        	progress.includeInLayout = true;
+        	progress.visible = true;
+        	info = ModuleManager.getModule(this.url);
+        	//trace("initModule :"+this.url+ ":"+this.uniqueId);
+            info.addEventListener(ModuleEvent.PROGRESS,onProgress);
+            info.addEventListener(ModuleEvent.READY, modEventHandler);
+            info.addEventListener(ModuleEvent.ERROR, onError);
+            // Load the module into memory. Calling load() makes the
+            // IFlexModuleFactory available. You can then get an
+            // instance of the class using the factory's create()
+            // method.            
+            info.load();
+          
+        }
+         private function closeWindow():void {
+         	if(info.loaded && instance!=null && instance.hasEventListener(ModuleEvent.UNLOAD)){         		
+         		instance.dispatchEvent(new ModuleEvent(ModuleEvent.UNLOAD));
+         	}
+         	//trace("memory before:"+System.totalMemory);       	
+         	 	      
+         	 	if(info!=null)
+         	 	{                 
+	                info.removeEventListener(ModuleEvent.PROGRESS,onProgress);
+	                info.removeEventListener(ModuleEvent.READY, modEventHandler);
+	                info.removeEventListener(ModuleEvent.ERROR, onError);
+	         		info.unload();  	         		
+	         		if(instance!=null)
+         	 			canvas.removeChild(instance);
+         	 	}
+         	 	
+         	 	info=null;         	 	
+         	 	instance=null;        		
+         		
+         	//trace("memory after:"+System.totalMemory);
+         	
+         }
+         
+        
+         private function onError(e:FaultEvent):void {
+         	
+         	Alert.show(e.fault.faultString);
+         }
+        private function modEventHandler(e:ModuleEvent):void {
+            // Add an instance of the module's class to the
+            // display list.
+            //canvas.removeChild(progress);
+            progress.label="";
+            instance=info.factory.create() as Module;
+            canvas.addChild(instance);
+            progressbg.includeInLayout = false;
+            progressbg.visible = false;
+            progress.includeInLayout = false;            
+            progress.visible = false;
+            fetchAppDate();
+           
+           
+        }
+         private function fetchAppDate():void{
+         	
+         	//parseUrl();
+         	var req :Object = new Object();
+	       // req.appDateModule = "cam";
+	        req.appDateModule = parseUrl();
+	        
+	        appDateDispatch.request = req;
+	        appDateDispatch.send();
+	       }
+	      private function parseUrl():String {
+	      	//var module:String = null;
+	      	try{
+	      		// Remove everything before the question mark, including
+            	// the question mark.
+	            //var myPattern:RegExp = /.*\?/; 
+	            var s:String = this.url.toString();
+	            //s = s.replace(myPattern, "");
+	            // Create an Array of name=value Strings.
+	            var params:Array = s.split("/"); 
+	            //module = params[2];
+	            module = params[2];
+	            trace(module +":"+this.url);
+	           trace(s);
+	      	}catch(e:Error){
+	      		trace(e);
+	      	}
+	      	 return module;
+	      } 
+        /* public function onProgress(event:ProgressEvent):void {
+    	//Alert.show("onProgress");
+        //progress.label="Loaded %1 of %2 bytes...";
+        progress.label = "Module " +  
+                Math.round((event.bytesLoaded/event.bytesTotal) * 100) + 
+                "% loaded";
+
+        progress.indeterminate=false;
+        progress.setStyle("color", 0x007ac8);
+        progress.setStyle("fontWeight","normal");
+        
+    	} */
+    
+	    public function onProgress(event:ProgressEvent):void {
+	    	//Alert.show("onProgress");
+	        //progress.label="Loaded %1 of %2 bytes...";
+	        
+	        progress.label = "Module " + Math.round((event.bytesLoaded/event.bytesTotal) * 100) + "% loaded";
+	        progress.setProgress(Math.round((event.bytesLoaded/event.bytesTotal) * 100),100);	         
+            
+	        progress.indeterminate=true;
+	             
+	    }
+    	
+    	private function initPage(event:ResultEvent):void{
+    		//trace("initPage  : "+event.result.appDate.date);
+    		if(event.result.appDate.date != null)
+    			this.title += " [ Application Date : "+ event.result.appDate.date+" ]";
+    		
+    		if(	XenosStringUtils.equals(module,"cax")){
+    			var xApp : XenosApplication = XenosApplication.getInstance(Globals.DEFAULT_ENTERPRISE);
+    			xApp.caxAppDate = event.result.appDate.date;
+    			//trace("tracing cax App Date :"+xApp.caxAppDate);
+    		}
+    	}
+        ]]>
+    </mx:Script>
+    <XenosHTTPService id="appDateDispatch" url="ref/appDateAction.action"
+        result="initPage(event)" showBusyCursor="true">
+    </XenosHTTPService>
+    
+    <mx:Parallel id="progressBar_completeEffect">
+        <mx:Fade alphaTo="0.0" />
+        <mx:Zoom zoomHeightTo="0" />
+    </mx:Parallel>
+	<!--mx:ProgressBar width="100%" id="progress" source="{this.url}" /-->
+	<mx:HBox id="progressbg" width="100%" height="100%" visible="true" horizontalAlign="center" verticalAlign="middle" verticalCenter="true" horizontalCenter="true">
+		<mx:Box width="200" height="60" paddingTop="10" styleName="ProgressBg" horizontalAlign="center" verticalAlign="middle" verticalCenter="true" horizontalCenter="true">
+			<mx:ProgressBar id="progress" completeEffect="{progressBar_completeEffect}" width="180" minimum="0" maximum="100" visible="true" direction="right" label="" />
+		</mx:Box>				
+	</mx:HBox>
+	
+	
+	<mx:Canvas id="canvas" width="100%" height="100%" verticalScrollPolicy="off" horizontalScrollPolicy="off">
+	
+			<!--<mx:ModuleLoader url="{this.url}" height="100%" width="100%" verticalScrollPolicy="off" horizontalScrollPolicy="off"/>-->
+	</mx:Canvas>
+</ModulePanel>

@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="utf-8"?>
+<containers:XenosQueryModule xmlns:mx="http://www.adobe.com/2006/mxml" 
+							 xmlns:containers="com.nri.rui.core.containers.*" 
+							 xmlns:flexlib="http://code.google.com/p/flexlib/" 
+							 xmlns:cntrls="com.nri.rui.core.controls.*" 
+							 xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+							 xmlns:frmtrs="com.nri.rui.core.formatters.*"
+            				 xmlns:valdtrs="com.nri.rui.core.validators.*"
+							 layout="vertical" percentWidth="100" percentHeight ="100" 
+							 horizontalScrollPolicy="off" verticalScrollPolicy="off">
+    <mx:Script>
+    	<![CDATA[
+    		import com.nri.rui.core.Globals;
+    		import mx.resources.ResourceBundle;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.RendererFectory;
+			import com.nri.rui.core.renderers.ImgSummaryRenderer;
+			
+			public var trxpop : OrderMatchingConfirmationPopup;
+		 	
+		 	 private function dispNumOfUnits(item:Object,column : AdvancedDataGridColumn):String{
+            	return item.executionNumberOfUnitsStr;
+            	
+            }	 
+            
+             private function dispPrincipalAmount(item:Object,column : AdvancedDataGridColumn):String{
+            	return item.executionPrincipalAmountStr;
+            	
+            }
+            
+             private function dispOrdNumOfUnits(item:Object,column : AdvancedDataGridColumn):String{
+            	return item.orderNumberOfUnitsStr;
+            	
+            }	 
+            
+             private function dispAmount(item:Object,column : AdvancedDataGridColumn):String{
+            	return item.orderPrincipalAmountStr;
+            	
+            }	 		
+    	]]>
+    </mx:Script>
+    <mx:Metadata>
+     	[ResourceBundle("omsResources")]
+    </mx:Metadata>
+	<mx:Script source="actionscripts/OrderMatchingQuery.as"/>
+	
+	<containers:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions> 
+    
+    <cntrls:XenosHTTPService id="forceMatchRequestAction" 
+         url="oms/forceMatchRequest.action?" 
+         fault="XenosAlert.error( this.parentApplication.xResourceManager.getKeyValue('ref.comp.label.error') + event.fault.faultString)"
+         result="onSuccess(event)" showBusyCursor="true" resultFormat="xml" method="POST">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="forceMatchCxlRequestAction" 
+         url="oms/forceMatchRequest.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('ref.comp.label.error')  + event.fault.faultString)"
+         result="onSuccess(event)" showBusyCursor="true" resultFormat="xml" method="POST">
+    </cntrls:XenosHTTPService>
+    
+     <cntrls:XenosHTTPService id="forceMatchIgnoreRequestAction" 
+         url="oms/forceMatchRequest.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('ref.comp.label.error')  + event.fault.faultString)"
+         result="onSuccess(event)" showBusyCursor="true" resultFormat="xml" method="POST">
+    </cntrls:XenosHTTPService>
+    
+     <cntrls:XenosHTTPService id="forceMatchCxlIgnoreRequestAction" 
+         url="oms/forceMatchRequest.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('ref.comp.label.error')  + event.fault.faultString)"
+         result="onSuccess(event)" showBusyCursor="true" resultFormat="xml" method="POST">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="orderMatchConfirmRequest" 
+         url="oms/orderMatching.action?method=doSubmitMatchOrder" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('ref.comp.label.error')  + event.fault.faultString)"
+         result="confirmHandler(event)" showBusyCursor="true" resultFormat="xml" method="POST">
+    </cntrls:XenosHTTPService>
+
+    <frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true"  /> 
+        
+	<mx:VBox width="100%" verticalGap="0" horizontalGap="0" id="screenNavigater">    
+	    <mx:HBox width="100%" styleName="ExCoBgPanel">
+	    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="{this.parentApplication.xResourceManager.getKeyValue('oms.tooltip.query')}" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;"  />    	
+	    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="{this.parentApplication.xResourceManager.getKeyValue('oms.tooltip.result')}" buttonMode="true" click="currentState='result'" />
+	    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="{this.parentApplication.xResourceManager.getKeyValue('oms.tooltip.qryrslt')}" buttonMode="true" click="currentState='qryres';app.submitButtonInstance = submit;"/>    	
+	    </mx:HBox>
+    </mx:VBox>
+    
+<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%">
+		<mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="{this.loadAll()}"  >
+			<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+			  <mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" width="100%" height="100%" styleName="HDivideStyle" >
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+				<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		        <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+		        
+		        <mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                    	<!--Fund Code-->
+               		 	<mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.fund.code.label.tstar')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:FundPopUpHbox id="fundPopUp" toolTip="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.tooltip.tstarfund')}"/>                            
+                        </mx:GridItem>
+                        <!-- Office Id -->
+                        <mx:GridItem width="20%" borderThickness="0">
+	                         <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.label.officeid')}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="0">
+	                         <mx:ComboBox id="officeId" labelField="label" prompt="{this.parentApplication.xResourceManager.getKeyValue('ref.comp.label.select')}"/>
+	                    </mx:GridItem> 
+               		</mx:GridRow>
+               		
+               		<mx:GridRow width="100%">
+               			<!-- Order Reference No -->
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.label.orderrefno')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="orderRefNo" restrict="{Globals.INPUT_PATTERN}"/>
+                        </mx:GridItem>
+               			<!-- Execution Reference No -->
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.label.exerefno')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="executionRefNo" restrict="{Globals.INPUT_PATTERN}"/>
+                        </mx:GridItem>
+               		</mx:GridRow>
+               		
+               		<!--<mx:GridRow width="100%">-->
+               			<!--Fund Account No of NAM Tokyo--> 
+                  <!--      <mx:GridItem width="20%" borderThickness="0">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.label.fundAccountNo')}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="0">
+	                            <xenospopup:AccountPopUpHbox id="inventoryAccountNo" retContextItem="{returnContextItem}" recContextItem="{populateInvActContext()}"/>
+	                    </mx:GridItem> -->
+                        <!--Ordered Amount in JPY-->
+                  <!--      <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.label.amount')}" />
+                        </mx:GridItem>
+                        <mx:GridItem  width="30%" borderThickness="0">
+                            <mx:TextInput id="amount" text="" width="100" focusOut="amountHandler()" maxChars="12"/>
+                        </mx:GridItem> 
+               		</mx:GridRow>-->
+               		
+               		<mx:GridRow width="100%">
+               			<!--Buy/Sell-->
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.label.buysell')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="buySell" labelField="label" prompt="{this.parentApplication.xResourceManager.getKeyValue('ref.comp.label.select')}"/>                       
+                        </mx:GridItem>
+                        <!--Security Code-->
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.sec.code.label.tstar')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:InstrumentPopUpHbox id="security"/>                          
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+                    	<!--Trade Date From - To-->
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.label.tradedatefromto')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox>
+                       			<mx:DateField id="trddateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                       			<mx:DateField id="trddateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+            				</mx:HBox>                         
+                        </mx:GridItem>
+                        <!--Value Date From - To-->
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.label.valuedatefromto')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox>
+                       			<mx:DateField id="valuedateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                       			<mx:DateField id="valuedateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+            				</mx:HBox>                         
+                        </mx:GridItem>
+	               </mx:GridRow>
+	               
+	               <mx:GridRow width="100%">
+                    	<!--Executing Party-->
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.label.bic.code.executing.party')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                       		<!--<mx:TextInput id="bicCode" text="" width="100" restrict="{Globals.INPUT_PATTERN}" />-->
+                       		<xenospopup:AccountPopUpHbox id="bicCode" retContextItem="{returnContextItem}" recContextItem="{populateInvActContext()}"/>
+                        </mx:GridItem>
+                        <!--Currency-->
+                        <mx:GridItem width="20%" borderThickness="0">  
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.label.ccycode')}" />
+                        </mx:GridItem>
+                        <mx:GridItem  width="30%" borderThickness="0">
+                            <cntrls:CurrencyHBox id="ccyBox" />
+                        </mx:GridItem>
+	               </mx:GridRow>
+	               
+	               <mx:GridRow width="100%">
+                    	<!--T-Star Send Status-->
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.label.tstarsend.status')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                       		<mx:ComboBox id="tStarSendStatus" labelField="label" prompt="{this.parentApplication.xResourceManager.getKeyValue('ref.comp.label.select')}"/>
+                        </mx:GridItem>
+                        <!--Numeric Status-->
+                        <mx:GridItem width="20%" borderThickness="0">  
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.label.numericStatus')}" />
+                        </mx:GridItem>
+                        <mx:GridItem  width="30%" borderThickness="0">
+                            <mx:ComboBox id="numericStatus" labelField="label" prompt="{this.parentApplication.xResourceManager.getKeyValue('ref.comp.label.select')}"/>
+                        </mx:GridItem>
+	               </mx:GridRow>
+	               
+	               <mx:GridRow width="100%">
+                    	<!--Entry Date From - To-->
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.label.entrydatefromto')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox>
+                       			<mx:DateField id="entrydateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                       			<mx:DateField id="entrydateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+            				</mx:HBox>                         
+                        </mx:GridItem>
+                        <!--Last Entry Date From - To-->
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.label.lastentrydatefromto')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox>
+                       			<mx:DateField id="lastentrydateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                       			<mx:DateField id="lastentrydateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+            				</mx:HBox>                         
+                        </mx:GridItem>
+	               </mx:GridRow>
+	               
+	               <mx:GridRow width="100%">
+               			<!-- Sender Reference No of MT502 -->
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.sender.refno.mt502')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="senderRefNoMt502" restrict="{Globals.INPUT_PATTERN}"/>
+                        </mx:GridItem>
+               			<!-- Sender Reference No of MT515-->
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.sender.refno.mt515')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="senderRefNoMt515" restrict="{Globals.INPUT_PATTERN}"/>
+                        </mx:GridItem>
+               		</mx:GridRow>
+	               
+	               
+                   <mx:GridRow width="100%">
+                   		<!--Match Status-->
+            			<mx:GridItem borderThickness="0" width="20%">
+            				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.label.matchstatus')}"/>
+            			</mx:GridItem>
+            			<mx:GridItem borderThickness="0" width="80%" colSpan="3">
+            				<mx:RadioButtonGroup id="matchStatusRadio" /> <!-- itemClick="selectItem(event)"/>-->
+                   			<mx:RadioButton id="msAll" groupName="matchStatusRadio" label="{this.parentApplication.xResourceManager.getKeyValue('oms.label.selectall')}" value="ALL" selected="true"/>
+                   			<mx:RadioButton id="msUnmatch" groupName="matchStatusRadio" label="{this.parentApplication.xResourceManager.getKeyValue('oms.label.unmatch')}" value="UNMATCH"/>
+                   			<mx:RadioButton id="msMatch" groupName="matchStatusRadio" label="{this.parentApplication.xResourceManager.getKeyValue('oms.label.match')}" value="MATCH"/>
+                   			<mx:RadioButton id="msUnpaired" groupName="matchStatusRadio" label="{this.parentApplication.xResourceManager.getKeyValue('oms.label.unpaired')}" value="UNPAIRED"/>
+                   			<mx:RadioButton id="msIgnore" groupName="matchStatusRadio" label="{this.parentApplication.xResourceManager.getKeyValue('oms.label.ignore')}" value="IGNORE"/>
+                   			<mx:RadioButton id="msForceMatch" groupName="matchStatusRadio" label="{this.parentApplication.xResourceManager.getKeyValue('oms.label.forcematch')}" value="FORCEMATCH"/>
+            			</mx:GridItem>
+                   </mx:GridRow>
+	               <mx:GridRow width="100%">
+	               		<!--Status-->
+            			<mx:GridItem borderThickness="0" width="20%">
+            				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.label.status')}"/>
+            			</mx:GridItem>
+            			<mx:GridItem borderThickness="0" width="80%" colSpan="3">
+            				<mx:RadioButtonGroup id="statusRadio" />
+                   			<mx:RadioButton id="sAll" groupName="statusRadio" label="{this.parentApplication.xResourceManager.getKeyValue('oms.label.selectall')}" value="ALL" />
+                   			<mx:RadioButton id="sNormal" groupName="statusRadio" label="{this.parentApplication.xResourceManager.getKeyValue('oms.label.status.normal')}" value="NORMAL" selected="true"/>
+                   			<mx:RadioButton id="sCancel" groupName="statusRadio" label="{this.parentApplication.xResourceManager.getKeyValue('oms.label.status.cancel')}" value="CANCEL"/>
+            			</mx:GridItem>
+	               </mx:GridRow>
+               		
+               </mx:Grid>
+                <!-- Sort Order -->
+				<flexlib:WindowShade id="ws3" tabChildren="{ws3.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.sortorder.fields')}" opened="true" width="100%">
+		                <mx:Grid width="100%" borderThickness="0">
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="100%" borderThickness="0">
+		                            <mx:HBox width="100%">
+										<mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()"></mx:ComboBox>
+										<mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()"> </mx:ComboBox>
+										<mx:ComboBox id="sortField3" labelField="label" change="sortOrder3Update()"> </mx:ComboBox>
+										<mx:ComboBox id="sortField4" labelField="label" change="sortOrder4Update()"> </mx:ComboBox>
+										<mx:ComboBox id="sortField5" labelField="label" > </mx:ComboBox>
+		                            </mx:HBox> 
+		                        </mx:GridItem>                         
+		                    </mx:GridRow>
+		                </mx:Grid>
+		       </flexlib:WindowShade>
+               <mx:HBox width="100%" styleName="ButtonBackPanel">
+   	           		<cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="{this.mode == 'query' ?  this.dispatchEvent(new Event('querySubmit')) : (this.mode == 'amend' ? this.dispatchEvent(new Event('amendSubmit')) : this.dispatchEvent(new Event('cancelSubmit')))}" />
+               		<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="{this.mode == 'query' ?  this.dispatchEvent(new Event('queryReset')) : (this.mode == 'amend' ? this.dispatchEvent(new Event('amendReset')) : this.dispatchEvent(new Event('cancelReset')))}" />
+	           </mx:HBox>
+    		  </mx:VBox>
+			</mx:Canvas>
+			
+			<!--Result Page Start-->
+			<mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >			
+	         <!--<cntrls:QueryResultHeader id="qh" printFunction="dispatchPrintEvent" pdfFunction="dispatchPdfEvent" xlsFunction="dispatchXlsEvent" previousFunction="dispatchPrevEvent" nextFunction="dispatchNextEvent" startIndex="{this.mode == 'query' ? 1 : 2}"  />-->
+	         <cntrls:XenosErrors id="errPage1" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>
+	         <cntrls:QueryResultHeaderForAdvancedDataGrid id="qh" pdfFunction="dispatchPdfEvent" xlsFunction="dispatchXlsEvent"  printFunction="dispatchPrintEvent" previousFunction="dispatchPrevEvent" nextFunction="dispatchNextEvent"  startIndex="{this.mode == 'query' ? 1 : 2}" />
+	    	  <cntrls:XenosAdvancedDataGrid selectable="true" id="resultSummary"  sortExpertMode="true" dataProvider="{queryResult}" width="100%" height="100%"  variableRowHeight="true" wordWrap="true" creationComplete="bindDataGrid()" horizontalScrollPolicy="auto" verticalScrollPolicy="auto" headerWordWrap="true" headerRelease="dataGrid_headerRelease(event)">
+		            <cntrls:groupedColumns>
+		            	<mx:AdvancedDataGridColumn id="idCheckBox" headerText="" itemRenderer="com.nri.rui.oms.renderers.OrderMatchingSelectRenderer" width="20" sortable="false"/>
+		            	<mx:AdvancedDataGridColumn dataField="matchStatus"  id="idMatchStatus" headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.matchStatus')}" width="90" itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		            	<mx:AdvancedDataGridColumn dataField="executionNumericStatus" id="idNumericStatus" headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.numericStatus')}" width="45" color="0xFF0000" itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		            	<mx:AdvancedDataGridColumn dataField="tstarSendFlag" id="idTstarSendFlag" headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.tstarsend.flag')}"  width="50" itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		            	<mx:AdvancedDataGridColumn dataField="senderReferenceNoOfMT502" headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.sender.refno.mt502')}" width="120" itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		            	<mx:AdvancedDataGridColumn dataField="executingParty"  headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.order.bicCode')}"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		            	
+		                <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.order.header.label')}" >
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.order.reference.no')}" dataField="orderReferenceNoVersion" itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.label.officeid')}" width="30" dataField="orderOfficeId" itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.fund.code.label.tstar')}" width="80" dataField="orderFundCode" itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.buysellflag')}" width="40" dataField="orderBuySellFlag"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.tradedate')}" width="60" dataField="orderTradeDateDisp"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.valuedate')}" width="60" dataField="orderValueDateDisp"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.sec.code.label.tstar')}" width="100" dataField="orderInstrumentCode"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.ordered.amt')}" width="110" dataField="orderPrincipalAmount"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" textAlign="right" sortable="true" sortCompareFunction="sortUtil.sortNumeric" labelFunction="dispAmount"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.order.noofunits')}" dataField="orderNumberOfUnits"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" textAlign="right" sortable="true" sortCompareFunction="sortUtil.sortNumeric" labelFunction="dispOrdNumOfUnits"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.status')}" width="60" dataField="orderStatus"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                </mx:AdvancedDataGridColumnGroup>
+		                
+		                <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.execution.header.label')}" >
+		                	<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.label.exerefno')}" dataField="executionReferenceNoVersion" itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.label.officeid')}" width="30" dataField="executionOfficeId" itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.fund.code.label.tstar')}" width="80" dataField="executionFundCode" itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.buysellflag')}" width="40" dataField="executionBuySellFlag"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.tradedate')}" width="60" dataField="executionTradeDateDisp"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.valuedate')}" width="60" dataField="executionValueDateDisp"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.sec.code.label.tstar')}" width="100" dataField="executionInstrumentCode"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.executed.amt')}" width="110" dataField="executionPrincipalAmount"  labelFunction="dispPrincipalAmount" itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" textAlign="right" sortable="true" sortCompareFunction="sortUtil.sortNumeric"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.executed.noofunits')}" dataField="executionNumberOfUnits" labelFunction="dispNumOfUnits"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" textAlign="right" sortable="true"  sortCompareFunction="sortUtil.sortNumeric"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.status')}" width="60" dataField="executionStatus"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" sortable="true"/>
+		                </mx:AdvancedDataGridColumnGroup>
+		            </cntrls:groupedColumns>
+        	</cntrls:XenosAdvancedDataGrid>
+        	<mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="left">            
+            	<mx:VBox width="70%">
+                	<mx:HBox width="100%">
+	                	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.button.forcematch')}" styleName="BtnStyle" click="doSendForForceMatch()"/>
+	                	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.button.forcematch.cxl')}" styleName="BtnStyle" click="doSendForCxlForceMatch()"/>
+	                	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.button.ignore')}" styleName="BtnStyle" click="doSendForIgnore()"/>
+	                	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.button.ignore.cxl')}" styleName="BtnStyle" click="doSendForCxlIgnore()"/>
+                	</mx:HBox>
+            	</mx:VBox>
+        	</mx:HBox>
+			</mx:VBox>
+		<!--Result Page End-->
+			
+		</mx:HDividedBox>
+	</mx:VBox>
+</mx:Canvas> 
+</containers:XenosQueryModule>
+
+

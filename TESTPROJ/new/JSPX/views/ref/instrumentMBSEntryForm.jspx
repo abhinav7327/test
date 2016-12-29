@@ -1,0 +1,624 @@
+<!--$Id$-->
+<!--$Author: himanshum $-->
+<!--$Date: 2016-12-26 22:38:44 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+<div class="entryContainer paddingFour">
+          
+    <!-- Java script include -->
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		
+        var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+        	
+	        var context = $xenos$Wizard.$context;
+			var baseUrl = xenos.context.path + context.find('form').attr('action');
+			
+			xenos.loadScript([
+				{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				{path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false},
+				{path: xenos.context.path + '/scripts/ref/instrumentEntry.js', async: false}
+			]);			
+			
+			if("${commandForm.options.actionType}" == "ENTRY"){
+				$("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','block');
+				$("#formActionArea > div > div > .wizPrev > .inputBtnStyle").css('display','block');
+			}
+			
+	        /**
+	         * A common request handler to be used server communication.
+	         */
+	         var xenos$Handler$RequestHandler = xenos$Handler$function({
+	             get: {
+	                 contentType: 'json',
+	                 requestType: xenos$Handler$default.requestType.asynchronous
+	             },  
+	             settings: {
+	                 beforeSend: function(request) {
+	                     request.setRequestHeader('Accept', 'application/json');
+	                 },
+	                 type: 'POST'
+	             }
+	         });
+        
+
+        /*************************** Grid result, config and columns ****************************/
+         var rowId = 0;    
+         var cmoTypeGridResult=[];
+         var cmoTypeGrid;
+         var cmoTypeGridConfig = {
+                     editMode                    :   'delete',
+                     deleteCallback              :   cmoTypeDeleteHandler,  					 
+                     forceFitColumns             :   true
+         };
+         var cmoTypeGridColumns = [
+                    {name:"<spring:message code="ref.insturment.entry.label.mbstab.cmotype" htmlEscape="false"/>", field:"cmoDesc",id:"cmoDesc", sortable:false}                                        
+         ];
+         
+         
+         var factorGridResult=[];
+         var factorGrid;
+         var factorGridConfig = {
+                     editMode                    :   'both',
+                     editCallback                :   factorEditHandler,
+                     deleteCallback              :   factorDeleteHandler,  				 
+                     forceFitColumns             :   true
+         };
+         var factorGridColumns = [
+                    {name:"<spring:message code="ref.insturment.entry.label.mbstab.poolfactor" htmlEscape="false"/>", field:"poolFactorDisp",id:"poolFactorDisp", sortable:false},
+                    {name:"<spring:message code="ref.insturment.entry.label.mbstab.poolbalance" htmlEscape="false"/>", field:"poolBalanceDisp",id:"poolBalanceDisp", sortable:false},
+                    {name:"<spring:message code="ref.insturment.entry.label.mbstab.datefrom" htmlEscape="false"/>", field:"dateFromDisp",id:"dateFromDisp", sortable:false},
+                    {name:"<spring:message code="ref.insturment.entry.label.mbstab.recorddate" htmlEscape="false"/>", field:"recordDateDisp",id:"recordDateDisp", sortable:false}                                        
+         ];        
+         
+         /************************ Request Object Population ********************/
+             
+         function populateCMOTypeRequestParams(){
+            var reqObj = {
+                "instrumentPage.cmoType"  :    $.trim($('#cmoType').val())
+            };
+            return reqObj;
+         }
+        
+         function populateFactorRequestParams(){
+            var reqObj = {
+                "poolFactor"  :    $.trim($('#poolFactor').val()),
+                "poolBalance"  :    $.trim($('#poolBalance').val()),
+                "factorDateFrom"  :    $.trim($('#factorDateFrom').val()),
+                "factorRecordDate"  :    $.trim($('#factorRecordDate').val())
+            };
+            return reqObj;
+         }
+        
+         /*************************** Validation functions **********************/
+             
+         function validateCMOTypeAddUpdate(){
+            var validationMessages = [];
+            
+            if(VALIDATOR.isNullValue($.trim($('#cmoType').val()))){                
+                validationMessages.push(xenos$REF$i18n.instrument.mbs.cmotype_empty);
+            }
+            
+           if ( validationMessages.length >0){
+				xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+                return false;
+            } else {
+				$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+            }
+            return true;
+         }
+         
+         function validateFactorAddUpdate(){
+			var validationMessages = [];
+			
+			var poolFactor=$('#poolFactor').val();
+			var poolBalance=$('#poolBalance').val();
+			
+			if(VALIDATOR.isNullValue(poolFactor)){
+				validationMessages.push(xenos$REF$i18n.instrument.mbs.poolfactor_error);
+			}
+			
+			formatQuantity($('#poolFactor'),1,8,validationMessages,$('#poolFactor').parent().parent().find('label').text());
+			
+			if(VALIDATOR.isNullValue($("#factorDateFrom").val())){
+				validationMessages.push(xenos$REF$i18n.instrument.mbs.datefrom_empty);
+			}
+			
+			if (($("#factorDateFrom").val() != "" <![CDATA[&&]]> $("#factorDateFrom").val() != null <![CDATA[&&]]> $("#factorDateFrom").val() != undefined) <![CDATA[&&]]> isDateCustom($("#factorDateFrom").val())==false){
+				validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.mbs.datefrom_empty));
+			}
+			
+			if(!VALIDATOR.isNullValue(poolBalance)){
+				formatAmount($('#poolBalance'), 15, 3, validationMessages,$('#poolBalance').parent().parent().find('label').text());
+			}
+			
+			if (($("#factorRecordDate").val() != "" <![CDATA[&&]]> $("#factorRecordDate").val() != null <![CDATA[&&]]> $("#factorRecordDate").val() != undefined) <![CDATA[&&]]> isDateCustom($("#factorRecordDate").val())==false){
+				validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.mbs.record_date_error));
+			}
+			
+			if (($("#factorDateFrom").val() != "" <![CDATA[&&]]> $("#factorDateFrom").val() != null <![CDATA[&&]]> $("#factorDateFrom").val() != undefined) <![CDATA[&&]]> isDateCustom($("#factorDateFrom").val())==true){
+				if (($("#factorRecordDate").val() != "" <![CDATA[&&]]> $("#factorRecordDate").val() != null <![CDATA[&&]]> $("#factorRecordDate").val() != undefined) <![CDATA[&&]]> isDateCustom($("#factorRecordDate").val())==true){
+					if((($.trim($('#factorRecordDate').val())) != "" <![CDATA[&&]]> ($.trim($('#factorRecordDate').val())) != null <![CDATA[&&]]> ($.trim($('#factorRecordDate').val())) != undefined) <![CDATA[&&]]> ($.trim($('#factorDateFrom').val())) > ($.trim($('#factorRecordDate').val()))){
+						validationMessages.push(xenos$REF$i18n.instrument.mbs.date_compare);
+					}
+				}
+			}
+				
+			 if ( validationMessages.length >0) {
+				 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+				 return false;
+			 } else {
+				$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+			 }
+			 return true;
+		 } 
+         
+         /***************************** Handler callbacks **************************/
+                                /**** CMO Type handler callbacks ****/
+             
+          function upsertCMOTypeInfo(data){
+             var result = data.instrumentPage.cmoTypes;
+             if(result){
+                 cmoTypeGrid.clearData();
+                 for(var i in result){                    
+                     items = {};
+                     rowId+=1;
+                     items.id             =   "xenos_" + rowId;
+                     items.cmoDesc  =   result[i].map.cmoDesc;                     
+                     cmoTypeGrid.addOrUpdateRow(items,{});
+                 }
+             }
+			 xenos.utils.clearGrowlMessage();
+          }
+          
+         
+        /**** Factor handler callbacks ****/
+          
+          function upsertFactorInfo(data){
+             var result = data.factors;
+             if(result){
+                 factorGrid.clearData();
+                 for(var i in result){                    
+                     items = {};
+                     rowId+=1;
+                     items.id             =   "xenos_" + rowId;
+                     items.poolFactorDisp  =   result[i].poolFactorDisp;
+                     items.poolBalanceDisp  =   result[i].poolBalanceDisp;
+                     items.dateFromDisp  =   result[i].dateFromDisp;
+                     items.recordDateDisp  =   result[i].recordDateDisp;                     
+                     factorGrid.addOrUpdateRow(items,{});
+                 }
+                 populateFactorInfoForm(data);
+             }
+			 xenos.utils.clearGrowlMessage();
+          }
+                    
+          function populateFactorInfoForm(result){
+             if(result){
+                 $('#poolFactor').val(result.poolFactor);
+                 $('#poolBalance').val(result.poolBalance);
+                 $('#factorDateFrom').val(result.factorDateFrom);
+                 $('#factorRecordDate').val(result.factorRecordDate);                 
+             }
+          }
+                          
+         
+         /***************************** Handler functions **************************/
+         
+                /********** CMO Type handlers **********/
+         
+         function cmoTypeAddHandler(e){
+                var valid = validateCMOTypeAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/addCmoType.json?commandFormId=" + $('[name=commandFormId]').val();                                               
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                            settings: {data : populateCMOTypeRequestParams()},
+                                                            onJsonContent :  function(e, options, $target, content) {                                                            
+                                                                if(content.success == true){
+                                                                    upsertCMOTypeInfo(content.value[0]);
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                            }
+                                                         }
+                                            );
+                }
+             }
+          
+          function cmoTypeDeleteHandler(rowIndex, dataContext){
+             var requestUrl = baseUrl + "/deleteCmoType.json?commandFormId=" + $('[name=commandFormId]').val();
+             xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                     settings: {data : {"rowNo" : rowIndex}},
+                                                     onJsonContent :  function(e, options, $target, content) {
+                                                         if(content.success == true){
+                                                             upsertCMOTypeInfo(content.value[0]);
+                                                         } else {
+                                                             xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                         }
+                                                     }
+                                                  }
+                                     );
+          }          
+          
+                           /*********** Factor handlers ***********/
+                           
+          function factorAddHandler(e){
+               var valid = validateFactorAddUpdate();
+               if(valid){
+                   var requestUrl = baseUrl + "/addFactor.json?commandFormId=" + $('[name=commandFormId]').val();                                               
+                   xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                           settings: {data : populateFactorRequestParams()},
+                                                           onJsonContent :  function(e, options, $target, content) {                                                            
+                                                               if(content.success == true){
+                                                                   upsertFactorInfo(content.value[0]);
+                                                               } else {
+                                                                   xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                               }
+                                                           }
+                                                        }
+                                           );
+               }
+            }
+            
+            function factorEditHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/editFactor.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                populateFactorInfoForm(content.value[0]);
+                                                                $('.editBtnFactor').css('display','block'); 
+                                                                $('.addBtnFactor').css('display','none');
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                            return true;
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function factorDeleteHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/deleteFactor.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                upsertFactorInfo(content.value[0]);
+                                                                $('.editBtnFactor').hide();
+                                                                $('.addBtnFactor').show();
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function factorCancelHandler(e){
+                var requestUrl = baseUrl + "/cancelFactor.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                                if(content.success == true){
+                                                                    upsertFactorInfo(content.value[0]);
+                                                                    $('.editBtnFactor').css('display','none'); 
+                                                                    $('.addBtnFactor').css('display','block'); 
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                                return true;
+                                                            }
+                                                         }
+                                            );
+             }
+             
+              function factorUpdateHandler(e){
+               var valid = validateFactorAddUpdate();
+                if(valid){
+                      var requestUrl = baseUrl + "/updateFactor.json?commandFormId=" + $('[name=commandFormId]').val();              
+                      xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                              settings: {data : populateFactorRequestParams()},
+                                                              onJsonContent :  function(e, options, $target, content) {
+                                                                  if(content.success == true){
+                                                                      upsertFactorInfo(content.value[0]);
+                                                                      $('.editBtnFactor').css('display','none'); 
+                                                                      $('.addBtnFactor').css('display','block'); 
+                                                                  } else {
+                                                                      xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                  }
+                                                              }
+                                                           }
+                                              );
+                }
+             }
+         
+         /*************************** Grid initializations *************************************/
+         <xenos:out escapeXml="false">
+			 <c:forEach items="${commandForm.instrumentPage.cmoTypes}" var="dl">
+				  items = {};
+				  rowId+=1;
+				  items.id             = "xenos_" + rowId;               
+				  items.cmoDesc  =   '<c:out value="${dl.map.cmoDesc}" />';                              
+				  cmoTypeGridResult.push(items);
+			  </c:forEach>
+			  rowId = 0;
+				 
+			 cmoTypeGrid = $('#cmoTypeGrid').xenoseditablegrid(cmoTypeGridResult, cmoTypeGridColumns, cmoTypeGridConfig);
+			 
+			 <c:forEach items="${commandForm.factors}" var="dl">
+				  items = {};
+				  rowId+=1;
+				  items.id             = "xenos_" + rowId;               
+				  items.poolFactorDisp  =   '<c:out value="${dl.poolFactorDisp}" />';
+				  items.poolBalanceDisp    =   '<c:out value="${dl.poolBalanceDisp}" />';
+				  items.dateFromDisp  =   '<c:out value="${dl.dateFromDisp}" />';
+				  items.recordDateDisp    =   '<c:out value="${dl.recordDateDisp}" />';                 
+				  factorGridResult.push(items);
+			  </c:forEach>
+		  </xenos:out>	
+          rowId = 0;
+         
+         factorGrid = $('#factorGrid').xenoseditablegrid(factorGridResult, factorGridColumns, factorGridConfig);
+         
+         /*************************** Handler bindings ***********************/
+         
+         /**** CMO Type handler bindings ****/
+                               
+         $('#addFactorBtn').unbind('click');
+         $('#addFactorBtn').bind('click', factorAddHandler);
+         
+        /**** Factor handler bindings ****/
+         
+         $('#addCMOTypeBtn').unbind('click');
+         $('#addCMOTypeBtn').bind('click', cmoTypeAddHandler);
+         
+         $('#updateFactorBtn').unbind('click');
+         $('#updateFactorBtn').bind('click', factorUpdateHandler);
+         
+         $('#cancelFactorBtn').unbind('click');
+         $('#cancelFactorBtn').bind('click', factorCancelHandler);     
+         
+         /************** page load hooks **************/
+        
+        var validateHook = function() { 
+            var validationMessages = [];
+            
+			if (($("#poolResetDateStr").val() != "" <![CDATA[&&]]> $("#poolResetDateStr").val() != null <![CDATA[&&]]> $("#poolResetDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#poolResetDateStr").val())==false){
+				validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.mbs.pool_reset_error,[$("#poolResetDateStr").val()]));
+			}
+			
+            if ( validationMessages.length >0){    
+				xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+                return false;
+            } else {
+				$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+            }  
+            return true;
+        };
+        
+			var unloadHook = function(){
+				$xenos$Wizard.deregister('next',validateHook);
+				$xenos$Wizard.deregister('previous',validateHook);
+				$xenos$Wizard.deregister('submit',validateHook);
+				$xenos$Wizard.deregister('unload',unloadHook);
+			};
+        
+        
+        $xenos$Wizard.register('next',validateHook);
+		$xenos$Wizard.register('previous',validateHook);
+        $xenos$Wizard.register('submit',validateHook);
+        $xenos$Wizard.register('unload',unloadHook);                  
+		
+        };
+        
+        </jsp:body>
+    </jsp:element>
+     
+    <spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+    <spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+    <spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>    
+    
+    <h1><spring:message code="ref.insturment.entry.label.titleWizard" htmlEscape="false"/> <spring:message code="ref.insturment.entry.label.mbsWizard" htmlEscape="false"/></h1>
+     
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	<c:if test="${isSoftValidationExists =='true'}">
+	<!-- Warning message Area -->
+		<ul class="xenosWarn">
+			<c:forEach items="${softValidationList}" var="dl">		
+				<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	 
+     <div class="detailBlock paddingFour">
+         <table class="tableStyle sixCol moreTable">
+            <tr class="noBdr">
+                <td><form:label path="commandForm.defaultInstrumentCode"><spring:message code="ref.insturment.entry.label.othertab.securitycode" htmlEscape="false"/></form:label></td>
+                <td><span class="detailTxtVal">${commandForm.defaultInstrumentCode}</span></td>
+                <td><form:label path="commandForm.instrumentPage.instrumentType"><spring:message code="ref.insturment.entry.label.othertab.instrumenttype" htmlEscape="false"/></form:label></td>
+                <td><span class="detailTxtVal">${commandForm.instrumentPage.instrumentType}</span></td>
+                <td><form:label path="commandForm.defaultShortName"><spring:message code="ref.insturment.entry.label.othertab.shortname" htmlEscape="false"/></form:label></td>
+                <td><span class="detailTxtVal">${commandForm.defaultShortName}</span></td>
+            </tr>      
+         </table>
+     </div>
+     
+     <!-- MBS Info **START -->
+	  <div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.mbstab.mbsinfo" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="spanInstrumentMbsTabMbsInfoId"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	  </div>
+     
+    
+     <div class="entryBlkArea ">
+     
+        <div class="formItemBlock topitems dottedBg">
+            
+			<div class="formItem">
+                <form:label path="commandForm.instrumentPage.agencyFlag"><spring:message code="ref.insturment.entry.label.mbstab.agencyflag" htmlEscape="false"/></form:label> 
+                <span>
+                <form:select id="agencyFlag" path="commandForm.instrumentPage.agencyFlag" class=" ">
+                    <form:options items="${commandForm.instrumentPage.agencyFlagValues}" itemLabel="label" itemValue="value"/>
+                </form:select>
+                </span>            
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div> 
+			
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.poolType"><spring:message code="ref.insturment.entry.label.mbstab.pooltype" htmlEscape="false"/></form:label> 
+                <span>
+                <form:select id="poolType" path="commandForm.instrumentPage.poolType" class="mediumInput  ">
+					<form:option value="" />
+                    <form:options items="${commandForm.instrumentPage.poolTypeValues}" itemLabel="label" itemValue="value"/>
+                </form:select>
+                </span>            
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.poolResetDateStr"><spring:message code="ref.insturment.entry.label.mbstab.poolresetdate" htmlEscape="false"/></form:label> 
+                <span><form:input id="poolResetDateStr" value="" path="commandForm.instrumentPage.poolResetDateStr" class="formInput dateinput  " onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+     </div>
+     <!-- MBS Info **END -->
+     
+     <!-- CMO Type **START -->
+	 
+	  <div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.mbstab.cmotype" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="spanInstrumentMbsTabCmoId"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	  </div>
+	 
+     <div class="entryBlkArea ">    
+     
+        <div class="formItemBlock topitems dottedBg">
+        
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.cmoType" cssStyle="width:38%"><spring:message code="ref.insturment.entry.label.mbstab.cmotype" htmlEscape="false"/></form:label>
+                <form:select id="cmoType" path="commandForm.instrumentPage.cmoType" class="dropdowninput  ">
+					<form:option value="" />
+                    <form:options items="${commandForm.instrumentPage.cmoTypeValues}" itemLabel="label" itemValue="value"/>
+                </form:select>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>            
+            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                
+             <div id="formActionArea" class="gridBtnMargin">
+                 <div class="right">
+                     <div class="btnWrapStyle submitBtn gridAddBtn">
+                       <span class="addBtnCMOType" style="display:block"><input id="addCMOTypeBtn" type="button" value="${formadd_label}" class="inputBtnStyle  "/></span>
+                     </div>
+                     <span class="editBtnCMOType" style="display:none"> 
+                         <div class="btnWrapStyle submitBtn"><input id="updateCMOTypeBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                         <div class="btnWrapStyle resetBtn"><input id="cancelCMOTypeBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                     </span>
+                 </div>
+             </div>
+               
+             <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+             
+             <div class="entryGrid">
+                 <div id="cmoTypeGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+             </div>
+         
+         </div>
+     
+     </div>
+     <!-- CMO Type **END -->
+     
+     <!-- Factor **START -->
+	 
+	  <div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.mbstab.factor" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="spanInstrumentMbsTabFactorId"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	  </div>	
+     
+     <div class="entryBlkArea ">   
+        
+        <div class="formItemBlock dottedBg">
+        
+            <div class="formItem">
+                <form:label path="commandForm.poolFactor"><spring:message code="ref.insturment.entry.label.mbstab.poolfactor" htmlEscape="false"/></form:label>
+                <span><form:input id="poolFactor" path="commandForm.poolFactor"  class="txtNormal" onchange="return formatQuantity($('#poolFactor'),1,8,null,$('#poolFactor').parent().parent().find('label').text()) " /></span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            
+            <div class="formItem">
+                <form:label path="commandForm.poolBalance"><spring:message code="ref.insturment.entry.label.mbstab.poolbalance" htmlEscape="false"/></form:label>
+                <span><form:input id="poolBalance" path="commandForm.poolBalance"  class="txtNormal  " onchange="return formatAmount($('#poolBalance'), 15, 3, null,$('#poolBalance').parent().parent().find('label').text())" /></span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div> 
+            
+            <div class="formItem">
+                 <form:label path="commandForm.factorDateFrom"><spring:message code="ref.insturment.entry.label.mbstab.datefrom" htmlEscape="false"/></form:label>
+                 <span><form:input id="factorDateFrom" value="" path="commandForm.factorDateFrom" class="formInput dateinput  " onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div> 
+            
+            <div class="formItem">
+                 <form:label path="commandForm.factorRecordDate"><spring:message code="ref.insturment.entry.label.mbstab.recorddate" htmlEscape="false"/></form:label>
+                 <span><form:input id="factorRecordDate" value="" path="commandForm.factorRecordDate" class="formInput dateinput  " onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>             
+            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                
+             <div id="formActionArea" class="gridBtnMargin">
+                 <div class="right">
+                     <div class="btnWrapStyle submitBtn gridAddBtn">
+                       <span class="addBtnFactor" style="display:block"><input id="addFactorBtn" type="button" value="${formadd_label}" class="inputBtnStyle  "/></span>
+                     </div>
+                     <span class="editBtnFactor" style="display:none"> 
+                         <div class="btnWrapStyle submitBtn"><input id="updateFactorBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                         <div class="btnWrapStyle resetBtn"><input id="cancelFactorBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                     </span>
+                 </div>
+             </div>
+               
+             <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+             
+             <div class="entryGrid">
+                 <div id="factorGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+             </div>
+            
+        </div>
+     
+     </div>
+     <!-- Factor **END -->
+	 
+</div> 
+</jsp:root>

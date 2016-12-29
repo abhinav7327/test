@@ -1,0 +1,293 @@
+<!--$Id$-->
+<!--$Author: dheerajk $-->
+<!--$Date: 2016-12-26 21:38:18 $-->
+<jsp:root version="2.0"
+    xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	
+<div class="entryContainer paddingFour"> 
+		
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+	<!-- Java script include -->
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+	        
+	            // A common request handler to be used server communication.
+				var xenos$Handler$RequestHandler = xenos$Handler$function({
+					 get: {
+						 contentType: 'json',
+						 requestType: xenos$Handler$default.requestType.asynchronous
+					 },  
+					 settings: {
+						 beforeSend: function(request) {
+							 request.setRequestHeader('Accept', 'application/json');
+						 },
+						 type: 'POST'
+					 }
+				});
+				
+				/*************************** Grid result, config and columns ****************************/
+				
+				var selectedComponent = [];
+				var rowId = 0;
+				var selectedOptions;		
+				
+				/************************ Request Object Population ********************/
+				
+				/**
+				* Exception Monitor Access Component request object
+				*/
+				function populateExmAccessRequestParams(){				
+					var reqObj = {"groupPkStrArr" : $.trim($('#groupPkStrArr').val()),
+								  "accessType" : $.trim($('#accessType').val())							  
+					};
+					return reqObj;
+				}
+			
+				function removeExmAccessRequestParams(){				
+					var reqObj = {"groupPkStrArr" : $.trim($('#selectedOptions').val())};
+					return reqObj;
+				}
+				
+				function addExmAccess(data){				
+					var result = data.exmMonitorRuleParticipants;				
+					if(result){		
+						$('#selectedOptions').html('');					
+						for(var i in result){                    
+							items = {};
+							rowId+=1;
+							items.id             		=   "xenos_" + rowId;						
+							items.groupName				=   result[i].exmMonitorRuleName;
+							items.accessType	        =   result[i].accessType;
+							items.groupPk           	=   result[i].groupPk;
+							
+							$('#selectedOptions').append("&lt;option value='"+ items.groupPk +"'&gt;"+ items.groupName + " -- " + items.accessType +"&lt;/option&gt;");
+						}
+						$('#groupPkStrArr option:selected').remove();	
+					}
+					xenos.utils.clearGrowlMessage();
+				}
+				
+				function removeExmAccess(data){
+					var result = data.exmMonitorRuleList;
+					console.log(result);
+					if(result){		
+						$('#groupPkStrArr').html('');
+						$('#selectedOptions option:selected').remove();
+						for(var i in result){ 
+							var toBeRemove = false;
+							items = {};						
+							rowId+=1;
+							items.id    =   "xenos_" + rowId;						
+							items.label	=   result[i].label;
+							items.value	=   result[i].value;
+							
+							$('#selectedOptions option').each(function (index){							
+								if($(this)[0].value == result[i].value){																
+									toBeRemove = true;
+								}
+							});
+							
+							if(!toBeRemove){
+								$('#groupPkStrArr').append("&lt;option value='"+ items.value +"'&gt;"+ items.label +"&lt;/option&gt;");	
+							}	
+						}					
+					}
+					xenos.utils.clearGrowlMessage();
+				}
+				
+				/************************ Validation functions *************************/
+				
+				/**
+				 * This method validates mandatory entry fields
+				 */
+				function validateExmAccessAddUpdate(){            
+					var validationMessages = [];
+					
+					var q = $.trim($('#groupPkStrArr').val()).split(','); 
+					
+					for( var i = 0; i &lt; q.length; i++) {					
+						if(VALIDATOR.isNullValue($.trim(q[i]))){
+							validationMessages.push(xenos$REF$i18n.applicationrole.common.disable_select);
+						}					
+					}
+					
+					if(VALIDATOR.isNullValue($.trim($('#accessType').val()))){                
+						validationMessages.push(xenos$REF$i18n.applicationrole.common.exceptionmonitoraccesstype_empty);
+					}
+					
+					if ( validationMessages.length &gt; 0){                 
+						 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+						 return false;
+					}
+				 
+					return true;
+				}
+				
+				function validateExmAccessRemove(){            
+					var validationMessages = [];				
+					var q = $.trim($('#selectedOptions').val()).split(',');
+					for( var i = 0; i &lt; q.length; i++) {					
+						if(VALIDATOR.isNullValue($.trim(q[i]))){
+							validationMessages.push(xenos$REF$i18n.applicationrole.common.enable_select);
+						}					
+					}
+					
+					if ( validationMessages.length &gt; 0){                 
+						 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+						 return false;
+					}
+				 
+					return true;
+				}
+				
+				/***************************** Handler functions **************************/
+				
+				/**
+				* Exception Monitor Access Component add handler
+				*/
+				function exmAccessAddHandler(e){
+					var valid = validateExmAccessAddUpdate();
+					if(valid){
+						var requestUrl = xenos.context.path + $('form').attr('action') + "/addExmMonitorRule.json?commandFormId=" + $('[name=commandFormId]').val();
+													   
+						xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+																settings: {data : populateExmAccessRequestParams()},
+																onJsonContent :  function(e, options, $target, content) {                                                            
+																	if(content.success == true){
+																		addExmAccess(content.value[0]);
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															}
+												);
+					}
+				}			
+				
+				/**
+				* Exception Monitor Access Component delete handler
+				*/
+				function exmAccessRemoveHandler(e){
+					var valid = validateExmAccessRemove();
+					if(valid){
+						var requestUrl = xenos.context.path + $('form').attr('action') + "/deleteExmMonitorRule.json?commandFormId=" + $('[name=commandFormId]').val();
+						
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+														settings: {data : removeExmAccessRequestParams()},
+														onJsonContent :  function(e, options, $target, content) {
+															console.log(content);
+															if(content.success == true){
+																removeExmAccess(content.value[0]);
+															} else {
+																xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+															}
+														}
+													}
+												);
+					}
+				}			
+				
+				/**************************** Handler bindings ****************************/
+				
+				$('#addExmAccessBtn').bind('click', exmAccessAddHandler);
+				
+				$('#removeExmAccessBtn').bind('click', exmAccessRemoveHandler);
+				
+				/************************ Grid initializations *************************/
+				<xenos:out escapeXml="false">
+					<c:forEach items="${commandForm.exmMonitorRuleParticipants}" var="dl">				
+						$('#selectedOptions').append("&lt;option value='"+ '<c:out value="${dl.groupPk}" />' +"'&gt;"+ '<c:out value="${dl.exmMonitorRuleName}" />' + " -- " + '<c:out value="${dl.accessType}" />' +"&lt;/option&gt;");
+						$('#groupPkStrArr option').each(function (index){
+							if($(this)[0].value == '<c:out value="${dl.groupPk}" />'){
+								$(this).remove();
+							}
+						});	
+					</c:forEach>
+				</xenos:out>
+				
+				/*************************** page load hooks ****************************/
+				
+				var validateHook = function() {				
+				};
+				
+				var unloadHook = function(){
+					$xenos$Wizard.deregister('next',validateHook);
+					$xenos$Wizard.deregister('submit',validateHook);
+					$xenos$Wizard.deregister('unload',unloadHook);
+					$('#addExmAccessBtn').unbind('click');
+					$('#removeExmAccessBtn').unbind('click');
+				};
+				
+				$xenos$Wizard.register('next',validateHook);
+				$xenos$Wizard.register('submit',validateHook);
+				$xenos$Wizard.register('unload',unloadHook);
+			 
+			}; 
+		</jsp:body>
+    </jsp:element>
+	
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+	<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+	<spring:message code="form.button.label.remove" htmlEscape="false" var="formremove_label"/>
+		
+	<!-- Exception Monitor Access Info Block -->
+	<h1><spring:message code="ref.applrole.label.expcompinfo" htmlEscape="false"/></h1>
+	
+	<div class="entryBlkArea">
+		<div class="formItemBlock dottedBg">
+			<table class="tableLayoutStyle">				
+				<tr>
+					<td><form:label path="commandForm.groupPkStrArr"><spring:message code="ref.applrole.label.disable" htmlEscape="false"/></form:label></td>
+					<td><div class="clear"><spring:message text="" htmlEscape="false"/></div></td>
+					<td class="reportAccPad"><label><spring:message code="ref.applrole.label.enable" htmlEscape="false"/></label></td>
+				</tr>
+				<tr>
+					<td width="33%">
+						<form:select id="groupPkStrArr" path="commandForm.groupPkStrArr" class="dropdowninput" style="height:400px; min-width:300px" multiple="true">
+							<form:options items="${commandForm.exmMonitorRuleList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+					</td>
+					<td class="txtCenter" width="33%" valign="top">
+						<div class="exceptionAccessTypeFormItem">
+							<span class="exceptionReportAccsmargin"><form:label path="commandForm.accessType"><spring:message code="ref.applrole.label.expmenuaccesstype" htmlEscape="false"/></form:label></span>
+							<span class="exceptionReportAccsmargin"><form:select id="accessType" path="commandForm.accessType" class="dropdowninput">
+								<form:option value=""/>
+								<form:options items="${commandForm.accessTypeList}"/>
+							</form:select></span>
+						</div>
+						<div class="submitBtn addRemoveBtnMargin"><input id="addExmAccessBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></div>
+						<div class="resetBtn addRemoveBtnMargin"><input id="removeExmAccessBtn" type="button" value="${formremove_label}" class="inputBtnStyle"/></div>
+					</td>
+					<td width="33%">
+						<div style="display:inline-block;max-width:90%;">
+							<select id="selectedOptions" class="dropdowninput" style="height:400px; min-width:300px; width:100%" multiple="true"></select>
+						</div>
+					</td>
+				</tr>			
+			</table>			
+		</div>
+		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	
+</div>
+</jsp:root>

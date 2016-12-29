@@ -1,0 +1,384 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core"
+    xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:display="http://displaytag.sf.net"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div class="formItemArea entryContainerConfirm paddingFour">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" /> 
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+				<c:if test="${commandForm.options.mode =='NONINTERACTIVE'}">
+					$(".header1").click(function () {
+
+						$header1 = $(this);
+						$content1 = $header1.next();
+						$content1.slideToggle(500);
+
+					});	
+						
+					$(".header2").click(function () {
+						$header2 = $(this);
+						$content2 = $header2.next();
+						$content2.slideToggle(500);
+					});	
+					var xenos$Dialog$Detail$Hook = function (container, btnContainer) {
+						var $btn1 = jQuery('.btn1', btnContainer);
+						$btn1.children().first().html(xenos.title.stlInfo);
+						$btn1.show();
+						$btn1.click(settlement$detail$view$Handler);
+						
+						var settlement$detail$view$Handler = function settlementDetailViewHandler(e) {
+					
+							var forexTradePk = "";
+							var tradeType="${commandForm.frxTrdData.tradeType}";
+							
+							if(tradeType== "Non Deliverable Forward"){
+								forexTradePk = ${commandForm.frxTrdData.endLegPk};
+							}else{
+								forexTradePk = ${commandForm.frxTrdData.forexTradePk};
+							}
+							
+							var requestUrl= "/secure/stl/settlement/query/init?path=TRADE&amp;tradePk=" + forexTradePk + "&amp;settlementFor=FOREX_TRADE"+ "&amp;popupQueryMode=Y";
+							var settings = {
+									dialogHeight:300,
+									view: 'frxTradeDetailView',
+									dialogTitle: "[${commandForm.frxTrdData.referenceNo}] " + xenos$FRX$i18n.settlement_details_info,
+									href: requestUrl,
+									onOpen: function(ev,ui){
+											}
+								};
+								
+								
+						    xenos$detailViewHandler(e,settings);
+					
+						};
+						
+						var details$View$print$Handler = function printHandler(e){
+							e.preventDefault();
+							container.printArea(xenos.utils.defaultPrintOption);
+						};						
+						var $btn2 = jQuery('.btn2', btnContainer);
+						$btn2.children().first().html(xenos.title.printInfo);
+						$btn2.show();
+						$btn2.click(details$View$print$Handler);					
+						
+					};
+				</c:if>
+		</jsp:body>
+    </jsp:element>
+	
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+	<c:if test="${isSoftValidationExists =='true'}">
+		<!-- Warning message Area -->
+		<ul class="xenosWarn">
+			<c:forEach items="${softValidationList}" var="dl">		
+				<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+	<form:form id="queryForm" modelAttribute="commandForm">	
+
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			<div class= "View">
+			<!-- Fund Details Block Start -->
+	<div class="detailBlock paddingFour">
+			 
+			<div class="dtlInfoBlock content1">
+				<table class="tableStyle sixCol">
+				<c:if test="${commandForm.options.mode =='NONINTERACTIVE'}">
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.referenceno" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.referenceNo}</span></td>
+						<td><form:label path=""><spring:message code="frx.label.cancelreferenceno" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.cancelReferenceNo}</span></td>				
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.inventoryaccountno" htmlEscape="false"/></form:label></td>
+						<td colspan="2">
+							<div class="hyperlink-relative-div">
+								<span class="detailTxtVal detail-view-hyperlink" view="fundAccountDetailView;"	dialogTitle="[${commandForm.frxTrdData.inventoryAccountNo}] Account Details"	 
+								href="/secure/ref/account/details/${commandForm.frxTrdData.inventoryAccountPk}?popup=true"	style="outline: 0;">${commandForm.frxTrdData.inventoryAccountNo}</span>
+							</div>
+						</td>
+						<td><form:label path=""><spring:message code="frx.label.fundaccountname" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.fundAccName}</span></td>				
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.counterpartycode" htmlEscape="false"/></form:label></td>
+						<td colspan="2">
+							<div class="hyperlink-relative-div">
+								<span class="detailTxtVal detail-view-hyperlink" view="brokerAccountDetailView;" dialogTitle="[${commandForm.frxTrdData.accountNo}] Account Details"	 
+								href="/secure/ref/account/common/details/${commandForm.frxTrdData.accountPk}?popup=true"	style="outline: 0;">${commandForm.frxTrdData.accountNo}</span>
+							</div>
+						</td>						
+						<td><form:label path=""><spring:message code="frx.label.cpaccountname" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.cpAccName}</span></td>				
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.fundcode" htmlEscape="false"/></form:label></td>
+						<td colspan="2">
+							<div class="hyperlink-relative-div">
+								<span class="detailTxtVal detail-view-hyperlink" view="fundDetailView;"	dialogTitle="[${commandForm.frxTrdData.fundCode}] Fund Details"	 
+								href="/secure/ref/account/fund/details/${commandForm.frxTrdData.fundPk}?popup=true"	style="outline: 0;">${commandForm.frxTrdData.fundCode}</span>
+							</div>
+						</td>
+						<td><form:label path=""><spring:message code="frx.label.fundname" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.fundName}</span></td>				
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.tradedatetime" htmlEscape="false"/></form:label></td>
+						<td><span class="detailTxtVal">${commandForm.frxTrdData.tradeDate}</span></td>
+						<td><span class="detailTxtVal">${commandForm.frxTrdData.tradeTime}</span></td>
+						<td><form:label path=""><spring:message code="frx.label.valuedate" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.valueDate}</span></td>				
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.baseccy" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.baseCcy}</span></td>
+						<td><form:label path=""><spring:message code="frx.label.baseccyamount" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.baseCcyAmount}</span></td>				
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.againstccy" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.againstCcy}</span></td>
+						
+						<td>
+							<c:choose>
+								<c:when test="${commandForm.frxTrdData.tradeType =='Non Deliverable Forward'}">
+									<form:label path=""><spring:message code="frx.label.swappl" htmlEscape="false"/></form:label>
+								</c:when>
+								<c:otherwise>
+									<form:label path=""><spring:message code="frx.label.againstccyamount" htmlEscape="false"/></form:label>
+								</c:otherwise>
+							</c:choose>
+						</td>
+						
+						<td colspan="2">
+							<c:choose>
+								<c:when test="${commandForm.frxTrdData.tradeType =='Non Deliverable Forward'}">
+									<span class="detailTxtVal">${commandForm.frxTrdData.swapPl}</span>
+								</c:when>
+								<c:otherwise>
+									<span class="detailTxtVal">${commandForm.frxTrdData.againstCcyAmount}</span>
+								</c:otherwise>
+							</c:choose>
+						</td>
+						
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.exchangerate" htmlEscape="false"/></form:label></td>
+						<td><span class="detailTxtVal">${commandForm.frxTrdData.calcMechanismStr}</span></td>
+						<td><span class="detailTxtVal">${commandForm.frxTrdData.exchangeRate}</span></td>
+						<td><form:label path=""><spring:message code="frx.label.tradetype" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.tradeType}</span></td>				
+					</tr>
+					
+					<c:if test="${commandForm.frxTrdData.tradeType =='Non Deliverable Forward'}">
+						<tr>
+							<td><form:label path=""><spring:message code="frx.label.ExchangeRateForStlCcy" htmlEscape="false"/></form:label></td>
+							<td><span class="detailTxtVal">${commandForm.frxTrdData.calcMechForStlCcyStr}</span></td>
+							<td><span class="detailTxtVal">${commandForm.frxTrdData.exchangeRateForStlCcy}</span></td>
+							<td><form:label path=""><spring:message code="frx.label.spotrate" htmlEscape="false"/></form:label> </td>
+							<td><span class="detailTxtVal">${commandForm.frxTrdData.calcMechForSpotRateStr}</span></td>
+							<td><span class="detailTxtVal">${commandForm.frxTrdData.spotRate}</span></td>				
+						</tr>
+					</c:if>
+					
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.status" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.status}</span></td>		
+						
+						<td>
+							<c:if test="${commandForm.frxTrdData.tradeType =='Non Deliverable Forward'}">
+								<form:label path=""><spring:message code="frx.label.settleccy" htmlEscape="false"/></form:label>
+							</c:if>
+						</td>
+						
+						<td colspan="2">
+							<c:if test="${commandForm.frxTrdData.tradeType =='Non Deliverable Forward'}">
+								<span class="detailTxtVal">${commandForm.frxTrdData.settleCcy}</span>
+							</c:if>
+						</td>
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.datasource" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.dataSource}</span></td>
+						<td><form:label path=""><spring:message code="frx.label.extreferenceno" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.externalRefNo}</span></td>						
+					</tr>					
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.createdatetime" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.creationDate}</span></td>
+						<td><form:label path=""><spring:message code="frx.label.updatedatetime" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.updateDate}</span></td>								
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.createdby" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.createdBy}</span></td>	
+						<td><form:label path=""><spring:message code="frx.label.updatedby" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.updatedBy}</span></td>				
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.noexchangeflag" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.noExchangeFlag}</span></td>	
+						<td><form:label path=""><spring:message code="frx.label.instructionblockflag" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.instructionBlockFlag}</span></td>				
+					</tr>
+					
+					<c:choose>
+						<c:when test="${commandForm.frxTrdData.tradeType =='Non Deliverable Forward'}">
+							<tr>
+								<td><form:label path=""><spring:message code="frx.label.ptaxdate" htmlEscape="false"/></form:label></td>
+								<td colspan="5"><span class="detailTxtVal">${commandForm.frxTrdData.spotDate}</span></td>
+							</tr>
+						</c:when>
+						<c:otherwise>
+							<tr>
+								<td><form:label path=""><spring:message code="frx.label.confirmationstatus" htmlEscape="false"/></form:label></td>
+								<td colspan="5"><span class="detailTxtVal">${commandForm.frxTrdData.confirmationStatusStr}</span></td>
+							</tr>
+						</c:otherwise>
+					</c:choose>
+				</c:if>
+			    </table>
+			</div>
+	</div>
+	</div>
+	
+	
+	<div class="entry">
+		<div class="detailBlock paddingFour">
+			 
+			<div class="dtlInfoBlock content1">
+				<table class="tableStyle sixCol">
+					<c:if test="${commandForm.options.mode !='NONINTERACTIVE'}">
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.referenceno" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.referenceNo}</span></td>
+						<td><form:label path=""><spring:message code="frx.label.cancelreferenceno" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.cancelReferenceNo}</span></td>				
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.inventoryaccountno" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.inventoryAccountNo}</span></td>				
+						<td><form:label path=""><spring:message code="frx.label.fundaccountname" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.fundAccName}</span></td>				
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.counterpartycode" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.accountNo}</span></td>
+						
+						<td><form:label path=""><spring:message code="frx.label.cpaccountname" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.cpAccName}</span></td>				
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.tradetype" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.tradeType}</span></td>	
+						<td><form:label path=""><spring:message code="frx.label.tradedatetime" htmlEscape="false"/></form:label></td>
+						<td><span class="detailTxtVal">${commandForm.frxTrdData.tradeDate}</span></td>
+						<td><span class="detailTxtVal">${commandForm.frxTrdData.tradeTime}</span></td>
+					</tr>
+					<tr>						
+						<td><form:label path=""><spring:message code="frx.label.valuedate" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.valueDate}</span></td>	
+						<td>
+							<c:choose>
+								<c:when test="${commandForm.frxTrdData.tradeType != 'Non Deliverable Forward'}">
+									<form:label path=""><spring:message code="frx.label.confirmationstatus" htmlEscape="false"/></form:label>
+									<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.confirmationStatusStr}</span></td>	
+								</c:when>
+								<c:otherwise>
+									<td colspan ="2"><span class ="clear"><spring:message text="" htmlEscape="false" /></span></td>
+								</c:otherwise>
+							</c:choose>
+						</td>
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.baseccy" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.baseCcy}</span></td>
+						<td><form:label path=""><spring:message code="frx.label.baseccyamount" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.baseCcyAmount}</span></td>				
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.againstccy" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.againstCcy}</span></td>
+						<td>
+							<c:choose>
+								<c:when test="${commandForm.frxTrdData.tradeType!='Non Deliverable Forward'}">
+								<form:label path=""><spring:message code="frx.label.againstccyamount" htmlEscape="false"/></form:label>
+								<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.againstCcyAmount}</span></td>
+								</c:when>
+								<c:otherwise>
+									<td colspan ="2"><span class ="clear"><spring:message text="" htmlEscape="false" /></span></td>
+								</c:otherwise>
+							</c:choose>						
+						</td>
+					</tr>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.exchangerate" htmlEscape="false"/></form:label></td>
+						<td><span class="detailTxtVal">${commandForm.frxTrdData.calcMechanismStr}</span></td>
+						<td><span class="detailTxtVal">${commandForm.frxTrdData.exchangeRate}</span></td>
+						<td><form:label path=""><spring:message code="frx.label.status" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.status}</span></td>									
+					</tr>					
+					
+					<c:if test="${commandForm.frxTrdData.tradeType=='Non Deliverable Forward'}">
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.ExchangeRateForStlCcy" htmlEscape="false"/></form:label></td>
+						<td><span class="detailTxtVal">${commandForm.frxTrdData.calcMechForStlCcyStr}</span></td>
+						<td><span class="detailTxtVal">${commandForm.frxTrdData.exchangeRateForStlCcy}</span></td>
+						<td><span class ="clear"><spring:message text="" htmlEscape="false" /></span></td>
+						<td colspan="2"><span class ="clear"><spring:message text="" htmlEscape="false" /></span></td>
+					</tr>	
+					
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.settleccy" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.settleCcy} </span></td>
+						<td><form:label path=""><spring:message code="frx.label.spotrate" htmlEscape="false"/></form:label></td>
+						<td><span class="detailTxtVal">${commandForm.frxTrdData.calcMechForSpotRateStr} </span></td>
+						<td><span class="detailTxtVal">${commandForm.frxTrdData.spotRate} </span></td>	
+					</tr>
+					
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.swappl" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.swapPl} </span></td>
+						<td><form:label path=""><spring:message code="frx.label.ptaxdate" htmlEscape="false"/></form:label></td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.spotDate} </span></td>			
+					</tr>
+					</c:if>
+					<tr>
+						<td><form:label path=""><spring:message code="frx.label.instructionblockflag" htmlEscape="false"/></form:label> </td>
+						<td colspan="2"><span class="detailTxtVal">${commandForm.frxTrdData.instructionBlockFlag}</span></td>		
+						<td><span class ="clear"><spring:message text="" htmlEscape="false" /></span></td>
+						<td colspan="2"><span class ="clear"><spring:message text="" htmlEscape="false" /></span></td>
+					</tr>
+				</c:if>
+			    </table>
+			</div>
+		</div>
+	</div>
+
+   </form:form>
+</div>
+
+
+</jsp:root>

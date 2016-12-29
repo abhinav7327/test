@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Trade Cnf Match Popup Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+			xmlns:containers="com.nri.rui.core.containers.*" 
+			xmlns:flexlib="http://code.google.com/p/flexlib/" 
+			xmlns:cntrls="com.nri.rui.core.controls.*" 
+			xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+			layout="vertical" 
+			percentWidth="100" 
+			percentHeight ="100" 
+			horizontalScrollPolicy="off" 
+			verticalScrollPolicy="off">
+
+	<mx:Script source="actionscripts/TradeCnfMatchPopup.as"/>
+	
+	<cntrls:XenosHTTPService id="initializeTradeCnfMatchQuery" 
+         					 url="trd/tradeRcvdConfQueryDispatch.action?" 
+         					 fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize')   + event.fault.faultString)" 
+             				 method="POST" 
+             				 useProxy="false" 
+             				 result="loadCnfQueryPopupPage(event)" 
+             				 showBusyCursor="true" 
+             				 resultFormat="xml"/>
+             
+    <cntrls:XenosHTTPService id="tradeMatchUserConfRequest" 
+         					 url="trd/tradeRcvdConfQueryDispatch.action?" 
+         					 fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         					 method="POST" 
+             				 useProxy="false"
+         					 result="loadUserConfPage(event)" 
+         					 showBusyCursor="true" 
+         					 resultFormat="xml"/>
+         					 
+   <cntrls:XenosHTTPService id="tradeMatchSysConfRequest" 
+         					 url="trd/tradeRcvdConfQueryDispatch.action?" 
+         					 fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         					 method="POST" 
+             				 useProxy="false"
+         					 result="loadSystemConfPage(event)" 
+         					 showBusyCursor="true" 
+         					 resultFormat="xml"/>
+         					 
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+    	<mx:ViewStack id="vstack" width="100%" height="100%" creationComplete="init()" creationPolicy="all">
+    		<mx:VBox width="100%" height="100%" id="qry" styleName="HDivideStyle">			
+				<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+				<mx:DataGrid id="tradeQueryResult" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto">
+					<mx:columns>
+					   <mx:DataGridColumn textAlign="center" headerText="" itemRenderer="{parentAllocConfFlag == 'A' ? new RendererFectory(SelectMatchButtonRenderer) : new RendererFectory(SelectItem)}" headerRenderer="{parentAllocConfFlag == 'C' ? new RendererFectory(SelectAllItem) : null }" width="40"/>	
+		               <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.referenceno')}" dataField="tradeReferenceNo"/>
+		               <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.securitycode')}" dataField="securityId"/>
+		               <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.buysellflag')}" dataField="buySellFlag"/>
+		               <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.tradedate')}" dataField="tradeDateStr"/>
+		               <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.valuedate')}" dataField="valueDateStr"/>
+		               <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.quantity')}"  dataField="quantityDisp"/>
+		               <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.netamount')}" dataField="amountDisp"/>
+		            </mx:columns>
+		     	</mx:DataGrid>
+		     	<mx:HBox>
+		     		<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.proceed')}" styleName="BtnStyle" click="this.goToUserConfirmation()"/>
+		     		<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.cancel')}" styleName="BtnStyle" click="this.closeHandeler();"/>
+		     	</mx:HBox>
+		    </mx:VBox>
+		    <mx:VBox width="100%" height="100%" id="rslt" styleName="HDivideStyle">
+		    	<mx:Label id="confLbl" text="{this.parentApplication.xResourceManager.getKeyValue('trd.entry.match.user.conf')}" fontWeight="bold"/>
+				<cntrls:XenosErrors id="errPageConf" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+				<mx:DataGrid id="matchConf" width="100%" height="100%" dataProvider="{selectedQryRslt}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto">
+					<mx:columns> 
+		               <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.referenceno')}" dataField="tradeReferenceNo"/>
+		               <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.securitycode')}" dataField="securityId"/>
+		               <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.buysellflag')}" dataField="buySellFlag"/>
+		               <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.tradedate')}" dataField="tradeDateStr"/>
+		               <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.valuedate')}" dataField="valueDateStr"/>
+		               <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.quantity')}"  dataField="quantityDisp"/>
+		               <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.netamount')}" dataField="amountDisp"/>
+		            </mx:columns>
+		     	</mx:DataGrid>
+		     	<mx:HBox>
+		     		<mx:Button id="btnBack" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" styleName="BtnStyle" click="this.doBack();"/>
+		     		<mx:Button id="btnCommit" label="{this.parentApplication.xResourceManager.getKeyValue('trd.cnf.btn.confirm')}" styleName="BtnStyle" click="this.goToSystemConfirmation()"/>
+		     		<mx:Button id="btnOk" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" click="this.resetDataGrid();this.closeHandeler();" visible="false" includeInLayout="false"/>
+		     	</mx:HBox>
+		    </mx:VBox>
+    	</mx:ViewStack>
+    	
+    </mx:Canvas>
+		
+</mx:Module>

@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Trade Cnf Match Popup Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="init()">
+
+    
+
+	<mx:Script>
+		<![CDATA[
+			import mx.containers.TitleWindow;
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.controls.CheckBox;
+			import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+            
+    		import mx.events.ModuleEvent;
+			
+			import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.utils.XenosStringUtils;
+						
+			[Embed(source="../../assets/img/inf/addcolunm.png")]		    
+			[Bindable]
+			private var icoColumns:Class;
+			[Bindable]
+		    private var queryResult:ArrayCollection= new ArrayCollection();
+            public static var popupColumns:TitleWindow = null;
+            public var superObj:Object = null;
+            [Bindable]
+			private var rs:XML = new XML();
+            
+            public var gridColumns:ArrayCollection = new ArrayCollection();
+			private function init():void{
+				cashAuthorizationConfirmRequest.send();
+				ok.visible = false;
+				ok.includeInLayout = false;
+				//rslt1.visible=false;
+     			//rslt1.includeInLayout =false;
+			}
+			 private function changeCurrentState():void{
+                currentState = "conf";
+            }
+			
+          /* public function LoadMatchOueryPage(event:ResultEvent):void {
+          	
+     		
+			if (null != event) {            
+	            if(null == event.result.rows){
+	                queryResult.removeAll(); // clear previous data if any as there is no result now.
+	            	if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+	            	   // errPage.clearError(event); //clears the errors if any
+	            		XenosAlert.info("No Result Found!");
+	            	} else { // Must be error
+	            		//errPage.displayError(event);	
+	            	}            	
+	            }else {
+	            	//errPage.clearError(event);   
+		            if(event.result.rows.row is ArrayCollection) {
+		                    queryResult = event.result.rows.row as ArrayCollection;
+		            } else {
+		                    queryResult.removeAll();
+		                    queryResult.addItem(event.result.rows.row);
+		             }
+		            
+	            } 
+	        }else {
+	            queryResult.removeAll();
+	            XenosAlert.info("No Results Found");
+	        }
+	     
+       } */
+        public function LoadMatchOueryPage(event:ResultEvent):void {
+	         	
+				rs = XML(event.result);
+				if (null != event) {
+					if(rs.child("row").length()>0) {
+						errPage.clearError(event);
+			            queryResult.removeAll();
+						try {
+						    for each ( var rec:XML in rs.row ) {
+			 				    queryResult.addItem(rec);
+						    }
+						}catch(e:Error){
+						    XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					    }
+					} else if(rs.child("Errors").length()>0) {
+		                //some error found
+					 	queryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	var errorInfoList : ArrayCollection = new ArrayCollection();
+		                //populate the error info list 			 	
+					 	for each ( var error:XML in rs.Errors.error ) {
+			 			   errorInfoList.addItem(error.toString());
+						}
+					 	errPage.showError(errorInfoList);//Display the error
+					} else {
+					 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					 	queryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	errPage.removeError(); //clears the errors if any
+					}
+		        }
+	         }
+       /* public function LoadSystemOueryPage(event:ResultEvent):void {
+     		/* rslt1.visible=true;
+     		rslt1.includeInLayout =true;
+     		rslt.visible=false;
+     		rslt.includeInLayout =false; */
+     		/*ok.visible = true;
+     		ok.includeInLayout = true;
+     		submit.visible = false;
+     		submit.includeInLayout = false;
+     		back.visible = false;
+     		back.includeInLayout = false;
+     		
+			if (null != event) {            
+	            if(null == event.result.rows){
+	                queryResult.removeAll(); // clear previous data if any as there is no result now.
+	            	if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+	            	   // errPage.clearError(event); //clears the errors if any
+	            		XenosAlert.info("No Result Found!");
+	            	} else { // Must be error
+	            		//errPage.displayError(event);	
+	            	}            	
+	            }else {
+	            	//errPage.clearError(event);   
+		            if(event.result.rows.row is ArrayCollection) {
+		                    queryResult = event.result.rows.row as ArrayCollection;
+		            } else {
+		                    queryResult.removeAll();
+		                    queryResult.addItem(event.result.rows.row);
+		             }
+		            
+	            } 
+	        }else {
+	            queryResult.removeAll();
+	            XenosAlert.info("No Results Found");
+	        }
+	        
+       } */
+        public function LoadSystemOueryPage(event:ResultEvent):void {
+        	submit.enabled=true;
+	        ok.visible = true;
+     		ok.includeInLayout = true;
+     		submit.visible = false;
+     		submit.includeInLayout = false;
+     		back.visible = false;
+     		back.includeInLayout = false;
+				rs = XML(event.result);
+				if (null != event) {
+					if(rs.child("row").length()>0) {
+						errPage.clearError(event);
+			            queryResult.removeAll();
+						try {
+						    for each ( var rec:XML in rs.row ) {
+			 				    queryResult.addItem(rec);
+						    }
+						}catch(e:Error){
+						    XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					    }
+					    this.parentDocument.title = this.parentApplication.xResourceManager.getKeyValue('rec.label.authorize.system.confirmation');
+					    this.conf.visible = true;
+						this.conf.includeInLayout = true;
+					} else if(rs.child("Errors").length()>0) {
+		                //some error found
+					 	//queryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	var errorInfoList : ArrayCollection = new ArrayCollection();
+		                //populate the error info list 			 	
+					 	for each ( var error:XML in rs.Errors.error ) {
+			 			   errorInfoList.addItem(error.toString());
+						}
+					 	errPage.showError(errorInfoList);//Display the error
+					 	ok.visible = false;
+			     		ok.includeInLayout = false;
+			     		submit.visible = true;
+			     		submit.includeInLayout = true;
+			     		back.visible = true;
+			     		back.includeInLayout = true;
+					} else {
+					 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					 	queryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	errPage.removeError(); //clears the errors if any
+					}
+		        }
+		       
+	         }
+       /*  public function LoadOkOueryPage(event:ResultEvent):void {
+          	
+     		
+			if (null != event) {            
+	            if(null == event.result.rows){
+	                queryResult.removeAll(); // clear previous data if any as there is no result now.
+	            	if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+	            	   // errPage.clearError(event); //clears the errors if any
+	            		XenosAlert.info("No Result Found!");
+	            	} else { // Must be error
+	            		//errPage.displayError(event);	
+	            	}            	
+	            }else {
+	            	//errPage.clearError(event);   
+		            if(event.result.rows.row is ArrayCollection) {
+		                    queryResult = event.result.rows.row as ArrayCollection;
+		            } else {
+		                    queryResult.removeAll();
+		                    queryResult.addItem(event.result.rows.row);
+		             }
+		            
+	            } 
+	        }else {
+	            queryResult.removeAll();
+	            XenosAlert.info("No Results Found");
+	        }
+	        
+       } */
+        public function LoadOkOueryPage(event:ResultEvent):void {
+	         	
+				rs = XML(event.result);
+				XenosAlert.info("event.result :: "+event.result);
+				if (null != event) {
+					if(rs.child("row").length()>0) {
+						errPage.clearError(event);
+			            queryResult.removeAll();
+						try {
+						    for each ( var rec:XML in rs.row ) {
+			 				    queryResult.addItem(rec);
+						    }
+						}catch(e:Error){
+						    XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					    }
+					    this.parentDocument.title = this.parentApplication.xResourceManager.getKeyValue('rec.label.authorize.system.confirmation'); 
+						this.conf.visible = true;
+						this.conf.includeInLayout = true;				
+					} else if(rs.child("Errors").length()>0) {
+		                //some error found
+					 	queryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	var errorInfoList : ArrayCollection = new ArrayCollection();
+		                //populate the error info list 			 	
+					 	for each ( var error:XML in rs.Errors.error ) {
+			 			   errorInfoList.addItem(error.toString());
+						}
+					 	errPage.showError(errorInfoList);//Display the error
+					} else {
+					 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					 	queryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	errPage.removeError(); //clears the errors if any
+					}
+		        }
+	         }
+        public function submitOkConfirm():void {
+		        var obj:Object=new Object();
+				obj.method="okSystemConformation";
+				    cashAuthorizationOkConfirmRequest.request=obj;
+				    cashAuthorizationOkConfirmRequest.send();
+		
+     	
+     }   
+         public function submitConfirm(event:Event):void {
+         		submit.enabled=false;
+		     	var i:Number;
+		        var obj:Object=new Object();
+		        obj.SCREEN_KEY=10111;
+				obj.method="doConfirmAuhtorization";
+				cashAuthorizationSysConfirmRequest.request=obj;
+				cashAuthorizationSysConfirmRequest.send();
+				   
+     }    
+         public function CloseSystemConformation(event:ResultEvent):void {	
+				    this.parentDocument.dispatchEvent(new Event("OkSystemConfirm"));
+				    closeHandeler();
+				    
+				   
+     }    
+      public function submitClose(event:Event):void {
+		     	var obj:Object=new Object();
+				obj.method="backToQueryResult";
+				cashAuthorizationBack.request=obj;
+				cashAuthorizationBack.send();
+				closeHandeler();
+     }    
+      
+       
+	   public function closeHandeler():void{
+	        this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+        }
+       public function resetDataGrid():void{
+       	     parentDocument.owner.resetQuery();
+       }
+            
+			/**
+             * Extract the value of the colum cell removing the prefix added at '0'th index.
+             */ 
+            private function extractPrecisionedValue(item:Object, column:AdvancedDataGridColumn):String{
+                var strData:String = item[column.dataField];
+                if(!XenosStringUtils.isBlank(strData) && strData.charAt(0)=="F"){
+                    if(strData.length == 1)
+                        return XenosStringUtils.EMPTY_STR;
+                    else
+                        return strData.substring(1);
+                }else{
+                    return item[column.dataField];                    
+                }
+            }
+       
+          
+	
+       
+		]]>
+	</mx:Script>
+	
+	
+	<cntrls:XenosHTTPService id="cashAuthorizationConfirmRequest" 
+         url="rec/recAuthorization.action?method=doPreConfirmAuthorize" fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString)" 
+             method="POST" useProxy="false" result="LoadMatchOueryPage(event)" showBusyCursor="true" resultFormat="xml"/>	
+    <cntrls:XenosHTTPService id="cashAuthorizationSysConfirmRequest" 
+         url="rec/recAuthorization.action?method=doConfirmAuhtorization" fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString);submit.enabled=true;" 
+             method="POST" useProxy="false" result="LoadSystemOueryPage(event)" showBusyCursor="true" resultFormat="xml"/>	
+    <cntrls:XenosHTTPService id="cashAuthorizationOkConfirmRequest" 
+         url="rec/recAuthorization.action?method=okSystemConformation" result="CloseSystemConformation(event)" fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString)" 
+             method="POST" useProxy="false" showBusyCursor="true"/>	
+   <cntrls:XenosHTTPService id="cashAuthorizationBack" 
+         url="rec/recAuthorization.action?method=backToQueryResult" fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString)" 
+             method="POST" useProxy="false" showBusyCursor="true"/>	
+  
+    	
+    
+		<mx:VBox width="100%" height="100%" id="rslt" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+			<mx:HBox id="conf" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" visible="false" verticalAlign="middle" includeInLayout="false">
+	    		<mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+	    		<mx:Label text=" Authorization / Rejection Completed Successfully." fontWeight="bold" selectable="true"/>	
+	    	 </mx:HBox>
+			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>	
+			<mx:AdvancedDataGrid id="movementSummary1" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" >
+         		<mx:groupedColumns>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.date')}" dataField="adjustmentDateDisp"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" dataField="fundCode"  itemRenderer="com.nri.rui.core.renderers.FundDetailsRendererAdg"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.accountNo')}" dataField="accountNo" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRendererAdg"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.custodianCode')}" dataField="bank" itemRenderer="com.nri.rui.core.renderers.FinancialInstitutionDetailsRendererAdg" />
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.ccy')}" dataField="ccy"/>
+ 					<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.Quantity')}" dataField="">
+     					<mx:AdvancedDataGridColumn textAlign="right" headerText="NCM" dataField="ncmAmountDisp"  labelFunction="extractPrecisionedValue"/>
+     					<mx:AdvancedDataGridColumn textAlign="right" headerText="CUST" dataField="custAmountDisp"  labelFunction="extractPrecisionedValue"/>
+     				</mx:AdvancedDataGridColumnGroup>
+     				<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.transaction.type')}" dataField="">
+     					<mx:AdvancedDataGridColumn textAlign="right" headerText="NCM" dataField="ncmTranType"/>
+     					<mx:AdvancedDataGridColumn textAlign="right" headerText="CUST" dataField="custTranType"/>
+     				</mx:AdvancedDataGridColumnGroup>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.adjustment')}" dataField="" width="400" itemRenderer="com.nri.rui.rec.renderers.AdjustmentGridRenderer"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.userId')}" dataField="userId"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.authorize.status')}" dataField="authorizationStatus"/>
+         			
+         			
+				</mx:groupedColumns>
+         	</mx:AdvancedDataGrid>
+	        	
+	     	<mx:HBox id="t1" width="100%" styleName="ButtonBackPanel">            
+                <mx:Button id="submit" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="this.submitConfirm(event);"/>
+                <mx:Button id="back" label="{this.parentApplication.xResourceManager.getKeyValue('rec.form.button.label.back')}" styleName="BtnStyle" click="this.submitClose(event);"/>
+                <mx:Button id="ok" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" click="this.submitOkConfirm();"/>
+                         
+            </mx:HBox>
+		</mx:VBox>
+		<!--<mx:VBox width="100%" height="100%" id="rslt1" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+				
+			<mx:AdvancedDataGrid id="movementSummary2" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" >
+         		<mx:groupedColumns>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.date')}" dataField="adjustmentDateDisp"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" dataField="fundCode"  itemRenderer="com.nri.rui.core.renderers.FundDetailsRendererAdg"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.accountNo')}" dataField="accountNo" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRendererAdg"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.custodianCode')}" dataField="bank" itemRenderer="com.nri.rui.core.renderers.FinancialInstitutionDetailsRendererAdg" />
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.ccy')}" dataField="ccy"/>
+ 					<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.Quantity')}" dataField="">
+     					<mx:AdvancedDataGridColumn textAlign="right" headerText="NCM" dataField="ncmAmountDisp"/>
+     					<mx:AdvancedDataGridColumn textAlign="right" headerText="CUST" dataField="custAmountDisp"/>
+     				</mx:AdvancedDataGridColumnGroup>
+     				<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.transaction.type')}" dataField="">
+     					<mx:AdvancedDataGridColumn textAlign="right" headerText="NCM" dataField="ncmTranType"/>
+     					<mx:AdvancedDataGridColumn textAlign="right" headerText="CUST" dataField="custTranType"/>
+     				</mx:AdvancedDataGridColumnGroup>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.adjustment')}" dataField="" width="400" itemRenderer="com.nri.rui.rec.renderers.AdjustmentGridRenderer"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.userId')}" dataField="userId"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.authorize.status')}" dataField="authorizationStatus"/>
+         			
+         			
+				</mx:groupedColumns>
+         	</mx:AdvancedDataGrid>
+	        	
+	     	<mx:HBox id="t2" width="100%" styleName="ButtonBackPanel">            
+                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" click="this.submitOkConfirm();"/>            
+            </mx:HBox>
+		</mx:VBox>
+-->
+		
+</mx:Module>

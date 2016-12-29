@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<xenos:XPopUp width="700" 
+				height="450" 
+				title="SSI Popup" 
+			    xmlns:mx="http://www.adobe.com/2006/mxml" 
+			    xmlns:xenos="com.nri.rui.core.popups.*" 
+			    xmlns:containers="com.nri.rui.core.containers.*" 
+			    xmlns:flexlib="http://code.google.com/p/flexlib/" 
+			    xmlns:cntrls="com.nri.rui.core.controls.*"
+			    popUpQueryRequest="{ssiInfoReq}"  
+			    mapping="ref/cpSSIPopup.action" 
+			    close="super.closeWindow()">
+
+    <mx:Script>
+	
+        <![CDATA[
+        	import com.nri.rui.core.utils.XenosStringUtils;
+        	import mx.utils.StringUtil;
+        	import mx.controls.Label;
+
+        	import mx.events.ListEvent;
+        	import mx.events.DataGridEvent;
+        	import mx.collections.ArrayCollection;
+        	import mx.rpc.events.ResultEvent;       
+        	import mx.managers.PopUpManager;
+            import mx.controls.TextInput;
+            import mx.controls.Alert;
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.utils.HiddenObject;
+	
+	    	 [Bindable]public var selectedItem:Object;
+	      
+	         
+	         [Bindable]public var retCpSecSsiPk:Label = new Label();
+	         [Bindable]public var retBrokerBicForSec:Label= new Label();
+	         [Bindable]public var retSecurityFlag:Label = new Label();
+	         [Bindable]public var retAcronymForSec:Label = new Label();
+	         [Bindable]public var retInstrumentTypeForSec:Label = new Label();
+	         [Bindable]public var retSettlementCcyForSec:Label = new Label();
+	         [Bindable]public var retSettlementTypeForSec:Label = new Label();
+	         [Bindable]public var retBankNameForSec:Label = new Label();
+	         [Bindable]public var retContraIdForSec:Label = new Label();
+	         [Bindable]public var retDtcParticipantNumberForSec:Label = new Label();
+	         [Bindable]public var retCpExternalSettleActForSec:Label = new Label();
+	         [Bindable]public var retPriorityForSec:Label = new Label();
+	         [Bindable]public var retPlaceOfSettlementForSec:Label = new Label();
+	         [Bindable]public var retParticipantIdForSec:Label = new Label();
+	         [Bindable]public var retParticipantId2ForSec:Label = new Label();
+	         [Bindable]public var retStatusSec:Label = new Label();
+	         
+	         [Bindable]public var retCpCashSsiPk:Label = new Label();
+	         [Bindable]public var retBrokerBicForCash:Label= new Label();
+	         [Bindable]public var retCashFlag:Label = new Label();
+	         [Bindable]public var retAcronymForCash:Label = new Label();
+	         [Bindable]public var retInstrumentTypeForCash:Label = new Label();
+	         [Bindable]public var retSettlementCcyForCash:Label = new Label();
+	         [Bindable]public var retSettlementTypeForCash:Label = new Label();
+	         [Bindable]public var retBankNameForCash:Label = new Label();
+	         [Bindable]public var retContraIdForCash:Label = new Label();
+	         [Bindable]public var retDtcParticipantNumberForCash:Label = new Label();
+	         [Bindable]public var retCpExternalSettleActForCash:Label = new Label();
+	         [Bindable]public var retPriorityForCash:Label = new Label();
+	         [Bindable]public var retPlaceOfSettlementForCash:Label = new Label();
+	         [Bindable]public var retParticipantIdForCash:Label = new Label();
+	         [Bindable]public var retParticipantId2ForCash:Label = new Label();
+	         [Bindable]public var retStatusCash:Label = new Label();
+	         
+	         
+			//Items returning through context - Non display objects
+ 		     [Bindable]public var retContextItem:ArrayCollection = new ArrayCollection();
+           
+	    /**
+         * Populate the query result information to the SSI Info list.
+         * @param ResultEvent the result set event object.
+         */      
+         public override function populatePopUpQueryPage(event:ResultEvent):void {
+          
+         	 var rs:XML = XML(event.result);
+	           if (null != event) {
+				if(rs.summary.noOfRecords!='0') {
+					errPage.clearError(event);
+		            summaryResult.removeAll();
+					try {
+					    for each ( var rec:XML in rs.summary.data ) {
+		 				    summaryResult.addItem(rec);
+					    }
+					//    changeCurrentState();
+			            setPrevNextVisibility((rs.prevTraversable == "true")?true:false,(rs.nextTraversable == "true")?true:false );
+		            	summaryResult.refresh();
+					}catch(e:Error){
+					    //XenosAlert.error(e.toString() + e.message);
+					    XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+				    }
+				} else {
+				 	XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+				 	summaryResult.removeAll(); // clear previous data if any as there is no result now.
+				 	errPage.removeError(); //clears the errors if any
+				}
+	          }
+         }
+         
+        /**
+         * It sets the enable property of the Next and Previous button
+         * depending on the result set, whether available or not
+         */
+        public function setPrevNextVisibility(prev:Boolean, next:Boolean):void{
+
+             
+        }
+           public function  returnValue(): void {
+           if (ssiList.selectedItem != null){
+            if(XenosStringUtils.equals(ssiList.selectedItem.cashSecurityFlag,'SECURITY')){
+            	retCpSecSsiPk.text = ssiList.selectedItem.cpSsiPk;
+            	retSecurityFlag.text = ssiList.selectedItem.cashSecurityFlag;
+            	retBrokerBicForSec.text = ssiList.selectedItem.brokerBic;
+            	retAcronymForSec.text = ssiList.selectedItem.acronym;
+            	retInstrumentTypeForSec.text = ssiList.selectedItem.instrumentType;
+            	retSettlementCcyForSec.text = ssiList.selectedItem.settlementCcy;
+            	retSettlementTypeForSec.text = ssiList.selectedItem.settlementType;
+            	retBankNameForSec.text = ssiList.selectedItem.bankName;
+            	retContraIdForSec.text = ssiList.selectedItem.contraId;
+            	retDtcParticipantNumberForSec.text = ssiList.selectedItem.dtcParticipantNumber;
+            	retCpExternalSettleActForSec.text = ssiList.selectedItem.cpExternalSettleAct;
+            	retPriorityForSec.text = ssiList.selectedItem.priority;
+            	retPlaceOfSettlementForSec.text = ssiList.selectedItem.placeOfSettlement;
+            	retParticipantIdForSec.text = ssiList.selectedItem.participantId;
+            	retParticipantId2ForSec.text = ssiList.selectedItem.participantId2;
+            	retStatusSec.text = ssiList.selectedItem.status;
+            }else if(XenosStringUtils.equals(ssiList.selectedItem.cashSecurityFlag,'CASH')){
+            	retCpCashSsiPk.text = ssiList.selectedItem.cpSsiPk;
+            	retCashFlag.text = ssiList.selectedItem.cashSecurityFlag;
+            	retBrokerBicForCash.text = ssiList.selectedItem.brokerBic;
+            	retAcronymForCash.text = ssiList.selectedItem.acronym;
+            	retInstrumentTypeForCash.text = ssiList.selectedItem.instrumentType;
+            	retSettlementCcyForCash.text = ssiList.selectedItem.settlementCcy;
+            	retSettlementTypeForCash.text = ssiList.selectedItem.settlementType;
+            	retBankNameForCash.text = ssiList.selectedItem.bankName;
+            	retContraIdForCash.text = ssiList.selectedItem.contraId;
+            	retDtcParticipantNumberForCash.text = ssiList.selectedItem.dtcParticipantNumber;
+            	retCpExternalSettleActForCash.text = ssiList.selectedItem.cpExternalSettleAct;
+            	retPriorityForCash.text = ssiList.selectedItem.priority;
+            	retPlaceOfSettlementForCash.text = ssiList.selectedItem.placeOfSettlement;
+            	retParticipantIdForCash.text = ssiList.selectedItem.participantId;
+            	retParticipantId2ForCash.text = ssiList.selectedItem.participantId;
+            	retStatusCash.text = ssiList.selectedItem.status;
+            }
+          	  super.closeWindow();
+          }
+        }
+            
+        ]]>
+    </mx:Script>
+       
+
+   
+     <cntrls:XenosHTTPService id="ssiInfoReq" fault="XenosAlert.error('Error Occured :  ' + event.fault.faultDetail)" url="ref/cpSSIPopup.action?method=doInit"
+             result="populatePopUpQueryPage(event)" method="POST" showBusyCursor="true" resultFormat="xml" />   
+	 <cntrls:XenosErrors id="errPage" width="100%" height="8%" color="#FF0000" borderStyle="none"/>
+	 
+           <mx:VBox width="100%" height="100%">            
+            <mx:DataGrid id="ssiList" rowCount="{(summaryResult.length)+1}" backgroundColor="0xCCCCCC" width="100%" height="100%" dataProvider="{summaryResult}" horizontalScrollPolicy="auto">
+              <mx:columns>
+	          	<mx:DataGridColumn  textAlign="center" >
+            		<mx:itemRenderer>
+                        <mx:Component>
+                            <mx:LinkButton fontWeight="normal" color="#007ac8" label="{this.parentApplication.xResourceManager.getKeyValue('ref.comp.label.select')}" click="{outerDocument.returnValue()}" />
+                        </mx:Component>
+                	</mx:itemRenderer> 
+            	</mx:DataGridColumn>
+            	<mx:DataGridColumn headerText="Acronym" wordWrap="true" dataField="acronym" sortable="true"/>
+        		<mx:DataGridColumn headerText="Cash Security Flag" wordWrap="true" dataField="cashSecurityFlag" sortable="true"/>
+        		<mx:DataGridColumn headerText="Contra Id" wordWrap="true" dataField="contraId" sortable="true"/>
+        		<mx:DataGridColumn headerText="Security Type" wordWrap="true" dataField="instrumentType" sortable="true"/>
+        		<mx:DataGridColumn headerText="Bank Name" wordWrap="true" dataField="bankName" sortable="true"/>
+        		<mx:DataGridColumn headerText="Settlement Type" wordWrap="true"  dataField="settlementType" sortable="true"/>
+        		<mx:DataGridColumn headerText="Ccy" dataField="settlementCcy" wordWrap="true" sortable="true"/>
+        		<mx:DataGridColumn headerText="Priority" wordWrap="true" dataField="priority" sortable="true"/>
+        		<mx:DataGridColumn headerText="DTC Participant Number" wordWrap="true" dataField="dtcParticipantNumber" sortable="true"/>
+        		<mx:DataGridColumn headerText="CP External Settlement A/C" wordWrap="true" dataField="cpExternalSettleAct" sortable="true"/>
+        		<mx:DataGridColumn headerText="Place of Settlement" wordWrap="true" dataField="placeOfSettlement" sortable="true"/>
+        		<mx:DataGridColumn headerText="Broker BIC" wordWrap="true" dataField="brokerBic" sortable="true"/>
+        		<mx:DataGridColumn headerText="Participant Id" wordWrap="true" dataField="participantId" sortable="true"/>
+        		<mx:DataGridColumn headerText="Participant Id2" wordWrap="true" dataField="participantId2" sortable="true"/>
+             </mx:columns>
+           </mx:DataGrid>
+    </mx:VBox>
+   
+    
+</xenos:XPopUp>

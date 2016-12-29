@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="utf-8"?>
+<containers:XenosEntryModule xmlns:mx="http://www.adobe.com/2006/mxml" 
+							xmlns:containers="com.nri.rui.core.containers.*" 
+							xmlns:flexlib="http://code.google.com/p/flexlib/" 
+							xmlns:cntrls="com.nri.rui.core.controls.*" 
+							xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+							xmlns:frmtrs="com.nri.rui.core.formatters.*" 
+							xmlns:valdtrs="com.nri.rui.core.validators.*" 
+							layout="vertical" 
+							percentWidth="100" 
+							percentHeight ="100" 
+							horizontalScrollPolicy="off" 
+							verticalScrollPolicy="off">
+    <mx:Script>
+    	<![CDATA[
+    		import mx.resources.ResourceBundle;
+    	]]>
+    </mx:Script>
+	
+	<mx:Script source="actionscripts/BkgTradeEntryModule.as"/>
+	 
+    <containers:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="entryState">
+            <mx:SetProperty target="{qry}" name="width" value="100%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="0%"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions>
+    <frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+	<valdtrs:XenosNumberValidator id="numValPrincipalAmt" 
+									requiredFieldError=""
+    								invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.invalid.prinamount')}" 
+    								exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.exceedsMaxError.prinamount')}" 
+    								negativeError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.invalid.prinamount')}" 
+    								separationError="" 
+    								source="{principalAmount}" 
+    								property="text" 
+        							allowNegative="false" 
+        							domain="real" 
+        							lowerThanMinError="" 
+        							maxValue="999999999999999" 
+        							minValue="" 
+        							invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.invalid.prinamount')}" 
+        							decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.invalid.prinamount')}" 
+        							precision="3" 
+        							precisionError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.precisionError.prinamount')}" />
+    <valdtrs:XenosNumberValidator id="numValInterestRate" 
+    								requiredFieldError=""
+    								invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.invalid.interestrate')}" 
+    								exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.exceedsMaxError.interestrate')}" 
+    								negativeError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.invalid.interestrate')}" 
+    								separationError="" 
+    								source="{interestRate}" 
+    								property="text" 
+        							allowNegative="false" 
+        							domain="real" 
+        							lowerThanMinError="" 
+        							maxValue="9999999999" 
+        							minValue="" 
+        							invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.invalid.interestrate')}" 
+        							decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.invalid.interestrate')}" 
+        							precision="9" 
+        							precisionError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.precisionError.interestrate')}"/>
+        							
+    <valdtrs:XenosNumberValidator id="numValInterestAmt" 
+									requiredFieldError=""
+    								invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.invalid.interestamnt')}" 
+    								exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.exceedsMaxError.interestamnt')}" 
+    								negativeError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.invalid.interestamnt')}" 
+    								separationError="" 
+    								source="{interestAmount}" 
+    								property="text" 
+        							allowNegative="false" 
+        							domain="real" 
+        							lowerThanMinError="" 
+        							maxValue="999999999999999" 
+        							minValue="" 
+        							invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.invalid.interestamnt')}" 
+        							decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.invalid.interestamnt')}" 
+        							precision="3" 
+        							precisionError="{this.parentApplication.xResourceManager.getKeyValue('bkg.error.precisionError.interestamnt')}" />
+	<cntrls:XenosHTTPService id="calcNetAmountRequest" 
+							fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)" 
+             				method="POST" 
+             				useProxy="false" 
+             				result="netAmountCalcResHandler(event)" 
+             				showBusyCursor="true"/>
+
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%">
+	<mx:ViewStack id="vstack" width="100%" height="100%" creationComplete="loadAll()" creationPolicy="all">
+		
+		<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		<mx:VBox label="Entry Criteria" width="100%" height="100%">
+			<mx:Label id="initLabel" text="{this.parentApplication.xResourceManager.getKeyValue('bkg.entry.label')}" fontWeight="bold"/>
+			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		
+			<mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.inventoryaccountno')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="80%" borderThickness="0" colSpan="3">
+                            <xenospopup:AccountPopUpHbox id="fundAccPopUp" retContextItem="{returnContextItem}" recContextItem="{populateInvActContext()}"/>
+                            <cntrls:XenosLabel id="fundAccName" toolTip="{fundAccName.text}" isWrapReq="false" width="100%"/>
+                        </mx:GridItem>                         
+                    </mx:GridRow>	
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.counterpartyaccountno')}" styleName="ReqdLabel"/>
+	                        </mx:GridItem>
+                        <mx:GridItem width="80%" borderThickness="0" colSpan="3">
+                           <xenospopup:AccountPopUpHbox id="counterPartyAccPopUp" retContextItem="{returnContextItem}" recContextItem="{populateActContext()}"/>
+                           <cntrls:XenosLabel id="cpAccName" toolTip="{cpAccName.text}" isWrapReq="false" width="100%"/>
+                        </mx:GridItem>                         
+                    </mx:GridRow>	
+               	 	<mx:GridRow width="100%">
+	                        <mx:GridItem width="20%" borderThickness="0">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.tradetype')}" styleName="ReqdLabel"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="30%" borderThickness="0">
+	                            <mx:ComboBox id="tradeType" prompt="Select" width="160"/>                          
+	                        </mx:GridItem>
+	                        <mx:GridItem width="20%" borderThickness="0">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.takenplaced')}" />
+	                        </mx:GridItem>
+	                        <mx:GridItem width="30%" borderThickness="0">
+	                           <mx:TextInput id="takenplaced" editable="false" text="PLACED" backgroundColor="0xD3D3D3" backgroundAlpha="0.5"/>
+	                        </mx:GridItem>                         
+                    </mx:GridRow>
+                   <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.currencycode')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <cntrls:CurrencyHBox id="currencyCode"/>                            
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.tradedatetime')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                             <mx:DateField id="tradeDate"  formatString="YYYYMMDD" editable="true" width="90"/>
+                             <mx:TextInput id="tradeTime" editable="true" focusOut="validateTime(tradeTime.text)" width="100"/>                     
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                       <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.startdate')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">							
+							<mx:DateField id="startDate"  formatString="YYYYMMDD" editable="true" width="90" focusOut="resetCalculatedFieldsForStartDate()"/>
+                        </mx:GridItem>   
+                         <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.maturitydate')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:DateField id="maturityDate"  formatString="YYYYMMDD" editable="true" width="90" focusOut="resetCalculatedFieldsForMaturityDate()"/>                           
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                       <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.principalamount')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">							
+							<mx:TextInput id="principalAmount" editable="true" focusOut="numValPrincipalAmt.handleNumericField(numberFormatter);resetCalculatedFieldsPrincipalAmt()"/>
+                        </mx:GridItem>   
+                         <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.interestrate')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="interestRate" editable="true" focusOut="numValInterestRate.handleNumericField(numberFormatter);resetCalculatedFieldsInterestRate()"/>                           
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                       <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.accrueddays')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">							
+							<mx:TextInput id="accruedDays" editable="false" backgroundColor="0xD3D3D3" backgroundAlpha="0.5"/>
+                        </mx:GridItem>   
+                         <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.interestamount')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="interestAmount" editable="true" focusOut="numValInterestAmt.handleNumericField(numberFormatter);clearNetAmountForInterestAmt()"/>                           
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                       <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.netamount')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="80%" borderThickness="0" colSpan="3">
+							<mx:TextInput id="netAmount" editable="false" backgroundColor="0xD3D3D3" backgroundAlpha="0.5"/>
+							<mx:Image id="calcNetAmount" source="@Embed('../../assets/img/bkg/icn_calculator.png')" toolTip="Calculate Net Amount" buttonMode="true" click="calculateNetAmount()" /> 
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">   
+                         <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.remarks')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="80%" borderThickness="0" colSpan="3">
+                            <mx:TextInput id="remarks" maxChars="255" editable="true" width="600"/>                           
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    <mx:GridRow id="refNo" width="100%" visible="false" includeInLayout="false">
+                       <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.referenceno')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="80%" borderThickness="0" colSpan="3">
+							<mx:Label id="referenceNo"  text=""/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                </mx:Grid>
+
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" 
+   	           						id="submit" 
+   	           						styleName="BtnStyle" 
+   	           						click="{this.mode == 'entry' ?  this.dispatchEvent(new Event('entrySave')) :  this.dispatchEvent(new Event('amendEntrySave'))}" />
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" 
+               				styleName="BtnStyle" 
+               				click ="{this.mode == 'entry' ?  this.dispatchEvent(new Event('entryReset')) : this.dispatchEvent(new Event('amendEntryReset'))}"/>
+	        </mx:HBox>
+
+		</mx:VBox>
+		
+		</mx:Canvas>
+				
+		<mx:VBox width="100%" height="100%" id="rslt" 
+			horizontalScrollPolicy="auto" verticalScrollPolicy="auto" styleName="HDivideStyle" >			
+	         <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.entry.userconf.label')}" fontWeight="bold" id="uConfLabel"/>
+	         <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.entry.sysconf.label')}" fontWeight="bold" id="sConfLabel" includeInLayout="false" visible="false"/>
+	         <cntrls:XenosErrors id="usrConfErrPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+	         <cntrls:SoftWarningControl id="softWarn" width="100%" color="#0000FF" backgroundAlpha="0" borderStyle="none" fontWeight="bold"/>
+	         <mx:VBox width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off"  styleName="HDivideStyle">
+	         	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.entry.label.startleg')}" fontWeight="bold"/>
+	         	<mx:Grid width="100%" borderThickness="1" horizontalGap="0" verticalGap="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.fundcode')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfFundCode" selectable="true"  text=""/>
+                        </mx:GridItem>  
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.fundname')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <cntrls:XenosLabel id="uConfFundName" selectable="true"  text="" isWrapReq="true" width="400"/>
+                        </mx:GridItem>                        
+                    </mx:GridRow>
+                    <mx:GridRow width="100%"> 
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.inventoryaccountno')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+	                        <mx:GridItem width="30%" styleName="LabelBgColor">
+	                        <mx:Label id="uConfFundAccNo" selectable="true"  text=""/>
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.fundaccountname')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+	                        <mx:GridItem width="30%" styleName="LabelBgColor">
+	                        <cntrls:XenosLabel id="uConfFundAccName" selectable="true"  text="" isWrapReq="true" width="400"/>
+                        </mx:GridItem>                        
+                    </mx:GridRow>
+                   <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.counterpartyaccountno')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfCounterPartyAccNo" selectable="true"  text=""/>                            
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.counterpartyaccountname')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <cntrls:XenosLabel id="uConfCounterPartyAccName" selectable="true"  text="" isWrapReq="true" width="400"/>                            
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.tradetype')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>                      
+                        <mx:GridItem width="80%" styleName="LabelBgColor">	                            
+                            <mx:Label id="uConfTradeType" selectable="true"  text=""/>                        
+                        </mx:GridItem>        
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.currencycode')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfCurrencyCode" selectable="true"  text=""/>                             
+                        </mx:GridItem>                                              
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.referenceno')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                           <mx:Label id="uConfRefNo" selectable="true" text=""/>
+                        </mx:GridItem>
+                       <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.cancelreferenceno')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfCancelRefNo" selectable="true"  text=""/> 
+                        </mx:GridItem>                            
+                    </mx:GridRow>	
+               	 	<mx:GridRow width="100%">
+                    </mx:GridRow>
+                     <mx:GridRow width="100%">
+                       <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.tradedatetime')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfTradeDateTime" selectable="true"  text=""/> 
+                        </mx:GridItem>   
+                         <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.status')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfStatus" selectable="true"  text=""/>                          
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                       <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.startdate')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfStartLegStartDate" selectable="true"  text=""/> 
+                        </mx:GridItem>   
+                         <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.maturitydate')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfStartMaturityDate" selectable="true"  text=""/>                          
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                       <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.principalamount')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfPrincipalAmount" selectable="true"  text=""/> 
+                        </mx:GridItem>   
+                         <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.netamount')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfStartNetAmount" selectable="true"  text=""/>                          
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                       <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.interestrate')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfInterestRate" selectable="true"  text=""/> 
+                        </mx:GridItem>   
+                         <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.accintcalctype')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfAccIntCalcType" selectable="true"  text=""/>                          
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                         <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.remarks')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="80%" styleName="LabelBgColor" colSpan="3">
+                            <cntrls:XenosLabel id="uConfRemarks" selectable="true"  text="" isWrapReq="true" width="750"/>                          
+                        </mx:GridItem> 
+                    </mx:GridRow>
+	             </mx:Grid>
+	             <mx:Label width="100%" text="{this.parentApplication.xResourceManager.getKeyValue('bkg.entry.label.endleg')}" fontWeight="bold"/>
+	             <mx:Grid width="100%" styleName="LabelBgColor" horizontalGap="0" verticalGap="0">
+	             	<mx:GridRow width="100%">
+                       <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.interestamount')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfInterestAmount" selectable="true"  text=""/> 
+                        </mx:GridItem>   
+                         <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.netamount')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfEndNetAmount" selectable="true"  text=""/>
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                       <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.accrueddays')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfAccruedDays" selectable="true" text=""/> 
+                        </mx:GridItem>   
+                         <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.maturitydate')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfEndMaturityDate" selectable="true" text=""/>
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                       <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.startdate')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label id="uConfEndLegStartDate" selectable="true" text=""/> 
+                        </mx:GridItem>   
+                         <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text=""/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" styleName="LabelBgColor">
+                            <mx:Label/>
+                        </mx:GridItem> 
+                    </mx:GridRow>
+	             </mx:Grid>
+	         </mx:VBox>
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+			   <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="back" styleName="BtnStyle" click="doBack()"/>
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uConfSubmit" styleName="BtnStyle" click="doSave();" /> 
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="cancelSubmit" styleName="BtnStyle" click=" {this.dispatchEvent(new Event('cancelEntrySave'))}" includeInLayout="false" visible="false"/> 
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uCancelConfSubmit" styleName="BtnStyle" click="{this.dispatchEvent(new Event('cancelEntryConf'))}" includeInLayout="false" visible="false"/>  
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.sysconfirm')}" id="sConfSubmit" styleName="BtnStyle" click="{this.mode == 'entry' ?  this.dispatchEvent(new Event('entrySysConf')) : ( mode == 'amend' ? this.dispatchEvent(new Event('amendEntrySysConf')): this.dispatchEvent(new Event('cancelEntrySysConf')))}" includeInLayout="false" visible="false"/>               
+	        </mx:HBox>
+		</mx:VBox>
+	</mx:ViewStack>
+    </mx:VBox>
+    
+    </mx:Canvas>
+</containers:XenosEntryModule>

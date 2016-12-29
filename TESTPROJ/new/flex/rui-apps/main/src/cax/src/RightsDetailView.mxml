@@ -1,0 +1,465 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml"  xmlns:flexlib="http://code.google.com/p/flexlib/" layout="vertical"
+    xmlns:cntrls="com.nri.rui.core.controls.*" width="100%" height="100%" updateComplete="com.nri.rui.core.controls.AutoScroll.updateDisplayList(event);" creationComplete="submitQueryResult()">
+
+	<mx:Script>
+		<![CDATA[
+			import mx.utils.StringUtil;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.core.containers.SummaryPopup;
+			import com.nri.rui.core.utils.PrintUtils;
+			import mx.managers.PopUpManager;
+			import com.nri.rui.core.utils.XenosPopupUtils;
+			import mx.core.UIComponent;
+			import mx.collections.XMLListCollection;
+            [Bindable]
+            public var taxFeelist:XMLList;
+			
+            public function stateChangeHandler():void {
+            	
+            	var corporateActionId:String = xmlSource.corporateActionId ;
+            	var detailTaxFeeList:Boolean = xmlSource.detailTaxFeeListEmpty;
+            	// for CASH_DIVIDEND
+				if((corporateActionId=="CASH_DIVIDEND"||corporateActionId=="COUPON_PAYMENT")&&(!detailTaxFeeList)){
+            		currentState = "cashAndCupon";
+
+	            		taxFeelist = xmlSource.detailTaxFeeList.detailTaxFeeList as XMLList;	
+	    				taxFeeInfo.visible = true;
+	    				taxFeeInfo.includeInLayout = true;
+	    				taxFeeInfo.dataProvider = taxFeelist;
+	    			
+    			}		
+    			
+            }		
+		
+
+	   /**
+	   * This method is used for Rirhts Condition Details popup module
+	   * 
+	   */			
+	   public function showrightsCondition():void{
+	   	var rightsConditionPk:String =xmlSource.rightsConditionPk;
+	   	var parentApp :UIComponent = UIComponent(this.parentApplication);
+	   	XenosPopupUtils.showCaxRightsConditionDetails(rightsConditionPk,parentApp);
+	   }							  										  
+   
+	   /**
+	   * This method is used for loading Account Details popup module
+	   * 
+	   */  
+	   public function showAccountDetail():void{
+				var accPkStr:String = xmlSource.accountPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showAccountSummary(accPkStr,parentApp);
+				
+	   }
+	   
+	  public function showBankAccountDetail():void{
+				var banlAccPkStr:String = xmlSource.bankAccountPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showAccountSummary(banlAccPkStr,parentApp);
+				
+	   }
+	   /**
+	   * This method is used for loading Instrument Details popup module
+	   * 
+	   */  
+	   public function showInstrumentDetail():void{
+	   			
+				var instPkStr:String = xmlSource.instrumentPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showInstrumentDetails(instPkStr, parentApp);
+	   }
+	   
+	   /**
+	   * This method is used for loading Instrument Details popup module
+	   * 
+	   */  
+	   public function showAllottedInstrumentDetail():void{
+	   			var allottedInstPkStr:String = xmlSource.allottedInstrumentPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showInstrumentDetails(allottedInstPkStr, parentApp);
+	   }
+	   
+	   
+	   public function submitQueryResult():void{
+	    	parseUrlString();
+	    	var requestObj :Object = populateRequestParams();
+         	rightDetailRequest.request = requestObj; 
+	    	rightDetailRequest.send();
+	    }
+		]]>
+	</mx:Script>	
+     <mx:Script source = "actionscripts/RightDetail.as"/> 
+     <cntrls:XenosHTTPService id="rightDetailRequest"
+     	 showBusyCursor="true"
+     	 method="POST" 
+     	 url="cax/RightsDetailViewDispatch.action?method=getReferenceDetailView" 
+         result="LoadResultPage(event)" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' '+ event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>
+    
+    
+    <!--Tax Fee Information-->
+
+      <mx:State name="cashAndCupon">
+            <mx:AddChild relativeTo="{taxFee}" position="after">
+                <mx:target>
+	                <mx:DataGrid id="taxFeeInfo" width="100%" height="100%" visible="false" includeInLayout="false" sortableColumns="false" variableRowHeight="true">
+			            <mx:columns> 
+			                 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.taxfeeid')}" dataField="taxFeeId"/>           
+			                 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.rate')}" dataField="chargeRate"/>
+			                 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.ratetype')}" dataField="rateType"/>
+		                </mx:columns>
+	             	</mx:DataGrid>
+                </mx:target>
+            </mx:AddChild>
+      </mx:State>
+
+     
+    <!--mx:XMLListCollection id="tax" source="{xmlSource.taxFeeAmounts.taxFeeAmount}"/-->
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+	    <mx:VBox width="100%" height="100%" styleName="Padding">
+	    	<mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+	    		<mx:Button id="Print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetail(this.rdView)"/>
+	    	</mx:HBox>
+		    <mx:VBox id="rdView" width="100%" height="100%" styleName="Padding">
+		    
+				    <mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.rightsdetailrefno')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.rdReferenceNo}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.rightsconditionrefno')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.rcReferenceNo}" click="showrightsCondition()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true" />
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.eventtype')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.subEventTypeDescription}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.eventtypename')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.eventTypeName}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>		
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.eventtypestatus')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.conditionStatus}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								
+							</mx:GridItem>
+						</mx:GridRow>					
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.instrumentcode')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.instrumentCode}" click="showInstrumentDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.instrumentname')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.instrumentName}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrument')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.allottedInstrument}" click="showAllottedInstrumentDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrumentname')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.allottedInstrumentName}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.label.alternate.instrumentcode')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.alternateSecurity}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.label.alternate.allotedinstrumentcode')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.alternateAllottedSecurity}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.recorddate')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.recordDate}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.paymentdate')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.paymentDate}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<!--mx:Label text="{lblAccNo}" styleName="FormLabelHeading" /-->
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fundaccountno')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.accountNo}" click="showAccountDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.accountname')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.accountName}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.bankno')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.bankNo}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<!--mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.detailtype')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.detailTypeDescription}" selectable="true"/>
+							</mx:GridItem-->
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.netamount')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.netAmountStr}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor"/>
+							<mx:GridItem width="30%"/>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allottedquantity')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.allottedQuantityStr}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.grossamount')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.allottedAmountStr}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.normalallottedamountquantity')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.normalAmountOrQtyStr}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.taxamount')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.taxAmountStr}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.securitybalance')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.securityBalanceStr}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.splallottedamountquantity')}" styleName="FormLabelHeading" />						
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+									<mx:Label text="{xmlSource.splAmountOrQtyStr}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.adjustmentdate')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.adjustmentDateStr}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fractionalshare')}" styleName="FormLabelHeading" />
+							</mx:GridItem>										
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.fractionalShareStr}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.status')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.status}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.exceptionflag')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.exceptionFlagExp}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.deliverreceiveflag')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.deliverReceiveFlag}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.cashinlieuflag')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.cashInLieuFlagExp}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow> 
+					<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.datasource')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.dataSource}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.isForTempBalance')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.isForTempBalance}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+					<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.remarks')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.remarks}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor" >
+								<mx:Label text="{(xmlSource.isIncome!='true')?this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.availabledate'):''}" styleName="FormLabelHeading" />	                
+				          	</mx:GridItem>
+				        	<mx:GridItem width="30%" >
+				            	<mx:Label id="availableDateConf"  selectable="true" text="{(xmlSource.isIncome!='true')?xmlSource.availableDate:''}"/>	
+				        	</mx:GridItem> 
+						</mx:GridRow>
+				    <mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.creation_date')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.creationDateStr}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_regi_date')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.entryDateStr}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+			        <mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_upd_date')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.lastEntryDateStr}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+							</mx:GridItem>
+						</mx:GridRow>
+			        <mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.created_by')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.createdBy}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.updated_by')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.updatedBy}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+			       		<mx:GridRow width="100%">		
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.update_date')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.updateDateStr}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{lblReferanceNo}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{valReferanceNo}" selectable="true"/>
+							</mx:GridItem>					
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.finalizedflag')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.finalizedFlagDisp}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.inconsistencyflag')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.inConsistencyFlagDisp}" selectable="true"/>
+							</mx:GridItem>					
+						</mx:GridRow>
+					</mx:Grid>
+					<mx:Grid id="taxFee" verticalGap="0" horizontalGap="0" width="100%">
+					</mx:Grid>
+					<mx:HBox id = "button" width="100%" styleName="ButtonBackPanel" visible="true" includeInLayout="true" >
+			           <mx:Button label="SettlementInfo" styleName="BtnStyle" click="showSettlementInfo()"/>
+			        </mx:HBox>
+		    </mx:VBox>
+		</mx:VBox>
+    </mx:Canvas>
+</mx:Module>
+

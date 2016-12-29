@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+
+
+-->
+
+<!--Mxml file for CamBalanceQuery Implementation -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="loadAll()">
+    
+    <mx:Script>
+        <![CDATA[
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.containers.TitleWindow;
+            import mx.collections.ArrayCollection;
+            import mx.events.CloseEvent;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import mx.controls.CheckBox;
+            import mx.managers.PopUpManager;
+            
+            import com.nri.rui.core.controls.XenosAlert;
+            
+            /**
+            * 
+            */
+            private function changeCurrentState():void{
+                currentState = "result";
+                app.submitButtonInstance = null;
+            }
+            /**
+             * Retrieve and return the Account Name for dataTip.
+             */
+            private function getAccountName(item:Object):String {
+                return item.accountNo;
+            }
+            
+                        
+        ]]>
+    </mx:Script>
+    <mx:Script source="actionscripts/UserConfirmationSecurity.as"/>
+    
+    <mx:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+        </mx:State>
+        <mx:State name="">
+        	<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </mx:states>
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+    
+      <cntrls:XenosHTTPService id="initializeUserConfSecurityRawQuery" fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString)" 
+             method="POST" useProxy="false" result="loadSummaryPage(event)" showBusyCursor="true" resultFormat="xml"/>    
+
+    <cntrls:XenosHTTPService id="securityUserConfRawQueryRequest" 
+         url="rec/recSecurityRawFileCancelDispatch.action?" 
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString);submit.enabled=true;"
+         result="requestCancel(event)" showBusyCursor="true">
+        
+    </cntrls:XenosHTTPService>
+    
+    
+    <!-- <mx:Validator source="{ccyBox.ccyText}" required="true" property="text" /> -->
+    
+    <!--<mx:VBox width="100%" verticalGap="0" horizontalGap="0">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;" />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>    	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>-->
+
+
+
+	<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+		<mx:VBox width="100%" height="100%"> 
+        	<mx:HDividedBox id="hdbox1" width="100%" height="100%" liveDragging="true" styleName="Padding4" creationComplete="initPageStart()">
+        		<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        		<mx:VBox label="Query Criteria" width="100%" height="100%" styleName="HDivideStyle" >
+        			<!--<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>-->
+        			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+        			<mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+        			
+        			    <mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >                        
+			                <cntrls:QueryResultHeader id="qh" label="User Confirmation Screen" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext"  startIndex="1"/>
+			                <mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text="Transaction Completed Successfully !!!" visible="false"/>
+			                <mx:DataGrid id="resultSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="off" creationComplete="bindDataGrid() ">
+			                    <mx:columns>
+			                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.filetype')}" dataField="fileType" sortable="true" minWidth="50"/>
+			                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.receivedDate')}" dataField="usrConfReceivedDate" showDataTips="true" sortable="true" minWidth="90" textAlign="center"/>
+			                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.fundcode')}" dataField="fundCode" sortable="true" textAlign="right" minWidth="120" itemRenderer="com.nri.rui.core.renderers.FundDetailsRendererAdg"/>
+			                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.bankcode')}" dataField="bankCode" sortable="true" textAlign="right" minWidth="120"  itemRenderer="com.nri.rui.core.renderers.FinancialInstitutionDetailsRenderer"/>
+			                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.bankaccountno')}" dataField="bankAccountNo" sortable="true" textAlign="right" minWidth="150" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRenderer"/>
+			                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.senderreferenceno')}" dataField="senderReferenceNo" sortable="true" textAlign="right" minWidth="160" />
+			                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.pageno')}" dataField="pageNo" sortable="true" textAlign="right" minWidth="80" />
+			                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.newmCanc')}" dataField="newmCanc" sortable="false" textAlign="right" minWidth="80" />
+								</mx:columns>
+			                 </mx:DataGrid>
+			       		 </mx:VBox>
+                      
+                     
+            
+                 	<mx:HBox width="100%" styleName="ButtonBackPanel">
+        				
+        	            <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="backButton" styleName="BtnStyle" click="close(event)"/>
+        	            <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="this.submitQuery();" />					
+        	            <!--<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" id="okButton" styleName="BtnStyle" click="close(event)" visible="false"/>-->
+        			</mx:HBox>
+        			
+        		</mx:VBox>
+       		 </mx:Canvas>
+        		
+        	
+        	</mx:HDividedBox>
+        </mx:VBox>	
+	</mx:Canvas>
+</mx:Module>

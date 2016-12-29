@@ -1,0 +1,108 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+    xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+    xmlns:spring="http://www.springframework.org/tags" 
+    xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"	
+    xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+   <div class="formItemArea">
+    <jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+    <jsp:output omit-xml-declaration="yes" /> 
+		
+		<!--Start Javascript for Grid configurations-->
+
+		<jsp:element name="script">
+            <jsp:attribute name="type">text/javascript</jsp:attribute>
+            <jsp:body>
+				var isNext = <c:out value="${isNext}" />;
+				var grid_result_data = []; 
+				var grid_result_columns = [
+					{name:"<spring:message code="stl.label.eventtype" htmlEscape="false"/>", field: "subEventType", id: "subEventType", width: 100, sortable: true},
+					{name:"<spring:message code="stl.receivenoticeqry.label.datasource" htmlEscape="false"/>", field: "dataSource", id: "dataSource", width: 120, sortable: true},
+					{name:"<spring:message code="stl.label.receivenoticeqryca.referenceno" htmlEscape="false"/>", field: "settlementReferenceNo", id: "settlementReferenceNo", width: 100, sortable: true},
+					{name:"<spring:message code="stl.label.receivenoticeqryca.receivenoticerefno" htmlEscape="false"/>", field: "rcvdCompNoticeRefNo", id: "rcvdCompNoticeRefNo", width: 100, sortable: true},
+					{name:"<spring:message code="stl.label.receivenoticeqryca.underlyingsecurity" htmlEscape="false"/>", field: "underlyingSecurityId", id: "underlyingSecurityId", width: 100, sortable: true},
+					{name:"<spring:message code="stl.label.underlyingsecurityname" htmlEscape="false"/>", field: "underlyingSecurityShortName", id: "underlyingSecurityShortName", width: 100, sortable: true},
+					{name:"<spring:message code="ref.common.label.alternatesecurityid" htmlEscape="false"/>", field: "alternateSecurityId", id: "alternateSecurityId", width: 100, sortable: true},
+					{name:"<spring:message code="stl.label.lmoffice" htmlEscape="false"/>", field: "lmOffice", id: "lmOffice", width: 100, sortable: true},
+					{name:"<spring:message code="stl.label.receivenoticeqryca.fund" htmlEscape="false"/>", field: "fundCode", id: "fundCode", width: 100, sortable: true},
+					{name:"<spring:message code="stl.label.ourbank" htmlEscape="false"/>", field: "firmBank", id: "firmBank", width: 100, sortable: true},
+					{name:"<spring:message code="stl.label.ccy" htmlEscape="false"/>", field: "ccyCode", id: "ccyCode", width: 100, sortable: true},
+					{name:"<spring:message code="stl.label.receivenoticeqryca.exdate" htmlEscape="false"/>", field: "tradeDateStr", id: "tradeDateStr", width: 100, sortable: true},
+					{name:"<spring:message code="stl.label.receivenoticeqryca.paymentdate" htmlEscape="false"/>", field: "valueDateStr", id: "valueDateStr", width: 100, sortable: true},
+					{name:"<spring:message code="stl.label.eligiblebalance" htmlEscape="false"/>", field: "eligibleBalanceStr", id: "eligibleBalanceStr", width: 100, sortable: true, cssClass: 'xenos-grid-number'},
+					{name:"<spring:message code="stl.label.couponrate" htmlEscape="false"/>", field: "couponRate", id: "couponRate", width: 100, sortable: true, cssClass: 'xenos-grid-number'},
+					{name:"<spring:message code="stl.label.cashrate" htmlEscape="false"/>", field: "cashRate", id: "cashRate", width: 100, sortable: true, cssClass: 'xenos-grid-number'},
+					{name:"<spring:message code="stl.label.grossamount" htmlEscape="false"/>", field: "grossAmountStr", id: "grossAmountStr", width: 100, sortable: true, cssClass: 'xenos-grid-number'},
+					{name:"<spring:message code="stl.stlqry.label.netamt" htmlEscape="false"/>", field: "amountStr", id: "amountStr", width: 100, sortable: true, cssClass: 'xenos-grid-number'},
+					{name:"<spring:message code="stl.label.receivenoticeqryca.completedamount" htmlEscape="false"/>", field: "completedAmount", id: "completedAmount", width: 100, sortable: true, cssClass: 'xenos-grid-number'},
+					{name:"<spring:message code="stl.label.receivenoticeqryca.completionstatus" htmlEscape="false"/>", field: "settlementStatus", id: "settlementStatus", width: 100, sortable: true},
+					{name:"<spring:message code="stl.receivenoticeqry.label.msgstatus" htmlEscape="false"/>", field: "messageStatus", id: "messageStatus", width: 100, sortable: true}
+				];
+		
+				var grid_result_settings = {
+					enableToolbar:true,
+					consolidateActionFlag: true,
+				   consolidateAttribute: {type:'check'},
+
+					pagingInfo:{ 
+						isNext : isNext, 
+						url: '/secure/stl/careceivednotice/query/count.json' 
+					}, 
+					buttons:{ 
+						print:true, 
+						xls:true, 
+						pdf:true, 
+						columnPicker:true, 
+						save:true 
+					},
+					urls:{
+						nextPage : '/secure/stl/careceivednotice/query/result.json?fetch=next', 
+						prevPage : '/secure/stl/careceivednotice/query/result.json?fetch=previous', 
+						pdfReport: '/secure/stl/careceivednotice/query/report.json?outputType=pdf', 
+						xlsReport: '/secure/stl/careceivednotice/query/report.json?outputType=xls' 
+					}
+				};
+		
+				var row_id = 0; 
+				var rec = {};
+				<xenos:out escapeXml="false"> 
+					   <c:forEach items="${value}" var="dl">
+						rec = {};
+						row_id+=1;
+						rec.id = "xenos_" + row_id;
+						rec.subEventType= "<c:out value="${dl.subEventType}" />";
+						rec.dataSource= "<c:out value="${dl.dataSource}" />";
+						rec.settlementReferenceNo= "<c:out value="${dl.settlementReferenceNo}" />";
+						rec.rcvdCompNoticeRefNo= "<c:out value="${dl.rcvdCompNoticeRefNo}" />";
+						rec.underlyingSecurityId= "<c:out value="${dl.underlyingSecurityId}" />";
+						rec.underlyingSecurityShortName= "<c:out value="${dl.underlyingSecurityShortName}" />";
+						rec.alternateSecurityId= "<c:out value="${dl.alternateSecurityId}" />";
+						rec.lmOffice= "<c:out value="${dl.lmOffice}" />";
+						rec.fundCode= "<c:out value="${dl.fundCode}" />";
+						rec.firmBank= "<c:out value="${dl.firmBank}" />";
+						rec.ccyCode= "<c:out value="${dl.ccyCode}" />";
+						rec.tradeDateStr= "<c:out value="${dl.tradeDateStr}" />";
+						rec.valueDateStr= "<c:out value="${dl.valueDateStr}" />";
+						rec.eligibleBalanceStr= "<c:out value="${dl.eligibleBalanceStr}" />";
+						rec.couponRate= "<c:out value="${dl.couponRate}" />";
+						rec.cashRate= "<c:out value="${dl.cashRate}" />";
+						rec.grossAmountStr= "<c:out value="${dl.grossAmountStr}" />";
+						rec.amountStr= "<c:out value="${dl.amountStr}" />";
+						rec.completedAmount= "<c:out value="${dl.completedAmount}" />";
+						rec.settlementStatus= "<c:out value="${dl.settlementStatus}" />";
+						rec.messageStatus= "<c:out value="${dl.messageStatus}" />";
+						grid_result_data.push(rec); 
+					</c:forEach> 
+				</xenos:out> 
+		</jsp:body>
+        </jsp:element>
+
+		<!--End Javascript for Grid configurations-->
+    </div>
+</jsp:root>

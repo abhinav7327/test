@@ -1,0 +1,424 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core"
+    xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+    xmlns:spring="http://www.springframework.org/tags" 
+    xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+    xmlns:form="http://www.springframework.org/tags/form"
+    xmlns:display="http://displaytag.sf.net"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+    xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div class="entryContainer paddingFour">  
+	
+    <jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+    <jsp:output omit-xml-declaration="yes" /> 
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src">
+          <c:url value="/scripts/inf/utilCommons.js"/>
+        </jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>	
+	
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>      
+        
+        var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+			var context = $xenos$Wizard.$context;
+        	var baseUrl = xenos.context.path + context.find('form').attr('action');
+            xenos.loadLocalizedScript([{path: xenos.context.path + '/scripts/ref/xenos-ref-i18n.js', async: false}]);
+            var validateHook = function(){
+                    var validationMessages = [];
+                    var userId = $.trim($('#userId').val());
+                    var firstName = $.trim($('#firstName').val());
+                    var lastName = $.trim($('#lastName').val());
+                    var startDate = $.trim($('#startDate').val());
+                    var password = $.trim($('#password').val());
+                    var confirmPassword = $.trim($('#confirmPassword').val());
+                    var actionType = "<c:out value="${commandForm.options.actionType}"/>";
+                    
+                    if($.trim(actionType) == "ENTRY"){
+						if(VALIDATOR.isNullValue(userId)){
+							validationMessages.push(xenos$REF$i18n.employee.userId_empty);
+						}
+                    }
+					if($.trim(actionType) == "ENTRY" || $.trim(actionType) == "AMEND"){
+						if(VALIDATOR.isNullValue(firstName)){
+							validationMessages.push(xenos$REF$i18n.employee.firstName_empty);
+						}
+						if(VALIDATOR.isNullValue(lastName)){
+							validationMessages.push(xenos$REF$i18n.employee.lastName_empty);
+						}					
+					}
+                    if($.trim(actionType) == "ENTRY"){
+						if(VALIDATOR.isNullValue(startDate)){
+							validationMessages.push(xenos$REF$i18n.employee.startdate_empty);
+						} else {
+							if(!isDateCustom(startDate)){
+								validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.employee.illegal_start_date, [startDate]));
+							}
+						}
+                    }
+                    if($.trim(actionType) == "ENTRY"){
+                        if(VALIDATOR.isNullValue(password)){
+                        validationMessages.push(xenos$REF$i18n.employee.password_empty);
+                        }
+                        if(VALIDATOR.isNullValue(confirmPassword)){
+                            validationMessages.push(xenos$REF$i18n.employee.confirmPassword_empty);
+                        }
+						/*if ( $('#password').val()!=$('#confirmPassword').val() )
+						{
+							validationMessages.push(xenos$REF$i18n.employee.matchPassword);
+						}*/
+                    }
+					
+					if($.trim(actionType) == "AMEND"){
+
+						if(VALIDATOR.isNullValue(password)){
+							if(!VALIDATOR.isNullValue(confirmPassword)) {
+								validationMessages.push(xenos$REF$i18n.employee.password_empty);
+							}
+                        }
+						else{
+							if(VALIDATOR.isNullValue(confirmPassword)) {
+								validationMessages.push(xenos$REF$i18n.employee.confirmPassword_empty);
+							}
+						}
+					}
+					
+                    if (validationMessages.length > 0){
+                         $('.formHeader').find('.formTabErrorIco').css('display', 'block')
+                                                                  .off('click')
+                                                                  .on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+                         return false;
+                    }else {
+                           $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                    }
+            }
+        
+		
+			var actionType = "<c:out value="${commandForm.options.actionType}"/>";
+			var restrictedPermission = "<c:out value="${commandForm.emppage.restrictedPermission}"/>";
+			if($.trim(actionType) == "AMEND")
+			{
+				$('#userId').prop('disabled',true);
+				$('.ui-datepicker-trigger').prop('disabled',true);
+				$('#startDate').prop('disabled',true);
+				if(restrictedPermission!='Y')
+				{
+					$('#firstName').prop('disabled',true);
+					$('#middleInitial').prop('disabled',true);
+					$('#lastName').prop('disabled',true);
+					$('#title').prop('disabled',true);
+					$('#password').prop('disabled',true);
+					$('#confirmPassword').prop('disabled',true);
+					$('#lock').prop('disabled',true);
+					
+				}
+					
+			}
+			
+            /**
+            * A common request handler to be used server communication.
+            */
+            var xenos$Handler$RequestHandler = xenos$Handler$function({
+                get: {
+                    contentType: 'json',
+                    requestType: xenos$Handler$default.requestType.asynchronous
+                },  
+                settings: {
+                    beforeSend: function(request) {
+                        request.setRequestHeader('Accept', 'application/json');
+                    },
+                    type: 'POST'
+                }
+            });
+        
+            var grid,
+            item,
+            empAppRoleResult=[];
+            
+            var empAppRoleGridConf = {
+                editMode                    :   'delete',   
+                deleteCallback              :   deleteEmpAppRoleHandler,
+                forceFitColumns             :   true
+            };
+                
+            var empAppRoleColumns = [       
+                {name:"<spring:message code="ref.label.emp.officeid" htmlEscape="false"/>", field:"officeId",id:"officeId", sortable:true},
+                {name:"<spring:message code="ref.employee.label.applRoleNames" htmlEscape="false"/>", field:"appRoleName",id:"appRoleName",sortable:true},
+                {name:"<spring:message code="ref.employee.label.accessrestrictioninfo" htmlEscape="false"/>", field:"accessRestriction",id:"accessRestriction",sortable:true}
+            ];
+            
+            
+            /**
+            * Insert/ Update employee application Role.
+            */
+            function upDatetEmpAppRole(data){
+                var result = data.empApplnRoleParticipantList;
+                if(result){
+                    grid.clearData();
+                    for(var i in result){
+                        item = {};
+                        rowId+=1;
+                        item.id                 =   "xenos_" + rowId;
+                        item.officeId   = $.trim(result[i].officeId);
+                        item.appRoleName        = $.trim(result[i].applRoleName);
+                        item.accessRestriction        = $.trim(result[i].accessRestriction);
+                        grid.addOrUpdateRow(item,{});
+                    }
+                }
+            }
+            
+            /**
+            * Emp Application Role Delete Handler X Ref Delete handler
+            */
+            function deleteEmpAppRoleHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/delAppRole/" + rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined,
+                    {   requestUri: requestUrl,
+                        onJsonContent :  function(e, options, $target, content) {
+                            if(content.success == true){                                 
+                                upDatetEmpAppRole(content.value[0]);
+                            } else {
+                                xenos.postNotice(xenos.notice.type.error, content.value[0]);
+                            }
+                        }
+                    }
+                );
+            }
+                
+            /**
+             * This method validates office ID And app roles fields 
+             */
+            function validateOnAddToApplicationRole(){
+                var validationMessages = [];
+                
+                if(VALIDATOR.isNullValue($.trim($('#officeId').val()))){
+                    validationMessages.push(xenos$REF$i18n.employee.officeid_empty);
+                }
+                
+                if(VALIDATOR.isNullValue($.trim($('#selectedApplRoles').val()))){
+                    validationMessages.push(xenos$REF$i18n.employee.approles_empty);
+                }
+                if (validationMessages.length > 0){
+                     //xenos.postNotice(xenos.notice.type.error, validationMessages);
+                     return false;
+                }
+                                
+                return true;
+            }
+            
+            /**
+            * New Employee-Application Role add handler.
+            */
+            function addEmpAppRoleHandler(e){
+                var valid = validateOnAddToApplicationRole();
+                if(valid){
+                    var requestUrl = baseUrl + "/addAppRole.json?commandFormId=" + $('[name=commandFormId]').val();
+                              
+                    xenos$Handler$RequestHandler.generic(e, 
+                        {   requestUri: requestUrl,
+                            settings: {data : {officeId:$('#officeId').val(),selectedApplRoles:$.trim($('#selectedApplRoles').val())}},
+                            onJsonContent :  function(e, options, $target, content) {
+                                if(content.success == true){                                 
+                                    upDatetEmpAppRole(content.value[0]);
+                                    $('#selectedApplRoles').val("");
+                                    $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                                } else {
+                                    $('.formHeader').find('.formTabErrorIco').css('display', 'block')
+                                                                             .on('click', xenos.postNotice(xenos.notice.type.error, content.value[0], true));
+                                }
+                            }
+                        }
+                    );
+                }
+            }
+                
+            var rowId=0;
+			<xenos:out escapeXml="false">
+				<c:forEach items="${commandForm.empApplnRoleParticipantList}" var="dl">
+					item = {};
+					rowId+=1;
+					item.id             = "xenos_" + rowId;
+					item.officeId       = "<c:out value="${dl.officeId}" />";
+					item.appRoleName    = "<c:out value="${xenosfn:escapeJS(dl.applRoleName)}" />";
+					item.accessRestriction    = "<c:out value="${dl.accessRestriction}" />";
+					empAppRoleResult.push(item);
+				</c:forEach>
+			</xenos:out>	
+			
+			grid = $('#empAppRoleGrid').xenoseditablegrid(empAppRoleResult, empAppRoleColumns, empAppRoleGridConf);
+			$('#addEmpAppRoleBtn').unbind('click');
+			$('#addEmpAppRoleBtn').bind('click',addEmpAppRoleHandler);
+			
+			var unloadHook = function(){
+				$xenos$Wizard.deregister('submit',validateHook);
+				$xenos$Wizard.deregister('unload',unloadHook);
+				grid.destroy();
+			}
+
+			$xenos$Wizard.register('submit',validateHook);
+			$xenos$Wizard.register('unload',unloadHook);
+		};
+		
+        </jsp:body>
+    </jsp:element>
+     <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/ref/employeeAmend.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+
+    <c:if test="${success =='false'}">
+        <!-- Error message Area -->
+        <ul class="xenosError">
+            <c:forEach items="${value}" var="dl">       
+            <li><spring:message text="${dl}" htmlEscape="false"/></li>
+            </c:forEach>
+        </ul>   
+    </c:if>
+    <spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+    <spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+    <spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+    
+    <div class="entryBlkArea">
+        <div class="formItemBlock topitems dottedBg">
+                <div class="formItem">
+                    <form:label path="commandForm.emppage.defaultOfficeStr" class="required"><spring:message code="ref.label.emp.DefaultOffice" htmlEscape="false"/></form:label> 
+					<form:label path="commandForm.emppage.defaultOfficeStr">${commandForm.emppage.defaultOfficeStr}</form:label> 
+                    
+                </div>
+                <div class="formItem">
+                    <form:label path="commandForm.emppage.userId" class="required"><spring:message code="ref.label.emp.userId" htmlEscape="false"/></form:label>
+                    <span><form:input id="userId" value="" path="commandForm.emppage.userId"  class="txtNormal" maxlength="20"/></span>           
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                <div class="formItem">
+                    <form:label path="commandForm.emppage.firstName" class="required"><spring:message code="ref.label.emp.firstName" htmlEscape="false"/></form:label>
+                    <span><form:input id="firstName" value="" path="commandForm.emppage.firstName"  class="textBox" maxlength="35"/></span>         
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                <div class="formItem">
+                    <form:label path="commandForm.emppage.middleInitial"><spring:message code="ref.label.emp.middleInitial" htmlEscape="false"/></form:label>
+                    <span><form:input id="middleInitial" value="" path="commandForm.emppage.middleInitial"  class="textBox" maxlength="4" /></span>            
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                <div class="formItem">
+                    <form:label path="commandForm.emppage.lastName" class="required"><spring:message code="ref.label.emp.lastName" htmlEscape="false"/></form:label>
+                    <span><form:input id="lastName" value="" path="commandForm.emppage.lastName"  class="textBox" maxlength="35" /></span>          
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                <div class="formItem">
+                    <form:label path="commandForm.emppage.title"><spring:message code="ref.label.emp.title" htmlEscape="false"/></form:label>
+                    <span><form:input id="title" value="" path="commandForm.emppage.title"  class="textBox" maxlength="5" /></span>            
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                <div class="formItem twoCols">
+                    <form:label path="commandForm.emppage.startDateStr" class="required"><spring:message code="ref.label.emp.startdatestr" htmlEscape="false"/></form:label>
+					<span id="startDateSpan"><form:input id="startDate" value="" path="commandForm.emppage.startDateStr"  class="dateinput" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.employee.illegal_start_date, [this.value]))}"/></span>			
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                <div class="formItem">
+                    <form:label path="commandForm.emppage.employeeOpenDateStr"><spring:message code="ref.label.emp.employeeopendate" htmlEscape="false"/></form:label>
+                    <form:label path="commandForm.emppage.employeeOpenDateStr">${commandForm.emppage.employeeOpenDateStr}</form:label>
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                <div class="formItem">
+                    <form:label path="commandForm.emppage.employeeOpenedBy"><spring:message code="ref.label.emp.employeeopenby" htmlEscape="false"/></form:label>  
+                    <form:label path="commandForm.emppage.employeeOpenedBy">${commandForm.emppage.employeeOpenedBy}</form:label> 
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                <div class="formItem">
+                    <form:label path="commandForm.emppage.applPasswd" class="required"><spring:message code="ref.label.emp.initial.password" htmlEscape="false"/></form:label>
+                    <span><form:password value="${commandForm.emppage.applPasswd}" id="password" path="commandForm.emppage.applPasswd"  class="txtNormal" maxlength="50" /></span>         
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                <div class="formItem">
+                    <form:label path="commandForm.emppage.confirmPassword" class="required"><spring:message code="ref.label.emp.retype.initial.password" htmlEscape="false"/></form:label>
+                    <span><form:password value="${commandForm.emppage.confirmPassword}" id="confirmPassword" path="commandForm.emppage.confirmPassword"  class="txtNormal" maxlength="50"/></span>          
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+				<c:if test="${commandForm.options.actionType == 'AMEND'}">
+					<div class="formItem">
+						<form:label path="commandForm.emppage.lockedBoolean"><spring:message code="ref.label.emp.locked" htmlEscape="false"/></form:label>
+						<span style="padding-top: 4px;"><form:checkbox id="lock" path="commandForm.emppage.lockedBoolean" value="Y"/></span>          
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						
+					</div>
+				</c:if>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>               
+        </div>
+    </div>
+    
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	<div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.employee.label.applicationroles" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	</div>
+    <div class="entryBlkArea">
+        <div class="formItemBlock topitems dottedBg bgOverride">
+            <div class="formItem">
+                <form:label path="commandForm.officeId"><spring:message code="ref.label.emp.officeid" htmlEscape="false"/></form:label>
+                <form:select id="officeId" path="commandForm.officeId" class="dropdowninput">
+					<form:option value=""/>
+                    <form:options items="${commandForm.officeList}"/>
+                </form:select>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            
+            <div class="formItem heightOverride">
+                    <form:label path="commandForm.selectedApplRoles"><spring:message code="ref.label.emp.applicationrole" htmlEscape="false"/></form:label>
+                    <span>
+                        <form:select id="selectedApplRoles" path="commandForm.selectedApplRoles" class="dropdowninput" style="height:115px;min-width:200px;" multiple="true">
+                            <form:options items="${commandForm.applRoleNames}" itemLabel="label" itemValue="value"/>
+                        </form:select>
+                    </span>
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            
+            <div id="formActionArea" class="gridBtnMargin bgoverride">
+                <div class="right">
+                        <div class="btnWrapStyle submitBtn gridAddBtn">
+                        <span class="addempAppRole" style="display:block"><input id="addEmpAppRoleBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+                    </div>
+                    <span class="editBtnempAppRole" style="display:none">   
+                            <div class="btnWrapStyle submitBtn"><input id="updateempAppRoleBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                            <div class="btnWrapStyle resetBtn"><input id="cancelempAppRoleBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                    </span>
+                </div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>      
+            <div class="entryGrid">
+                <div id="empAppRoleGrid" class="xenos-grid" style="width:100%;height:350px;"><spring:message text="" htmlEscape="false"/></div>
+            </div>          
+        </div>  
+    </div>
+    
+    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+            <jsp:body>
+                xenos$onReady$Array.push(function() {
+                        xenos.loadScript([
+							{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false}
+						]);
+                    }); 
+            </jsp:body>
+  </jsp:element>
+    
+    
+</div>
+</jsp:root>

@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml"  xmlns:flexlib="http://code.google.com/p/flexlib/" layout="vertical"
+           xmlns:cntrls="com.nri.rui.core.controls.*" width="100%" height="100%" 
+           updateComplete="com.nri.rui.core.controls.AutoScroll.updateDisplayList(event);" 
+           creationComplete="submitQueryResult()">
+   
+    <mx:Script>
+        <![CDATA[
+            import mx.utils.StringUtil;
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.Globals;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import mx.managers.PopUpManager;
+            import com.nri.rui.core.utils.XenosPopupUtils;
+            import mx.core.UIComponent;
+            import mx.collections.XMLListCollection;
+            
+            
+            
+                                                                                    
+//        /**
+//        * This method is used for loading FinInstPopUp module 
+//        * 
+//        */  
+//        public function showBankDetail():void{
+//        
+//            var finInstPkStr : String = xmlSource.camSecEntry.custodianBankPk;
+//            var parentApp :UIComponent = UIComponent(this.parentApplication);
+//            
+//            XenosPopupUtils.showFinInstDetails(finInstPkStr,parentApp);
+//            
+//        }
+//        /**
+//        * This method is used for loading Account Details popup module
+//        * 
+//        */  
+//        public function showFundAccountDetail():void{ 
+//            var accPkStr : String = xmlSource.camSecEntry.accountPk;
+//            var parentApp :UIComponent = UIComponent(this.parentApplication);
+//            XenosPopupUtils.showAccountSummary(accPkStr,parentApp);
+//        }
+//        /**
+//        * This method is used for loading Instrument Details popup module
+//        * 
+//        */  
+//        public function showInstrumentDetail():void{                   
+//            var InstPkStr : String = xmlSource.camSecEntry.instrumentPk;
+//            var parentApp :UIComponent = UIComponent(this.parentApplication);
+//            XenosPopupUtils.showInstrumentDetails(InstPkStr, parentApp);
+//        }
+       
+       
+        public function submitQueryResult():void{
+            parseUrlString();
+            var requestObj :Object = populateRequestParams();
+            receiveNoticeDetailRequest.request = requestObj; 
+            receiveNoticeDetailRequest.send();
+        }
+        
+        public function showMatchedSettlementInfo():void{
+            //Do Something
+        }
+        ]]>
+    </mx:Script>    
+     <mx:Script source = "actionscripts/ReceiveNoticeDetailView.as"/> 
+     <cntrls:XenosHTTPService id="receiveNoticeDetailRequest"
+          showBusyCursor="true"
+          method="POST" 
+          url="stl/receiveNoticeQueryDispatch.action?method=doViewRcvdNotice" 
+         result="LoadResultPage(event)" 
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+         useProxy="false" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+     
+    <!--mx:XMLListCollection id="tax" source="{xmlSource.taxFeeAmounts.taxFeeAmount}"/-->
+    <mx:VBox width="100%" height="100%" styleName="Padding">
+        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+        <flexlib:WindowShade id="ws1" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws1" tabChildren="{ws1.opened=true}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.recvnoticedetailheader')}" width="100%" >
+        <mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.senderrefno')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.senderReferenceNo}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.settlementrefno')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.settlementReferenceNo}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.instructionrefno')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.instructionReferenceNo}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.rcvdCompNoticeRefNo')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.rcvdCompNoticeRefNo}" truncateToFit="true" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.reasoncode')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.reasonCode}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.status')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.messageStatus}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.price')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.price}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.datasource')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.dataSource}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.stltype')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.settlementType}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.stldate')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.settlementDateStr}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.createdby')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.createdBy}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.creationdate')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.creationDate}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.updatedby')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.updatedBy}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.updationdate')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.updateDate}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.valudedate')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.valueDateStr}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="" />                        
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">                    
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.errordescription')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="80%" colSpan="3">
+                    <mx:Label text="{xmlSource.errorDescription}" truncateToFit="true" toolTip="{xmlSource.errorDescription}" selectable="true"/>                        
+                </mx:GridItem>
+            </mx:GridRow>
+        </mx:Grid>
+        </flexlib:WindowShade>
+        <flexlib:WindowShade id="ws2" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws2" tabChildren="{ws2.opened=false}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.securityside')}" width="100%" >
+        <mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.cpbank')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.secCpBank}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.cpbankac')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.secCpBankAccount}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.ourbank')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.secOurBank}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.ourbankac')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.secOurBankAccount}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.deliveryreceive')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.deliverReceiveDisplay}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.securityid')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <!-- Data needs to be populated at runtime -->
+                    <mx:Label id="secSideSecurity" text="" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.quantity')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.quantityStr}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">                
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.remarks')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="80%" colSpan="3">
+                    <mx:Label text="{xmlSource.remarks}" truncateToFit="true" toolTip="{xmlSource.remarks}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+        </mx:Grid>
+        </flexlib:WindowShade>
+        <flexlib:WindowShade id="ws3" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws3" tabChildren="{ws3.opened=false}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.cashside')}" width="100%" >
+        <mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.cashcpbank')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.cashCpBank}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.cashcpbankac')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.cashCpBankAccount}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.cashourbank')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.cashOurBank}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.cashourbankac')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.cashOurBankAccount}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.deliveryreceive')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.cashDeliverReceiveDisplay}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.ccycode')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.ccyCode}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <!-- would be displayed depending on some condition -->
+            <mx:GridRow id="cashAmtbalRow" width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.amount')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.amountStr}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.eligiblebalance')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.totalEligibleStr}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow id="cashTaxAmtRow" width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.taxamount')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.taxAmountStr}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text=""/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow id="cashAmtRow" width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.amount')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlSource.amountStr}" selectable="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text=""/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <!-- Condition Ends -->
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.remarks')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="80%" colSpan="3">
+                    <mx:Label text="{xmlSource.cashRemarks}" truncateToFit="true" selectable="true"/>
+                </mx:GridItem>                
+            </mx:GridRow>
+        </mx:Grid>    
+        </flexlib:WindowShade>
+        <flexlib:WindowShade id="ws4" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws4" tabChildren="{ws4.opened}" styleName="linkButtonWindowShade" opened="false" label="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.dkInstructionHistory')}" width="100%" >
+    	<mx:HBox width="100%">
+        	<mx:Box width="100%" paddingLeft="1">
+        	<mx:DataGrid dataProvider="{dkViewListColl}" width="100%" height="100%" headerRelease="dataGrid_headerRelease(event)">
+				<mx:columns>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.dkrefno')}" dataField="dkReferenceNo" sortCompareFunction="sortUtil.sortString"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.acceptancestatus')}" dataField="acceptanceStatus" sortCompareFunction="sortUtil.sortString"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.reasoncode')}" dataField="reasonCode" sortCompareFunction="sortUtil.sortString"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.dkstatus')}" dataField="dkStatus" sortCompareFunction="sortUtil.sortString"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.dkremarks')}" dataField="dkRemarks" sortCompareFunction="sortUtil.sortString"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.dkcreatedby')}" dataField="dkCreatedBy" sortCompareFunction="sortUtil.sortString"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.receivenoticeqry.label.dkcreationdate')}" dataField="dkCreationDate" sortCompareFunction="sortUtil.sortString"/>
+				</mx:columns>
+			</mx:DataGrid>
+			</mx:Box>
+		</mx:HBox>            
+        </flexlib:WindowShade> 
+        <mx:ControlBar width="100%" paddingLeft="1" horizontalAlign="left">
+            <cntrls:XenosButton label="Matched SettlementInfo" id="back" styleName="BtnStyle" click="showMatchedSettlementInfo()" includeInLayout="false" visible="false"/>
+            <cntrls:XenosButton label="Force Match" id="uConfSubmit" styleName="BtnStyle" click="showMatchedSettlementInfo()" includeInLayout="false" visible="false"/> 
+            <cntrls:XenosButton label="Send DK" id="cancelSubmit" styleName="BtnStyle" click="showMatchedSettlementInfo()" includeInLayout="false" visible="false"/> 
+            <cntrls:XenosButton label="Cancel Force Match" id="uCancelConfSubmit" styleName="BtnStyle" click="showMatchedSettlementInfo()" includeInLayout="false" visible="false"/>  
+            <cntrls:XenosButton label="Mark As Match" id="sConfSubmit" styleName="BtnStyle" click="showMatchedSettlementInfo()" includeInLayout="false" visible="false"/>               
+            <cntrls:XenosButton label="Re-Send DK" styleName="BtnStyle" click="showMatchedSettlementInfo()" includeInLayout="false" visible="false"/>
+            <cntrls:XenosButton label="Cancel Mark As Match" styleName="BtnStyle" click="showMatchedSettlementInfo()" includeInLayout="false" visible="false"/>
+            <cntrls:XenosButton label="Cancel Matched" styleName="BtnStyle" click="showMatchedSettlementInfo()" includeInLayout="false" visible="false"/>
+        </mx:ControlBar>
+    </mx:VBox>
+</mx:Module>

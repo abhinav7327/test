@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<containers:XenosQueryModule xmlns:mx="http://www.adobe.com/2006/mxml" 
+							xmlns:containers="com.nri.rui.core.containers.*" 
+							xmlns:flexlib="http://code.google.com/p/flexlib/" 
+							xmlns:cntrls="com.nri.rui.core.controls.*" 
+							xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+							layout="vertical" 
+							percentWidth="100" 
+							percentHeight ="100" 
+							horizontalScrollPolicy="off" 
+							verticalScrollPolicy="off" >
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.trd.renderers.TotalCommissionRenderer;
+			import com.nri.rui.core.renderers.ImgSummaryRenderer;
+			import mx.events.DataGridEvent;
+			/**
+			 * This method should be called on creationComplete of the datagrid 
+			 */ 
+			 private function bindDataGrid():void {
+			 	qhFB.dgrid = resultSummaryFB;
+			}
+			
+			private function bindDataGridBroker():void {
+				qhB.dgrid = resultSummaryB;
+			}
+			
+		    private function getFundAccountNo(item:Object,column : DataGridColumn):String {
+                return item.fundAccountNo;
+            }
+            
+            private function getBrokerAccountNo(item:Object,column : DataGridColumn):String {
+                return item.brokerAccountNo;
+            }
+            
+            private function colorForTotal(item:Object, color:uint):uint {
+				if(item.total == 'Total'){
+					return 0xFF80FF;
+				}
+				return color;
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Script source="actionscripts/CommissionQuery.as"/>
+
+     <containers:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+        </mx:State>
+        <mx:State name="criteria">
+            <mx:SetProperty target="{qry}" name="width" value="100%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="0%"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions>
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" id="screenNavigater">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="{this.parentApplication.xResourceManager.getKeyValue('trd.tooltip.query')}" buttonMode="true" click="currentState='criteria';app.submitButtonInstance = submit;"  />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="{this.parentApplication.xResourceManager.getKeyValue('trd.tooltip.result')}" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="{this.parentApplication.xResourceManager.getKeyValue('trd.tooltip.qryrslt')}" buttonMode="true" click="currentState='qryres';app.submitButtonInstance = submit;"/>    	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+	
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%">
+	<mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="{this.loadAll()}"  >
+		
+		<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		<mx:VBox width="100%" height="100%" styleName="HDivideStyle" >
+			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+			<mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.commqry.label.reporttitle')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="reportIdCombo" labelField="label" prompt="Select" change="loadFieldsForReportId();"/>                            
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label id="trdDateFromToLbl" text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.tradedatefromto')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox>
+                       			<mx:DateField id="trdDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                       			<mx:DateField id="trdDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+            				</mx:HBox>
+                        </mx:GridItem> 
+                    </mx:GridRow>	
+                    <mx:GridRow id="brkAccImOfficeRow" width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.brokeraccountno')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        	<xenospopup:AccountPopUpHbox id="brokerAccountNo" retContextItem="{returnContextItem}" recContextItem="{populateCpActContext()}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.commqry.label.imofcid')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="imOfficeCombo" prompt="Select" labelField="label"/>
+                        </mx:GridItem> 
+                    </mx:GridRow>
+               	 	<mx:GridRow id="fundAccRow" width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.inventoryaccountno')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:AccountPopUpHbox id="inventoryAccountNo" retContextItem="{returnContextItem}" recContextItem="{populateInvActContext()}"/>                           
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0"/>
+                        <mx:GridItem width="30%" borderThickness="0"/>
+                    </mx:GridRow>
+                </mx:Grid>
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="submitQuery();" />
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="{this.dispatchEvent(new Event('queryReset'))}" />
+	        </mx:HBox>
+	        
+		</mx:VBox>
+		
+		</mx:Canvas>
+		<mx:ViewStack id="rslt" width="100%" height="100%" creationPolicy="all">		
+			<mx:VBox width="0%" height="100%" id="rsltFB" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >			
+		        <cntrls:QueryResultHeader id="qhFB" printFunction="dispatchPrintEvent" pdfFunction="dispatchPdfEvent" xlsFunction="dispatchXlsEvent" previousFunction="dispatchPrevEvent" nextFunction="dispatchNextEvent" startIndex="1"/>
+				<cntrls:CustomDataGrid id="resultSummaryFB" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()"  rowColorFunction="colorForTotal"> 
+			    	<cntrls:columns>		    	   
+			    	   <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.trd.renderers.TotalCommissionRenderer" sortable="false"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.inventoryaccountno')}" dataField="fundAccountPk" labelFunction="getFundAccountNo" sortable="false" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.fundaccountsname')}" dataField="fundAccountName" sortable="false"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.commqry.label.baseccy')}" dataField="baseCcy" sortable="false"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.brokeraccountno')}" dataField="brokerAccountPk" labelFunction="getBrokerAccountNo" sortable="false"  itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.brokeraccname')}" dataField="brokerAccountName" sortable="false"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.amountforrr')}" dataField="commissionAmountStr" sortable="false" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.commqry.label.commpcnt')}" dataField="commissionPcnt" sortable="false" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.commqry.label.nooftrade')}" dataField="noOfTrade" sortable="false" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.grossamount')}" dataField="principalAmountStr" sortable="false" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.commqry.label.grossamtpcnt')}" dataField="grossAmountPcnt" sortable="false" textAlign="right"/>
+	           		</cntrls:columns>
+			 	</cntrls:CustomDataGrid>
+			</mx:VBox>
+			<mx:VBox width="0%" height="100%" id="rsltB" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >			
+		        <cntrls:QueryResultHeader id="qhB" printFunction="dispatchPrintEvent" pdfFunction="dispatchPdfEvent" xlsFunction="dispatchXlsEvent" previousFunction="dispatchPrevEvent" nextFunction="dispatchNextEvent" startIndex="1"/>
+				<cntrls:CustomDataGrid id="resultSummaryB" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGridBroker()"  rowColorFunction="colorForTotal"> 
+			    	<cntrls:columns>		    	   
+			    	   <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.trd.renderers.TotalCommissionRenderer" sortable="false"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.brokeraccountno')}" dataField="brokerAccountPk" labelFunction="getBrokerAccountNo" sortable="false"  itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.brokeraccname')}" dataField="brokerAccountName" sortable="false"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.amountforrr')}" dataField="commissionAmountStr" sortable="false" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.commqry.label.commpcnt')}" dataField="commissionPcnt" sortable="false" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.commqry.label.nooftrade')}" dataField="noOfTrade" sortable="false" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.grossamount')}" dataField="principalAmountStr" sortable="false" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.commqry.label.grossamtpcnt')}" dataField="grossAmountPcnt" sortable="false" textAlign="right"/>
+	           		</cntrls:columns>
+			 	</cntrls:CustomDataGrid>
+			</mx:VBox>
+		</mx:ViewStack>
+	</mx:HDividedBox>
+    </mx:VBox>
+    
+    </mx:Canvas>  
+		 
+</containers:XenosQueryModule>

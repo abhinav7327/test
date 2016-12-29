@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:VBox xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:flexlib="http://code.google.com/p/flexlib/" width="100%"  verticalGap="0" horizontalGap="0" >
+	<mx:Script>
+		<![CDATA[
+			import mx.resources.ResourceBundle;
+			import mx.core.UIComponent;
+			import com.nri.rui.core.utils.XenosPopupUtils;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.controls.AutoScroll;
+		
+		   [Bindable]
+		   private var xmlObj:XML;
+		   [Bindable]
+		   private var cntrPrtyTypeCntrl:Boolean=false;
+		   
+		   private var viewType :String=null;
+	       
+            public function initializeView(xml:XML):void {
+            	   xmlObj = xml;     
+            	   initializePopUpLinks();
+                           	 
+            }
+            public function setViewType(view:String):void{
+            	viewType=view;
+               }
+            
+            
+            private function counterPartyCodePopup(e:MouseEvent):void{
+            	displayFinInstDetail(xmlObj.cpSecRule.brokerPk.toString())
+            } 
+            
+             private function marketDetailsPopup(e:MouseEvent):void{
+            	displayFinInstDetail(xmlObj.cpSecRule.marketPk.toString());
+            } 
+            
+            
+            private function initializePopUpLinks():void{
+            	
+            	            	
+            if(!XenosStringUtils.isBlank(xmlObj.cpSecRule.brokerPk.toString()) && viewType.toUpperCase()=="QUERY")
+               {
+            	countrPrtyCd.addEventListener(MouseEvent.CLICK,counterPartyCodePopup);	
+            	countrPrtyCd.useHandCursor=true;
+            	countrPrtyCd.styleName="TextLink";
+            	countrPrtyCd.buttonMode=true;
+            	countrPrtyCd.mouseChildren=false;
+            	
+              }
+              
+             if(viewType.toUpperCase()=="QUERY") {
+             	
+             	// Add link to Trade acc
+               	tradc.addEventListener(MouseEvent.CLICK,accountView);	
+             	tradc.useHandCursor=true;
+            	tradc.styleName="TextLink";
+            	tradc.buttonMode=true ;
+            	tradc.mouseChildren=false;
+            	
+            	// Add link to Instrument Code
+               	instrumentcode.addEventListener(MouseEvent.CLICK,instrumentView);	
+             	instrumentcode.useHandCursor=true;
+            	instrumentcode.styleName="TextLink";
+            	instrumentcode.buttonMode=true;
+            	instrumentcode.mouseChildren=false;
+            	
+            	// Add Link to Market
+            	
+            	market.addEventListener(MouseEvent.CLICK,marketDetailsPopup);	
+             	market.useHandCursor=true;
+            	market.styleName="TextLink";
+            	market.buttonMode=true ;
+            	market.mouseChildren=false
+             }
+            	
+            }
+            
+             
+             /*
+             *Display Account Detail Popup
+             */
+             
+             private function accountView(e:MouseEvent):void {
+              var acctPk:String=xmlObj.cpSecRule.tradingAccountPk.toString();
+              var parentApp :UIComponent = UIComponent(this.parentApplication);
+              XenosPopupUtils.showAccountSummary(acctPk,parentApp);
+             }	
+             
+               /*
+             *Display Instrument Detail Popup
+             */
+             
+             private function instrumentView(e:MouseEvent):void {
+              var instPkStr:String=xmlObj.cpSecRule.instrumentPk.toString();
+              var parentApp :UIComponent = UIComponent(this.parentApplication);
+              XenosPopupUtils.showInstrumentDetails(instPkStr,parentApp);
+             }	
+             
+              /*
+             *Display Financial Institution Details Popup
+             */  
+             private function displayFinInstDetail(finInstRolePk:String):void {
+               	if(!XenosStringUtils.isBlank(finInstRolePk)){
+                    var parentApp :UIComponent = UIComponent(this.parentApplication);
+                    XenosPopupUtils.showFinInstDetails(finInstRolePk,parentApp);
+               	}
+             }	
+             
+	]]>
+	</mx:Script>
+	
+	<mx:Metadata>
+        [ResourceBundle("refResources")]
+        [ResourceBundle("coreResources")]
+    </mx:Metadata>
+	
+	
+
+ 	<mx:Canvas height="100%" width="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+	 <mx:VBox width="100%" height="100%" styleName="Padding" verticalGap="0" horizontalGap="0"> 
+		  	<flexlib:WindowShade id="ws1" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws1" tabChildren="{ws1.opened}" styleName="linkButtonWindowShade" opened="true" label="{this.parentApplication.xResourceManager.getKeyValue('ref.title.cpssdetail')}" width="100%" >
+		    	
+	    	<mx:Grid verticalGap="0" horizontalGap="0" width="100%" >
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.businessrelation.label.counterpartycode')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label  id="countrPrtyCd"  text="{(!XenosStringUtils.isBlank(this.xmlObj.cpSecRule.counterPartyType)?((this.xmlObj.cpSecRule.counterPartyType)+'-'+ (this.xmlObj.cpSecRule.counterPartyCode)):'')}" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.businessrelation.label.counterpartyname')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{this.xmlObj.cpSecRule.counterPartyName}" selectable="true"/>
+						</mx:GridItem>
+				</mx:GridRow>
+				
+				<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.cprule.label.bicCode')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{this.xmlObj.cpSecRule.bicCode}" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+				</mx:GridRow>
+				
+				<mx:GridRow width="100%">
+					<mx:GridItem   styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.cpstd.label.trdac')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem id="cntrPrtyAcct" >
+						<mx:Label text="{this.xmlObj.cpSecRule.tradingAccountNo}"  id="tradc"  selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem   styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.cpstd.label.trdacname')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem id="cntrPrtyAcctName" >
+						<mx:Label text="{this.xmlObj.cpSecRule.tradingAccountName}"  id="tradcname"  selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				
+				<mx:GridRow width="100%">
+					<mx:GridItem   styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.businessrelation.label.cashsecurity')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem>
+						<mx:Label text="{this.xmlObj.cpSecRule.cashSecurityFlag}" selectable="true"/>
+					</mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                    </mx:GridItem>
+				</mx:GridRow>
+				
+				<mx:GridRow width="100%">
+					<mx:GridItem   styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.ownstanding.label.settlementfor')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem >
+						<mx:Label text="{this.xmlObj.cpSecRule.settlementFor}" selectable="true"/>
+					</mx:GridItem>
+					
+					<mx:GridItem  styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.businessrelation.label.instrumenttype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem >
+						<mx:Label text="{this.xmlObj.cpSecRule.instrumentType}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				
+				<mx:GridRow width="100%">
+					<mx:GridItem  styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.businessrelation.label.instrumentcode')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem >
+						<mx:Label text="{this.xmlObj.cpSecRule.instrumentCode}" id="instrumentcode"  selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem  styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.cpstd.label.alternate.securityid')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem >
+						<mx:Label text="{this.xmlObj.cpSecRule.alternateSecurityCode}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				
+				<mx:GridRow width="100%">
+				
+				   <mx:GridItem  styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.cpstd.label.securityname')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem >
+						<mx:Label text="{this.xmlObj.cpSecRule.securityName}" selectable="true"/>
+					</mx:GridItem>
+				
+					<mx:GridItem   styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.businessrelation.label.settlementccy')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem >
+						<mx:Label text="{this.xmlObj.cpSecRule.settlementCcy}" selectable="true"/>
+					</mx:GridItem>
+					
+				</mx:GridRow>
+				
+				<mx:GridRow width="100%">
+					<mx:GridItem   styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.cpstd.label.settlementlocation')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem >
+						<mx:Label text="{this.xmlObj.cpSecRule.settlementLocation}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem  styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.settlementtype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem >
+						<mx:Label text="{this.xmlObj.cpSecRule.settlementType}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				
+				<mx:GridRow width="100%">
+					<mx:GridItem   styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.cprule.label.deliverymethod')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem >
+						<mx:Label text="{this.xmlObj.cpSecRule.deliveryMethod}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem   styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.ownstanding.label.priority')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem >
+						<mx:Label text="{this.xmlObj.cpSecRule.priority}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				
+				<mx:GridRow width="100%">
+					<mx:GridItem  styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.businessrelation.label.market')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem >
+						<mx:Label text="{this.xmlObj.cpSecRule.market}" id="market"   selectable="true"/>
+					</mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                    	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.cpstd.label.countrycode')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                    	<mx:Label text="{this.xmlObj.countryCode}" id="country"   selectable="true"/>
+                    </mx:GridItem>
+				</mx:GridRow>
+				
+				<mx:GridRow width="100%">
+					<mx:GridItem   styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.cpstd.label.localac')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem  >
+						<mx:Label text="{this.xmlObj.cpSecRule.localAccountNo}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem   styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.cpstd.label.localacname')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem  >
+						<mx:Label text="{this.xmlObj.cpSecRule.localAccountName}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				
+			   <mx:GridRow width="100%">
+					<mx:GridItem  styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.updated_by')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem >
+						<mx:Label text="{this.xmlObj.cpSecRule.updatedBy}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem   styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_upd_date')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem  >
+						<mx:Label text="{this.xmlObj.cpSecRule.updateDateStr}" selectable="true"/>
+					</mx:GridItem>
+			  </mx:GridRow>
+				
+			  <mx:GridRow width="100%">
+					<mx:GridItem  styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.datasource')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem >
+						<mx:Label text="{this.xmlObj.cpSecRule.dataSource}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem  styleName="LabelBgColor">
+					</mx:GridItem>
+					<mx:GridItem>
+					</mx:GridItem>
+		     </mx:GridRow>
+	    </mx:Grid>
+	  </flexlib:WindowShade>
+</mx:VBox>
+</mx:Canvas>
+
+</mx:VBox>
+

@@ -1,0 +1,427 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<!--Mxml file for TD Balance Query Implementation -->
+<mx:Module
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:flexlib="http://code.google.com/p/flexlib/"
+	xmlns:containers="com.nri.rui.core.containers.*"
+	xmlns:cntrls="com.nri.rui.core.controls.*"
+	xmlns:frmtrs="com.nri.rui.core.formatters.*"
+	xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"
+	xmlns:utils="com.nri.rui.core.utils.*"
+	layout="vertical" percentWidth="100"
+	percentHeight ="100" horizontalScrollPolicy="off"
+	verticalScrollPolicy="off" creationComplete="loadAll()" >
+
+<mx:Metadata>
+         [ResourceBundle("namResources")]
+</mx:Metadata>
+    <mx:Script>
+        <![CDATA[
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.containers.TitleWindow;
+            import mx.collections.ArrayCollection;
+            import mx.events.CloseEvent;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import mx.controls.CheckBox;
+            import mx.managers.PopUpManager;
+            import com.nri.rui.core.controls.XenosAlert;
+            [Bindable]
+            public var module_mode:String = "Query";
+
+            private function changeCurrentState():void{
+                currentState = "result";
+                app.submitButtonInstance = null;
+            }
+            /**
+            * Retrieve and return the Instrument Name for dataTip.
+            */
+            private function getSecurityName(item:Object):String {
+                return item.instrumentName;
+            }
+            /**
+            * Retrieve and return the Balance value with BuySell Status(Security Future).
+            */
+            private function getBalance(item:Object,column : DataGridColumn):String{
+            	var balanceStr:String = item.dispBalance;
+            	if(item.securityType == "DRV-Security"){
+                        balanceStr = balanceStr + item.buySellStatus;
+                }
+                return balanceStr;
+            }
+            /**
+            * Retrieve and return the Balance value with Borrow Flag for SLR and DEPO flag for DEPO.
+            */
+            private function getFundCode(item:Object,column : DataGridColumn):String{
+            	var fundCodeStr:String = item.fundCode;
+            	if(item.dataSource == "SLR"){
+                        fundCodeStr = fundCodeStr + " [BW]";
+                }
+                else if(item.dataSource == "DEPO"){
+                        fundCodeStr = fundCodeStr + " [DEPO]";
+                }
+                else if(item.dataSource == "FPS_OTAD"){
+
+                        fundCodeStr = fundCodeStr + " [FPS_OTHER_ADJUST]";
+
+                }
+
+                else if(item.dataSource == "FPS_ODE"){
+
+                        fundCodeStr = fundCodeStr + " [FPS_ODE]";
+
+                }
+
+                else if(item.dataSource == "FPS_OAS"){
+
+                        fundCodeStr = fundCodeStr + " [FPS_OAS]";
+
+                }
+
+                else if(item.dataSource == "FPS_OINV"){
+
+                        fundCodeStr = fundCodeStr + " [FPS_OINV]";
+
+                }
+
+                return fundCodeStr;
+            }
+             /**
+
+            * Retrieve and return the SettledBalance value as null when security Type not equal "CCY".
+
+            */
+
+            private function getDispSettledBalance(item:Object,column : DataGridColumn):String{
+
+            	var dispSettledBalanceStr:String = item.dispSettledBalance;
+
+            	if(item.securityType != "CCY"){
+
+                        dispSettledBalanceStr = null;
+
+                }
+
+                return dispSettledBalanceStr;
+
+            }
+
+            /**
+
+            * Retrieve and return the MarginBalance value as null when security Type not equal "CCY".
+
+            */
+
+            private function getDispMarginBalance(item:Object,column : DataGridColumn):String{
+
+            	var dispMarginBalanceStr:String = item.dispMarginBalance;
+
+            	if(item.securityType != "CCY"){
+
+                        dispMarginBalanceStr = null;
+
+                }
+
+                return dispMarginBalanceStr;
+
+            }
+
+            /**
+
+            * Retrieve and return the RecMinusPayBalance value as null when security Type not equal "CCY".
+
+            */
+
+            private function getRecMinusPayBalance(item:Object,column : DataGridColumn):String{
+
+            	var recMinusPayBalanceStr:String = item.recMinusPayBalance;
+
+            	if(item.securityType != "CCY"){
+
+                        recMinusPayBalanceStr = null;
+
+                }
+
+                return recMinusPayBalanceStr;
+
+            }
+
+            /**
+
+            * Retrieve and return the ReceivableBalance value as null when security Type not equal "CCY".
+
+            */
+
+            private function getDispReceivableBalance(item:Object,column : DataGridColumn):String{
+
+            	var dispReceivableBalanceStr:String = item.dispReceivableBalance;
+
+            	if(item.securityType != "CCY"){
+
+                        dispReceivableBalanceStr = null;
+
+                }
+
+                return dispReceivableBalanceStr;
+
+            }
+
+            /**
+
+            * Retrieve and return the PayableBalance value as null when security Type not equal "CCY".
+
+            */
+
+            private function getDispPayableBalance(item:Object,column : DataGridColumn):String{
+
+            	var dispPayableBalanceStr:String = item.dispPayableBalance;
+
+            	if(item.securityType != "CCY"){
+
+                        dispPayableBalanceStr = null;
+
+                }
+
+                return dispPayableBalanceStr;
+
+            }
+
+        ]]>
+    </mx:Script>
+
+    <mx:Script source="actionscripts/TDBalanceQuery.as"/>
+    <mx:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+        </mx:State>
+    </mx:states>
+
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+
+    <cntrls:XenosHTTPService id="initializeTDBalanceQuery"
+        method="POST"
+        useProxy="false"
+        fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString)"
+        result="initPage(event)"
+        showBusyCursor="true"/>
+
+    <cntrls:XenosHTTPService id="TDBalanceQueryRequest"
+         url="nam/tdBalanceQueryDispatch.action"
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+         result="LoadSummaryPage(event)" showBusyCursor="true" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+
+    <cntrls:XenosHTTPService id="TDBalanceResetQueryRequest"
+    	url="nam/tdBalanceQueryDispatch.action?method=initialExecute"
+        result="initPage(event)"
+        showBusyCursor="true">
+    </cntrls:XenosHTTPService>
+
+	<frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+    <mx:Validator source="{date}" required="true" property="text" />
+
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0">
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;"  /><!--  click="currentState='';destinationSystem.setFocus();app.submitButtonInstance = submit;"  -->
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'"  />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'" />   	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+	    <mx:VBox width="100%" height="100%">
+		    <mx:HDividedBox id="hdbox1" styleName="Padding4" width="100%" height="100%" liveDragging="true" creationComplete="initPageStart()" >
+		    <mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		        <mx:VBox label="Query Criteria" width="100%" height="100%" styleName="HDivideStyle" >
+		            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+		            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		            <mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+		                <mx:Grid width="100%" borderThickness="0">
+		                	<mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.date')}" styleName="ReqdLabel"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:DateField id="date"  formatString="YYYYMMDD" editable="true" width="90"/>
+		                        </mx:GridItem>
+		                    </mx:GridRow>
+
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.fundcode')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+									<xenospopup:FundPopUpHbox id="fundCodePopup"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.officeid')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:ComboBox id="officeId" labelField="label" prompt="Select"/>
+		                        </mx:GridItem>
+		                    </mx:GridRow>
+
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.securitycode')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<xenospopup:InstrumentPopUpHbox id="securityCodePopup"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.fundtype')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:ComboBox id="securityType" labelField="label" prompt="Select"/>
+		                        </mx:GridItem>
+		                    </mx:GridRow>
+
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.currencycode')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<cntrls:CurrencyHBox id="currencyCodePopup"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.balancefor')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:ComboBox id="securityBalance" labelField="label" prompt="Select"/>
+		                        </mx:GridItem>
+		                    </mx:GridRow>
+
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.displayzerobalance')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:ComboBox id="displayZeroBalance" labelField="label"/>
+		                        </mx:GridItem>
+		                    </mx:GridRow>
+		                </mx:Grid>
+
+		           <flexlib:WindowShade id="ws3" tabChildren="{ws3.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.sortorder')}" opened="true" width="100%"  > 
+		                <mx:Grid width="100%" borderThickness="0">
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="100%" borderThickness="0">
+		                            <mx:HBox width="100%">
+		                                <mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()" width="200" itemRenderer="mx.controls.Label" /> 
+		                                <mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()" width="200" itemRenderer="mx.controls.Label" /> 
+		                                <mx:ComboBox id="sortField3" labelField="label" change="sortOrder3Update()" width="200" itemRenderer="mx.controls.Label"/>
+		                            </mx:HBox>
+		                        </mx:GridItem>
+		                    </mx:GridRow>
+		                </mx:Grid>
+		              </flexlib:WindowShade>
+
+		            <mx:HBox width="100%" styleName="ButtonBackPanel">
+		                <cntrls:XenosButton id="submit"  label="{this.parentApplication.xResourceManager.getKeyValue('tdb.button.submit')}" styleName="BtnStyle" click="this.submitQuery();" />
+		                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('tdb.button.reset')}" styleName="BtnStyle" click="this.resetQuery();"/>
+		            </mx:HBox>
+
+		        </mx:VBox>
+		        </mx:Canvas>
+		        <mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >
+			        <cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" width="100%" visible="true" />
+			        <mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text=""/>
+					  <mx:DataGrid id="balanceSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()">
+			            <mx:columns>
+				   		   <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.fundcode')}" dataField="fundCode" labelFunction="getFundCode" width="100"  itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer"  sortable="true" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.securitycode')}" dataField="securityId"  width="190" dataTipFunction="getSecurityName" showDataTips="true" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer"/>
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.securityname')}" dataField="instrumentName" width="300" dataTipFunction="getSecurityName" showDataTips="true"  />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.issuecurrency')}" dataField="issueCurrency" width="130" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.officeid')}" dataField="officeId" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.baseccy')}" dataField="baseCcy" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.balance')}" dataField="dispBalance" labelFunction="getBalance" width="155" textAlign="right" resizable="true" visible="true" >
+			               	<mx:itemRenderer>
+			               		<mx:Component>
+			               			<mx:Text buttonMode="{String(this.data.securityType) == 'DRV-Security'}" 
+
+			               					 useHandCursor="{String(this.data.securityType) == 'DRV-Security'}" 
+
+			               					 mouseChildren="false" textDecoration="{((String(this.data.securityType) == 'DRV-Security')?'underline':'none')}" 
+
+			               					 color="{((String(this.data.securityType) == 'DRV-Security')?0x007ac8:0x000000)}"
+
+			               					 click="{outerDocument.getBalanceDetails(this.data)}"/>
+			               		</mx:Component>
+			               	</mx:itemRenderer>
+			               </mx:DataGridColumn>
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.settled')}" dataField="dispSettledBalance" labelFunction="getDispSettledBalance" width="155" textAlign="right" resizable="true" visible="true" />
+
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.margin')}" dataField="dispMarginBalance" labelFunction="getDispMarginBalance" width="155" textAlign="right" resizable="true" visible="true" />
+
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.outstanding')}" dataField="recMinusPayBalance" labelFunction="getRecMinusPayBalance" width="155" textAlign="right" resizable="true" visible="true" />
+
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.receivable')}" dataField="dispReceivableBalance" labelFunction="getDispReceivableBalance" width="155" textAlign="right" resizable="true" visible="true" >
+
+			               	   <mx:itemRenderer>
+
+			               		<mx:Component>	               					 
+
+			               			<mx:Text buttonMode="{(Number(this.data.receivableBalance) != 0) &amp;&amp; (String(this.data.securityType) == 'CCY')}" 
+
+			               					 useHandCursor="{Number(this.data.receivableBalance) != 0}" 
+
+			               					 mouseChildren="false" textDecoration="{((Number(this.data.receivableBalance) != 0)?'underline':'none')}" 
+
+			               					 color="{((Number(this.data.receivableBalance) != 0)?0x007ac8:0x000000)}" 
+
+			               					 click="{outerDocument.getRecBalanceDetails(this.data)}"/>
+
+			               		</mx:Component>
+
+			               	</mx:itemRenderer>
+
+			               </mx:DataGridColumn>
+
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.payable')}" dataField="dispPayableBalance" labelFunction="getDispPayableBalance" width="155" textAlign="right" resizable="true" visible="true" >
+
+			                   <mx:itemRenderer>
+
+			               		<mx:Component>	               					 
+
+			               			<mx:Text buttonMode="{(Number(this.data.payableBalance) != 0) &amp;&amp; (String(this.data.securityType) == 'CCY')}" 
+
+			               					 useHandCursor="{Number(this.data.payableBalance) != 0}" 
+
+			               					 mouseChildren="false" textDecoration="{((Number(this.data.payableBalance) != 0)?'underline':'none')}" 
+
+			               					 color="{((Number(this.data.payableBalance) != 0)?0x007ac8:0x000000)}"
+
+			               					 click="{outerDocument.getPayBalanceDetails(this.data)}"/>
+
+			               		</mx:Component>
+
+			               	</mx:itemRenderer>
+
+			               </mx:DataGridColumn>
+
+			            </mx:columns>
+
+			         </mx:DataGrid>	
+
+		        </mx:VBox>
+		    </mx:HDividedBox>
+	    </mx:VBox>
+    </mx:Canvas>
+</mx:Module>

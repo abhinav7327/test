@@ -1,0 +1,762 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml"  xmlns:flexlib="http://code.google.com/p/flexlib/" layout="absolute"
+    xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:controls="*" creationComplete="submitDetailQuery()" xmlns:renderers="com.nri.rui.core.renderers.*" width="100%" height="100%">
+    <mx:Script>
+    	<![CDATA[
+    		import com.nri.rui.core.utils.XenosPopupUtils;
+    		import mx.core.UIComponent;
+    		import mx.effects.AddItemAction;
+    		import com.nri.rui.core.utils.XenosStringUtils;
+		import mx.collections.ArrayCollection;
+		import com.nri.rui.core.controls.XenosAlert;
+		import com.nri.rui.core.utils.PrintUtils;
+    	[Bindable]
+    	private var dg:ArrayCollection;	
+    	[Bindable]
+    	public var entryPk:String;
+    	[Bindable]
+    	public var corporateActionId:String;
+    	[Bindable]
+    	public var taxFeelist:XMLList;
+    	[Bindable]
+    	private var taxFeeId:Boolean = false;
+    	[Bindable]
+    	public var stockEntryList:XML = new XML();
+    	//[Bindable]
+    	//public var stockMergerInfoNo:int = xmlListColl.length ;
+    	[Bindable]
+    	public var stockMergerInfo:String = "Stock Merger info. # ";
+    	
+    		/**
+             * This  Handler method alters the states on the basis of corporate action id .
+             */
+            public function stateChangeHandler():void {
+            	
+            	corporateActionId = queryResult.corporateActionId ;
+            	taxFeeId = ((XenosStringUtils.equals("true",queryResult.hasAnyTaxFeeId))?true:false);
+            	//XenosAlert.info("Corporate action Id = :: "+queryResult.corporateActionId);
+            	
+            	// for CASH_DIVIDEND
+				if(XenosStringUtils.equals(corporateActionId,"CASH_DIVIDEND") || 
+					XenosStringUtils.equals(corporateActionId,"CAPITAL_REPAYMENT")){
+					currentState = "cashDividend";
+	            		if(taxFeeId){
+	            			if(queryResult.conditionTaxFeeList.conditionTaxFeeList is ArrayCollection){
+		    				taxFeelist = queryResult.conditionTaxFeeList.conditionTaxFeeList as XMLList;
+		    				
+	            			} else {
+	            				taxFeelist = queryResult.conditionTaxFeeList.conditionTaxFeeList;
+	            			}
+	            			
+	    				rcCashDividendPart3.visible = true;
+	    				rcCashDividendPart3.includeInLayout = true;
+	    				rcCashDividendPart3.dataProvider = taxFeelist;
+	    			}
+    			}
+    			
+    			// for COUPON_PAYMENT
+    			if(XenosStringUtils.equals(corporateActionId,"COUPON_PAYMENT")){
+            		currentState = "couponPayment";
+            		if(taxFeeId){
+            			if(queryResult.conditionTaxFeeList.conditionTaxFeeList is ArrayCollection){
+		    				taxFeelist = queryResult.conditionTaxFeeList.conditionTaxFeeList as XMLList;
+		    				
+	            			} else {
+	            				taxFeelist = queryResult.conditionTaxFeeList.conditionTaxFeeList;
+	            			}
+	    				rcCouponPaymentPart3.visible = true;
+	    				rcCouponPaymentPart3.includeInLayout = true;
+	    				rcCouponPaymentPart3.dataProvider = taxFeelist;
+	    				
+	    			}
+    			}
+    			
+    			// for STOCK_DIVIDEND
+    			if(XenosStringUtils.equals(corporateActionId,"STOCK_DIVIDEND")){
+            		currentState = "stockDividend";
+    			}
+    			
+    			//for STOCK_MERGER  
+    			if(XenosStringUtils.equals(corporateActionId,"STOCK_MERGER")){
+            		currentState = "stockMerger";
+            		stockEntryList = queryResult.stockEntryList as XML;
+    			}
+    			
+    			// for RIGHTS_ALLOCATION
+    			if(XenosStringUtils.equals(corporateActionId,"RIGHTS_ALLOCATION")){
+            		currentState = "rightsAllocation";
+    			}
+    			
+    			// for RIGHTS_EXPIRY
+    			if(XenosStringUtils.equals(corporateActionId,"RIGHTS_EXPIRY")){
+            		currentState = "rightsExpiry";
+    			}
+    			
+    			// for ASSIMILATION
+    			if(XenosStringUtils.equals(corporateActionId,"ASSIMILATION")){
+            		currentState = "assimilation";
+    			}
+    			
+    			// for BONUS_ISSUE
+    			if(XenosStringUtils.equals(corporateActionId,"BONUS_ISSUE")){
+            		currentState = "bonusIssue";
+    			}
+    			
+    			// for CAPITAL_REDUCTION
+    			if(XenosStringUtils.equals(corporateActionId,"CAPITAL_REDUCTION")){
+            		currentState = "capitalReduction";
+    			}
+    			
+    			// for GROUPED_RIGHTS
+    			/* if(XenosStringUtils.equals(corporateActionId,"GROUPED_RIGHTS")){
+            		currentState = "groupedRights";
+    			} */
+    			
+    			// for REDEMPTION_BOND
+    			if(XenosStringUtils.equals(corporateActionId,"REDEMPTION_BOND")){
+            		currentState = "redemptionBond";
+    			}
+    			
+    			// for REVERSE_STOCK_SPLIT
+    			if(XenosStringUtils.equals(corporateActionId,"REVERSE_STOCK_SPLIT")){
+            		currentState = "reverseSplit";
+    			}
+    			
+    			// for SHARE_EXCHANGE
+    			if(XenosStringUtils.equals(corporateActionId,"SHARE_EXCHANGE")){
+            		currentState = "shareExchange";
+    			}
+    			
+    			// for STOCK_SPLIT
+    			if(XenosStringUtils.equals(corporateActionId,"STOCK_SPLIT")){
+            		currentState = "stockSplit";
+    			}
+    			
+    			
+    			// for NAME_CHANGE
+    			if(XenosStringUtils.equals(corporateActionId,"NAME_CHANGE")){
+            		currentState = "nameChange";
+    			}
+
+    			
+    			// for SPIN_OFF
+    			if(XenosStringUtils.equals(corporateActionId,"SPIN_OFF")){
+            		currentState = "spinOff";
+    			}
+    			
+    			
+    			// for WARRANT_EXPIRY
+    			if(XenosStringUtils.equals(corporateActionId,"WARRANT_EXPIRY")){
+            		currentState = "warrantExpiry";
+    			}
+    			
+    			
+    			// for MBS_PAY_DOWN
+    			if(XenosStringUtils.equals(corporateActionId,"MBS_PAY_DOWN")){
+            		currentState = "mbsPayDown";
+    			}
+    			
+    			
+    			// for OPTIONAL_STOCK_DIV
+    			if(XenosStringUtils.equals(corporateActionId,"OPTIONAL_STOCK_DIV")){
+            		currentState = "optionalStockDiv";
+    			}
+    			
+    			
+    			// for DIV_REINVESTMENT
+    			if(XenosStringUtils.equals(corporateActionId,"DIV_REINVESTMENT")){
+            		currentState = "divReinvestment";
+    			}
+    			
+    			// for OTHERS
+    			if(XenosStringUtils.equals(corporateActionId,"OTHERS")){
+            		currentState = "others";
+    			}    			
+    			
+            }
+            
+            
+            
+       /**
+	   * This method is used for loading Instrument Details popup module
+	   * 
+	   */  
+	   public function showInstrumentDetail():void{
+	   			
+				var InstPkStr : String = queryResult.instrumentPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showInstrumentDetails(InstPkStr, parentApp);
+	   }
+	   
+	   public function showAllottedCurrencyDetail():void{
+	   			
+				var InstPkStr : String = queryResult.allottedInstrumentPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showInstrumentDetails(InstPkStr, parentApp);
+	   }
+    	
+    	]]>
+    </mx:Script>
+    <mx:Script source="actionscripts/RightsConditionQueryDetails.as" />
+     <!--The popup Query request HTTPService object-->
+     <cntrls:XenosHTTPService id="rightsConditionDetailsRequest"
+     	 showBusyCursor="true"
+     	 method="POST" 
+     	 url="cax/RightsConditionDetailsViewDispatch.action?method=getReferenceConditionView" 
+         result="onResult(event)" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' ' + event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+       <!-- <mx:request>
+        	<rightsConditionPk>{entryPk}</rightsConditionPk>
+        </mx:request> -->
+    </cntrls:XenosHTTPService>
+    
+    
+    
+        
+     <mx:states>
+    	<mx:State name="cashDividend">
+                
+		    <!-- PART 1 :: rcCashDividendPart1 -->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+                <mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcCashDividendPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>
+            
+            
+            <!-- PART 2 :: rcCashDividendPart2  -->
+            <mx:AddChild relativeTo="{part2end}" position="after">
+                <mx:target>
+                	<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcCashDividendPart2 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>
+            
+            <!-- PART 3 rcCashDividend -->
+            <mx:AddChild relativeTo="{part3end}" position="after">
+                <mx:target>
+	                <mx:DataGrid id="rcCashDividendPart3" width="100%" height="100%" visible="false" includeInLayout="false" sortableColumns="false" variableRowHeight="true">
+			            <mx:columns> 
+			                 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.taxfeeid')}" dataField="taxFeeId"/>           
+			                 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.rate')}" dataField="chargeRate"/>
+			                 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.ratetype')}" dataField="rateType"/>
+		                </mx:columns>
+	             	</mx:DataGrid>
+                </mx:target>
+            </mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	
+    	<!--   For the state couponPayment    -->
+    	
+    	<mx:State name="couponPayment">
+    	
+    		<!-- PART 1 :: rcCouponPaymentPart1 -->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+                <mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcCouponPaymentPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+            </mx:AddChild>
+    		
+    		
+            <!-- PART 3 rcCouponPaymentPart3 -->
+            <mx:AddChild relativeTo="{part3end}" position="after">
+                <mx:target>
+                 	<mx:DataGrid id="rcCouponPaymentPart3" width="100%" height="100%" visible="false" includeInLayout="false" sortableColumns="false" variableRowHeight="true" >
+			            <mx:columns> 
+			                 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.taxfeeid')}" textAlign="center" dataField="taxFeeId"/>           
+			                 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.rate')}" textAlign="center" dataField="chargeRate"/>
+			                 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.ratetype')}" textAlign="center" dataField="rateType"/>
+		                </mx:columns>
+	             	</mx:DataGrid>
+                </mx:target>
+            </mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	
+    	<!-- For the state stockDividend -->
+    	
+    	
+    	<mx:State name="stockDividend">
+    		<!-- PART 1 rcStockDividendPart1-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcStockDividendPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    		
+    		
+    		<!-- PART 2 rcStockDividendPart2-->
+    		<mx:AddChild relativeTo="{part2end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcStockDividendPart2 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	<!--  For the state stockMerger     -->
+    	
+    	<mx:State name="stockMerger" id="stockMergerId">
+    		<!-- PART 1 rcStockMergerPart1-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcStockMergerPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>
+                </mx:target>
+    		</mx:AddChild>
+    		
+    		<!-- PART 3 rcStockMergerPart3Conf-->
+    		<mx:AddChild relativeTo="{part3end}" position="after">
+    			<mx:target>
+    				<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcStockMergerPart3 id="stockMergerPart3" dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>
+                </mx:target>
+    		</mx:AddChild>
+		</mx:State>
+		
+		
+		<!--  For the state rightsAllocation     -->
+		
+		<mx:State name="rightsAllocation">
+    		<!-- PART 1 rcRightsAllocationPart1Conf-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcRightsAllocationPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    		
+    		
+    		<!-- PART 2 rcRightsAllocationPart2Conf-->
+    		<mx:AddChild relativeTo="{part2end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcRightsAllocationPart2 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	<!--  For the state rightsExpiry     -->
+		
+		<mx:State name="rightsExpiry">
+    		<!-- PART 1 rcRightsExecutionPart1Conf-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcRightsExecutionPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	<!--  For the state assimilation     -->
+		
+		<mx:State name="assimilation">
+    		<!-- PART 1 rcAssCapredRvrsplShaexStosplPart1Conf-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcAssCapredRvrsplShaexStosplPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	<!--  For the state bonusIssue     -->
+		
+		<mx:State name="bonusIssue">
+    		<!-- PART 1 rcBonusIssuePart1Conf-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcBonusIssuePart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	<!--  For the state capitalReduction     -->
+		
+		<mx:State name="capitalReduction">
+    		<!-- PART 1 rcAssCapredRvrsplShaexStosplPart1Conf-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcAssCapredRvrsplShaexStosplPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	<!--  For the state groupedRights     -->
+		
+		<!--<mx:State name="groupedRights">
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcGroupedRightsPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>-->
+    	
+    	
+    	<!--  For the state redemptionBond     -->
+		<mx:State name="redemptionBond">
+    		<!-- PART 1 rcRedemptionBondPart1Conf-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcRedemptionBondPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	<!--  For the state reverseSplit     -->
+		<mx:State name="reverseSplit">
+    		<!-- PART 1 rcAssCapredRvrsplShaexStosplPart1Conf-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcAssCapredRvrsplShaexStosplPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	    	
+    	
+    	<!--  For the state shareExchange     -->
+		<mx:State name="shareExchange">
+    		<!-- PART 1 rcAssCapredRvrsplShaexStosplPart1Conf-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcAssCapredRvrsplShaexStosplPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	<!--  For the state stockSplit     -->
+		<mx:State name="stockSplit">
+    		<!-- PART 1 rcAssCapredRvrsplShaexStosplPart1Conf-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcAssCapredRvrsplShaexStosplPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	<!--  For the state nameChange     -->
+		<mx:State name="nameChange">
+    		<!-- PART 1 rcNameChangePart1Conf-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcNameChangePart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	
+    	<!--  For the state spinOff     -->
+		<mx:State name="spinOff">
+    		<!-- PART 1 rcAssCapredRvrsplShaexStosplPart1Conf-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcAssCapredRvrsplShaexStosplPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	
+    	<!--  For the state warrantExpiry     -->
+		<mx:State name="warrantExpiry">
+    		<!-- PART 1 rcWarrantExpiryPart1Conf-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcWarrantExpiryPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	
+    	<!--  For the state mbsPayDown     -->
+		<mx:State name="mbsPayDown">
+    		<!-- PART 1 rcMbsPayDownPart1Conf-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcMbsPayDownPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	
+    	<!--  For the state optionalStockDiv     -->
+		<mx:State name="optionalStockDiv">
+    		<!-- PART 1 rcCashStockOptionPart1Conf-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcCashStockOptionPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	
+    	<!--  For the state divReinvestment     -->
+		<mx:State name="divReinvestment">
+    		<!-- PART 1 rcCashStockOptionPart1Conf-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcCashStockOptionPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>
+    	
+    	<!--  For the state others     -->
+		<mx:State name="others">
+    		<!-- PART 1 rcOthers-->
+    		<mx:AddChild relativeTo="{part1end}" position="after">
+    			<mx:target>		    		
+					<mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+			        	<controls:rcOthersPart1 dataProvider="{this.queryResult}" width="100%" height="100%"/>
+				    </mx:VBox>	
+                </mx:target>
+    		</mx:AddChild>
+    	</mx:State>    	
+    	
+    </mx:states>
+      
+      
+      
+      
+      <!-- The main page which is shown always -->
+      <mx:VBox width="100%" verticalGap="0" horizontalGap="0">
+      	<mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+    		<mx:Button id="Print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetail(this.rcQueryDetails)"/>
+    	</mx:HBox>
+		<mx:VBox width="100%" id="rcQueryDetails" verticalGap="0" horizontalGap="0">
+			 <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+			 
+			 <mx:Grid id="part1end" verticalGap="0" horizontalGap="0" width="100%">
+		 		<mx:GridRow width="100%">
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.rightsconditionrefno')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.conditionRefrenceNo}" selectable="true"/>
+	                </mx:GridItem>
+	                
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.eventtypestatus')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.conditionStatus}" selectable="true"/>
+	                </mx:GridItem>
+	            </mx:GridRow>
+	            
+	            <mx:GridRow width="100%">
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.eventtype')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.subEventTypeDescription}" selectable="true"/>
+	                </mx:GridItem>
+	                
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.eventtypename')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.eventTypeName}" selectable="true"/>
+	                </mx:GridItem>
+	            </mx:GridRow>
+	            
+	            <mx:GridRow width="100%">
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.label.alternate.instrumentcode')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.alternateSecurity}" selectable="true"/>
+	                </mx:GridItem>
+	                
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.label.alternate.allotedinstrumentcode')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.alternateAllottedSecurity}" selectable="true"/>
+	                </mx:GridItem>
+	            </mx:GridRow>
+	            
+	        </mx:Grid>
+			 	
+			 	<!-- PART 1 Should be here -->
+			 	
+		 	<mx:Grid id="part2end" verticalGap="0" horizontalGap="0" width="100%">
+			 	<mx:GridRow width="100%">
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.processingfrequency')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.processingFrequency}" selectable="true"/>
+	                </mx:GridItem>
+	                
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.processstartdate')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.processStartDateStr}" selectable="true"/>
+	                </mx:GridItem>
+	            </mx:GridRow>
+	            
+	            <mx:GridRow width="100%">
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.processenddate')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.processEndDateStr}" selectable="true"/>
+	                </mx:GridItem>
+	                
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text=""/>
+	                </mx:GridItem>
+	            </mx:GridRow>
+		 	</mx:Grid>
+			 	
+			 	<!-- PART 2 Should be here -->
+			 	
+		 	<mx:Grid id="part3end" verticalGap="0" horizontalGap="0" width="100%">
+			 	<mx:GridRow width="100%">
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_regi_date')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.entryDateStr}" selectable="true"/>
+	                </mx:GridItem>
+	                
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_upd_date')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.lastEntryDateStr}" selectable="true"/>
+	                </mx:GridItem>
+	            </mx:GridRow>
+	            
+	            <mx:GridRow width="100%">
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.created_by')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.createdBy}" selectable="true"/>
+	                </mx:GridItem>
+	                
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.updated_by')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.updatedBy}" selectable="true"/>
+	                </mx:GridItem>
+	            </mx:GridRow>
+	            
+	            <mx:GridRow width="100%">
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.creation_date')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.creationDateStr}" selectable="true"/>
+	                </mx:GridItem>
+	                
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.update_date')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.updateDateStr}" selectable="true"/>
+	                </mx:GridItem>
+	            </mx:GridRow>
+	            
+	            <mx:GridRow width="100%">
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.corporateactiondescription')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.description}" selectable="true"/>
+	                </mx:GridItem>
+	                
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.eventdatasource')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.dataSource}" selectable="true"/>
+	                </mx:GridItem>
+	            </mx:GridRow>
+	            
+	            <mx:GridRow width="100%">
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.remarks')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                    <mx:Label text="{queryResult.remarks}" selectable="true"/>
+	                </mx:GridItem>
+	                
+	                <mx:GridItem width="20%" styleName="LabelBgColor">
+	                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.status')}" styleName="FormLabelHeading" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%">
+	                     <mx:Label text="{queryResult.status}" selectable="true"/>
+	                </mx:GridItem>
+	            </mx:GridRow>
+			</mx:Grid>
+			            
+			 	<!-- PART 3 Should be here-->
+			 	
+		</mx:VBox>
+		</mx:VBox>
+
+</mx:Module>

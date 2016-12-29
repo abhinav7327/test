@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" width="100%"
+	 height="100%" xmlns:com="*" updateComplete="selectTab()">
+	<mx:Script>
+	<![CDATA[
+		import mx.controls.Button;
+		import mx.containers.VBox;
+		import mx.events.FlexEvent;
+		import mx.modules.ModuleManager;
+		import mx.modules.IModuleInfo;
+		import mx.modules.Module;
+		import mx.events.ModuleEvent;
+		import mx.controls.Alert;
+		import com.nri.rui.core.controls.CustomChangeEvent;
+		import com.nri.rui.core.controls.XenosAlert;
+	
+		[Bindable]	
+		public var xmlSource:XML = new XML();
+		
+		[Bindable]
+		private var customEventParam:Object;
+		
+		private var vboxTabObj:VBox = null;
+		
+		private function selectTab():void
+		{
+			if(vboxTabObj == null)
+				this.tabModules.selectedIndex = this.tabModules.getChildIndex(DisplayObject(AccountGeneralTab));
+			else
+				this.tabModules.selectedIndex = this.tabModules.getChildIndex(DisplayObject(vboxTabObj));
+		}
+		
+		/**
+		 * This method is called when the TabNavigator is initialized
+		 */ 
+		private function initTabs():void{
+			tabModules.addEventListener("visibleTabsContentEvent",updateTabsChildren);
+		}	
+		
+		
+		/**
+		 * This method is the handler of CustomChangeEvent(visibleTabsEvent)
+		 * This CustomChangeEvent is dispatched when all tabs are not required
+		 * to display. Some tabs are needed to be hidden.
+		 * This method get the vissible tabs array from targetParams property
+		 * of CustomChangeEvent and show/hide the tabs accordingly.
+		 */ 
+		private function updateTabsChildren(event:CustomChangeEvent):void{
+			customEventParam = event.targetParams;
+			trace("customEventParam :: " + customEventParam);
+			try{
+				var firstTab:Button = tabModules.getTabAt(0);
+			}catch(e:Error){
+				trace("TabNavigator has not been created yet :: " + e.message);
+				tabModules.addEventListener(FlexEvent.CREATION_COMPLETE,tabCreationComplete);
+				return;
+			}
+			if(customEventParam is Array && Array(customEventParam).length >= 1){
+				for(var num:int=0; num<tabModules.numChildren; num++){
+					tabModules.getTabAt(num).visible = false;
+					tabModules.getTabAt(num).includeInLayout = false;
+				}
+				var visibleTabsArray:Array = customEventParam as Array;
+				
+				var tabIndex:int;
+				var tab:String = null;
+				for each(var obj:Object in visibleTabsArray){
+					try{
+						tab = obj['label']
+						//XenosAlert.info(tab);
+						//XenosAlert.info(this.tabModules.getChildByName(tab).toString());
+						if(this.tabModules.getChildByName(tab)){
+							tabIndex = this.tabModules.getChildIndex(this.tabModules.getChildByName(tab));
+							tabModules.getTabAt(tabIndex).includeInLayout = true;
+							tabModules.getTabAt(tabIndex).visible = true;
+						}
+						
+					}catch(e:Error){
+						trace("Some error occured :: " + e.message);
+					}
+				}
+			}
+		}
+		
+		private function tabCreationComplete(event:FlexEvent):void{
+			tabModules.dispatchEvent(new CustomChangeEvent("visibleTabsContentEvent",customEventParam));
+		}
+		public function set dataProvider(value:XML):void
+		{
+			this.xmlSource = value;
+		}
+	]]>
+</mx:Script>
+	
+	<mx:TabNavigator id="tabModules" width="100%" height="100%" creationPolicy="auto" initialize="initTabs()">
+		   <mx:VBox id="AccountFundTab" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.fundConfirmation')}" height="{moduleFund.height}" width="100%" verticalGap="0" horizontalGap="0" click="this.vboxTabObj = this.AccountFundTab">
+		   		<com:accountFundConfiramtion id="moduleFund" setXml="{this.xmlSource}" width="100%" height="100%" />
+		   </mx:VBox>
+		   <mx:VBox id="AccountGeneralTab" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.general')}" height="{moduleGeneral.height}" width="100%" verticalGap="0" horizontalGap="0" click="this.vboxTabObj = this.AccountGeneralTab">
+		   		<com:accountGeneralConfirmation id="moduleGeneral" setXml="{this.xmlSource}" width="100%" height="100%" />
+		   </mx:VBox>
+		   <mx:VBox id="AccountCustodianTab" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.custodian')}" height="{moduleCustodian.height}" width="100%" verticalGap="0" horizontalGap="0" click="this.vboxTabObj = this.AccountCustodianTab">
+		   		<com:accountCustodianConfirmation id="moduleCustodian" setXml="{this.xmlSource}" width="100%" height="100%" />
+		   </mx:VBox>
+		   <mx:VBox id="AccountContractTab" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.contract')}" height="{moduleContract.height}" width="100%" verticalGap="0" horizontalGap="0" click="this.vboxTabObj = this.AccountContractTab">
+		   		<com:accountContractAddrConfirmation id="moduleContract" setXml="{this.xmlSource}" width="100%" height="100%" />
+		   </mx:VBox>
+		   <mx:VBox id="AccountDocumentTab" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.document')}" height="{moduleDocument.height}" width="100%" verticalGap="0" horizontalGap="0" click="this.vboxTabObj = this.AccountDocumentTab">
+		   		<com:accountDocumentConfirmation id="moduleDocument" setXml="{this.xmlSource}" width="100%" height="100%" />
+		   </mx:VBox>
+		   <mx:VBox id="AccountAddressTab" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.address')}" height="{moduleAddress.height}" width="100%" verticalGap="0" horizontalGap="0" click="this.vboxTabObj = this.AccountAddressTab">
+		   		<com:accountAddressConfirmation id="moduleAddress" setXml="{this.xmlSource}"  width="100%" height="100%"/>
+		   </mx:VBox>
+		   <mx:VBox id="AccountEaddressTab" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.e_address')}" height="{moduleEAddress.height}" width="100%" verticalGap="0" horizontalGap="0" click="this.vboxTabObj = this.AccountEaddressTab">
+		   		<com:accountEaddressConfirmation id="moduleEAddress" setXml="{this.xmlSource}"  width="100%" height="100%"/>
+		   </mx:VBox>
+		   <mx:VBox id="AccountCommissionTab" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.commission')}" height="{moduleCommission.height}" width="100%" verticalGap="0" horizontalGap="0" click="this.vboxTabObj = this.AccountCommissionTab">
+		   		<com:accountCommissionConfirmation id="moduleCommission" setXml="{this.xmlSource}" width="100%" height="100%" />
+		   </mx:VBox>
+		    <mx:VBox id="AccountRestrictionTab" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.restriction')}" height="{moduleRestriction.height}" width="100%" verticalGap="0" horizontalGap="0" click="this.vboxTabObj = this.AccountRestrictionTab">
+		   		<com:accountRestrictionConfirmation id="moduleRestriction" setXml="{this.xmlSource}" width="100%" height="100%" />
+		   </mx:VBox>
+		    <mx:VBox id="AccountWithholdingTaxTab" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.withholdingtax')}" height="{moduleWithholdingTax.height}" width="100%" verticalGap="0" horizontalGap="0" click="this.vboxTabObj = this.AccountWithholdingTaxTab">
+		   		<com:accountWithholdingTaxConfirmation id="moduleWithholdingTax" setXml="{this.xmlSource}" width="100%" height="100%" />
+		   </mx:VBox>
+	</mx:TabNavigator>
+</mx:Module>

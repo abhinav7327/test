@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Item Renderer for CashAdjustEntryPopUp.  -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%">
+    <mx:Script>
+        <![CDATA[            
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.Globals;
+            
+            import flash.events.MouseEvent;        
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            
+    
+            [Embed(source="../../../../../assets/popup_icon.png")]
+    		[Bindable]
+    		private var icoSummary:Class;
+    		
+    		/**
+        	 * Mouse Click event handler to open a popup with initialization and passing values.
+        	 * 
+        	 */ 
+            public function handleMouseClick(event:MouseEvent):void {
+        			
+        		var sPopup : SummaryPopup;	
+        		sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+        		sPopup.addEventListener("RefreshChanges",handleRefreshChanges);
+        		sPopup.title = this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.adjustment') + " " + this.parentApplication.xResourceManager.getKeyValue('inf.title.entry'); //"Adjustment Entry";
+                //set the width and height of the popup
+                sPopup.width = 750;
+        		sPopup.height = 350;    		
+        		/* sPopup.horizontalScrollPolicy="off";
+        		sPopup.verticalScrollPolicy="off"; */
+        		PopUpManager.centerPopUp(sPopup);
+        
+                var rowNum : String = this.parentDocument.adjEntryDg.selectedIndex;
+                //XenosAlert.info("rowNum = " + rowNum);
+        		
+        		//Setting the Module path with some parameters which will be needed in the module for internal processing.                                                       
+        		sPopup.moduleUrl = Globals.REC_CASH_ADJUSTMENET_ENTRY_SWF + Globals.QS_SIGN + "rowNum" + Globals.EQUALS_SIGN + rowNum;
+        	}
+        	/**
+        	 * event Handler for the "RefreshChanges" event.
+        	 */
+        	public function handleRefreshChanges(event:Event):void {
+                this.parentDocument.cashRefDtlHttpServiceRefresh.url = "rec/cashReferResultDispatch.action?rnd="+Math.random()+"&method=backUserConfirmForRefresh";
+        	    this.parentDocument.cashRefDtlHttpServiceRefresh.send();
+        	}
+        ]]>
+    </mx:Script>
+    <mx:Image id="entryPopup" source="{icoSummary}" width="100%" verticalAlign="middle" horizontalAlign="center" buttonMode="true" useHandCursor="true" click="handleMouseClick(event)"/>
+</mx:VBox>

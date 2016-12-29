@@ -1,0 +1,131 @@
+<!--$Id$-->
+<!--$Author: ArunKumar $-->
+<!--$Date: 2016-12-24 12:26:23 $--> 
+<jsp:root version="2.0"  xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:jsp="http://java.sun.com/JSP/Page"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:display="http://displaytag.sf.net"
+	xmlns:valueDifference="http://www.nri.co.jp/valueDifference">
+
+<div class="formContent paddingFour detailPopup">
+
+	<jsp:directive.page contentType="text/html;charset=UTF-8" />
+	<jsp:output omit-xml-declaration="yes" />
+			
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+		
+	<div style="width:100%;height:50%">
+		<div id="tdBalanceGrid" class="xenos-grid tdBalanceGrid" style="width:100%;height:10px;"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+
+	<jsp:element name="script">
+    	<jsp:attribute name="type">text/javascript</jsp:attribute>
+    		<jsp:body>		
+		
+			(function(){
+				
+				var tdBalanceGridConf = {
+				height: 250,
+				enableToolbar:false,
+				forceFitColumns:true,
+				buttons:{
+					print:false,	
+					xls:false,
+					pdf:false,	
+					columnPicker:false,	
+					save:false	
+				},
+				pagingInfo:{},
+				urls:{}
+				};
+	
+				var tdBalanceColumns = [
+		                {name:"<spring:message code="tdb.label.fundcode" htmlEscape="false"/>", field:"fundCode",id:"fundCode", width:80,sortable:true,formatter:Slick.Formatters.FundDetailViewFormatter},		
+						{name:"<spring:message code="tdb.label.securitycode" htmlEscape="false"/>", field:"securityId",id:"securityId", width:100,sortable:true,formatter:Slick.Formatters.InstrumentDetailViewFormater, instrumentDetailOptions:{pkFieldName:'instrumentPk'}},
+						<c:if test="${commandForm.dataSource!=null}">
+									<c:if test="${commandForm.dataSource!='DRV'}">
+										{name:"<spring:message code="tdb.label.ledgercode" htmlEscape="false"/>", field:"ledgerCode",id:"ledgerCode", width:120,sortable:true},
+										{name:"<spring:message code="tdb.label.subledgercode" htmlEscape="false"/>", field:"subLedgerCode",id:"subLedgerCode", width:120,sortable:true},
+										{name:"<spring:message code="tdb.label.ledgerdescription" htmlEscape="false"/>", field:"ledgerDesc",id:"ledgerDesc", width:120,sortable:true},
+									</c:if>
+									<c:if test="${commandForm.dataSource=='DRV'}">
+										{name:"<spring:message code="tdb.label.buysellflag" htmlEscape="false"/>", field:"buySellFlag",id:"buySellFlag", width:120,sortable:true},
+									</c:if>
+						</c:if>
+						{name:"<spring:message code="tdb.label.issuecurrency" htmlEscape="false"/>", field:"issueCurrency",id:"issueCurrency", width:100,sortable:true},
+						{name:"<spring:message code="tdb.label.officeid" htmlEscape="false"/>", field:"officeId",id:"officeId", width:70,sortable:true},
+						<c:if test="${commandForm.dataSource!=null}">
+									<c:if test="${commandForm.dataSource=='DRV'}">
+										{name:"<spring:message code="tdb.label.tradedate" htmlEscape="false"/>", field:"tradeDate",id:"tradeDate", width:120,sortable:true},
+									</c:if>
+						</c:if>
+						{name:"<spring:message code="tdb.label.balance" htmlEscape="false"/>", field:"dispBalance",id:"dispBalance", width:125,sortable:true,cssClass:'xenos-grid-number'}		
+						];
+				
+				var item = {};
+				var tdBalanceGrid;
+				var tdBalanceResult = [];
+				var rowId = 0;
+				<c:forEach items="${commandForm.querySummeryViewlist}" var="dl">
+				
+						item = {};
+						rowId = rowId + 1;
+						item.id = "xenos_" + rowId;						
+						
+                        item.fundPk = "<c:out value="${dl.fundPk}" />";
+					    item.instrumentPk = "<c:out value="${dl.instrumentPk}" />";
+						item.fundCode= "<c:out value="${dl.fundCode}"/>"
+			            item.securityId = "<c:out value="${dl.securityId}" />";									
+					    item.instrumentName= "<c:out value="${dl.instrumentName}" />";
+						<c:if test="${commandForm.dataSource!=null}">
+							<c:if test="${commandForm.dataSource!='DRV'}">
+								item.ledgerCode = "<c:out value="${dl.ledgerCode}" />";									
+								item.subLedgerCode= "<c:out value="${dl.subLedgerCode}" />";
+								item.ledgerDesc = "<c:out value="${dl.ledgerDesc}" />";
+							</c:if>
+							<c:if test="${commandForm.dataSource=='DRV'}">
+					    item.buySellFlag= "<c:out value="${dl.buySellFlag}" />";	
+							</c:if>
+						</c:if>
+			            item.issueCurrency = "<c:out value="${dl.issueCurrency}" />";									
+					    item.officeId= "<c:out value="${dl.officeId}" />";	
+						<c:if test="${commandForm.dataSource!=null}">
+							<c:if test="${commandForm.dataSource=='DRV'}">						
+								item.tradeDate = "<c:out value="${dl.tradeDate}" />";
+								<c:if test="${dl.buySellFlag =='FS'}">	
+								item.dispBalance="<c:out value="[-]${dl.dispBalance}" />";
+								</c:if>
+								<c:if test="${dl.buySellFlag !='FS'}">	
+					                 item.dispBalance="<c:out value="${dl.dispBalance}" />";
+								</c:if>											
+							</c:if>
+							<c:if test="${commandForm.dataSource!='DRV'}">
+							item.dispBalance="<c:out value="${dl.dispBalance}" />";
+						    </c:if>
+						</c:if>		
+						tdBalanceResult.push(item);
+
+				</c:forEach> 
+				tdBalanceGrid = $('.tdBalanceGrid').xenosgrid(tdBalanceResult, tdBalanceColumns,tdBalanceGridConf);				
+			})();	
+    		</jsp:body>
+  	</jsp:element>
+		
+	   <table class="tableStyle sixCol">
+		   <tr>
+			   <td class="detailSmlBrdPad" style="width:70%;"><label style="text-align:right; width:99.5%;">${commandForm.balanceType} <spring:message code="tdb.label.balance" htmlEscape="false"/></label></td>
+			   <td class="detailTxtVal xenos-grid-number">${totalBalance}</td>
+		   </tr>
+	   </table>
+
+	</div>
+
+</jsp:root>

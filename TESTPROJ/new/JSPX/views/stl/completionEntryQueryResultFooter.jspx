@@ -1,0 +1,92 @@
+<!--$Id$-->
+<!--$Author:  $-->
+<!--$Date: 2016-12-27 13:05:57 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:util="urn:jsptagdir:/WEB-INF/tags/util">
+<div>
+  <jsp:directive.page contentType="text/html;charset=UTF-8"/>
+  <jsp:output omit-xml-declaration="yes"/>
+  <!--c:if test="${(commandForm.actionType == 'ADD')}"-->
+	<div class="formItemBlock dottedBg qryResultItem">
+        <div class="formItem twoCols">
+			<form:label path="commandForm.commonStlDateStr"><spring:message code="stl.label.settlementdate" htmlEscape="false"/></form:label>
+			<span><form:input value="" path="commandForm.commonStlDateStr" class="dateinput" onchange="checkDate(this);"/></span>
+			<div class="btnWrapStyle copyBtn">
+				<input type="button" value="Copy" class="inputBtnStyle"/>
+			</div>		
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+	</div>
+	<!--c:if-->
+  <div id="formActionArea">
+    <div class="left">
+		<spring:message code="global.pref.label.formsubmit" htmlEscape="false" var="formsubmit_label"/>
+		
+		<div class="resultBtnBlock">
+			<div class="btnWrapStyle submitBtn compSubmitBtn"><input type="submit" value="${formsubmit_label}" class="inputBtnStyle"/></div>
+			
+		</div>
+		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+  </div>
+  <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			xenos$onReady$Array.push(function() {
+				var scripts = [
+						  {path: xenos.context.path + '/scripts/inf/datevalidation.js'},
+						  {path: xenos.context.path + '/scripts/xenos-datepicker.js'},
+						  {path: xenos.context.path + '/scripts/inf/datevalidation.js'},
+						  {path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false}, 
+						  {path: xenos.context.path + '/scripts/stl/xenos/completion.js'}
+				];
+				
+				xenos.loadScript(scripts, {
+										  ordered: true,
+										  success : function() {
+											var grid = false;
+											var gridCtx = false;
+											var $context = $('#formContainer');
+											
+											grid = $('.xenos-grid',$context).data("gridInstance");
+											
+											$('.dateinput',$context).xenosdatepicker();
+											
+											$('.compSubmitBtn',$context).unbind('click');
+											$('.compSubmitBtn',$context).bind('click',xenos.ns.views.completion.submitHandler);
+											$('.copyBtn',$context).unbind('click');
+											$('.copyBtn',$context).bind('click',xenos.ns.views.completion.copyHandler);											
+											
+											$context.off('mousedown');
+											$context.on('mousedown', function(e){
+												var $target = jQuery(e.target);
+												var context = $target.closest('.formContent');
+												if ($target.parents('.slick-cell',context).length != 0) return;
+												if ($target.parents('table.ui-datepicker-calendar',context).length != 0) return;
+												
+												var grid = $('.xenos-grid',context).data("gridInstance");
+												if(grid){
+													if (grid.getEditorLock().isActive() &amp;&amp; !grid.getEditorLock().commitCurrentEdit()) {
+														return;
+													}
+												}
+											});
+										  }
+								});
+						
+				xenos.loadLocalizedScript([{path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false}]);
+			});
+		</jsp:body>
+	</jsp:element>
+  
+  
+
+</div>
+</jsp:root>

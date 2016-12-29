@@ -1,0 +1,721 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+           xmlns:flexlib="http://code.google.com/p/flexlib/" 
+           xmlns:cntrls="com.nri.rui.core.controls.*" 
+           xmlns:containers="com.nri.rui.core.containers.*" 
+           xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"
+           xmlns:local="com.nri.rui.exm.controls.*" 
+           xmlns="*" 
+           xmlns:utils="com.nri.rui.exm.utils.*" 
+           layout="absolute" percentWidth="100" percentHeight ="100" creationComplete="loadInit()">
+	
+     <mx:Script>
+		<![CDATA[
+		    import mx.containers.VBox;
+		    import mx.states.SetStyle;
+		    import com.nri.rui.ref.popupImpl.ExtInstrumentPopUpHbox;
+		    import com.nri.rui.ref.popupImpl.ExtAccountPopUpHbox;
+			import mx.events.CloseEvent;	
+		    import com.nri.rui.core.Globals;
+            import com.nri.rui.exm.ExmConstraints;
+		    import com.nri.rui.core.containers.SummaryPopup;
+		    import com.nri.rui.core.controls.XenosAlert;
+		    import com.nri.rui.core.startup.XenosApplication;
+		    import com.nri.rui.core.utils.XenosPopupUtils;
+		    import com.nri.rui.core.utils.HiddenObject;
+		    import mx.collections.ArrayCollection;
+		    import mx.collections.XMLListCollection;
+		    import mx.core.UIComponent;
+		    import mx.managers.PopUpManager;
+		    import mx.rpc.events.ResultEvent;
+            
+            import mx.containers.HBox;
+        	import mx.collections.XMLListCollection;
+        	import mx.controls.Alert;
+        	import mx.controls.Label;
+        	import mx.containers.Panel;
+        	
+        	import mx.collections.ArrayCollection;
+            import mx.rpc.events.FaultEvent;
+            import mx.rpc.events.ResultEvent;
+            import mx.core.UIComponent;
+            [Bindable]
+            public var resultObj:XML;
+            [Bindable]
+            public var currentPanel : Panel = new Panel();
+            [Bindable]
+            public var intendentSize : int = 50;
+            [Bindable]
+            public var intendentLavel : int = 0; 
+    
+    	    [Bindable]
+    	    public var messageIdStr:String;	
+    	    [Bindable]
+    	    public var messageTypeStr:String;
+    	    [Bindable]
+    	    public var qIdStr:String;	
+    	    [Bindable]
+    	    public var modeStr:String;	
+            public var o:Object = {};
+            [Bindable]
+             private var queryResult:ArrayCollection= new ArrayCollection();
+             public var conformMessageIds : Array;
+             
+             public var accountTagValueLabelObj:ArrayCollection = new ArrayCollection();
+             
+             public var accountCodeTypeTagValueLabelObj:ArrayCollection = new ArrayCollection();
+             
+             public var prefixTagValueLabelObj:ArrayCollection = new ArrayCollection();
+             
+             public var accountPopupObj :ArrayCollection =new ArrayCollection();
+             
+             public var instrumentTagValueLabelObj:ArrayCollection = new ArrayCollection();
+             
+             public var instrumentCodeTypeTagValueLabelObj:ArrayCollection = new ArrayCollection();
+             
+             public var instrumentPopupObj :ArrayCollection =new ArrayCollection();
+             
+             public var accPos :Array = new Array();
+             
+             public var accountCode :Array = new Array();
+             
+             public var secPos :Array = new Array();
+             
+             public var securityCode :Array = new Array();
+             
+             private var color:Array=new Array();
+             
+             
+		    private function loadInit():void{
+		    	
+		    	parseUrlString();
+		    	var reqObj:Object=new Object();
+		    	
+		    	reqObj.method = "viewDetails";
+		    	reqObj.action=messageIdStr;
+		    	reqObj.messageType=messageTypeStr;
+		    	reqObj.mode=modeStr;
+		    	reqObj.rui="RUI";
+		    	reqObj.qId=qIdStr;
+		    	viewXmlRequest.request=reqObj;
+		    	viewXmlRequest.send();
+		    }
+		    
+				          
+		    public function parseUrlString():void {
+		        try {
+		            // Remove everything before the question mark, including
+		            // the question mark.
+		            var myPattern:RegExp = /.*\?/; 
+		            var s:String = this.loaderInfo.url.toString();
+		            //XenosAlert.info("URL" + s);
+		            s = s.replace(myPattern, "");
+		            // Create an Array of name=value Strings.
+		            var params:Array = s.split("&"); 
+		             // Print the params that are in the Array.
+		            var keyStr:String;
+		            var valueStr:String;
+		            var paramObj:Object = params;
+		          
+		            // Set the values of the salutation.
+		            for (var i:int = 0; i < params.length; i++) {
+		                var tempA:Array = params[i].split("=");  
+		                if (tempA[0] == "messageId") {
+		                    o.messageId = tempA[1]+"="+tempA[2];
+		                } 
+		                messageIdStr = o.messageId; 
+		                if (tempA[0] == "messageType") {
+		                    o.messageType = tempA[1];
+		                } 
+		                messageTypeStr = o.messageType;
+		                if (tempA[0] == "qId") {
+		                    o.qId = tempA[1];
+		                } 
+		                qIdStr = o.qId;
+		                messageTypeStr = o.messageType;
+		                if (tempA[0] == "mode") {
+		                    o.mode = tempA[1];
+		                } 
+		                modeStr = o.mode;
+		                 
+		                
+		            } 
+		            
+		        } catch (e:Error) {
+		            trace(e);
+		        }
+		       
+		    }
+		    /**
+		    * This method works as the result handler of the Initialization/Reset Http Services.
+		    * 
+		    */   
+		    private function initPage(event: ResultEvent) : void {
+		        resultObj = XML(event.result);
+		        displayXml();
+		        displayValue();
+		    }
+		    
+		    private function confirmPage(event: ResultEvent) : void {
+		        this.confirmMsg.visible=true;
+		        this.commitbtn.enabled=true;
+		        XenosAlert.info("Message has been replaced with the modified value");
+		    }
+		    private function commitPage(event: ResultEvent) : void {
+		        this.confirmMsg.text="Modified Message has been replaced in the queue";
+		        XenosAlert.info("Modified Message has been replaced in the queue");
+		        this.replacebtn.enabled=false;
+		        this.commitbtn.enabled=false;
+		        this.parentDocument.dispatchEvent(new Event("RefreshParentWindow"));
+		        this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+		        
+		        //this.parentApplication.removeMe();
+		        	
+        	  	   //XenosAlert.info("refresh your data");
+             	//this.parentDocument.flag=false;
+             	//this.parentDocument.initPageStart();
+             	//this.parentDocument.viewSummaryDetail(new MouseEvent(MouseEvent.CLICK),this.parentDocument.curQueueId);
+        		
+		        //Remove the popup
+		        //PopUpManager.removePopUp(this);
+		    }
+			public function displayXml() : void {
+
+                 //Alert.show("Message Information :: " + resultObj.toString());
+                 var messageBlockList :XMLList = resultObj.children();
+                   
+                   for each (var mesagePartInfo :XML in messageBlockList) {
+                        //Alert.show("Message Block Name :: " + mesagePartInfo.name());
+                        
+                        if (mesagePartInfo.name().toString() == "Header") {
+                            currentPanel = this.Header;
+                            //Alert.show("Message Block Name :: " + mesagePartInfo.name());
+                        }
+                        if (mesagePartInfo.name().toString() == "Body") {
+                            currentPanel = this.Body;
+                            //Alert.show("Message Block Name :: " + mesagePartInfo.name());
+                        }
+                        if (mesagePartInfo.name().toString() == "Footer") {
+                            currentPanel = this.Footer;
+                            //Alert.show("Message Block Name :: " + mesagePartInfo.name());
+                        }
+                        
+                        showXml(mesagePartInfo);
+                        
+                   }
+                 
+             }
+            
+            public function generateFlexView (xmlNode : XML) : void{
+                 
+                 var myHBox : HBox = new HBox();
+                 myHBox.percentHeight = 100;
+                 myHBox.percentWidth = 100;
+                 //myHBox.styleName="HDivideStyle";
+                 myHBox.setStyle("horizontalGap","0");
+                 myHBox.setStyle("verticalGap","0");
+                 
+                 var labelContainer : VBox = new VBox();
+	 				 labelContainer.percentHeight = 100;
+	 				 labelContainer.percentWidth = 35;
+	 				 labelContainer.styleName = "LabelBgColor";
+	 				 labelContainer.setStyle("borderStyle","solid");
+	 				 
+	 		     var valueContainer : VBox = new VBox();
+	 				 valueContainer.percentHeight = 100;
+	 				 valueContainer.percentWidth = 65;
+	 				 valueContainer.setStyle("borderStyle","solid");
+                 
+                 if (xmlNode.hasComplexContent()){
+                     //Alert.show("Node Type :: " + recChild.nodeKind());
+                     //Alert.show("Complex Node Name :: " + recChild.name());
+                     var myComplexLabel : Label = new Label();
+                     myComplexLabel.id = xmlNode.name();
+                     myComplexLabel.text = xmlNode.name();
+                     
+                     color[0] = 0xE3FFF5;
+                     labelContainer.percentWidth = 100;
+                     labelContainer.setStyle("backgroundColor",color[0]);
+                     
+                     
+                     color[0]= 0x007DFF;
+                     myComplexLabel.setStyle("color",color[0]);
+                     myComplexLabel.setStyle("fontSize","12");
+                     myComplexLabel.setStyle("fontFamily","Arial");
+                     myComplexLabel.setStyle("fontWeight","bold");
+                     labelContainer.addChild(myComplexLabel);
+                     myHBox.addChild(labelContainer);
+                     this.currentPanel.addChild(myHBox);
+                     //changePosition(myComplexLabel);
+                     //myComplexLabel.x = myComplexLabel.x + intendentLavel*intendentSize;    
+                     //myComplexLabel.move(this.myComplexLabel.x + intendentLavel*intendentSize, this.myComplexLabel.y);  
+                 }
+                 if (xmlNode.hasSimpleContent()){
+	 				 
+	 				 //Alert.show("Node Type :: " + xmlNode.nodeKind());
+	 				 //Alert.show("Node Name :: " + xmlNode.name());
+	 				 //Alert.show("Node Value :: " + xmlNode.toString());
+	 				 if (xmlNode.name() == "AccountNoType"){
+	 				     
+	 				     try {
+	 				     
+	 				     //Alert.show("processing Account No Type :: " + xmlNode.name());
+	 				     
+	 				     var accountNoTypeTagLabel : Label = new Label();
+                         //accountNoTypeTagLabel.id = xmlNode.name();
+                         accountNoTypeTagLabel.text = xmlNode.name();
+                         color[0]= 0x007DBB;
+                         accountNoTypeTagLabel.setStyle("color",color[0]);
+                         accountNoTypeTagLabel.setStyle("fontSize","12");
+                         accountNoTypeTagLabel.setStyle("fontFamily","Arial");
+                         accountNoTypeTagLabel.setStyle("fontWeight","normal");
+                         labelContainer.addChild(accountNoTypeTagLabel);
+                         myHBox.addChild(labelContainer);
+                         var accountNoTypeTagValueLabel : Label = new Label();
+                         //accountNoTypeTagLabel.id = xmlNode.toString();
+                         accountNoTypeTagValueLabel.text = xmlNode.toString();
+                         //accountNoTypeTagLabel.name = "accountNoTypeValue";
+                         valueContainer.addChild(accountNoTypeTagValueLabel);
+                         myHBox.addChild(valueContainer);
+	 				     accountCodeTypeTagValueLabelObj.addItem(accountNoTypeTagValueLabel);
+	 				     
+                         this.currentPanel.addChild(myHBox); 
+	 				     } catch (err:Error){
+	 				         XenosAlert.error("Error Account No Type :: " + err.getStackTrace());
+	 				     }
+	 				     
+	 				 } else if (xmlNode.name() == "Prefix"){
+	 				     
+	 				     try {
+	 				     
+	 				     //Alert.show("processing Prefix :: " + xmlNode.name());
+	 				     
+	 				     var prefixTagLabel : Label = new Label();
+                         //accountTagLabel.id = xmlNode.name();
+                         prefixTagLabel.text = xmlNode.name();
+                         color[0]= 0x007DBB;
+                         prefixTagLabel.setStyle("color",color[0]);
+                         prefixTagLabel.setStyle("fontSize","12");
+                         prefixTagLabel.setStyle("fontFamily","Arial");
+                         prefixTagLabel.setStyle("fontWeight","normal");
+                         labelContainer.addChild(prefixTagLabel);
+                         myHBox.addChild(labelContainer);
+                         var prefixTagValueLabel : Label = new Label();
+                         //accountTagValueLabel.id = xmlNode.toString();
+                         prefixTagValueLabel.text = xmlNode.toString();
+                         //accountTagValueLabel.name = "accountValue";
+                         valueContainer.addChild(prefixTagValueLabel);
+                         myHBox.addChild(valueContainer);
+	 				     prefixTagValueLabelObj.addItem(prefixTagValueLabel);
+	 				     
+                         this.currentPanel.addChild(myHBox); 
+	 				     } catch (err:Error){
+	 				         XenosAlert.error("Error prefix :: " + err.getStackTrace());
+	 				     }
+	 				     
+	 				 }else if (xmlNode.name() == "AccountNo"){
+	 				     
+	 				     try {
+	 				     
+	 				     var innerHbox : HBox = new HBox();
+	 				     innerHbox.percentHeight = 100;
+	 				     innerHbox.percentWidth = 100;
+	 				     
+	 				     var rightHbox : HBox = new HBox();
+	 				     rightHbox.percentHeight = 100;
+	 				     rightHbox.percentWidth = 100;
+	 				     
+	 				     var accountTagLabel : Label = new Label();
+                         accountTagLabel.text = xmlNode.name();
+                         
+                         color[0]= 0x007DBB;
+                         accountTagLabel.setStyle("color",color[0]);
+                         accountTagLabel.setStyle("fontSize","12");
+                         accountTagLabel.setStyle("fontFamily","Arial");
+                         accountTagLabel.setStyle("fontWeight","normal");
+                         innerHbox.addChild(accountTagLabel);
+
+                         var accountTagValueLabel : Label = new Label();
+                         accountTagValueLabel.text = xmlNode.toString();
+                         rightHbox.addChild(accountTagValueLabel);
+                         
+                         labelContainer.addChild(innerHbox);
+                         myHBox.addChild(labelContainer);
+                         
+	 				     accountTagValueLabelObj.addItem(accountTagValueLabel);
+	 				     
+	 				     var accountPopup : ExtAccountPopUpHbox = new ExtAccountPopUpHbox();
+	 				     accountPopup.id = xmlNode.name();
+
+	 				     if (accountPopup.accountNo != null){
+	 				         accountPopup.accountNo.text = xmlNode.toString();
+	 				     } else {
+	 				         //Alert.show("accountPopup.accountNo :: " + accountPopup.accountNo);
+	 				     }
+	 				     rightHbox.addChild(accountPopup);
+	 				     valueContainer.addChild(rightHbox);
+	 				     myHBox.addChild(valueContainer);
+	 				     accountPopupObj.addItem(accountPopup);
+                         this.currentPanel.addChild(myHBox); 
+	 				     } catch (err:Error){
+	 				         XenosAlert.error("Error account no :: " + err.getStackTrace());
+	 				     }
+	 				     
+	 				 } else if (xmlNode.name() == "SecurityId"){
+	 				     
+	 				     try {
+	 				     
+		 				     var instrumentTagLabel : Label = new Label();
+	                         instrumentTagLabel.text = xmlNode.name();
+	                         color[0]= 0x007DBB;
+	                         instrumentTagLabel.setStyle("color",color[0]);
+	                         instrumentTagLabel.setStyle("fontSize","12");
+	                         instrumentTagLabel.setStyle("fontFamily","Arial");
+	                         instrumentTagLabel.setStyle("fontWeight","normal");
+		 				     labelContainer.addChild(instrumentTagLabel);
+	                         myHBox.addChild(labelContainer);
+	                         
+	                         var instrumentTagValueLabel : Label = new Label();
+	                         instrumentTagValueLabel.text = xmlNode.toString();
+	                         
+		 				     var instrumentXRef:XML = xmlNode.parent();
+		 				     if (instrumentXRef.child("Duplicate").length() == 1) {
+		 				     	
+			 				     var instrumentPopup : ExtInstrumentPopUpHbox = new ExtInstrumentPopUpHbox();
+			 				     instrumentPopup.id = xmlNode.name();
+		                         if (instrumentPopup.instrumentId != null){
+		                             instrumentPopup.instrumentId.text = xmlNode.toString();
+		                         }
+			 				     valueContainer.addChild(instrumentPopup);
+			 				     instrumentPopupObj.addItem(instrumentPopup);
+			 				     instrumentTagValueLabelObj.addItem(instrumentTagValueLabel);
+		 				     	
+		 				     } else {
+	                         	valueContainer.addChild(instrumentTagValueLabel);
+		 				     }
+		 				     myHBox.addChild(valueContainer);
+		 				     this.currentPanel.addChild(myHBox); 
+		 				     
+	 				     } catch (err : Error){
+	 				         XenosAlert.error("Error Security Id :: " + err.getStackTrace());
+	 				     }
+	 				     
+	 				 }else if (xmlNode.name() == "InstrumentCodeType"){
+	 				     
+	 				     try {
+		 				     
+		 				     var instrumentCodeTypeTagLabel : Label = new Label();
+	                         instrumentCodeTypeTagLabel.text = xmlNode.name();
+	                         color[0]= 0x007DBB;
+	                         instrumentCodeTypeTagLabel.setStyle("color",color[0]);
+	                         instrumentCodeTypeTagLabel.setStyle("fontSize","12");
+	                         instrumentCodeTypeTagLabel.setStyle("fontFamily","Arial");
+	                         instrumentCodeTypeTagLabel.setStyle("fontWeight","normal");
+	                         labelContainer.addChild(instrumentCodeTypeTagLabel);
+	                         myHBox.addChild(labelContainer);
+	                         
+	                         var instrumentCodeTypeTagValueLabel : Label = new Label();
+	                         instrumentCodeTypeTagValueLabel.text = xmlNode.toString();
+	                         valueContainer.addChild(instrumentCodeTypeTagValueLabel);
+	                         myHBox.addChild(valueContainer);
+	                         
+	                      	 var instrumentXRef:XML = xmlNode.parent();
+		 				     if (instrumentXRef.child("Duplicate").length() == 1) {
+		 				     	instrumentCodeTypeTagValueLabelObj.addItem(instrumentCodeTypeTagValueLabel);
+		 				     }
+	
+	                         this.currentPanel.addChild(myHBox); 
+                         
+	 				     } catch (err : Error){
+	 				         XenosAlert.error("Error InstrumentCodeType :: " + err.getStackTrace());
+	 				     }
+	 				     
+	 				 } else {
+	 				     
+		 				 var mySimpleTagLabel : Label = new Label();
+	                     mySimpleTagLabel.id = xmlNode.name();
+	                     mySimpleTagLabel.text = xmlNode.name();
+	                     
+	                     color[0]= 0x007DBB;
+	                     mySimpleTagLabel.setStyle("color",color[0]);
+	                     mySimpleTagLabel.setStyle("fontSize","12");
+	                     mySimpleTagLabel.setStyle("fontFamily","Arial");
+	                     mySimpleTagLabel.setStyle("fontWeight","normal");
+	                     labelContainer.addChild(mySimpleTagLabel);
+	                     myHBox.addChild(labelContainer);
+	                     
+	                     var mySimpleTagValueLabel : Label = new Label();
+	                     mySimpleTagValueLabel.id = xmlNode.toString();
+	                     mySimpleTagValueLabel.text = xmlNode.toString();
+	                     valueContainer.addChild(mySimpleTagValueLabel);
+	                     myHBox.addChild(valueContainer);
+	                     this.currentPanel.addChild(myHBox);
+                    }    
+	 		     }
+            }
+            /*
+            public function changePosition(obj :UIComponent) : void {
+                obj.move(500,600);
+                //obj.y = 500;
+            }
+            */
+            public function showXml(xmlData : XML) : void {
+                //Alert.show("IN show xml");
+                //Alert.show("Process Block"); 
+                
+                if (xmlData.hasComplexContent()){
+                    intendentLavel += 1;
+	 			    processComplexContent(xmlData);
+	 			    intendentLavel -= 1;
+ 	 		    } else {
+	 		        processSimpleContent(xmlData);
+	 		    }
+                
+                //Alert.show("End Process Block"); 
+                 
+            }
+           
+           public function processComplexContent(complexRec : XML) : void {
+               if (complexRec.hasComplexContent()){
+                   
+                   var childList :XMLList = complexRec.children();
+                   
+                   for each (var recChild :XML in childList) {
+                       
+                       if (recChild.hasComplexContent()){
+                           //Alert.show("Node Type :: " + recChild.nodeKind());
+                           //Alert.show("Complex Node Name :: " + recChild.name());
+                           generateFlexView(recChild);
+                       }
+                       
+                       showXml(recChild);
+                   }
+	 				        
+	 		  } else {
+	 		      XenosAlert.error("Not a Complex content :: - processComplexContent");
+	 		  }
+           }
+           
+           
+           public function processSimpleContent(simpleRec : XML) : void {
+               if (simpleRec.hasSimpleContent()){
+	 				        //Alert.show("Node Type :: " + simpleRec.nodeKind());
+	 				        //Alert.show("Node Name :: " + simpleRec.name());
+	 				        //Alert.show("Node Value :: " + simpleRec.toString());
+	 				        generateFlexView(simpleRec);
+	 		  } else {
+	 		      XenosAlert.error("Not a simple content :: - processSimpleContent");
+	 		  }
+           }
+           
+           public function displayValue() : void {
+               //For account no processing
+               var noOfRecords : int = accountTagValueLabelObj.length;
+               var accountNoValue : Label = new Label();
+               var accountPrefix : Label = new Label();
+               var accountNoType : Label = new Label();
+               
+                var accountPopupValue : ExtAccountPopUpHbox = new ExtAccountPopUpHbox();
+               
+               for (var j :int = 0; j<noOfRecords; j++){
+                  accountNoValue =  Label ( accountTagValueLabelObj.getItemAt(j) );
+                  if(prefixTagValueLabelObj.length>j)
+                  	accountPrefix =  Label ( prefixTagValueLabelObj.getItemAt(j) );
+                  
+                  accountNoType =  Label ( accountCodeTypeTagValueLabelObj.getItemAt(j) );
+                  
+                  accountPopupValue = ExtAccountPopUpHbox (accountPopupObj.getItemAt(j));
+                  
+                  if (accountPrefix.text != ""){
+                      accountPopupValue.accountNo.text = accountPrefix.text + ";" + accountNoValue.text + "/" + accountNoType.text;
+                  } else {
+                      accountPopupValue.accountNo.text = accountNoValue.text + "/" + accountNoType.text;
+                  }
+                  accountPopupValue.accountNo.editable = false;
+                  accountNoValue.visible=true;
+
+                  populateAccountContext(accountPopupValue);
+                  accountPopupValue.visible = false;//temporary heiding the popup
+
+               }
+               //For instrument processing
+               
+               var noOfInstRecords : int = instrumentTagValueLabelObj.length;
+               var securityIdValue : Label = new Label();
+               var instrumentCodeType : Label = new Label();
+               var instrumentPopupValue : ExtInstrumentPopUpHbox = new ExtInstrumentPopUpHbox();
+               
+               for (j = 0; j<noOfInstRecords; j++){
+                  securityIdValue =  Label ( instrumentTagValueLabelObj.getItemAt(j) );
+                  instrumentCodeType =  Label ( instrumentCodeTypeTagValueLabelObj.getItemAt(j) );
+                  instrumentPopupValue = ExtInstrumentPopUpHbox (instrumentPopupObj.getItemAt(j));
+                  
+                  instrumentPopupValue.instrumentId.text = securityIdValue.text + "/" + instrumentCodeType.text; 
+                  instrumentPopupValue.instrumentId.editable = false;
+                  securityIdValue.visible=false;
+
+                  populateInstrumentContext(instrumentPopupValue);
+
+                  //instrumentPopupValue.enabled = false;//temporary disabling the popup
+
+               }
+           }
+           
+           private function populateAccountContext(accountPopUp : ExtAccountPopUpHbox) : void {
+
+               var myContextList:ArrayCollection = new ArrayCollection(); 
+          
+               //passing account no             
+               var actNoContextArray:Array = new Array();
+                actNoContextArray[0]=accountPopUp.accountNo.text;
+                
+               myContextList.addItem(new HiddenObject("actNoContext",actNoContextArray));
+               
+               accountPopUp.recContextItem=myContextList;
+               //accountPopUp.enabled=false;
+           }
+           
+           private function populateInstrumentContext(instrumentPopUp : ExtInstrumentPopUpHbox) : void {
+
+               var instContextList:ArrayCollection = new ArrayCollection(); 
+          
+               //passing account no             
+               var secIDContextArray:Array = new Array();
+                secIDContextArray[0]=instrumentPopUp.instrumentId.text;
+                
+               instContextList.addItem(new HiddenObject("instIDContext",secIDContextArray));
+               
+               instrumentPopUp.recContextItem=instContextList;
+               //instrumentPopUp.enabled=false;
+           }
+           
+           public function updateValue() : void {
+               
+               //For account procesing
+               var noOfRecords : int = accountTagValueLabelObj.length;
+               var accountNoValue : Label = new Label();
+               var accountPopupValue : ExtAccountPopUpHbox = new ExtAccountPopUpHbox();
+               
+               for (var j :int = 0; j<noOfRecords; j++){
+                  accountNoValue =  Label ( accountTagValueLabelObj.getItemAt(j) );
+                  accountPopupValue = ExtAccountPopUpHbox (accountPopupObj.getItemAt(j));
+                  
+                  accountNoValue.text = accountPopupValue.accountNo.text;
+               }
+               
+               //For instrument processing
+               var noOfInstRecords : int = instrumentTagValueLabelObj.length;
+               var securityIdValue : Label = new Label();
+               var instrumentPopupValue : ExtInstrumentPopUpHbox = new ExtInstrumentPopUpHbox();
+               
+               for (j = 0; j<noOfInstRecords; j++){
+                  securityIdValue =  Label ( instrumentTagValueLabelObj.getItemAt(j) );
+                  instrumentPopupValue = ExtInstrumentPopUpHbox (instrumentPopupObj.getItemAt(j));
+                  
+                  securityIdValue.text = instrumentPopupValue.instrumentId.text;
+               }
+           }
+           
+           public function replaceMessage() : void {
+                
+                populateModifiedValue();
+                /*
+                for (var j :int = 0; j<accountCode.length; j++){
+                    Alert.show("account" + accountCode[j]);
+                }
+                for (var j :int = 0; j<securityCode.length; j++){
+                    Alert.show("security" + securityCode[j]);
+                }
+                */
+                parseUrlString();
+		    	var reqObj:Object=new Object();
+		    	
+		    	reqObj.method = "confirmAction";
+		    	reqObj.action=messageIdStr;
+		    	reqObj.messageType=messageTypeStr;
+		    	reqObj.mode="ReplaceMessage";
+		    	reqObj.rui="RUI";
+		    	reqObj.qId=qIdStr;
+		    	reqObj.accountCode=accountCode;
+		    	reqObj.accPos=accPos;
+		    	reqObj.securityCode=securityCode;
+		    	reqObj.secPos=secPos;
+		    	replaceXmlRequest.request=reqObj;
+		    	replaceXmlRequest.send();
+           }
+           
+           public function commitMessage() :void {
+               
+                parseUrlString();
+		    	var reqObj:Object=new Object();
+		    	reqObj.method = "replaceMessage";
+		    	reqObj.action=messageIdStr;
+		    	reqObj.messageType=messageTypeStr;
+		    	reqObj.mode="flex";
+		    	reqObj.rui="RUI";
+		    	reqObj.qId=qIdStr;
+		    	commitXmlRequest.request=reqObj;
+		    	commitXmlRequest.send();
+           }
+          
+          public function populateModifiedValue() : void {
+              updateValue();
+              
+              var noOfRecords : int = accountTagValueLabelObj.length;
+              var accountNoValue : Label = new Label();
+               
+               for (var j :int = 0; j<noOfRecords; j++){
+                  accountNoValue =  Label ( accountTagValueLabelObj.getItemAt(j) );
+                  //XenosAlert.info("account value" + accountNoValue.text);
+                  accountCode[j]=accountNoValue.text;
+                  //XenosAlert.info("account code" + accountCode[j]);
+                  accPos[j]=j;
+               }
+               
+               //For instrument processing
+               var noOfInstRecords : int = instrumentTagValueLabelObj.length;
+               var securityIdValue : Label = new Label();
+               
+               for (j = 0; j<noOfInstRecords; j++){
+                  securityIdValue =  Label ( instrumentTagValueLabelObj.getItemAt(j) );
+                  securityCode[j]=securityIdValue.text;
+                  secPos[j]=j;                  
+               }
+              
+          }
+		]]>
+	</mx:Script>
+	
+	     <cntrls:XenosHTTPService id="viewXmlRequest" url="exm/messageBrowser.action?" fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString + ' message :: '+event.fault.message + ' faultDetail :: '+event.fault.faultDetail + ' faultString :: '+event.fault.faultString)" 
+                method="POST" useProxy="false" resultFormat="xml" result="initPage(event)" showBusyCursor="true"/>	
+
+         <cntrls:XenosHTTPService id="replaceXmlRequest" url="exm/messageBrowser.action?" fault="XenosAlert.error('Error Occured for Replace :  ' + event.fault.faultString + ' message :: '+event.fault.message + ' faultDetail :: '+event.fault.faultDetail + ' faultString :: '+event.fault.faultString)" 
+                method="POST" useProxy="false" result="confirmPage(event)" showBusyCursor="true"/>
+                
+                <cntrls:XenosHTTPService id="commitXmlRequest" url="exm/messageBrowser.action?" fault="XenosAlert.error('Error Occured for Replace :  ' + event.fault.faultString + ' message :: '+event.fault.message + ' faultDetail :: '+event.fault.faultDetail + ' faultString :: '+event.fault.faultString)" 
+                method="POST" useProxy="false" result="commitPage(event)" showBusyCursor="true"/>	
+
+    <mx:Form id="form" width="100%" height="100%" >
+    <mx:Label id="confirmMsg" text="Do you want to replace this message" visible="false"/>
+    <mx:Panel id="Header" title="Header"  width="100%" height="30%" verticalGap="0" horizontalGap="0"/>
+    <mx:Panel id="Body" title="Body" width="100%" height="30%" verticalGap="0" horizontalGap="0"/>
+    <mx:Panel id="Footer" title="Footer" width="100%" height="30%" verticalGap="0" horizontalGap="0"/>
+    <mx:VBox width="100%" height="10%">  
+    <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+    </mx:VBox>
+    
+    <mx:HBox>
+        <!--
+        <mx:Button id="xmlbtn" click="displayXml()" label="Show Message"/>
+        <mx:Button id="dispbtn" click="displayValue()" label="displayValue"/>
+        <mx:Button id="updatebtn" click="updateValue()" label="updateValue"/>
+        -->
+        <mx:Button id="replacebtn" click="replaceMessage()" label="Replace Message"/>
+        <mx:Button id="commitbtn" click="commitMessage()" label="Commit Message" enabled="false"/>
+    </mx:HBox>
+    
+    </mx:Form>
+			 
+</mx:Module>

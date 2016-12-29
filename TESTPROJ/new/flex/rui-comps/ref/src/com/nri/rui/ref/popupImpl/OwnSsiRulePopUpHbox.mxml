@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+	 <mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" horizontalGap="0" xmlns:xenos="com.nri.rui.core.controls.*">
+     <mx:TextInput id="ownSsiRule" width="100" focusOut="focusHandler()" restrict="{Globals.INPUT_PATTERN}"/>
+     <!-- The instrument popup control-->
+     <mx:Image id="ownSsiRulePopup" source="@Embed('../../../../../../assets/popup_icon.png')" 
+               verticalAlign="middle" horizontalAlign="center" click="showPopUp(recContextItem,retContextItem);" />    
+
+     <mx:Metadata>
+	        [Event(name="inputEvent", type="flash.events.Event")]
+     </mx:Metadata>
+     <mx:Script>
+        <![CDATA[
+        	import com.nri.rui.core.startup.XenosApplication;
+        	import com.nri.rui.core.Globals;
+        	
+        //start of script   
+        import mx.managers.PopUpManager;
+        import com.nri.rui.core.utils.HiddenObject;
+        import com.nri.rui.ref.popupImpl.FinInstitutePopup;
+        import mx.collections.ArrayCollection;
+        import mx.core.UIComponent;
+        
+        
+
+           [Bindable]
+           //Items returning through context - Non display objects
+           public var retContextItem:ArrayCollection = new ArrayCollection();
+           [Bindable]
+           //Items receiving through context - Non display objects
+           public var recContextItem:ArrayCollection = new ArrayCollection();
+           private var xApp:XenosApplication = XenosApplication.getInstance(Globals.DEFAULT_ENTERPRISE);   
+   	 	   private function focusHandler():Boolean {
+   			
+   			//XenosAlert.info("focus out");
+   			dispatchEvent(new Event("inputEvent"));
+   			return true;
+   		}
+        /*
+         * Open the Fund PopUp Window.
+         * Cast the return value of the createPopUp() method
+         * to FinInstitutePopup, the name of the component containing
+         *  the PopupWindow container
+         */
+        private function showPopUp(recCtxItems:ArrayCollection,
+                                   retCtxItem:ArrayCollection):void {
+            
+            
+            if (recCtxItems == null){
+                recCtxItems = new ArrayCollection();
+            }
+            
+            if (retCtxItem == null){
+                retCtxItem = new ArrayCollection();
+            }
+            //create the fund popup        
+            var ownSsiRulePopUp:OwnSsiRulePopUp=OwnSsiRulePopUp
+            (PopUpManager.createPopUp( UIComponent(this.parentApplication), OwnSsiRulePopUp , true));
+            ownSsiRulePopUp.owner=DisplayObjectContainer(this.parentDocument);
+            //Center the Popup Window in the Application's container
+            PopUpManager.centerPopUp(ownSsiRulePopUp);
+            /* Pass a reference to the AutoComplete control
+             * to the PopUpWindow container so that the 
+             * PopUpWindow container can return data to the main application.
+             */
+			ownSsiRulePopUp.retTxtInput=ownSsiRule;
+            // Pass a reference to the returnning context items
+            ownSsiRulePopUp.returnContextItems = retCtxItem;
+            // Pass a reference to the popup context items
+            ownSsiRulePopUp.receiveCtxItems = recCtxItems;
+            //initialize the fin inst popup
+            ownSsiRulePopUp.loadAll();
+        }
+        //end of script
+        ]]>
+    </mx:Script>
+</mx:HBox>

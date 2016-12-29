@@ -1,0 +1,743 @@
+<!--$Id$-->
+<!--$Author: rajarsic $-->
+<!--$Date: 2016-12-23 10:53:42 $-->
+
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+	<c:choose>
+	<c:when test = "${commandForm.modeOfOperation == 'query'}">
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext 			= <c:out value="${isNext}" />;
+			var isPrevious 		= <c:out value="${isPrevious}" />;
+            var pageNo 			= <c:out value="${pageNo}" />;
+			var lmOffice 		= "";
+			var fundCategory 	= "";
+			
+			
+
+            var grid_result_data = [];
+            var grid_result_columns = [
+					    	
+				{name:"<spring:message code="cax.rightsexercise.label.rightsexerciserefno" htmlEscape="false"/>", field:"exerciseReferenceNo", id:"exerciseReferenceNo", sortable: true, width:110, formatter:Slick.Formatters.ExerciseDetailViewFormatter},				
+                {name:"<spring:message code="cax.rightsexercise.label.fundcode" htmlEscape="false"/>", field:"fundCode", id:"fundCode", sortable: true, width:110, formatter:Slick.Formatters.FundDetailViewFormatter},
+				{name:"<spring:message code="cax.rightsexercise.label.fundname" htmlEscape="false"/>", field:"fundName", id:"fundName", sortable: true, width:130},
+				{name:"<spring:message code="cax.rightsexercise.label.fundaccountno" htmlEscape="false"/>", field:"fundAccountNo", id:"fundAccountNo", sortable: true, width:130,  formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'fundAccountPk'}},
+				{name:"<spring:message code="cax.rightsexercise.label.fundaccountname" htmlEscape="false"/>", field:"fundAccountName", id:"fundAccountName", sortable: true, width:150},
+				{name:"<spring:message code="cax.rightsexercise.label.rightscode" htmlEscape="false"/>", field:"rightsCode", id:"rightsCode", width:110, sortable: true,
+				formatter:Slick.Formatters.InstrumentDetailViewFormaterOptions, instrumentDetailOptions:{pkFieldName:'instrumentPk'}},
+				{name:"<spring:message code="cax.rightsexercise.label.rightsname" htmlEscape="false"/>", field:"rightsName", id:"rightsName", width:220, sortable: true},
+                {name:"<spring:message code="cax.alternate.label.rights" htmlEscape="false"/>", field:"alternateSecurity", id:"alternateSecurity", width:130, sortable: true },
+                {name:"<spring:message code="cax.rightsexercise.label.fullypaidsecuritycode" htmlEscape="false"/>", field:"fullyPaidSecurityCode", id:"fullyPaidSecurityCode", width:160, sortable: true,
+				formatter:Slick.Formatters.InstrumentDetailViewFormaterOptions, instrumentDetailOptions:{pkFieldName:'allottedInstrumentPk'}},
+                {name:"<spring:message code="cax.rightsexercise.label.fullypaidsecurityname" htmlEscape="false"/>", field:"fullyPaidSecurityName", id:"fullyPaidSecurityName", width:220, sortable: true},
+                {name:"<spring:message code="cax.alternate.label.fullypaidsecurity" htmlEscape="false"/>", field:"alternateAllottedSecurity", id:"alternateAllottedSecurity", width:160, sortable: true },
+               // {name:"<spring:message code="cax.rightsexercise.label.total" htmlEscape="false"/>", field:"totalRightsStr", id:"totalRightsStr", width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.exercisedquantity" htmlEscape="false"/>", field:"exerciseQuantityStr", id:"exerciseQuantityStr",cssClass: 'xenos-grid-number', width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.fullypaidshare" htmlEscape="false"/>", field:"fullyPaidShareStr", id:"fullyPaidShareStr",cssClass: 'xenos-grid-number', width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.subscriptioncost" htmlEscape="false"/>", field:"totalSubscriptionCostStr", id:"totalSubscriptionCostStr",cssClass: 'xenos-grid-number', width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.availablerightsquantity" htmlEscape="false"/>", field:"availableRightsStr", id:"availableRightsStr",cssClass: 'xenos-grid-number', width:150, sortable: true},
+				//{name:"<spring:message code="cax.rightsexercise.label.exercisingquantity" htmlEscape="false"/>", field:"exercisingQuantityStr", id:"exercisingQuantityStr", width:150,cssClass: 'xenos-grid-number', sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.subscriptioncostpershare" htmlEscape="false"/>", field:"subscriptionCostPerShare", id:"subscriptionCostPerShare",cssClass: 'xenos-grid-number', width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.exercisedate" htmlEscape="false"/>", field:"exerciseDateStr", id:"exerciseDateStr", width:120, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.deadlinedate" htmlEscape="false"/>", field:"deadlineDateStr", id:"deadlineDateStr", width:120, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.expirydate" htmlEscape="false"/>", field:"expiryDateStr", id:"expiryDateStr", width:120, sortable: true},
+				{name:"<spring:message code="cax.rightscondition.label.paymentDate.newshare" htmlEscape="false"/>", field:"paymentDateStr", id:"paymentDateStr", width:160, sortable: true},
+				{name:"<spring:message code="cax.rightscondition.label.paymentDate.takeup" htmlEscape="false"/>", field:"paymentDateCashStr", id:"paymentDateCashStr", width:180, sortable: true},
+				{name:"<spring:message code="cax.rightsdetail.label.availabledate" htmlEscape="false"/>", field:"availableDateStr", id:"availableDateStr", width:120, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.exerciseFinalize" htmlEscape="false"/>", field:"exerciseFinalizeFlag", id:"exerciseFinalizeFlag", width:70, sortable: false},
+				{name:"<spring:message code="cax.rightsexercise.label.expiryQty" htmlEscape="false"/>", field:"expiryQuantityStr", id:"expiryQuantityStr", width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.status" htmlEscape="false"/>", field:"status", id:"status", width:80, sortable: true, formatter:Slick.Formatters.CancelRecordFormatter}
+			];
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,
+					xlsPref:true,					
+					columnPicker:true,	
+					save:true					
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					url: '/secure/cax/exercise/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/cax/exercise/query/result.json?fetch=next',
+					prevPage : '/secure/cax/exercise/query/result.json?fetch=previous',
+					pdfReport: '/secure/cax/exercise/query/report.json?outputType=pdf',
+					xlsReport: '/secure/cax/exercise/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/cax/exercise/query/reportPref.json?outputType=xls'
+				},
+				events:{
+					onDataUpdate : function(data,callback){
+						for(i in data.value){							
+							
+							
+							data.value[i].fundAccountNo= data.value[i].fundAccountPrefix + ";" + data.value[i].fundAccountNo;
+							if(data.value[i].exerciseFinalizeFlag == "N"){
+							data.value[i].exerciseFinalizeFlag 	= "";			
+							}
+						}
+						callback(data);
+					}
+				},
+
+				defaultInvisibleColumns: ["fundAccountName","availableRightsStr","subscriptionCostPerShare"]	
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id 							= "xenos_" + row_id;		
+				rec.fundPk 						= "<c:out value="${dl.fundPk}" />";	
+				rec.fundAccountPk 				= "<c:out value="${dl.fundAccountPk}" />";
+				rec.exerciseReferenceNo 		= "<c:out value="${dl.exerciseReferenceNo}" />";
+				rec.rightsExercisePk			= "<c:out value="${dl.rightsExercisePk}" />";
+				rec.fundCode 					= "<c:out value="${dl.fundCode}" />";
+				rec.fundName 					= "<c:out value="${dl.fundName}" />";
+				rec.fundAccountNo 				= "<c:out value="${dl.fundAccountPrefix};${dl.fundAccountNo}" />";
+				rec.fundAccountName 			= "<c:out value="${dl.fundAccountName}" />";
+				rec.rightsCode 					= "<c:out value="${dl.rightsCode}" />";
+				rec.rightsName 					= "<c:out value="${dl.rightsName}" />";
+				rec.alternateSecurity 			= "<c:out value="${dl.alternateSecurity}" />";
+				rec.fullyPaidSecurityCode 		= "<c:out value="${dl.fullyPaidSecurityCode}" />";
+				rec.fullyPaidSecurityName 		= "<c:out value="${dl.fullyPaidSecurityName}" />";
+				rec.alternateAllottedSecurity 	= "<c:out value="${dl.alternateAllottedSecurity}" />";
+				rec.totalRightsStr 				= "<c:out value="${dl.totalRightsStr}" />";
+				rec.exerciseQuantityStr 		= "<c:out value="${dl.exerciseQuantityStr}" />";
+				rec.fullyPaidShareStr 			= "<c:out value="${dl.fullyPaidShareStr}" />";
+				rec.totalSubscriptionCostStr 	= "<c:out value="${dl.totalSubscriptionCostStr}" />";
+				rec.availableRightsStr 			= "<c:out value="${dl.availableRightsStr}" />";
+				rec.exercisingQuantityStr 		= "<c:out value="${dl.exercisingQuantityStr}" />";
+				rec.subscriptionCostPerShare 	= "<c:out value="${dl.subscriptionCostPerShare}" />";
+				rec.exerciseDateStr 			= "<c:out value="${dl.exerciseDateStr}" />";
+				rec.deadlineDateStr 			= "<c:out value="${dl.deadlineDateStr}" />";
+				rec.expiryDateStr 				= "<c:out value="${dl.expiryDateStr}" />";
+				rec.paymentDateStr 				= "<c:out value="${dl.paymentDateStr}" />";
+				rec.paymentDateCashStr 			= "<c:out value="${dl.paymentDateCashStr}" />";
+				rec.availableDateStr 			= "<c:out value="${dl.availableDateStr}" />";
+				
+				<c:if test="${fn:containsIgnoreCase(dl.exerciseFinalizeFlag, 'N')}">
+				rec.exerciseFinalizeFlag 		= "<c:out value="" />";
+				</c:if>
+				<c:if test="${fn:containsIgnoreCase(dl.exerciseFinalizeFlag, 'Y')}">	
+				rec.exerciseFinalizeFlag 		= "<c:out value="${dl.exerciseFinalizeFlag}" />";
+				</c:if>	
+				rec.expiryQuantityStr 			= "<c:out value="${dl.expiryQuantityStr}" />";
+				rec.status 						= "<c:out value="${dl.status}" />";
+				rec.allottedInstrumentPk         ="<c:out value="${dl.allottedInstrumentPk}" />"; 
+				rec.instrumentPk				="<c:out value="${dl.instrumentPk}" />"; 
+				
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+	
+	
+	
+
+  
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+
+		<jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+	
+	</c:when>
+	
+	<c:when test = "${commandForm.modeOfOperation == 'amend'}">
+	
+		 <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/xenos-utils.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+		</jsp:element>	
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext 			= <c:out value="${isNext}" />;
+			var isPrevious 		= <c:out value="${isPrevious}" />;
+            var pageNo 			= <c:out value="${pageNo}" />;
+			var lmOffice 		= "";
+			var fundCategory 	= "";
+			<!--Check if the number of records fetched is 0, then disable the submit/reset buttons-->
+			var isRecordsPresent =  ${fn:length(commandForm.resultView)};
+			var context = $('#formContainer');
+			
+		
+			var fieldformatterCallback = function(row, cell, value, columnDef, dataContext){
+                return !$('.xenos-grid .slick-row').filter('"div[row='+(row)+']"').find('input[type="checkbox"]').is(':checked');
+            }
+            
+            var fieldEditorCallback = function(args){
+                return true;
+            };
+            
+            var fieldNonEditorCallback = function(args){
+                return false;
+            };
+			
+
+            var grid_result_data = [];
+			
+			
+            var grid_result_columns = [
+					    	
+				{name:"<spring:message code="cax.rightsexercise.label.rightsexerciserefno" htmlEscape="false"/>", field:"exerciseReferenceNo", id:"exerciseReferenceNo", sortable: true, width:120, formatter:Slick.Formatters.ExerciseDetailViewFormatter},				
+                {name:"<spring:message code="cax.rightsexercise.label.fundcode" htmlEscape="false"/>", field:"fundCode", id:"fundCode", sortable: true, width:110, formatter:Slick.Formatters.FundDetailViewFormatter},
+				{name:"<spring:message code="cax.rightsexercise.label.fundname" htmlEscape="false"/>", field:"fundName", id:"fundName", sortable: true, width:110},
+				{name:"<spring:message code="cax.rightsexercise.label.fundaccountno" htmlEscape="false"/>", field:"fundAccountNo", id:"fundAccountNo", sortable: true, width:130,  formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'fundAccountPk'}},
+				{name:"<spring:message code="cax.rightsexercise.label.fundaccountname" htmlEscape="false"/>", field:"fundAccountName", id:"fundAccountName", sortable: true, width:150},
+				{name:"<spring:message code="cax.rightsexercise.label.rightscode" htmlEscape="false"/>", field:"rightsCode", id:"rightsCode", width:110, sortable: true,
+				formatter:Slick.Formatters.InstrumentDetailViewFormaterOptions, instrumentDetailOptions:{pkFieldName:'instrumentPk'}},
+				{name:"<spring:message code="cax.rightsexercise.label.rightsname" htmlEscape="false"/>", field:"rightsName", id:"rightsName", width:220, sortable: true},
+                {name:"<spring:message code="cax.alternate.label.rights" htmlEscape="false"/>", field:"alternateSecurity", id:"alternateSecurity", width:120, sortable: true },
+                {name:"<spring:message code="cax.rightsexercise.label.fullypaidsecuritycode" htmlEscape="false"/>", field:"fullyPaidSecurityCode", id:"fullyPaidSecurityCode", width:160, sortable: true,
+				formatter:Slick.Formatters.InstrumentDetailViewFormaterOptions, instrumentDetailOptions:{pkFieldName:'allottedInstrumentPk'}},
+                {name:"<spring:message code="cax.rightsexercise.label.fullypaidsecurityname" htmlEscape="false"/>", field:"fullyPaidSecurityName", id:"fullyPaidSecurityName", width:220, sortable: true},
+                {name:"<spring:message code="cax.alternate.label.fullypaidsecurity" htmlEscape="false"/>", field:"alternateAllottedSecurity", id:"alternateAllottedSecurity", width:150, sortable: true},
+          	    {name:"<spring:message code="cax.rightsexercise.label.total" htmlEscape="false"/>", field:"totalRightsStr", id:"totalRightsStr", width:150, sortable: true,cssClass: 'xenos-grid-number'},
+				{name:"<spring:message code="cax.rightsexercise.label.exercisedquantity" htmlEscape="false"/>", field:"exerciseQuantityStr", id:"exerciseQuantityStr",cssClass: 'xenos-grid-number', width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.fullypaidshare" htmlEscape="false"/>", field:"fullyPaidShareStr", id:"fullyPaidShareStr",cssClass: 'xenos-grid-number', width:150, sortable: true},
+				//{name:"<spring:message code="cax.rightsexercise.label.subscriptioncost" htmlEscape="false"/>", field:"totalSubscriptionCostStr", id:"totalSubscriptionCostStr",cssClass: 'xenos-grid-number', width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.availablerightsquantity" htmlEscape="false"/>", field:"availableRightsStr", id:"availableRightsStr",cssClass: 'xenos-grid-number', width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.exercisingquantity" htmlEscape="false"/>", field:"exercisingQuantityStr", id:"exercisingQuantityStr",width:160,cssClass: 'xenos-grid-number editablGridInputNoPadding', sortable: true, options:{
+                                            editableFunction: fieldEditorCallback,
+											styleClass : 'text',
+											quantityFormatReqrd : true
+                                        },
+                                        formatter:Slick.Formatters.ExercisingQuantityTxnInputFormatter, editor:Slick.Editors.exercisingQuantityEditor},
+				{name:"<spring:message code="cax.rightsexercise.label.subscriptioncostpershare" htmlEscape="false"/>", field:"subscriptionCostPerShare", id:"subscriptionCostPerShare",cssClass: 'xenos-grid-number', width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.subscriptioncost" htmlEscape="false"/>", field:"totalSubscriptionCostStr", id:"totalSubscriptionCostStr",cssClass: 'xenos-grid-number editablGridInputNoPadding', width:160, sortable: true, options:{
+                            editableFunction: fieldEditorCallback,
+							styleClass : 'text',
+							quantityFormatReqrd : true,
+							onClick : xenos$ExerciseAmend$onCalculatorClickHandler
+							},
+							formatter:Slick.Formatters.ExerciseAmountFormatter , editor:Slick.Editors.ExerciseAmountEditer },
+				//{name:"<spring:message code="cax.rightsexercise.label.exercisedate" htmlEscape="false"/>", field:"exerciseDateStr", id:"exerciseDateStr", width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.deadlinedate" htmlEscape="false"/>", field:"deadlineDateStr", id:"deadlineDateStr", width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.expirydate" htmlEscape="false"/>", field:"expiryDateStr", id:"expiryDateStr", width:150, sortable: true},
+				
+				{name:"<spring:message code="cax.rightscondition.label.paymentDate.takeup" htmlEscape="false"/>", field:"paymentDateCashStr", id:"paymentDateCashStr", width:120, cssClass:"editablGridInputNoPadding dateIco", sortable: true,options:{
+                                        	editableFunction: true,
+											disableOption: true
+                                        },
+                                        formatter:Slick.Formatters.ExerciseAmendDateFormatter, editor:Slick.Editors.exerciseAmendDateEditor},
+				{name:"<spring:message code="cax.rightscondition.label.paymentDate.newshare" htmlEscape="false"/>", field:"paymentDateStr", id:"paymentDateStr", width:120, sortable: true, cssClass:"editablGridInputNoPadding dateIco",options:{
+                                            editableFunction: true,
+											disableOption: true
+                                        },
+                                        formatter:Slick.Formatters.ExerciseAmendDateFormatter, editor:Slick.Editors.exerciseAmendDateEditor},
+				{name:"<spring:message code="cax.rightsdetail.label.availabledate" htmlEscape="false"/>", field:"availableDateStr", id:"availableDateStr", width:150, cssClass:"editablGridInputNoPadding dateIco", sortable: true,options:{
+                                         editableFunction: true
+                                        },
+                                        formatter:Slick.Formatters.exerciseDateFormatter, editor:Slick.Editors.exerciseAmendDateEditor},
+				{name:"<spring:message code="cax.rightsexercise.label.exerciseFinalize" htmlEscape="false"/>", field:"exerciseFinalizeFlag", id:"exerciseFinalizeFlag", width:70, sortable: false,options:{
+											onClick : xenos$ExerciseAmend$onCheckClickHandler,
+                                            editableFunction: true
+                                        },
+                                        formatter:Slick.Formatters.ExerciseAmendCheckBoxFromatter, editor:Slick.Editors.ExerciseAmendCheckBox},
+				{name:"<spring:message code="cax.rightsexercise.label.expiryQty" htmlEscape="false"/>", field:"expiryQuantityStr", id:"expiryQuantityStr", width:150, sortable: true },
+				{name:"<spring:message code="cax.rightsdetail.label.exdate" htmlEscape="false"/>", field:"exerciseDateStr", id:"exerciseDateStr", width:120, cssClass:"editablGridInputNoPadding dateIco", sortable: true,  options:{
+                                        editableFunction: true
+                                        },
+                                        formatter:Slick.Formatters.exerciseDateFormatter, editor:Slick.Editors.exerciseAmendDateEditor},
+				{name:"<spring:message code="cax.rightsexercise.label.status" htmlEscape="false"/>", field:"status", id:"status", width:150, sortable: true, formatter:Slick.Formatters.CancelRecordFormatter}
+			];
+						
+			function xenos$ExerciseAmend$Calculate$ExpiryQty(availaibleRights,exercisingQty)
+			{
+				return (availaibleRights - exercisingQty);
+			};
+			function xenos$exerciseAmend$disableFields(temp)
+			{
+				var grid = $('.xenos-grid').data("gridInstance");
+				 if(temp.item.exerciseFinalizeFlag == "Y")
+					{
+					if(!temp.item.originalExercisingQuantityStr)
+						temp.item.originalExercisingQuantityStr="0";
+					temp.item.expiryQuantityStr = temp.item.availableRightsStr;
+					temp.item.exercisingQuantityStr = temp.item.originalExercisingQuantityStr;
+					temp.item.totalSubscriptionCostStr = temp.item.originalTotalSubscriptionCostStr;
+					temp.item.paymentDateStr = temp.item.originalPaymentDateStr;
+					temp.item.paymentDateCashStr = temp.item.originalPaymentDateCashStr;
+					}
+				if(temp.item.exerciseFinalizeFlag == "N")
+					{
+					temp.item.expiryQuantityStr = "";
+					}
+				grid.invalidate();
+                grid.render();
+			
+			}
+			function xenos$ExerciseAmend$onCheckClickHandler(e){
+				var grid = $('.xenos-grid').data("gridInstance");
+				var flag = false;
+				var temp = e.data[0];
+				if(temp.item.exercisingQuantityStr == "" || temp.item.exercisingQuantityStr == "0" || temp.item.exercisingQuantityStr == null)
+				{
+				 temp.item.originalExercisingQuantityStr = temp.item.exercisingQuantityStr;
+				}
+				if(temp.item.exerciseFinalizeFlag == "Y")
+					{
+						temp.item.exerciseFinalizeFlag = "N";
+					}
+				else
+				{
+					temp.item.exerciseFinalizeFlag = "Y";
+					if((temp.item.paymentDateStr !=  temp.item.originalPaymentDateStr)||(temp.item.paymentDateCashStr !=  temp.item.originalPaymentDateCashStr)|| (temp.item.totalSubscriptionCostStr !=  temp.item.originalTotalSubscriptionCostStr)||(temp.item.exercisingQuantityStr !=  temp.item.originalExercisingQuantityStr))
+					{
+						var flag = true;
+						jConfirm(xenos$CAX$i18n.rightsExerciseAmend.confirm_message,null,function(confirm){
+						if(!confirm)
+							{
+							temp.item.exerciseFinalizeFlag = "N";
+							grid.invalidate();
+							grid.render();
+							return false;
+							}
+						else{
+							xenos$exerciseAmend$disableFields(temp);	
+						}
+					 }); 
+					}
+					
+				}
+				if(!flag)
+				{
+					xenos$exerciseAmend$disableFields(temp);
+				}	
+			};
+			
+			//xenos$ExerciseAmend$emptyTotal(id) is called from the formatter for exercising quantity
+			function xenos$ExerciseAmend$emptyTotal(id){
+				var grid = $('.xenos-grid').data("gridInstance");
+				var gridData = $('.xenos-grid').data("gridInstance").getData().getItems();
+				gridData[id].totalSubscriptionCostStr = "";
+				grid.invalidateRow(id);
+				grid.render();
+			};
+			
+			//xenos$ExerciseAmend$exercisingQty$Persist is called from the editor for exercising quantity
+			function xenos$ExerciseAmend$exercisingQty$Persist(value,args,key)
+			{
+					var grid = $('.xenos-grid').data("gridInstance");
+					args.item.exercisingQuantityStr = value;
+					args.item.totalSubscriptionCostStr = "";
+					grid.invalidateRow(grid.getActiveCell().row);
+					grid.render();
+					if(key==13)
+					    $('.exerciseSubmit').trigger('click');
+			}
+			
+			function xenos$ExerciseAmend$Persist$TakeUpCost(value,args)
+			{
+					var grid = $('.xenos-grid').data("gridInstance");
+					args.item.totalSubscriptionCostStr = value;
+					grid.updateCell(grid.getActiveCell().row,grid.getActiveCell().row);
+					grid.render();
+			}
+			
+			function xenos$ExerciseAmend$onCalculatorClickHandler(e){
+				var args = e.data[0];
+				xenos.ns.rightsExerciseAmend.calculateTakeUpCost(e, args);
+			};
+			
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:true,
+                consolidateAttribute:{type:'check'},  
+				emptyColumnCheck: false,
+				editable: true,				
+				buttons: {
+					print:true,	
+					xls:true,	
+					xlsPref:true,
+					pdf:true,					
+					columnPicker:true,	
+					save:true					
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					url: '/secure/cax/exercise/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/cax/exercise/query/result.json?fetch=next',
+					prevPage : '/secure/cax/exercise/query/result.json?fetch=previous',
+					pdfReport: '/secure/cax/exercise/query/report.json?outputType=pdf',
+					xlsReport: '/secure/cax/exercise/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/cax/exercise/query/reportPref.json?outputType=xls'
+				},
+				events:{
+					onDataUpdate : function(data,callback){
+						for(i in data.value){							
+							
+							
+							data.value[i].fundAccountNo= data.value[i].fundAccountPrefix + ";" + data.value[i].fundAccountNo;
+							data.value[i].rowID = i;
+							
+						}
+						callback(data);
+					}
+				},
+
+				defaultInvisibleColumns: ["fundAccountName","fullyPaidShareStr","status"]	
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${commandForm.resultView}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.rowID = row_id - 1;
+				rec.id 							= "xenos_" + row_id;		
+				rec.fundPk 						= "<c:out value="${dl.fundPk}" />";	
+				rec.fundAccountPk 				= "<c:out value="${dl.fundAccountPk}" />";
+				rec.exerciseReferenceNo 		= "<c:out value="${dl.exerciseReferenceNo}" />";
+				rec.rightsExercisePk			= "<c:out value="${dl.rightsExercisePk}" />";
+				rec.fundCode 					= "<c:out value="${dl.fundCode}" />";
+				rec.fundName 					= "<c:out value="${dl.fundName}" />";
+				rec.fundAccountNo 				= "<c:out value="${dl.fundAccountPrefix};${dl.fundAccountNo}" />";
+				rec.fundAccountName 			= "<c:out value="${dl.fundAccountName}" />";
+				rec.rightsCode 					= "<c:out value="${dl.rightsCode}" />";
+				rec.rightsName 					= "<c:out value="${dl.rightsName}" />";
+				rec.alternateSecurity 			= "<c:out value="${dl.alternateSecurity}" />";
+				rec.fullyPaidSecurityCode 		= "<c:out value="${dl.fullyPaidSecurityCode}" />";
+				rec.fullyPaidSecurityName 		= "<c:out value="${dl.fullyPaidSecurityName}" />";
+				rec.alternateAllottedSecurity 	= "<c:out value="${dl.alternateAllottedSecurity}" />";
+				rec.totalRightsStr 				= "<c:out value="${dl.totalRightsStr}" />";
+			
+				rec.exerciseQuantityStr 		= "<c:out value="${dl.exerciseQuantityStr}" />";
+				rec.fullyPaidShareStr 			= "<c:out value="${dl.fullyPaidShareStr}" />";
+				rec.totalSubscriptionCostStr 	= "<c:out value="${dl.totalSubscriptionCostStr}" />";
+				rec.availableRightsStr 			= "<c:out value="${dl.availableRightsStr}" />";
+				rec.exercisingQuantityStr 		= "<c:out value="${dl.exercisingQuantityStr}" />";
+				rec.subscriptionCostPerShare 	= "<c:out value="${dl.subscriptionCostPerShare}" />";
+				rec.exerciseDateStr 			= "<c:out value="${dl.exerciseDateStr}" />";
+				rec.deadlineDateStr 			= "<c:out value="${dl.deadlineDateStr}" />";
+				rec.expiryDateStr 				= "<c:out value="${dl.expiryDateStr}" />";
+				rec.paymentDateStr 				= "<c:out value="${dl.paymentDateStr}" />";
+				rec.paymentDateCashStr 			= "<c:out value="${dl.paymentDateCashStr}" />";
+				
+				rec.originalPaymentDateStr 				= "<c:out value="${dl.originalPaymentDateStr}" />";
+				rec.originalPaymentDateCashStr 			= "<c:out value="${dl.originalPaymentDateCashStr}" />";
+				rec.prevFinalizeFlag 					= "<c:out value="${dl.prevFinalizeFlag}" />";
+				rec.originalTotalSubscriptionCostStr 	= "<c:out value="${dl.originalTotalSubscriptionCostStr}" />";
+				rec.originalExercisingQuantityStr 		= "<c:out value="${dl.originalExercisingQuantityStr}" />";
+				
+				rec.availableDateStr 			= "<c:out value="${dl.availableDateStr}" />";
+				rec.exerciseFinalizeFlag 		= "<c:out value="${dl.exerciseFinalizeFlag}" />";
+				rec.expiryQuantityStr 			= "<c:out value="${dl.expiryQuantityStr}" />";
+				rec.status 						= "<c:out value="${dl.status}" />";
+				rec.allottedInstrumentPk		= "<c:out value="${dl.allottedInstrumentPk}" />";
+				rec.instrumentPk 				= "<c:out value="${dl.instrumentPk}" />";
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+			
+			
+        </jsp:body>
+    </jsp:element>
+	
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+
+		<jsp:attribute name="src"><c:url value="/scripts/xenos.editors.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+	 
+	 <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+
+		<jsp:attribute name="src"><c:url value="/scripts/cax/rightsExerciseAmend.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+	
+
+	 
+	 <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/inf/utilCommons.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+		</jsp:element>
+		
+		
+		<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/inf/datevalidation.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+		</jsp:element>
+		
+		 <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+			
+		xenos$onReady$Array.push(function() {
+        var scripts = [
+				{path: xenos.context.path + '/scripts/cax/xenos-cax-i18n_en.js', async: false},
+				{path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},
+                {path: xenos.context.path + '/scripts/cax/rightsExerciseAmend.js', async: false}
+          
+        ];
+			
+        xenos.loadScript(scripts, {
+          ordered: true,
+          success : function() {
+		  
+			if(isRecordsPresent == 0){
+			
+				$('#submit').attr('disabled', true);
+				$('#reset').attr('disabled', true);			
+				$('.exerciseSubmit', context).unbind('click');		
+			}	
+			else
+			{
+			
+				$('.exerciseSubmit', context).unbind('click',xenos.ns.rightsExerciseAmend.submithandler);								
+				$('.exerciseSubmit', context).bind('click',xenos.ns.rightsExerciseAmend.submithandler);
+				$('#reset', context).unbind('click',xenos.ns.rightsExerciseAmend.resethandler);
+				$('#reset', context).bind('click',xenos.ns.rightsExerciseAmend.resethandler);
+			}
+             
+			  
+			 
+			  }
+          });
+		});
+		</jsp:body>
+    </jsp:element>
+	
+	</c:when>
+	
+	<c:when test = "${commandForm.modeOfOperation == 'cancel'}">
+		<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			
+            var isNext 			= <c:out value="${isNext}" />;
+			var isPrevious 		= <c:out value="${isPrevious}" />;
+            var pageNo 			= <c:out value="${pageNo}" />;
+			
+			<c:if test="${success == true}">
+			   <c:set var="valueTobePopulated" value="${value}" />
+			</c:if>
+			<c:if test="${success == false}">
+			   <c:set var="valueTobePopulated" value="${commandForm.resultView}" />
+			</c:if>	
+				
+		<!--Check if the number of recpords fetched is 0, then disable the submit/reset buttons-->
+			var isRecordsPresent =  ${fn:length(valueTobePopulated)};
+			
+			var grid_result_data = [];
+            var grid_result_columns = [
+					    	
+				{name:"<spring:message code="cax.rightsexercise.label.rightsexerciserefno" htmlEscape="false"/>", field:"exerciseReferenceNo", id:"exerciseReferenceNo", sortable: true, width:120, formatter:Slick.Formatters.ExerciseDetailViewFormatter},				
+                {name:"<spring:message code="cax.rightsexercise.label.fundcode" htmlEscape="false"/>", field:"fundCode", id:"fundCode", sortable: true, width:110, formatter:Slick.Formatters.FundDetailViewFormatter},
+				{name:"<spring:message code="cax.rightsexercise.label.fundname" htmlEscape="false"/>", field:"fundName", id:"fundName", sortable: true, width:110},
+				{name:"<spring:message code="cax.rightsexercise.label.fundaccountno" htmlEscape="false"/>", field:"fundAccountNo", id:"fundAccountNo", sortable: true, width:170,  formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'fundAccountPk'}},
+				{name:"<spring:message code="cax.rightsexercise.label.fundaccountname" htmlEscape="false"/>", field:"fundAccountName", id:"fundAccountName", sortable: true, width:150},
+				{name:"<spring:message code="cax.rightsexercise.label.rightscode" htmlEscape="false"/>", field:"rightsCode", id:"rightsCode", width:150, sortable: true ,
+				formatter:Slick.Formatters.InstrumentDetailViewFormaterOptions, instrumentDetailOptions:{pkFieldName:'instrumentPk'}},
+				{name:"<spring:message code="cax.rightsexercise.label.rightsname" htmlEscape="false"/>", field:"rightsName", id:"rightsName", width:300, sortable: true},
+                {name:"<spring:message code="cax.alternate.label.rights" htmlEscape="false"/>", field:"alternateSecurity", id:"alternateSecurity", width:220, sortable: true },
+                {name:"<spring:message code="cax.rightsexercise.label.fullypaidsecuritycode" htmlEscape="false"/>", field:"fullyPaidSecurityCode", id:"fullyPaidSecurityCode", width:140, sortable: true,
+				formatter:Slick.Formatters.InstrumentDetailViewFormaterOptions, instrumentDetailOptions:{pkFieldName:'allottedInstrumentPk'}},
+                {name:"<spring:message code="cax.rightsexercise.label.fullypaidsecurityname" htmlEscape="false"/>", field:"fullyPaidSecurityName", id:"fullyPaidSecurityName", width:300, sortable: true},
+                {name:"<spring:message code="cax.alternate.label.fullypaidsecurity" htmlEscape="false"/>", field:"alternateAllottedSecurity", id:"alternateAllottedSecurity", width:160, sortable: true },
+               	//{name:"<spring:message code="cax.rightsexercise.label.total" htmlEscape="false"/>", field:"totalRightsStr", id:"totalRightsStr", width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.exercisedquantity" htmlEscape="false"/>", field:"exerciseQuantityStr", id:"exerciseQuantityStr",cssClass: 'xenos-grid-number', width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.fullypaidshare" htmlEscape="false"/>", field:"fullyPaidShareStr", id:"fullyPaidShareStr",cssClass: 'xenos-grid-number', width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.subscriptioncost" htmlEscape="false"/>", field:"totalSubscriptionCostStr", id:"totalSubscriptionCostStr",cssClass: 'xenos-grid-number', width:250, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.availablerightsquantity" htmlEscape="false"/>", field:"availableRightsStr", id:"availableRightsStr",cssClass: 'xenos-grid-number', width:170, sortable: true},
+				//{name:"<spring:message code="cax.rightsexercise.label.exercisingquantity" htmlEscape="false"/>", field:"exercisingQuantityStr", id:"exercisingQuantityStr", width:150,cssClass: 'xenos-grid-number', sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.subscriptioncostpershare" htmlEscape="false"/>", field:"subscriptionCostPerShare", id:"subscriptionCostPerShare",cssClass: 'xenos-grid-number', width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.exercisedate" htmlEscape="false"/>", field:"exerciseDateStr", id:"exerciseDateStr", width:120, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.deadlinedate" htmlEscape="false"/>", field:"deadlineDateStr", id:"deadlineDateStr", width:120, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.expirydate" htmlEscape="false"/>", field:"expiryDateStr", id:"expiryDateStr", width:120, sortable: true},
+				{name:"<spring:message code="cax.rightscondition.label.paymentDate.newshare" htmlEscape="false"/>", field:"paymentDateStr", id:"paymentDateStr", width:160, sortable: true},
+				{name:"<spring:message code="cax.rightscondition.label.paymentDate.takeup" htmlEscape="false"/>", field:"paymentDateCashStr", id:"paymentDateCashStr", width:160, sortable: true},
+				{name:"<spring:message code="cax.rightsdetail.label.availabledate" htmlEscape="false"/>", field:"availableDateStr", id:"availableDateStr", width:120, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.exerciseFinalize" htmlEscape="false"/>", field:"exerciseFinalizeFlag", id:"exerciseFinalizeFlag", width:70, sortable: false},
+				{name:"<spring:message code="cax.rightsexercise.label.expiryQty" htmlEscape="false"/>", field:"expiryQuantityStr", id:"expiryQuantityStr", width:150, sortable: true},
+				{name:"<spring:message code="cax.rightsexercise.label.status" htmlEscape="false"/>", field:"status", id:"status", width:120, sortable: true, formatter:Slick.Formatters.CancelRecordFormatter}
+				
+				];
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:true,
+				consolidateAttribute:{type:'check'},
+				emptyColumnCheck : false,
+				buttons: {
+					print:true,	
+					xls:true,	
+					xlsPref:true,
+					pdf:true,					
+					columnPicker:true,
+					save:true					
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					url: '/secure/cax/exercise/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/cax/exercise/query/result.json?fetch=next',
+					prevPage : '/secure/cax/exercise/query/result.json?fetch=previous',
+					pdfReport: '/secure/cax/exercise/query/report.json?outputType=pdf',
+					xlsReport: '/secure/cax/exercise/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/cax/exercise/query/reportPref.json?outputType=xls'
+				},
+				events:{
+					onDataUpdate : function(data,callback){
+						for(i in data.value){							
+							
+							
+							data.value[i].fundAccountNo= data.value[i].fundAccountPrefix + ";" + data.value[i].fundAccountNo;
+							data.value[i].rowId = i;
+							if(data.value[i].exerciseFinalizeFlag == "N"){
+							data.value[i].exerciseFinalizeFlag 	= "";											
+							}
+						}
+						callback(data);
+					}
+				},
+
+				defaultInvisibleColumns: ["fundAccountName","availableRightsStr","subscriptionCostPerShare","status"]		
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+			
+            <c:forEach items="${valueTobePopulated}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id 							= "xenos_" + row_id;
+				rec.rowId						= row_id-1;		
+				rec.fundPk 						= "<c:out value="${dl.fundPk}" />";	
+				rec.fundAccountPk 				= "<c:out value="${dl.fundAccountPk}" />";
+				rec.exerciseReferenceNo 		= "<c:out value="${dl.exerciseReferenceNo}" />";
+				rec.rightsExercisePk			= "<c:out value="${dl.rightsExercisePk}" />";
+				rec.fundCode 					= "<c:out value="${dl.fundCode}" />";
+				rec.fundName 					= "<c:out value="${dl.fundName}" />";
+				rec.fundAccountNo 				= "<c:out value="${dl.fundAccountPrefix};${dl.fundAccountNo}" />";
+				rec.fundAccountName 			= "<c:out value="${dl.fundAccountName}" />";
+				rec.rightsCode 					= "<c:out value="${dl.rightsCode}" />";
+				rec.rightsName 					= "<c:out value="${dl.rightsName}" />";
+				rec.alternateSecurity 			= "<c:out value="${dl.alternateSecurity}" />";
+				rec.fullyPaidSecurityCode 		= "<c:out value="${dl.fullyPaidSecurityCode}" />";
+				rec.fullyPaidSecurityName 		= "<c:out value="${dl.fullyPaidSecurityName}" />";
+				rec.alternateAllottedSecurity 	= "<c:out value="${dl.alternateAllottedSecurity}" />";
+				rec.totalRightsStr 				= "<c:out value="${dl.totalRightsStr}" />";
+				rec.exerciseQuantityStr 		= "<c:out value="${dl.exerciseQuantityStr}" />";
+				rec.fullyPaidShareStr 			= "<c:out value="${dl.fullyPaidShareStr}" />";
+				rec.totalSubscriptionCostStr 	= "<c:out value="${dl.totalSubscriptionCostStr}" />";
+				rec.availableRightsStr 			= "<c:out value="${dl.availableRightsStr}" />";
+				rec.exercisingQuantityStr 		= "<c:out value="${dl.exercisingQuantityStr}" />";
+				rec.subscriptionCostPerShare 	= "<c:out value="${dl.subscriptionCostPerShare}" />";
+				rec.exerciseDateStr 			= "<c:out value="${dl.exerciseDateStr}" />";
+				rec.deadlineDateStr 			= "<c:out value="${dl.deadlineDateStr}" />";
+				rec.expiryDateStr 				= "<c:out value="${dl.expiryDateStr}" />";
+				rec.paymentDateStr 				= "<c:out value="${dl.paymentDateStr}" />";
+				rec.paymentDateCashStr 			= "<c:out value="${dl.paymentDateCashStr}" />";
+				rec.availableDateStr 			= "<c:out value="${dl.availableDateStr}" />";
+				<c:if test="${fn:containsIgnoreCase(dl.exerciseFinalizeFlag, 'N')}">
+				rec.exerciseFinalizeFlag 		= "<c:out value="" />";
+				</c:if>
+				<c:if test="${fn:containsIgnoreCase(dl.exerciseFinalizeFlag, 'Y')}">	
+				rec.exerciseFinalizeFlag 		= "<c:out value="${dl.exerciseFinalizeFlag}" />";
+				</c:if>	
+				rec.expiryQuantityStr 			= "<c:out value="${dl.expiryQuantityStr}" />";
+				rec.status         				="<c:out value="${dl.status}" />";
+				rec.allottedInstrumentPk         ="<c:out value="${dl.allottedInstrumentPk}" />";
+				rec.instrumentPk				="<c:out value="${dl.instrumentPk}" />";				
+                grid_result_data.push(rec);
+				
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+
+	<div id="formActionArea">
+	<div class="left">
+	<div class="formBtnBlock">
+	<div class="btnWrapStyle submitBtn" id="addExerciseCancelBtnBlock">
+	<input tabindex="49" class="inputBtnStyle" id="submitCancelBtn" type="submit" value="Submit" />
+	</div>
+	<div class="btnWrapStyle resetBtn">
+	<input tabindex="50" class="inputBtnStyle" id="resetCancelBtn" type="button" value="Reset"/>
+	</div>
+	</div>
+	<div class="clear"></div>
+	</div>
+	<div class="clear"></div>
+	</div>
+	<div class="clear"></div>
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+			
+		xenos$onReady$Array.push(function() {
+        var scripts = [
+				{path: xenos.context.path + '/scripts/cax/xenos-cax-i18n_en.js', async: false},
+				{path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},
+                {path: xenos.context.path + '/scripts/cax/rightsExerciseCancel.js', async: false}
+          
+        ];
+			xenos.loadScript(scripts,{
+			ordered: true,
+ 			success: function() {
+			var context = $('#formContainer');
+			if(isRecordsPresent == 0){
+				$('#submitCancelBtn').attr("disabled",true);
+				$('#resetCancelBtn').attr("disabled",true);	
+				$('#addExerciseCancelBtnBlock',context).unbind('click');		
+				
+				}else{
+					$('#addExerciseCancelBtnBlock',context).unbind('click');
+					$('#addExerciseCancelBtnBlock',context).bind('click', xenos.ns.rightsExerciseCancel.submithandler);	
+					$('#resetCancelBtn',context).unbind('click');
+					$('#resetCancelBtn',context).bind('click', xenos.ns.rightsExerciseCancel.resethandler);			
+						
+					}										
+					
+				}
+		});			
+		});
+		</jsp:body>
+    </jsp:element>
+	</c:when>
+</c:choose>	
+	
+</jsp:root>

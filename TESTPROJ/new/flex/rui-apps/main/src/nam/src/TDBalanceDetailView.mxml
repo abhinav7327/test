@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*"
+	xmlns:flexlib="http://code.google.com/p/flexlib/"
+	xmlns:cntrls="com.nri.rui.core.controls.*"
+	xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"
+	layout="vertical" percentWidth="100" percentHeight ="100"
+	horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="init()">
+
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.utils.XenosPopupUtils;
+			import mx.core.UIComponent;
+			import mx.containers.TitleWindow;
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.controls.CheckBox;
+			import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+
+			import com.nri.rui.core.controls.XenosAlert;
+
+            [Bindable]
+            public var balanceTypeVal : String = "";
+            public var totalBalanceVal : String = "";
+            public var loadDateVal : String = "";
+            public var fundPkVal : String = "";
+            public var fundCodeVal : String = "";
+            public var securityIdVal : String = "";
+            public var baseCcyVal : String = "";
+            public var officeIdVal : String = "";
+            public var dataSourceVal : String = "";
+            
+            [Bindable]
+         	public var summaryResult:ArrayCollection = new ArrayCollection();
+        	public var emptyResult:ArrayCollection= new ArrayCollection();
+			private function init():void{
+ 				parseUrlString();
+ 				setColumnVisibleFlag();
+				var reqObj:Object=new Object();
+				reqObj.method = "submitQuery";
+				reqObj.queryMode = "balanceDetail";
+				reqObj.balanceType = balanceTypeVal;
+				reqObj.date = loadDateVal;
+				reqObj.fundCode = fundCodeVal;
+				reqObj.securityCode = securityIdVal;
+				reqObj.baseCcy = baseCcyVal;
+				reqObj.officeId = officeIdVal;
+				reqObj.dataSource = dataSourceVal;
+				TDBalanceDetailsDispatchRequest.request = reqObj;
+				TDBalanceDetailsDispatchRequest.send(); 
+			}
+
+          public function populateDetailViewSummaryPage(event:ResultEvent):void {
+            summaryResult = emptyResult;
+            var showNext:Boolean;
+            var showPrev:Boolean;
+            if (null != event) {
+                if(null == event.result.rows){
+                    if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+                        XenosAlert.info("Not any Result Found!");
+                    } else { // Must be error
+						//  errPage.displayError(event);
+                    }
+                }else {
+					// errPage.clearError(event);
+                    if(event.result.rows.row is ArrayCollection) {
+                        summaryResult = event.result.rows.row as ArrayCollection;
+                    } else {
+                        summaryResult = new ArrayCollection();
+                        summaryResult.addItem(event.result.rows.row);
+                    }
+				    if(event.result.rows.row != null){
+						// setPrevNextVisibility(Boolean(event.result.rows.prevTraversable),Boolean(event.result.rows.nextTraversable));
+				    }
+	            	else
+	                	XenosAlert.info("No records found matching the search criteria.");
+                }
+            }else {
+                summaryResult = new ArrayCollection();
+                XenosAlert.info("No records found matching the search criteria.");
+            }
+       }
+
+    public function parseUrlString():void {
+        try {
+            // Remove everything before the question mark, including
+            // the question mark.
+            var myPattern:RegExp = /.*\?/;
+            var s:String = this.loaderInfo.url.toString();
+            s = s.replace(myPattern, "");
+            // Create an Array of name=value Strings.
+            var params:Array = s.split("&");
+             // Print the params that are in the Array.
+            var keyStr:String;
+            var valueStr:String;
+            var paramObj:Object = params;
+
+            // Set the values of the salutation.
+            for (var i:int = 0; i < params.length; i++) {
+                var tempA:Array = params[i].split("=");
+                if (tempA[0] == "balanceType") {
+                    balanceTypeVal = tempA[1];
+                }
+                if (tempA[0] == "totalBalance") {
+                    totalBalanceVal = tempA[1];
+                    totalBalance.text = totalBalanceVal;
+                }
+                if (tempA[0] == "loadDate") {
+                    loadDateVal = tempA[1];
+                }
+                if (tempA[0] == "fundPk") {
+                    fundPkVal = tempA[1];
+                }
+                if (tempA[0] == "fundCode") {
+                    fundCodeVal = tempA[1];
+                }
+                if (tempA[0] == "securityId") {
+                    securityIdVal = tempA[1];
+                }
+                if (tempA[0] == "baseCcy") {
+                    baseCcyVal = tempA[1];
+                }
+                if (tempA[0] == "officeId") {
+                    officeIdVal = tempA[1];
+                }
+                if (tempA[0] == "dataSource") {
+                    dataSourceVal = tempA[1];
+                }
+            }
+        } catch (e:Error) {
+            trace(e);
+        }
+    }
+    /**
+    * To Show and hide columns for Future and Payable/Receivable Summary.
+    */
+     public function setColumnVisibleFlag():void
+    {
+    	if(null != dataSourceVal && dataSourceVal == "DRV")
+    	{
+    		ledgerCodeColumn.visible = false;
+    		ledgerDescColumn.visible = false;
+    		subLedgerCodeColumn.visible = false;
+    		buySellColumn.visible = true;
+    		tradeDateColumn.visible = true;
+    	}
+    	else
+    	{
+    		ledgerCodeColumn.visible = true;
+    		ledgerDescColumn.visible = true;
+    		subLedgerCodeColumn.visible = true;
+    		buySellColumn.visible = false;
+    		tradeDateColumn.visible = false;
+    	}
+    }
+    /**
+    * Retrieve and return the Instrument Name for dataTip.
+    */
+    private function getSecurityName(item:Object):String {
+        return item.instrumentName;
+    }
+    /**
+    * Retrieve and return the DRV Future Balance with FS as [-] indicator.
+    */
+    private function getBalance(item:Object,column : DataGridColumn):String{
+    	var balanceStr:String = item.dispBalance;
+    	if(null != dataSourceVal && dataSourceVal == "DRV")
+    	{
+    		if(item.buySellFlag == "FS"){
+                balanceStr = "[-]"+balanceStr;
+        	}
+    	}
+        return balanceStr;
+    } 
+		]]>
+	</mx:Script>
+
+    <cntrls:XenosHTTPService id="TDBalanceDetailsDispatchRequest"
+    	 url ="nam/tdBalanceDetailPopupQueryDispatch.action"
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+         result="populateDetailViewSummaryPage(event)"
+         showBusyCursor="true"/>
+
+   <mx:VBox width="100%" height="100%">
+        <!-- The TDBalance Payable/Receivable/DRV Future Balance Detail Popup Result Page Layout -->
+
+        <mx:VBox  id="resultPnl" width="100%" height="100%" verticalGap="0" horizontalAlign="right" label="{this.parentApplication.xResourceManager.getKeyValue('inf.header.queryresultsummary')}">
+
+             <mx:DataGrid id="interfaceSummary" width="100%" height="100%" dataProvider="{summaryResult}"
+                 horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+                <mx:columns>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.fundcode')}" dataField="fundCode" width="80"  itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.securitycode')}" dataField="securityId" width="100"  dataTipFunction="getSecurityName" showDataTips="true" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer"/>
+	               <mx:DataGridColumn id="ledgerCodeColumn" headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.ledgercode')}" width="120" dataField="ledgerCode"/>
+	               <mx:DataGridColumn id="subLedgerCodeColumn" headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.subledgercode')}" width="120" dataField="subLedgerCode"/>
+				   <mx:DataGridColumn id="ledgerDescColumn" headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.ledgerdescription')}" width="120" dataField="ledgerDesc"/>
+				   <mx:DataGridColumn id="buySellColumn" headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.buysellflag')}" width="120" dataField="buySellFlag"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.issuecurrency')}" dataField="issueCurrency" width="100" />
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.officeid')}" dataField="officeId" width="70" />
+				   <mx:DataGridColumn id="tradeDateColumn" headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.tradedate')}" width="120" dataField="tradeDate"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('tdb.label.balance')}" dataField="dispBalance" labelFunction="getBalance" width="125" textAlign="right" resizable="true" visible="true" />
+                 </mx:columns>
+            </mx:DataGrid>
+            <mx:HBox width="100%" horizontalAlign="right">
+            	<mx:Grid verticalGap="0" horizontalGap="0" horizontalAlign="right" width="100%">
+					<mx:GridRow horizontalAlign="right" width="100%">
+						<mx:GridItem width="100%" styleName="LabelBgColor" horizontalAlign="right">
+							<mx:Label text="{balanceTypeVal} {this.parentApplication.xResourceManager.getKeyValue('tdb.label.balance')}" styleName="FormLabelHeading"/>
+						</mx:GridItem>
+						<mx:GridItem width="140" styleName="LabelBgColor" horizontalAlign="right">
+							<mx:Label id="totalBalance"/>
+						</mx:GridItem>
+					</mx:GridRow>
+			   </mx:Grid>
+           </mx:HBox>
+        </mx:VBox >
+
+  </mx:VBox>
+</mx:Module>

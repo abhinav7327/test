@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<containers:XenosQueryModule xmlns:mx="http://www.adobe.com/2006/mxml" 
+	                         xmlns:containers="com.nri.rui.core.containers.*" 
+	                         xmlns:frmtrs="com.nri.rui.core.formatters.*" 
+	                         xmlns:flexlib="http://code.google.com/p/flexlib/" 
+	                         xmlns:cntrls="com.nri.rui.core.controls.*" 
+	                         xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+	                         xmlns:valdtrs="com.nri.rui.core.validators.*" 
+	                         layout="vertical" percentWidth="100" percentHeight ="100" 
+	                         horizontalScrollPolicy="off" verticalScrollPolicy="off" >
+		   
+		<mx:Script>
+		   <![CDATA[
+			import com.nri.rui.core.controls.XenosAlert;
+			import mx.controls.Label;
+		    import com.nri.rui.core.utils.XenosStringUtils;		    
+		    import mx.events.DataGridEvent;
+		    import mx.utils.ObjectUtil;
+		    import flash.events.Event;
+		    import mx.controls.dataGridClasses.DataGridColumn;
+		    
+		   	
+		 /**
+		  * This method should be called on creationComplete of the datagrid 
+		  */ 
+			 private function bindDataGrid():void {
+			 	qh.invalidateDisplayList();
+				qh.dgrid = batchExecutionStatusQueryResult;
+				}
+		       
+	         /**
+		  	  * Set Item Renderer to the Document Id firld of Table
+		  	  */			
+			  private function changeCurrentStates():void{
+					currentState = "result";
+					app.submitButtonInstance= null;
+			
+			 } 
+			/**
+ 			*  datagrid header release event handler to handle datagridcolumn sorting
+ 			*/
+		   public function dataGrid_headerRelease(evt:DataGridEvent):void {				
+				var dg:CustomDataGrid = CustomDataGrid(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];		
+			}
+			]]>
+	</mx:Script>
+	
+	<mx:Script source="actionscripts/BatchExecutionStatusQuery.as"/>
+	
+	
+	<containers:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+        	<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </containers:states>
+    
+    
+    
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>               
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions> 
+    	
+	  <mx:VBox width="100%" verticalGap="0" horizontalGap="0">    
+	    <mx:HBox width="100%" styleName="ExCoBgPanel">
+	    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance=submit;" />    	
+	    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result';app.submitButtonInstance= null;" />
+	    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres';app.submitButtonInstance = submit;"/>    	
+	    </mx:HBox>
+	    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+	   </mx:VBox>	
+	              
+            
+            			              
+	
+	<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">    
+        <mx:VBox width="100%" height="100%">
+            <mx:HDividedBox id="hdbox1" width="100%" height="100%" liveDragging="true" styleName="Padding4" creationComplete="loadAll()" >
+        		<mx:VBox label="Query Criteria" width="100%" height="100%" id="qry" styleName="HDivideStyle" >
+        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+        			
+        			     <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+        			            <mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+        			                <mx:Grid width="100%" borderThickness="0">
+        			  
+        			                    <!-- Batch Name & Execution Date -->
+                                        <mx:GridRow width="100%">
+        			                    <mx:GridItem width="20%" borderThickness="0">
+                            	             <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionStatusQuery.batch.name')}" />
+                        	            </mx:GridItem>                        	                
+                        	            <mx:GridItem width="30%" borderThickness="0">
+                            	             <mx:ComboBox id="batchName" labelField="label" prompt="Select" itemRenderer="mx.controls.Label" dataProvider="{batchNameList} "/>
+                       	                </mx:GridItem> 
+                       	                                          	    
+                       	                <mx:GridItem width="20%" borderThickness="0">
+							                 <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionStatusQuery.execution.date')}"/>
+								        </mx:GridItem>								           
+							            <mx:GridItem width="30%" borderThickness="0"  paddingLeft="0">  
+							                 <mx:DateField id="executionDate" formatString="YYYYMMDD" editable="true" restrict="0-9" width="90"/>							
+							            </mx:GridItem>
+							            </mx:GridRow>
+														
+										<!-- Fund Code & User ID -->
+			                            <mx:GridRow width="100%">                          
+			                            <mx:GridItem width="20%" borderThickness="0">
+				                             <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionStatusQuery.fund.code')}" />
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%" borderThickness="0">
+				                             <xenospopup:FundPopUpHbox id="fundPopUp"/>
+				                       	 </mx:GridItem>  
+				                       	 
+			                             <mx:GridItem width="20%" borderThickness="0">
+					                          <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionStatusQuery.user.id')}" />
+					                     </mx:GridItem>
+					                     <mx:GridItem width="30%" borderThickness="0">
+					                          <mx:TextInput id="userId" text="" maxChars="16" width="90" restrict="{Globals.INPUT_PATTERN}"/>
+					                     </mx:GridItem>		                        
+			                             </mx:GridRow> 
+                            
+			                            <!-- Execution Status & Error Status Only -->
+			                            <mx:GridRow width="100%">
+			        			        <mx:GridItem width="20%" borderThickness="0">
+			                            	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionStatusQuery.execution.status')}" />
+			                        	</mx:GridItem>
+			                        	<mx:GridItem width="30%" borderThickness="0">
+			                            	<mx:ComboBox id="executionStatus" labelField="label" prompt="Select" itemRenderer="mx.controls.Label" dataProvider="{executionStatusList} "/>
+			                       	    </mx:GridItem>    
+			                       	    
+			                       	    <mx:GridItem width="20%" borderThickness="0">
+										   <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionStatusQuery.error.status.only')}"/>
+										</mx:GridItem>
+										<mx:GridItem width="30%" borderThickness="0"  paddingLeft="0">  
+										   <mx:CheckBox id="errorStatusOnly" width="50"/>							
+										</mx:GridItem>
+										</mx:GridRow> 
+							
+							       </mx:Grid> 
+							
+					    <mx:HBox width="100%" styleName="ButtonBackPanel">	
+					            <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="this.dispatchEvent(new Event('querySubmit'))" />
+                                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="this.dispatchEvent(new Event('queryReset'))" />		
+        			    </mx:HBox>
+        		  </mx:VBox>  
+        		
+        		
+        		<mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >
+        		  <mx:VBox id="hb2" width="100%" height="100%">
+        			 <cntrls:QueryResultHeader id="qh" printFunction="dispatchPrintEvent" pdfFunction="dispatchPdfEvent" xlsFunction="dispatchXlsEvent" previousFunction="dispatchPrevEvent" nextFunction="dispatchNextEvent" /> 
+			         <cntrls:CustomDataGrid id="batchExecutionStatusQueryResult" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()" editable="false" headerRelease="dataGrid_headerRelease(event)" > 
+                      <cntrls:columns> 					    	            					            				
+	            				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionStatusQuery.result.label.executionId')}" width="150" dataField="executionId" textAlign="right"  itemRenderer="com.nri.rui.ref.renderers.BatchExecutionQueryResultRenderer" sortCompareFunction="sortUtil.sortNumeric" />                           
+	                            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionStatusQuery.result.label.batchName')}"  width="250" dataField="batchName" textAlign="left"  /> 
+	                            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionStatusQuery.result.label.executionDate')}"  width="110" dataField="executionDateStr" textAlign="left" />                            
+	                            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionStatusQuery.result.label.fundCode')}"  width="100" dataField="fundCode" textAlign="left" />
+	                            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionStatusQuery.result.label.userId')}" width="100" dataField="userId" textAlign="left" />	                            	                            
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionStatusQuery.result.label.executionStatus')}"  width="250" dataField="executionStatus" textAlign="left" />                             
+	                            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionStatusQuery.result.label.startTime')}" width="180" dataField="startTimeStr" textAlign="left" />
+	                            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionStatusQuery.result.label.endTime')}"  width="200" dataField="endTimeStr" textAlign="left" /> 
+	                            </cntrls:columns>                 
+	       			  </cntrls:CustomDataGrid>
+        		 </mx:VBox>
+        		
+        		 <mx:HBox id="hb3" width="100%" includeInLayout="false" horizontalAlign="center" visible="false" height="25" styleName="ButtonBackPanel">
+	    	            <mx:Label id="noRcrdFnd" text="{this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult')}" textAlign="center" fontSize="12" />
+	             </mx:HBox>
+		      </mx:VBox>
+        		       		
+        	</mx:HDividedBox>
+    	</mx:VBox>
+	</mx:Canvas>	
+</containers:XenosQueryModule>

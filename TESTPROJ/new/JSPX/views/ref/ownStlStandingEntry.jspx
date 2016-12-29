@@ -1,0 +1,944 @@
+<!--$Id$-->
+<!--$Author: rameezr $-->
+<!--$Date: 2016-12-26 17:01:08 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles"
+     xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:util="urn:jsptagdir:/WEB-INF/tags/util">
+	 
+<div id="formContainer" class="entryContainer paddingFour">
+    
+     <c:if test="${success =='false'}">
+     
+        <ul class="xenosError">
+            <c:forEach items="${value}" var="dl">       
+            <li><spring:message text="${dl}" htmlEscape="false"/></li>  
+            </c:forEach>
+        </ul>   
+    </c:if> 
+	    <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/inf/utilCommons.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		            var xenos$Wizard$onPageLoad${commandForm.uniqueId}  = function($xenos$Wizard){ 
+					        
+							
+					        var pageLoaded = "false";
+							var context = $xenos$Wizard.$context;
+							var isNextPageConfirm = "<c:out value="${commandForm.nextPageConfirm}" />";
+							var viewPage = "<c:out value="${commandForm.viewPage}" />";
+							if(isNextPageConfirm!="true"){
+							    
+							     if(viewPage!="submit"){ 
+								$('#counterPartyTypeList',context).val("");
+								$('#counterPartyCodeEntry',context).val("");
+								 } 
+								
+							}
+							
+							var actionType = "<c:out value="${commandForm.actionType}" />";
+							
+							if(actionType=="ADD"){
+							     onChangeSettlementForOwnSSI();
+								 cntrPrtyChng();
+								 $xenos$Wizard.apply({ 	  
+													  navigations : {
+														backHandler : 'backToQuerySummary'
+													  }
+							});
+							}else{$xenos$Wizard.apply({keepOldState : true
+													});
+							
+							}
+							var diffCashForAgainst = $("#diffCashForAgainst", context).val();
+
+								
+							    if(diffCashForAgainst=="Y"){
+								    
+								    $('#cashForAgainst',context).attr("checked",true);
+									$('#priority', context).attr("disabled", false);
+									$("#cashDetails",context).show();
+									handleExistingRuleId();
+
+								}else{
+								    
+								    $('#cashForAgainst',context).attr("checked",false);
+									if(('#cashSecurityFlag', context).val() == "SECURITY"){
+										$('#priority', context).attr("disabled", true);
+									}
+									$("#cashDetails",context).hide();
+								}
+							
+ 								
+							if($.trim(actionType) == "amend"){ 
+							    
+							    ownSsiRulePk = "<c:out value="${commandForm.ownStandingRule.ownSettleStandingRulePk}" />";
+								dfltOwnSsiRule = "<c:out value="${commandForm.ownStandingRule.defaultOwnSsiRule}" />";
+								
+								existingRuleId = "<c:out value="${commandForm.existingRuleId}" />";
+								
+								if(dfltOwnSsiRule == "true"){
+								   $("#settlementBank",context).attr("readonly","true");
+								   $("#settlementBank",context).attr("style", "background-color:lightgrey");
+								   $(".ownStlBank",context).hide();
+								   $("#settlementAccount",context).attr("readonly","true");
+								   $("#settlementAccount",context).attr("style", "background-color:lightgrey");
+								   $(".ownStlAccount",context).hide();
+								   $("#priority",context).attr("disabled",true);
+								}else{
+								   $("#settlementAccount",context).attr("readonly",true);
+                                   $("#settlementAccount",context).attr("style", "background-color:lightgrey");								   
+								}
+						
+							} 
+
+							
+							
+							
+							function showHideCashDetails(e){
+							    
+				
+								var cashForAgainst = $("#cashForAgainst", context).is(":checked");
+								
+							    if($("#cashForAgainst", context).is(":checked")){
+								    
+								    $('#diffCashForAgainst',context).val("Y");
+									$("#cashDetails",context).show();
+									handleExistingRuleId();
+								}else{
+								    $('#diffCashForAgainst',context).val("N");
+								    
+									$("#cashDetails",context).hide();
+									resetDiffCashForm();
+									
+								}
+								
+								
+								
+							}
+						
+						    function resetDiffCashForm(){
+								$('#existingRuleId',context).val("");
+								$('#hiddenCashSettlementMode',context).val("EXTERNAL")
+								$('#hiddenCashSettlementMode',context).attr("disabled",true);
+								$('#cashSettlementMode',context).attr("disabled",false);
+								$('#cashSettlementMode',context).val("EXTERNAL");
+								$('#hiddenCashPriority',context).val("1");
+								$('#hiddenCashPriority',context).attr("disabled",true);
+								$('#cashPriority',context).removeAttr("disabled");
+								$('#cashPriority',context).val("1");
+								$('#cashSettlementBank',context).attr("readonly",false);
+								$('#cashSettlementBank',context).removeAttr("style");
+								$('#cashSettlementBank',context).val("");
+								$('#cashSettlementAccount',context).attr("readonly",false);
+								$('#cashSettlementAccount',context).removeAttr("style");
+								$('#cashSettlementAccount',context).val("");
+								$('.cashBankPop',context).show();
+								$('.cashStlAcPop',context).show();
+							}
+
+							function onChangeInxReqrd(){
+							    
+								if($('#instructionReqd',context).val()=='N'){
+									$('#autoTransmissionFlag',context).val("N");
+									$('#autoTransmissionFlag',context).attr("disabled",true);
+								}
+								if($('#instructionReqd',context).val()=='Y'){
+								    
+									if(actionType=="ADD"){
+									    var selectedVal = $('#settlementFor', context).val();
+										
+									    if(selectedVal == "SECURITY_TRADE" <![CDATA[||]]> selectedVal =="SLR_TRADE" <![CDATA[||]]> selectedVal == "SLR_INTEREST" ){
+										    
+										    $('#autoTransmissionFlag',context).attr("disabled",false);
+											$('#autoTransmissionFlag',context).val("${commandForm.ownStandingRule.autoTransmissionFlag}");
+										    
+										}else{
+										    $('#autoTransmissionFlag',context).val("N");
+									        $('#autoTransmissionFlag',context).attr("disabled",true);
+										}
+									}else{
+									    var selectedVal = $('#settlementFor', context).val();
+										if(selectedVal == "SECURITY_TRADE" <![CDATA[||]]> selectedVal =="SLR_TRADE" <![CDATA[||]]> selectedVal == "SLR_INTEREST" ){
+										    $('#autoTransmissionFlag',context).attr("disabled",false);
+										}else{
+										    $('#autoTransmissionFlag',context).val("N");
+									        $('#autoTransmissionFlag',context).attr("disabled",true);
+										}
+									}
+								}
+								
+							}
+							
+							function onChangeCashSecurityFlag(){ 
+							    
+								if($.trim($('#cashSecurityFlag',context).val())=='CASH'){
+								    
+								    $("#cashDetails",context).hide();
+									$("#cashForAgainst", context).attr("checked",false);
+								    $('#cashForAgainst',context).attr("disabled",true);
+									
+								    resetDiffCashForm();
+									pageLoaded="true";
+								}else{
+								    
+									$("#cashForAgainst",context).attr("disabled",false);
+									if(actionType=="ADD" <![CDATA[&&]]> pageLoaded == "false" <![CDATA[&&]]> isNextPageConfirm == "false" <![CDATA[&&]]> viewPage != "submit" ){
+									   $('#counterPartyTypeList',context).val("BROKER");
+									}
+									pageLoaded="true";
+									
+									
+								}
+								
+				            }
+							
+							function handleExistingRuleId(){ 
+							   
+							    
+								if($.trim($('#existingRuleId',context).val()) != ""){ 
+								   
+									$('#existingRuleId',context).attr("readonly",true);
+									$("#existingRuleId",context).attr("style", "background-color:lightgrey");
+					                $('#hiddenCashPriority',context).attr("disabled", false);
+					                $('#hiddenCashPriority',context).val($('#cashPriority',context).val());
+									$('#cashPriority',context).attr("disabled",true);
+									
+									$('#cashSettlementBank',context).attr("readonly",true);
+									$("#cashSettlementBank",context).attr("style", "background-color:lightgrey");
+									$('#cashSettlementAccount',context).attr("readonly",true);
+								    $("#cashSettlementAccount",context).attr("style", "background-color:lightgrey");
+									
+									$('.cashBankPop',context).hide();
+									$('.cashStlAcPop',context).hide(); 
+									if(isNextPageConfirm=="true"){
+									    $('#cashSettlementMode',context).attr("disabled",true);
+									}else{
+									    if(viewPage=="submit"){
+										   $('#cashSettlementMode',context).attr("disabled",true);
+										}else{
+										   $('#hiddenCashSettlementMode',context).attr("disabled",true);
+										}
+									}
+									
+								}else{ 
+								    
+
+									$('#hiddenCashPriority',context).attr("disabled", true);
+									$('#hiddenCashSettlementMode',context).attr("disabled",true);
+									$('#cashPriority',context).removeAttr("disabled");
+									$('#cashSettlementBank',context).attr("readonly",false);
+									$("#cashSettlementBank",context).removeAttr("style");
+									$('#cashSettlementAccount',context).attr("readonly",false);
+									$("#cashSettlementAccount",context).removeAttr("style");
+									$('.cashBankPop',context).show();
+									$('.cashStlAcPop',context).show();
+								}
+
+						    }
+							
+							var myUnloadHook = function(){
+								$xenos$Wizard.deregister('submit',myValidateHook);
+								$xenos$Wizard.deregister('unload',myUnloadHook);
+							}
+
+							var myValidateHook = function() {
+							    
+								var validationMessages = [];
+								if(VALIDATOR.isNullValue($.trim($('#fundCode',context).val()))){
+									validationMessages.push(xenos$REF$i18n.ref.ownsettlestanding.alert.validator.entry.fundcode);
+								}
+								
+								if(VALIDATOR.isNullValue($.trim($('#settlementFor',context).val()))){
+									validationMessages.push(xenos$REF$i18n.ref.ownsettlestanding.alert.validator.entry.settlementfor);
+								}
+
+								if(VALIDATOR.isNullValue($.trim($('#cashSecurityFlag',context).val()))){
+								    validationMessages.push(xenos$REF$i18n.ref.ownsettlestanding.alert.validator.entry.cashsecurityflag);
+								}else{
+								    
+								    if($('#cashSecurityFlag',context).is(':disabled')){
+										
+										$('#hiddenCashSecurityFlag').removeAttr("disabled");
+										$('#hiddenCashSecurityFlag').val("CASH");
+										
+									}
+								}
+								    
+									
+								
+								
+								if(VALIDATOR.isNullValue($.trim($('#settlementMode',context).val()))){
+									validationMessages.push(xenos$REF$i18n.ref.ownsettlestanding.alert.validator.entry.settlemode);
+								}
+								
+								if(VALIDATOR.isNullValue($.trim($('#settlementBank',context).val()))){
+									validationMessages.push(xenos$REF$i18n.ref.ownsettlestanding.alert.validator.entry.settlebank);
+								}
+								
+								if(VALIDATOR.isNullValue($.trim($('#settlementAccount',context).val()))){
+									validationMessages.push(xenos$REF$i18n.ref.ownsettlestanding.alert.validator.entry.settleaccount);
+								}
+								
+								if($('#cashForAgainst',context).is(":checked")){
+									if(VALIDATOR.isNullValue($.trim($('#cashSettlementMode',context).val()))){
+										validationMessages.push(xenos$REF$i18n.ref.ownsettlestanding.alert.validator.entry.cashsettlemode);
+									}
+									
+									if(VALIDATOR.isNullValue($.trim($('#cashSettlementBank',context).val()))){
+										validationMessages.push(xenos$REF$i18n.ref.ownsettlestanding.alert.validator.entry.cashsettlebank);
+									}
+									
+									if(VALIDATOR.isNullValue($.trim($('#cashSettlementAccount',context).val()))){
+										validationMessages.push(xenos$REF$i18n.ref.ownsettlestanding.alert.validator.entry.cashsettleaccount);
+									}
+								}
+								
+								if ( validationMessages.length >0)
+								{               
+									 $('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+									 return false;
+								}else{
+								     $('#hiddenInstructionRequired',context).val($('#instructionReqd',context).val());
+								     return true;
+								}
+								
+								
+								
+							}
+							$xenos$Wizard.register('submit',myValidateHook);
+							$xenos$Wizard.register('unload',myUnloadHook);
+							
+							
+							
+							function settlementBankChange(e){
+							        
+									if($("#settlementBank",context).attr("readonly")!="readonly"){
+									     var xenos$Handler$ldOwnStlBank = xenos$Handler$function({
+											get : {
+												requestType : xenos$Handler$default.requestType.asynchronous,
+												contentType : 'json'
+											},
+											settings : {
+												beforeSend : function(request) {
+													request.setRequestHeader('Accept', 'application/json;type=ajax');
+												},
+												type: 'POST'
+											}
+										});
+										var $target = $(this);
+										var uri = xenos.context.path;
+
+										uri += "/secure/ref/ownStlStanding/loadSettlementBank";
+
+										
+										var commandFormId = '?commandFormId=' + $('[name=commandFormId]').val();
+										var fragmentName = '&amp;fragments=content';
+										
+										var requestUrl = xenos.context.path + context.find('form').attr('action') + "/loadSettlementBank.json"+commandFormId+fragmentName;
+										
+										
+										var container = $("#content");
+										
+										
+										
+										
+										var reqObj= {"ownStandingRule.settlementBank" : $('#settlementBank').val()};
+										
+										 xenos$Handler$ldOwnStlBank.generic(e,
+																			 {
+																				requestUri : requestUrl,
+																				settings: {
+																					data : reqObj
+																				},
+																				
+																				onJsonContent : function(e, options, $target, content) {
+																						
+																						
+																						 if (content.success == false) {
+																							var msg = [];
+																								$("#settlementAccount",context).val("");
+																							$.each(content.value, function(index, value) {
+																								//console.log(index+"  "+value);
+																										msg.push(value);
+																							});
+																							xenos.postNotice(xenos.notice.type.error, msg, true);
+																						} else {
+																							if(content.value[0].ownStandingRule.multipleSettlActPresent) {
+																								var msg = [];
+																								var tempArr = [];
+																								$("#settlementAccount",context).val("");
+																								tempArr.push(content.value[0].ownStandingRule.settlementBank);
+																								msg.push(xenos.utils.evaluateMessage(xenos$REF$i18n.ref.ownssirule.msg.info.multiplestlacc,tempArr));
+																								xenos.postNotice(xenos.notice.type.warning, msg, true);
+																							} else {
+																								$("#settlementAccount",context).val(content.value[0].ownStandingRule.settlementAccount);
+																							}
+																							
+																						} 
+																						
+																				}																	 
+																			}
+																		);
+										
+										
+									
+									}
+							}
+							
+							 function checkStlBank(e) {
+								var bankName = $('#settlementBank').val();
+								if(bankName==""||bankName==null) {
+									xenos.postNotice(xenos.notice.type.warning, "Please specify the Settlement Bank", true);
+									return false;
+								} else {
+									$('.stlAccount').attr('finInstCode',$('#settlementBank', context).val());
+								} 
+							} 
+							 function checkCashStlBank(e) {
+								var bankName = $('#cashSettlementBank').val();
+								if(bankName==""||bankName==null) {
+									xenos.postNotice(xenos.notice.type.warning, "Please specify the Cash Settlement Bank", true);
+									return false;
+								} else {
+									$('.cashStlAc').attr('finInstCode',$('#cashSettlementBank', context).val());
+								} 
+							}
+							function cntrPrtyChng() {
+							    
+							   
+								if($('#counterPartyTypeList').val()=='BROKER') {
+									$('#counterPartyCodeEntry').show();
+									$('#finInstRoleTypePop').show();
+								} else {
+									$('#finInstRoleTypePop').hide();
+									$('#counterPartyCodeEntry').hide();
+								}
+							}	
+                               
+						  
+							
+                            function onChangeSettlementForOwnSSI(){
+							   
+							    var selectedVal = $('#settlementFor', context).val();
+								if(selectedVal == "SECURITY_TRADE" <![CDATA[||]]> selectedVal =="SLR_TRADE" <![CDATA[||]]> selectedVal == "CORPORATE_ACTION" ){
+								   onChangeCashSecurityFlag();
+								   $('#cashSecurityFlag',context).attr("disabled",false);
+								   $('#autoTransmissionFlag',context).attr("disabled",false);
+								}else{
+								   $('#cashSecurityFlag',context).val("CASH");
+								   $('#cashSecurityFlag',context).attr("disabled",true);
+								   onChangeCashSecurityFlag();
+								   $('#autoTransmissionFlag',context).val("N");
+								   $('#autoTransmissionFlag',context).attr("disabled",true);
+								}
+								if(selectedVal == "SECURITY_TRADE" <![CDATA[||]]> selectedVal =="SLR_TRADE" <![CDATA[||]]> selectedVal == "SLR_INTEREST" ){
+								   $('#autoTransmissionFlag',context).attr("disabled",false);
+								}else{
+								   $('#autoTransmissionFlag',context).val("N");
+								   $('#autoTransmissionFlag',context).attr("disabled",true);
+								}
+								if(selectedVal == "DERIVATIVE_TRADE"){
+								   onChangeCashSecurityFlag();
+								   $('#cashSecurityFlag',context).attr("disabled",false);
+								}else{
+								   $('#autoTransmissionFlag',context).val("N");
+								   $('#autoTransmissionFlag',context).attr("disabled",true);
+								}
+							}
+							function handleRuleAfterEtryFromPopup(){
+										
+								$('#cashSettlementBank',context).attr("readonly",true);
+								$('#cashSettlementBank',context).attr("style","background-color:lightgrey");
+								$('#cashSettlementAccount',context).attr("readonly",true);
+								$('#cashSettlementAccount',context).attr("style","background-color:lightgrey");
+								$('#hiddenCashPriority',context).attr("disabled",false);
+								
+								$('#hiddenCashPriority',context).val($('#cashPriority',context).val());
+								$('#cashPriority',context).attr("disabled",true);
+								
+								$('#hiddenCashSettlementMode',context).attr("disabled",false);
+								$('#hiddenCashSettlementMode',context).val($('#cashSettlementMode',context).val());
+                               
+								$('#cashSettlementMode',context).attr("disabled",true);
+								$('.cashBankPop',context).hide();
+								$('.cashStlAcPop',context).hide();
+								
+								
+							}							
+							xenos.ns.filterHiddenTgt.filterHiddenTargetFieldId = function(row, tgt ) {
+				
+								if(tgt.attr("tgt") === "existingRuleId"){
+
+										$('#existingRuleId',context).val(row.own_settle_standing_rule_pk);
+										$('#cashSettlementBank',context).val(row.settlement_bank);
+										$('#cashSettlementAccount',context).val(row.settlement_account);
+										$('#cashPriority',context).val(row.priority);
+										$('#cashSettlementMode',context).val(row.settlement_mode);
+										
+										$('#existingRuleId',context).trigger('custom',handleRuleAfterEtryFromPopup);
+								}
+
+				
+							}
+ 					
+							$('#settlementBank',context).unbind('change').bind('change', settlementBankChange);
+							$('#cashSecurityFlag',context).unbind('change');
+						    $('#cashSecurityFlag',context).bind('change',onChangeCashSecurityFlag).trigger('change');
+						    $('#cashForAgainst',context).unbind('change');
+						    $('#cashForAgainst',context).bind('change', showHideCashDetails).trigger('change');
+							$('#instructionReqd',context).unbind('change');
+						    $('#instructionReqd',context).bind('change',onChangeInxReqrd).trigger('change');
+							$('#existingRuleId',context).off('change');
+				            $('#existingRuleId',context).on('change',handleExistingRuleId);
+							$('#existingRuleId',context).off('custom');
+				            $('#existingRuleId',context).on('custom',handleRuleAfterEtryFromPopup);
+							$('.stlAccount',context).unbind('click');
+							$('.stlAccount',context).bind('click',checkStlBank);
+							$('.cashStlAc',context).unbind('click');
+							$('.cashStlAc',context).bind('click',checkCashStlBank);
+							$('.deleteBtn',context).bind('click',resetDiffCashForm);
+							$('#counterPartyTypeList',context).unbind('change',cntrPrtyChng);
+							$('#counterPartyTypeList',context).bind('change',cntrPrtyChng).trigger('change');
+							$('#settlementFor', context).unbind('change',onChangeSettlementForOwnSSI);
+							$('#settlementFor', context).bind('change',onChangeSettlementForOwnSSI);
+							
+							
+
+					}
+			
+			
+		</jsp:body>
+    </jsp:element>
+	
+	
+	<c:if test = "${commandForm.actionType == 'ADD'}">
+	      <div class="entryBlkArea">
+			<div class="formItemBlock dottedBg">
+				<span id="modeOfOperation" style="display:none;">${commandForm.actionType}</span>
+         			 <div class="formItem">
+						<form:label class = "required" path="commandForm.ownStandingRule.fundCode"><spring:message code="ref.fund.label.fundcode" htmlEscape="false"/></form:label>
+						<span><form:input id="fundCode" path="commandForm.ownStandingRule.fundCode" class="textBox" /></span>			
+						<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="fundCode" popType="fundCode" value=""/></div>
+					 </div>	
+					 <div class="formItem">
+						<form:label path="commandForm.ownStandingRule.inventoryAccount"><spring:message code="ref.fund.label.fundAccount" htmlEscape="false"/></form:label>
+						<util:xenospopup id="inventoryAccountNoId" path="commandForm.ownStandingRule.inventoryAccount" showResolvedName="false"  
+					tgt="inventoryAccountNo" popType="cpAccount" actTypeContext="T|S|B" actCPTypeContext="INTERNAL" actContext="TRADING|BOTH" actStatusContext = "OPEN" event="change focusout" 
+					endpoint="secure/ref/nameresolver/fund"/>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label class = "required" path="commandForm.ownStandingRule.settlementFor"><spring:message code="ref.fund.label.settlementFor" htmlEscape="false"/></form:label>
+						<form:select id="settlementFor" path="commandForm.ownStandingRule.settlementFor" class="dropdowninput amendReadOnlyItem">
+							<form:options items="${commandForm.settlementForList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:input type="hidden" id="hiddenCashSecurityFlag" path="commandForm.ownStandingRule.cashSecurityFlag" disabled="disabled"/>
+						<form:label class = "required" path="commandForm.ownStandingRule.cashSecurityFlag"><spring:message code="ref.ownstanding.label.cashsecurity" htmlEscape="false"/></form:label>
+						<form:select id="cashSecurityFlag" path="commandForm.ownStandingRule.cashSecurityFlag" class="dropdowninput amendReadOnlyItem">
+							 <form:options items="${commandForm.cashSecurityList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label class = "required" path="commandForm.ownStandingRule.settlementBank"><spring:message code="ref.common.popup.label.settlementbank" htmlEscape="false"/></form:label>
+						<span><form:input id="settlementBank" value="" path="commandForm.ownStandingRule.settlementBank"  style="text-transform:uppercase"/></span>
+						<div class="popupBtn ownStlBank">
+							<input type="button" class="popupBtnIco stlBank" tgt="settlementBank" popType="finInstRoleType" bankRoles="Stock Exchange|Security Broker|Bank/Custodian|Central Depository|Transfer Agent" value="" />
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label class = "required" path="commandForm.ownStandingRule.settlementAccount"><spring:message code="ref.common.popup.label.settleac" htmlEscape="false"/></form:label>
+						<span><form:input id="settlementAccount" value="" path="commandForm.ownStandingRule.settlementAccount" readonly="true" style="background-color:lightgrey" class="textBox accountNo"/></span>
+						<div class="popupBtn ownStlAccount">
+							<input type="button" class="popupBtnIco stlAccount" tgt="settlementAccount" popType="cpAccount" actTypeContext="T|B" actCPTypeContext="BROKER|BANK/CUSTODIAN" actStatusContext = "OPEN" ownssi="Y" finInstCode="${commandForm.ownStandingRule.settlementBank}"/>
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					 <div class="formItem">
+						<form:label path="commandForm.ownStandingRule.instrumentType"><spring:message code="ref.popup.instrumentsearch.label.instrumenttype" htmlEscape="false"/></form:label>
+						<span><form:input id="instrumentType" value="" path="commandForm.ownStandingRule.instrumentType"  class="textBox  instrumentType" /></span>    
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.ownStandingRule.settlementLocation"><spring:message code="ref.label.stl.location" htmlEscape="false"/></form:label>
+						<form:select id="settlementLocation" path="commandForm.ownStandingRule.settlementLocation" class="dropdowninput">
+								<form:option value = ""/>
+								<form:options items="${commandForm.settlementLocationList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.ownStandingRule.settlementCcy"><spring:message code="ref.label.stl.ccy" htmlEscape="false"/></form:label>
+						<span><form:input id="settlementCcy" value="" path="commandForm.ownStandingRule.settlementCcy"  class="textBox "/></span>
+						<div class="popupBtn">
+							<input type="button" class="popupBtnIco" tgt="settlementCcy" popType="currency" value="" />
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					 <div class="formItem">
+						<form:label path="commandForm.ownStandingRule.instrumentCode"><spring:message code="ref.popup.instrumentsearch.label.instrumentcode" htmlEscape="false"/></form:label>
+						<span><form:input id="securityCode" value="" path="commandForm.ownStandingRule.instrumentCode"  class="textBox "/></span>
+						<div class="popupBtn">
+							<input type="button" class="popupBtnIco" tgt="securityCode" popType="security" value="" />
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div> 
+					<div class="formItem">
+						<form:label path="commandForm.ownStandingRule.counterpartyType"><spring:message code="ref.account.label.counterpartycode" htmlEscape="false"/></form:label> 
+						<span>
+						<form:select path="commandForm.ownStandingRule.counterpartyType" class="dropdowninput noWidth " id="counterPartyTypeList">
+							  <form:option value=""/>
+							   <form:options items="${commandForm.counterpartyTypeList}"/> 
+						</form:select> 
+							<form:input value="" path="commandForm.ownStandingRule.counterpartyCode" class="textBox smallInput marginLeft " id="counterPartyCodeEntry"/>
+						</span> 
+											
+						<div id="finInstRoleTypePop" class="popupBtn" style="display:none;">
+							<input type="button" class="popupBtnIco" tgt="counterPartyCodeEntry" popType="finInstRoleType" finInstRoleCtx= "Security Broker|Bank/Custodian|Central Depository" value=""/>
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>		
+				    </div>
+					<div class="formItem">
+						   <form:label path="commandForm.ownStandingRule.tradingAccount"><spring:message code="ref.ownstanding.label.tradingaccount" htmlEscape="false"/></form:label>
+						   <span><form:input value="" path="commandForm.ownStandingRule.tradingAccount"  class="textBox accountNo amendReadOnlyItem" id="tradingAccountNo"/></span>               
+						   <div class="popupBtn">
+								<input type="button" class="popupBtnIco amendReadOnlyItem amendReadOnlyPopup" tgt="tradingAccountNo" popType="cpAccount" actTypeContext="T|B" actCPTypeContext="BROKER|BANK/CUSTODIAN" actStatusContext="OPEN" value="" />
+						   </div>
+						   <span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						   <div class="clear"><spring:message text="" htmlEscape="false"/></div>	               
+					</div> 
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div> 
+			
+			</div>
+			
+		</div>
+		 <h1><spring:message code="ref.ownssirule.label.details" htmlEscape="false"/></h1>
+	<div class="entryBlkArea">
+		<div class="formItemBlock dottedBg">
+		     <div class="formItem">
+                <form:label path="commandForm.ownStandingRule.instructionReqd"><spring:message code="ref.label.inx.transmission" htmlEscape="false"/></form:label>
+                <form:select id="instructionReqd" path="commandForm.ownStandingRule.instructionReqd" class="dropdowninput">
+                     <form:options items="${commandForm.inxTransmissionList}" itemLabel="label" itemValue="value"/>
+                </form:select>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+             <div class="formItem">
+				
+                <form:label path="commandForm.ownStandingRule.autoTransmissionFlag"><spring:message code="ref.label.auto.reqd" htmlEscape="false"/></form:label>
+                <form:select id="autoTransmissionFlag" path="commandForm.ownStandingRule.autoTransmissionFlag" class="dropdowninput">
+                     <form:options items="${commandForm.autoTransmissionFlagList}" itemLabel="label" itemValue="value"/>
+                </form:select>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+             <div class="formItem">
+                <form:label path="commandForm.ownStandingRule.priority"><spring:message code="ref.fund.label.priority" htmlEscape="false"/></form:label>
+                <form:select id="priority" path="commandForm.ownStandingRule.priority" class="dropdowninput">
+                     <form:options items="${commandForm.priorityList}" itemLabel="label" itemValue="value"/>
+                </form:select>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+
+         <div class="formItem">
+	            <form:label path="commandForm.ownStandingRule.marketCode"><spring:message code="ref.marketPrice.label.market" htmlEscape="false"/></form:label> 
+	            <span>
+	               <form:input value="" id="marketId" path="commandForm.ownStandingRule.marketCode" class="textBox market" />
+	            </span>	            
+	            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	        </div> 
+	        <div class="formItem">
+				<form:label path="commandForm.cashForAgainst"><spring:message code="ref.label.diff.cash.against" htmlEscape="false"/></form:label>
+				<span>
+					<input type="hidden" id="diffCashForAgainst" name="diffCashForAgainst" value="${commandForm.diffCashForAgainst}"/>
+					<form:checkbox path="commandForm.cashForAgainst" id="cashForAgainst"/>
+				</span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+            <div class="formItem">
+                <form:label class = "required" path="commandForm.ownStandingRule.settlementMode"><spring:message code="ref.label.settlement.mode" htmlEscape="false"/></form:label>
+                <form:select id="settlementMode" path="commandForm.ownStandingRule.settlementMode" class="dropdowninput">
+                     <form:options items="${commandForm.settlementModeList}" itemLabel="label" itemValue="value"/>
+                </form:select>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+    		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+	</div>	
+	
+	<div id="cashDetails" style="display:none">
+		
+		<h1><spring:message code="ref.ownssirule.label.cashdetails" htmlEscape="false"/></h1>
+		<div class="entryBlkArea">
+			<div class="formItemBlock dottedBg">
+				<div class="formItem twoCols">
+					<form:label path="commandForm.existingRuleId"><spring:message code="ref.label.existing.rule" htmlEscape="false"/></form:label>
+					<span><form:input id="existingRuleId" value="" path="commandForm.existingRuleId"  class="textBox" style="background-color:lightgrey" readonly="true"/></span>
+					<div class="popupBtn">
+					    <input type="hidden"  id="securityCash" value="cash" />
+						<input type="button" class="popupBtnIco existingRulePopUp" tgt="existingRuleId"  popType="OwnStandingPopup"  hiddenFieldFilteredReqd="true"/>
+					</div>
+					<div class = "treeResetBtn">
+					<input type="button" class="treeResetBtnIco deleteBtn" tgt="" popType="" cash="" /></div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<div class="formItem">
+				    <form:input type="hidden" id="hiddenCashSettlementMode" path="commandForm.cashStandingRule.settlementMode" disabled = "disabled"/>
+					<form:label path="commandForm.cashStandingRule.settlementMode"><spring:message code="ref.label.settlement.mode" htmlEscape="false"/></form:label>
+					<form:select id="cashSettlementMode" path="commandForm.cashStandingRule.settlementMode" class="dropdowninput">
+						 <form:options items="${commandForm.settlementModeList}" itemLabel="label" itemValue="value"/>
+					</form:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                
+                <div class="formItem">
+					<form:input type="hidden" id="hiddenCashPriority" path="commandForm.cashStandingRule.priority" disabled = "disabled"/>
+	                <form:label path="commandForm.cashStandingRule.priority"><spring:message code="ref.fund.label.priority" htmlEscape="false"/></form:label>
+	                <form:select id="cashPriority" path="commandForm.cashStandingRule.priority" class="dropdowninput" disabled="disabled">
+	                     <form:options items="${commandForm.priorityList}" itemLabel="label" itemValue="value"/>
+	                </form:select>
+	                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                
+                <div class="formItem">
+                	<form:label class = "required" path="commandForm.cashStandingRule.settlementBank"><spring:message code="ref.common.popup.label.settlementbank" htmlEscape="false"/></form:label>
+					<span><form:input id="cashSettlementBank" value="" path="commandForm.cashStandingRule.settlementBank" class="textBox" style="background-color:lightgrey"/></span>
+					<div class="popupBtn cashBankPop">
+						<input type="button" class="popupBtnIco cashBank" tgt="cashSettlementBank" popType="fininst" bankRoles="Security Broker|Bank/Custodian|Central Depository" value="" />
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            	</div>
+                
+                <div class="formItem">
+					<form:label class = "required" path="commandForm.cashStandingRule.settlementAccount"><spring:message code="ref.common.popup.label.settleac" htmlEscape="false"/></form:label>
+					<span><form:input id="cashSettlementAccount" value="" path="commandForm.cashStandingRule.settlementAccount" class="textBox" style="background-color:lightgrey"/></span>
+					<div class="popupBtn cashStlAcPop">
+						<input type="button" class="popupBtnIco cashStlAc" tgt="cashSettlementAccount" popType="cpAccount" actTypeContext="S|B" actStatusContext = "OPEN" actCPTypeContext="BROKER|BANK/CUSTODIAN" ownssi="Y" finInstCode="${commandForm.cashStandingRule.settlementBank}"/>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+                <form:input type="hidden" id="hiddenInstructionRequired" path="commandForm.cashStandingRule.instructionReqd"/>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</div>
+	</div> 
+
+
+
+	</c:if>
+	<c:if test = "${commandForm.actionType != 'ADD'}">
+    <div class="entryBlkArea">
+        <div class="formItemBlock dottedBg">
+			<span id="modeOfOperation" style="display:none;">${commandForm.actionType}</span>
+         	 <!-- Form **START -->
+
+         	 <div class="formItem">
+				<form:label class = "required" path="commandForm.ownStandingRule.fundCode"><spring:message code="ref.fund.label.fundcode" htmlEscape="false"/></form:label>
+				<span><form:input id="fundCode" path="commandForm.ownStandingRule.fundCode" class="textBox" style="background-color:lightgrey" readonly = "true" /></span>			
+				<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		     </div>	
+		      <div class="formItem">
+				<form:label path="commandForm.ownStandingRule.inventoryAccount"><spring:message code="ref.fund.label.fundAccount" htmlEscape="false"/></form:label>
+				<span><form:input id="inventoryAccount" path="commandForm.ownStandingRule.inventoryAccount" class="textBox" style="background-color:lightgrey" readonly = "true" /></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+            <div class="formItem">
+                <form:label class = "required" path="commandForm.ownStandingRule.settlementFor"><spring:message code="ref.fund.label.settlementFor" htmlEscape="false"/></form:label>
+				<span><form:input id="settlementFor" path="commandForm.ownStandingRule.settlementFor" class="textBox" style="background-color:lightgrey" readonly = "true" /></span>			
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            
+            <div class="formItem">
+                <form:label class = "required" path="commandForm.ownStandingRule.cashSecurityFlag"><spring:message code="ref.stlacctforfund.label.cashorsecurity" htmlEscape="false"/></form:label>
+				<span><form:input id="cashSecurityFlag" path="commandForm.ownStandingRule.cashSecurityFlag" class="textBox" style="background-color:lightgrey" readonly = "true" /></span>	
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            <div class="formItem">
+				<form:label class = "required" path="commandForm.ownStandingRule.settlementBank"><spring:message code="ref.common.popup.label.settlementbank" htmlEscape="false"/></form:label>
+				<span><form:input id="settlementBank" value="" path="commandForm.ownStandingRule.settlementBank"  style="text-transform:uppercase"/></span>
+				<div class="popupBtn ownStlBank">
+					<input type="button" class="popupBtnIco stlBank" tgt="settlementBank" popType="finInstRoleType" bankRoles="Stock Exchange|Security Broker|Bank/Custodian|Central Depository|Transfer Agent" value="" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			 <div class="formItem">
+				<form:label class = "required" path="commandForm.ownStandingRule.settlementAccount"><spring:message code="ref.common.popup.label.settleac" htmlEscape="false"/></form:label>
+				<span><form:input id="settlementAccount" value="" path="commandForm.ownStandingRule.settlementAccount"  readonly="true" style="background-color:lightgrey" class="textBox accountNo"/></span>
+				<div class="popupBtn ownStlAccount">
+					<input type="button" class="popupBtnIco stlAccount" tgt="settlementAccount" popType="cpAccount" actTypeContext="T|B" actCPTypeContext="BROKER|BANK/CUSTODIAN" actStatusContext = "OPEN" ownssi="Y" finInstCode="${commandForm.ownStandingRule.settlementBank}"/>
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			 <div class="formItem">
+                <form:label path="commandForm.ownStandingRule.instrumentType"><spring:message code="ref.popup.instrumentsearch.label.instrumenttype" htmlEscape="false"/></form:label>
+                <span><form:input id="instrumentType" value="" path="commandForm.ownStandingRule.instrumentType"  class="textBox  " style="background-color:lightgrey" readonly="true" /></span>    
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            <div class="formItem">
+                <form:label path="commandForm.ownStandingRule.settlementLocation"><spring:message code="ref.label.stl.location" htmlEscape="false"/></form:label>
+				<span><form:input id="settlementLocation" value="" path="commandForm.ownStandingRule.settlementLocation"  class="textBox settlementLocation" style="background-color:lightgrey" readonly = "true"/></span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+             <div class="formItem">
+                <form:label path="commandForm.ownStandingRule.settlementCcy"><spring:message code="ref.label.stl.ccy" htmlEscape="false"/></form:label>
+                <span><form:input id="settlementCcy" value="" path="commandForm.ownStandingRule.settlementCcy"  class="textBox " style="background-color:lightgrey" readonly = "true"/></span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            <div class="formItem">
+                <form:label path="commandForm.ownStandingRule.instrumentCode"><spring:message code="ref.popup.instrumentsearch.label.instrumentcode" htmlEscape="false"/></form:label>
+                <span><form:input id="securityCode" value="" path="commandForm.ownStandingRule.instrumentCode"  class="textBox " style="background-color:lightgrey" readonly="true" /></span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+			<div class="formItem">
+			    <form:label path="commandForm.ownStandingRule.counterpartyType"><spring:message code="ref.account.label.counterpartycode" htmlEscape="false"/></form:label> 
+				<span>
+					<form:input path="commandForm.ownStandingRule.counterpartyType" class="textBox counterPartyCodeType " id="counterPartyType" style="background-color:lightgrey" readonly="true"/>
+				</span>
+				<form:input value="" path="commandForm.ownStandingRule.counterpartyCode" class="textBox smallInput marginLeft " id="counterPartyCode" readonly="true" style = "display:none;"/>
+	            
+			    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			 <div class="formItem">
+	           <form:label path="commandForm.ownStandingRule.tradingAccount"><spring:message code="ref.account.label.counterpartyAccount" htmlEscape="false"/></form:label>
+	           <span><form:input value="" path="commandForm.ownStandingRule.tradingAccount"  class="textBox accountNo " id="tradingAccountNo" style="background-color:lightgrey" readonly="true"/></span>               
+	           <div class="clear"><spring:message text="" htmlEscape="false"/></div>	               
+	        </div> 
+          <div class="clear"><spring:message text="" htmlEscape="false"/></div> 
+        </div>
+	</div>
+	
+	 <h1><spring:message code="ref.ownssirule.label.details" htmlEscape="false"/></h1>
+	<div class="entryBlkArea">
+		<div class="formItemBlock dottedBg">
+		     <div class="formItem">
+                <form:label path="commandForm.ownStandingRule.instructionReqd"><spring:message code="ref.label.inx.transmission" htmlEscape="false"/></form:label>
+                <form:select id="instructionReqd" path="commandForm.ownStandingRule.instructionReqd" class="dropdowninput">
+                     <form:options items="${commandForm.inxTransmissionList}" itemLabel="label" itemValue="value"/>
+                </form:select>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+             <div class="formItem">
+				<!-- <input type="hidden" id="autoTrans" name="ownStandingRule.autoTransmissionFlag" value="${commandForm.ownStandingRule.autoTransmissionFlag}"/> -->
+                <form:label path="commandForm.ownStandingRule.autoTransmissionFlag"><spring:message code="ref.label.auto.reqd" htmlEscape="false"/></form:label>
+                <form:select id="autoTransmissionFlag" path="commandForm.ownStandingRule.autoTransmissionFlag" class="dropdowninput">
+                     <form:options items="${commandForm.autoTransmissionFlagList}" itemLabel="label" itemValue="value"/>
+                </form:select>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+             <div class="formItem">
+                <form:label path="commandForm.ownStandingRule.priority"><spring:message code="ref.fund.label.priority" htmlEscape="false"/></form:label>
+                <form:select id="priority" path="commandForm.ownStandingRule.priority" class="dropdowninput">
+                     <form:options items="${commandForm.priorityList}" itemLabel="label" itemValue="value"/>
+                </form:select>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            <div class="formItem">
+	            <form:label path="commandForm.ownStandingRule.marketCode"><spring:message code="ref.marketPrice.label.market" htmlEscape="false"/></form:label> 
+	            <span id = "marketSpan">
+	               <form:input value="" id="market" path="commandForm.ownStandingRule.marketCode" class="textBox " style="background-color:lightgrey" readonly="true" />
+	            </span>	            
+	            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	        </div> 
+	        <div class="formItem">
+				<form:label path="commandForm.cashForAgainst"><spring:message code="ref.label.diff.cash.against" htmlEscape="false"/></form:label>
+				<span>
+					<input type="hidden" id="diffCashForAgainst" name="diffCashForAgainst" value="${commandForm.diffCashForAgainst}"/>
+					<form:checkbox path="commandForm.cashForAgainst" id="cashForAgainst"/>
+				</span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+            <div class="formItem">
+                <form:label class = "required" path="commandForm.ownStandingRule.settlementMode"><spring:message code="ref.label.settlement.mode" htmlEscape="false"/></form:label>
+                <form:select id="settlementMode" path="commandForm.ownStandingRule.settlementMode" class="dropdowninput">
+                     <form:options items="${commandForm.settlementModeList}" itemLabel="label" itemValue="value"/>
+                </form:select>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+    		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+	</div>	
+	
+	<div id="cashDetails" style="display:none">
+		
+		<h1><spring:message code="ref.ownssirule.label.cashdetails" htmlEscape="false"/></h1>
+		<div class="entryBlkArea">
+			<div class="formItemBlock dottedBg">
+				<div class="formItem twoCols">
+					<form:label path="commandForm.existingRuleId"><spring:message code="ref.label.existing.rule" htmlEscape="false"/></form:label>
+					<span><form:input id="existingRuleId" value="" path="commandForm.existingRuleId"  class="textBox" style="background-color:lightgrey" readonly="true"/></span>
+					<div class="popupBtn">
+					    <input type="hidden"  id="securityCash" value="cash" />
+						<input type="button" class="popupBtnIco existingRulePopUp" tgt="existingRuleId"  popType="OwnStandingPopup"  hiddenFieldFilteredReqd="true"/>
+					</div>
+					<div class = "treeResetBtn">
+					<input type="button" class="treeResetBtnIco deleteBtn" tgt="" popType="" cash="" /></div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+     			<div class="formItem">
+				    <form:input type="hidden" id="hiddenCashSettlementMode" path="commandForm.cashStandingRule.settlementMode" value="" disabled = "disabled"/>
+					<form:label path="commandForm.cashStandingRule.settlementMode"><spring:message code="ref.label.settlement.mode" htmlEscape="false"/></form:label>
+					<form:select id="cashSettlementMode" path="commandForm.cashStandingRule.settlementMode" class="dropdowninput">
+						 <form:options items="${commandForm.settlementModeList}" itemLabel="label" itemValue="value"/>
+					</form:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                
+                <div class="formItem">
+					<form:input type="hidden" id="hiddenCashPriority" path="commandForm.cashStandingRule.priority" value="" disabled = "disabled"/>
+	                <form:label path="commandForm.cashStandingRule.priority"><spring:message code="ref.fund.label.priority" htmlEscape="false"/></form:label>
+	                <form:select id="cashPriority" path="commandForm.cashStandingRule.priority" class="dropdowninput" disabled="disabled">
+	                     <form:options items="${commandForm.priorityList}" itemLabel="label" itemValue="value"/>
+	                </form:select>
+	                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                
+                <div class="formItem">
+                	<form:label class = "required" path="commandForm.cashStandingRule.settlementBank"><spring:message code="ref.common.popup.label.settlementbank" htmlEscape="false"/></form:label>
+					<span><form:input id="cashSettlementBank" value="" path="commandForm.cashStandingRule.settlementBank" class="textBox" style="background-color:lightgrey" readonly="true"/></span>
+					<div class="popupBtn cashBankPop">
+						<input type="button" class="popupBtnIco cashBank" tgt="cashSettlementBank" popType="fininst" finInstRoleCtx="Security Broker|Bank/Custodian|Central Depository" value="" />
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            	</div>
+                
+                <div class="formItem">
+					<form:label class = "required" path="commandForm.cashStandingRule.settlementAccount"><spring:message code="ref.common.popup.label.settleac" htmlEscape="false"/></form:label>
+					<span><form:input id="cashSettlementAccount" value="" path="commandForm.cashStandingRule.settlementAccount" class="textBox" style="background-color:lightgrey" readonly="true"/></span>
+					<div class="popupBtn cashStlAcPop">
+						<input type="button" class="popupBtnIco cashStlAc" tgt="cashSettlementAccount" popType="cpAccount" actTypeContext="S|B" actStatusContext = "OPEN" actCPTypeContext="BROKER|BANK/CUSTODIAN" ownssi="Y" finInstCode="${commandForm.cashStandingRule.settlementBank}"/>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<form:input type="hidden" id="hiddenInstructionRequired" path="commandForm.cashStandingRule.instructionReqd"/>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</div>
+	</div> 
+    </c:if>
+
+		<jsp:element name="script">
+    <jsp:attribute name="type">text/javascript</jsp:attribute>  
+    <jsp:attribute name="src">
+      <c:url value="/scripts/xenos-utils.js" />
+    </jsp:attribute>
+    <jsp:body></jsp:body>
+    </jsp:element>
+	
+</div>    
+</jsp:root>

@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" width="400" height="300" xmlns:rui="*">
+<mx:Script>
+	<![CDATA[
+		import mx.messaging.AbstractConsumer;
+		import mx.collections.ArrayCollection;
+		import mx.collections.XMLListCollection;
+		import com.nri.rui.core.controls.XenosAlert;
+		import mx.events.FlexEvent;
+		import mx.controls.Button;
+		import mx.containers.VBox;
+		import mx.modules.ModuleManager;
+		import mx.modules.IModuleInfo;
+		import mx.modules.Module;
+		import mx.events.ModuleEvent;
+		import mx.controls.Alert;
+		import com.nri.rui.core.controls.CustomChangeEvent;
+	
+		[Bindable]	
+		public var xmlSource : XML;
+		[Bindable]
+		private var _mode:String;
+		[Bindable]
+		private var customEventParam:Object;
+		
+/* 		public function loadTabs(xml:XML):void
+		{
+			this.xmlSource = new XML();
+			this.xmlSource = xml;
+		} */
+		
+		public function get mode():String{
+			return _mode;
+		}
+		
+		public function set mode(md:String):void{
+			_mode=md;
+		} 
+		
+		public function set dataProvider(value:XML):void
+		{
+			this.xmlSource = new XML();
+			trace("Setting Data Provider.");
+			this.xmlSource = value;
+			tabCreationComplete(null);
+			
+		}	
+		
+		/**
+		 * This method is called when the TabNavigator is initialized
+		 */ 
+		private function initTabs():void{
+			tabModules.addEventListener("visibleTabsContentEvent",updateTabsChildren);
+		}
+		
+		/**
+		 * This method is the handler of CustomChangeEvent(visibleTabsEvent)
+		 * This CustomChangeEvent is dispatched when all tabs are not required
+		 * to display. Some tabs are needed to be hidden.
+		 * This method get the vissible tabs array from targetParams property
+		 * of CustomChangeEvent and show/hide the tabs accordingly.
+		 */ 
+		private function updateTabsChildren(event:CustomChangeEvent):void{
+			//var num:int;
+			customEventParam = event.targetParams;
+			trace("customEventParam :: " + customEventParam);
+			try{
+				//num = tabModules.numChildren;
+				var firstTab:Button = tabModules.getTabAt(0);
+			}catch(e:Error){
+				trace("TabNavigator has not been created yet :: " + e.message);
+				tabModules.addEventListener(FlexEvent.CREATION_COMPLETE,tabCreationComplete);
+				return;
+			}
+			
+			try {
+				 for(var num:int=0; num<tabModules.numChildren; num++){
+						tabModules.getTabAt(num).visible = false;
+						tabModules.getTabAt(num).includeInLayout = false;
+				}  
+				/* if (num > 0) {
+					trace("Removing all children from tab...");
+					tabModules.removeAllChildren();
+				} */
+				//if(customEventParam is Array && Array(customEventParam).length >= 1){
+				if(customEventParam != null && customEventParam is Array){
+					var visibleTabsArray:Array = customEventParam as Array;
+					var tabChild:VBox = null;
+					//trace("Module Array Length :" + moduleArray.length);
+					for each(var obj:Object in visibleTabsArray){
+							trace("Obj :: " + obj);
+							//var indx:int = int(obj['value']);
+							var indx:int = int(obj.value);
+							trace("indx :: " + indx);
+							  if(tabModules.getChildAt(indx-1)){
+							 	tabChild = VBox(tabModules.getChildAt(indx-1));
+							 	tabChild.createComponentsFromDescriptors(true);
+							 	LoadModuleAtIndex(indx-1);
+								tabModules.getTabAt(indx-1).visible = true;
+								tabModules.getTabAt(indx-1).includeInLayout = true;
+							}  
+							/* tabChild = getTabChildForIndex(indx-1);
+							trace("VBOX Fetched from " + (indx-1) + " : " + tabChild);
+							//tabChild.createComponentsFromDescriptors(true);
+							//LoadModuleAtIndex(indx-1);
+							tabModules.addChild(tabChild);
+							num = tabModules.numChildren;
+							trace("number of children in tab module: " + num ); */
+							//trace("Last Child : " + tabModules.getTabAt(num-1));
+							//tabModules.getTabAt(num-1).visible = true;
+							//tabModules.getTabAt(num-1).includeInLayout = true; 
+							
+					}
+				}
+			} catch(e:Error){
+				trace("Some error occured :: " + e.message);
+			}
+		}
+		
+		 private function LoadModuleAtIndex(index:int):void {
+			switch(index) {
+				case 0: moduleGeneral.loadModule(this.xmlSource);
+						break;
+				case 1: moduleOther.loadModule(this.xmlSource);
+						break;
+				case 2: moduleBondDetails.loadModule(this.xmlSource);
+						break;
+				case 3: moduleWarrants.loadModule(this.xmlSource);
+						break;
+				case 4: moduleCb.loadModule(this.xmlSource);
+						break;
+				case 5: moduleMBS.loadModule(this.xmlSource);
+						break;
+				case 6: moduleRestrictionMemo.loadModule(this.xmlSource);
+						break;
+				case 7: moduleDerivatives.loadModule(this.xmlSource);
+						break;
+			}
+		} 
+		
+		/* private function getTabChildForIndex(index:int):VBox {
+			var vbox:VBox = new VBox();
+			
+			switch(index) {
+				case 0: var moduleGeneral:instrumentGeneralDetails = new instrumentGeneralDetails();
+						moduleGeneral.xmlSource = this.xmlSource;
+						moduleGeneral.loadModule(this.xmlSource);
+						vbox.label = this.parentApplication.xResourceManager.getKeyValue('ref.title.instrument.generalinfo');
+						vbox.addChild(moduleGeneral);
+						break;
+				case 1: var moduleOther:instrumentOtherDetails = new instrumentOtherDetails();
+						moduleOther.xmlSource = this.xmlSource;
+						moduleOther.loadModule(this.xmlSource);
+						vbox.label = this.parentApplication.xResourceManager.getKeyValue('ref.title.instrument.other');
+						vbox.addChild(moduleOther);
+						break;
+				case 2: var moduleBondDetails:instrumentBondDetails = new instrumentBondDetails();
+						moduleBondDetails.xmlSource = this.xmlSource;
+						moduleBondDetails.loadModule(this.xmlSource);
+						vbox.label = this.parentApplication.xResourceManager.getKeyValue('ref.title.instrument.bonddetails');
+						vbox.addChild(moduleBondDetails);
+						break;
+				case 3: var moduleWarrants:instrumentWarrantsDetails = new instrumentWarrantsDetails();
+						moduleWarrants.xmlSource = this.xmlSource;
+						moduleWarrants.loadModule(this.xmlSource);
+						vbox.label = this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.warrant');
+						vbox.addChild(moduleWarrants);
+						break;
+				case 4: var moduleMBS:instrumentMbsDetails = new instrumentMbsDetails();
+						moduleMBS.xmlSource = this.xmlSource;
+						vbox.label = this.parentApplication.xResourceManager.getKeyValue('ref.title.instrument.mbs');
+						moduleMBS.loadModule(this.xmlSource);
+						vbox.addChild(moduleMBS);
+						break;
+				case 5: var moduleRestrictionMemo:instrumentRestrictionDetails = new instrumentRestrictionDetails()
+						moduleRestrictionMemo.xmlSource = this.xmlSource;
+						vbox.label = this.parentApplication.xResourceManager.getKeyValue('ref.title.instrument.restriction');
+						moduleRestrictionMemo.loadModule(this.xmlSource);
+						vbox.addChild(moduleRestrictionMemo);
+						break;
+				case 6: var moduleDerivatives:instrumentDerivativesDetails = new instrumentDerivativesDetails();
+						moduleDerivatives.xmlSource = this.xmlSource;
+						vbox.label = this.parentApplication.xResourceManager.getKeyValue('ref.title.instrument.derivatives');
+						moduleDerivatives.loadModule(this.xmlSource);
+						vbox.addChild(moduleDerivatives);
+						break;
+				case 7: var moduleCb:InstrumentCbDetails = new InstrumentCbDetails();
+						moduleCb.xmlSource = this.xmlSource;
+						vbox.label = this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.cb');
+						moduleCb.loadModule(this.xmlSource);
+						vbox.addChild(moduleCb);
+						break;
+			}
+			return vbox;
+		} */
+		
+		private function tabCreationComplete(event:FlexEvent):void{
+			var visibleTabs:Array;
+            trace("Setting Tab Array...");
+            if (xmlSource.tabArray) {
+                visibleTabs = new Array();
+                for each(var obj:Object in xmlSource.tabArray.item) {
+                    visibleTabs.push(obj);
+                }
+            }
+            trace("param in creation complete:" + visibleTabs);
+			trace("Tab Module in creation complete." + tabModules);
+			tabModules.dispatchEvent(new CustomChangeEvent("visibleTabsContentEvent", visibleTabs));
+			trace("Event Fired.");
+		}
+		
+	]]>
+</mx:Script>
+<!--
+	<mx:ArrayCollection id="moduleArray" >
+		
+	</mx:ArrayCollection>
+-->
+	<mx:TabNavigator id="tabModules" width="100%" height="100%" initialize="initTabs()">
+		<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('ref.title.instrument.generalinfo')}" height="{moduleGeneral.height}" width="100%" verticalGap="0" horizontalGap="0">
+	   		<rui:instrumentGeneralDetails id="moduleGeneral" xmlSource="{xmlSource}" mode="{_mode}" width="100%" height="100%" />
+	   	</mx:VBox>
+	   	<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('ref.title.instrument.other')}" height="{moduleOther.height}" width="100%" verticalGap="0" horizontalGap="0">
+	   		<rui:instrumentOtherDetails id="moduleOther" xmlSource="{xmlSource}" width="100%" height="100%" />
+	   	</mx:VBox>
+	   	<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('ref.title.instrument.bonddetails')}" height="{moduleBondDetails.height}" width="100%" verticalGap="0" horizontalGap="0">
+	   		<rui:instrumentBondDetails id="moduleBondDetails" xmlSource="{xmlSource}" width="100%" height="100%" />
+	   	</mx:VBox>
+	   	<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.warrant')}" height="{moduleWarrants.height}" width="100%" verticalGap="0" horizontalGap="0">
+	   		<rui:instrumentWarrantsDetails id="moduleWarrants" xmlSource="{xmlSource}" width="100%" height="100%" />
+	   	</mx:VBox>
+	   	<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.cb')}" height="{moduleCb.height}" width="100%" verticalGap="0" horizontalGap="0">
+	   		<rui:InstrumentCbDetails id="moduleCb" xmlSource="{xmlSource}" width="100%" height="100%" />
+	   	</mx:VBox>
+	   	<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('ref.title.instrument.mbs')}" height="{moduleMBS.height}" width="100%" verticalGap="0" horizontalGap="0">
+	   		<rui:instrumentMbsDetails id="moduleMBS" xmlSource="{xmlSource}" width="100%" height="100%" />
+	   	</mx:VBox>
+	   	<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('ref.title.instrument.restriction')}" height="{moduleRestrictionMemo.height}" width="100%" verticalGap="0" horizontalGap="0">
+	   		<rui:instrumentRestrictionDetails id="moduleRestrictionMemo" xmlSource="{xmlSource}" width="100%" height="100%" />
+	   	</mx:VBox>  
+	   	<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('ref.title.instrument.derivatives')}" height="{moduleDerivatives.height}" width="100%" verticalGap="0" horizontalGap="0">
+	   		<rui:instrumentDerivativesDetails id="moduleDerivatives" xmlSource="{xmlSource}" width="100%" height="100%" />
+	   	</mx:VBox>
+    </mx:TabNavigator>
+</mx:Module>
+

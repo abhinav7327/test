@@ -1,0 +1,113 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+			var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;	
+            var grid_result_data = [];
+            var grid_result_columns = [
+				{name:"", field:"cnslAct", id:"cnslAct", width:30,formatter: Slick.Formatters.ConsolidateActFormater},
+				{name:"<spring:message code="ref.fininst.label.institutioncode" htmlEscape="false"/>", field:"finInstRoleCode", id:"finInstRoleCode", sortable: true, width:150, formatter:Slick.Formatters.FinInstDetailViewFormater},
+                {name:"<spring:message code="ref.fininst.label.BICcode" htmlEscape="false"/>", field:"BICCode", id:"BICCode", sortable: true, width:130},
+                {name:"<spring:message code="ref.fininst.label.ABACode" htmlEscape="false"/>", field:"ABACode", id:"ABACode", width:100, sortable: true },
+                {name:"<spring:message code="ref.fininst.label.countrycode" htmlEscape="false"/>", field:"countryCode", id:"countryCode", width:100, sortable: true },
+                {name:"<spring:message code="ref.fininst.label.shortname" htmlEscape="false"/>", field:"shortName", id:"shortName", width:300, sortable: true },
+                {name:"<spring:message code="ref.fininst.label.firmaccount" htmlEscape="false"/>", field:"ourAccountPresent", id:"ourAccountPresent", width:170, sortable: true },
+                {name:"<spring:message code="ref.fininst.label.parentrole" htmlEscape="false"/>", field:"parentRoleCode", id:"parentRoleCode", width:140, sortable: true },
+                {name:"<spring:message code="ref.fininst.label.remarks" htmlEscape="false"/>", field:"remarks", id:"remarks", width:166, sortable: true },
+                {name:"<spring:message code="ref.fininst.label.applicationregistration" htmlEscape="false"/>", field:"appRegiDateDisp", id:"appRegiDateDisp", width:200, sortable: true },
+                {name:"<spring:message code="ref.fininst.label.applicationupdate" htmlEscape="false"/>", field:"appUpdDateDisp", id:"appUpdDateDisp", width:170, sortable: true },
+                {name:"<spring:message code="ref.fininst.label.updatedby" htmlEscape="false"/>", field:"updatedBy", id:"updatedBy", width:100, sortable: true },
+                {name:"<spring:message code="ref.fininst.label.status" htmlEscape="false"/>", field:"status", id:"status", width:100, sortable: true, formatter:Slick.Formatters.CancelRecordFormatter }
+            ];
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,
+					columnPicker:true,
+					xlsPref:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+					url: '/secure/ref/fininst/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/ref/fininst/query/result.json?fetch=next',
+					prevPage : '/secure/ref/fininst/query/result.json?fetch=previous',
+					pdfReport: '/secure/ref/fininst/query/report.json?outputType=pdf',
+					xlsReport: '/secure/ref/fininst/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/ref/fininst/query/reportPref.json?outputType=xls'
+				},
+				defaultInvisibleColumns: [ "remarks" , "appRegiDateDisp" , "appUpdDateDisp" ]
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				
+				rec.finInstRolePk = "<c:out value="${dl.finInstRolePk}" />";
+				rec.finInstRoleCode = "<c:out value="${dl.finInstRoleCode}" />";
+				rec.BICCode = "<c:out value="${dl.BICCode}" />";
+				rec.ABACode = "<c:out value="${dl.ABACode}" />";
+				rec.countryCode = "<c:out value="${dl.countryCode}" />";
+				rec.shortName = "<c:out value="${dl.shortName}" />";
+				rec.ourAccountPresent = "<c:out value="${dl.ourAccountPresent}" />";
+				rec.parentRoleCode = "<c:out value="${dl.parentRoleCode}" />";
+				rec.remarks = "<c:out value="${dl.remarks}" />";
+				rec.appRegiDateDisp = "<c:out value="${dl.appRegiDateDisp}" />";
+				rec.appUpdDateDisp = "<c:out value="${dl.appUpdDateDisp}" />";
+				rec.updatedBy = "<c:out value="${dl.updatedBy}" />";
+				rec.status = "<c:out value="${dl.status}" />";
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+	
+	<div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			  <a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'REFFIAM')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-amendIco.png" title="${record.actionName}" id="amend" status="ready" alt="Amend" /></c:when>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'REFFICX')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}"  id="cancel" status="ready" alt="Cancel" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			  </a>
+		</c:forEach>	  
+	</div>
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/ref/finInstQueryResult.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+</jsp:root>

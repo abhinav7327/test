@@ -1,0 +1,468 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="loadAll()" initialize="parseUrlString()" >
+    <mx:Script>
+        <![CDATA[
+            import com.nri.rui.core.Globals;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import com.nri.rui.core.controls.XenosAlert;
+            import mx.events.DataGridEvent;
+            import com.nri.rui.core.controls.CustomDataGrid
+            
+            private function changeCurrentState():void{
+                currentState = "result";
+                app.submitButtonInstance = null ;
+            }
+            private function getAdjustmentDate(item:Object,column : DataGridColumn):String{
+                if(XenosStringUtils.equals(item.detailType,"FAIL_TRACKING")){
+                    return item.adjustmentDateStr;
+                }else {
+                    return "-";
+                }
+            }
+            /* private function getSlrActionRefNo(item:Object,column : DataGridColumn):String{
+                
+                if(XenosStringUtils.EMPTY_STR()){
+                    
+                }
+            } */
+            private function getInstrumentCode(item:Object, column:DataGridColumn):String{
+                return item.instrumentCode;
+            }
+            
+            private function getAllotmentInstCode(item:Object, column:DataGridColumn):String{
+                return item.allotmentInstCode;
+            }
+            private function getAccountNo(item:Object, column:DataGridColumn):String{
+                if(!XenosStringUtils.equals(item.detailType,"NCM_RIGHTS_DETAIL")){
+                    return item.accountNo;
+                }else {
+                    return " ";
+                }               
+            }
+            private function getBankAccountNo(item:Object, column:DataGridColumn):String{
+                return item.bankAccountNo;
+            }
+            
+            /**
+            *  datagrid header release event handler to handle datagridcolumn sorting
+            */
+            public function dataGrid_headerRelease(evt:DataGridEvent):void {                
+                var dg:CustomDataGrid = CustomDataGrid(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];       
+            }
+        ]]>
+    </mx:Script>
+
+    <mx:Script source="actionscripts/RightsDetailQuery.as"/>
+   
+    <mx:states>
+        <mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </mx:states>
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+    
+    
+    <cntrls:XenosHTTPService id="initializeRightsDetailQuery" fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize')+' ' + event.fault.faultString)" 
+             method="POST" useProxy="false" result="initPage(event)" showBusyCursor="true"/>  
+             
+    <cntrls:XenosHTTPService id="rightDetailRequest" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' ' + event.fault.faultString)"
+         result="loadSummaryPage(event)" showBusyCursor="true" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+  <!--  <cntrls:XenosHTTPService id="rdSubEvevntTypeRequest" 
+         url="cax/rightsDetailsQueryDispatch.action?" 
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+         result="getSubEventTypeList(event)" showBusyCursor="true">
+    </cntrls:XenosHTTPService> -->
+    
+    <cntrls:XenosHTTPService id="rightsDetailChangeEventType" fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize')+' ' + event.fault.faultString)"
+        method="POST" useProxy="false" result="onChangeEventTypeResult(event)" showBusyCursor="true">
+    </cntrls:XenosHTTPService>    
+    
+    <cntrls:XenosHTTPService id="rightDetailResetRequest" url="cax/rightsDetailsQueryDispatch.action?method=resetDetail"
+        result="initPage(event)" showBusyCursor="true">
+    </cntrls:XenosHTTPService>
+             
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+        <mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;" />        
+        <mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+        <mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>     
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    
+    <mx:VBox width="100%" height="100%">    
+    <mx:HDividedBox id="hdbox1" styleName="Padding4" width="100%" height="100%" liveDragging="true" creationComplete="initPageStart()">
+    <mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        <mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" width="100%" height="100%" styleName="HDivideStyle" >
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+            <mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+             <mx:Grid width="100%" borderThickness="0">
+
+                    <mx:GridRow width="100%">
+                        <!--mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.detailtype')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="detailType" labelField="label" prompt="Select" itemRenderer="mx.controls.Label"  change="onChangeDetailType(event)"/>
+                        </mx:GridItem-->
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.rightsdetailrefno')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="rdReferenceNo" restrict="{Globals.INPUT_PATTERN}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.rightsconditionrefno')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="rcReferenceNo" restrict="{Globals.INPUT_PATTERN}"/>
+                        </mx:GridItem>                      
+                    </mx:GridRow> 
+                    <mx:GridRow width="100%" id="statusrow" visible="true" includeInLayout="true">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label id="statusLbl" text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.status')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="status" labelField="label" prompt="Select" />
+                        </mx:GridItem>
+                         <mx:GridItem width="20%" borderThickness="0">
+                        </mx:GridItem>
+                         <mx:GridItem width="30%" borderThickness="0">
+                        </mx:GridItem>                        
+                    </mx:GridRow> 
+                    <mx:GridRow width="100%" >
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.eventtype')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                           <!-- <mx:ComboBox id="eventType" labelField="label" prompt="Select" width="160" itemRenderer="mx.controls.Label" change="onChangeSubEventTypeForDetail(event);" />-->
+                           <mx:ComboBox id="eventType" labelField="label" prompt="Select" width="200" itemRenderer="mx.controls.Label"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.eventtypestatus')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="eventTypeStatus" labelField="label" prompt="Select" width="160" itemRenderer="mx.controls.Label" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                                       
+                     <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:FundPopUpHbox id="fundPopUp"/>                            
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fundaccountno')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:AccountPopUpHbox id="actPopUp" retContextItem="{returnContextItem}" recContextItem="{populateContext(1)}" />
+                        </mx:GridItem>                                           
+                      </mx:GridRow>                     
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.instrumentcode')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:InstrumentPopUpHbox id="instPopUp"/>
+                        </mx:GridItem>
+                        
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrument')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:InstrumentPopUpHbox id="allotmentInstPopUp"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.bankno')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="bankNo" restrict="{Globals.INPUT_PATTERN}"/>
+                        </mx:GridItem>
+                        
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.bankaccountno')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:AccountPopUpHbox id="actPopUp1" retContextItem="{returnContextItem}" recContextItem="{populateContext(2)}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">                        
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.recorddatefromto')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox width="100%">  
+                                <mx:DateField id="recordDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                                <mx:DateField id="recordDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                            </mx:HBox>      
+                        </mx:GridItem>
+                       <!-- <mx:GridItem width="20%" borderThickness="0">
+                          
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            
+                        </mx:GridItem> -->
+                         <mx:GridItem id="officeIdGrid1" visible="false" includeInLayout="false" width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.lmoffice')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem id="officeIdGrid2" visible="false" includeInLayout="false" width="30%" borderThickness="0">
+		                    <mx:ComboBox id="officeIdList" labelField="label"  prompt="Select" />
+		                </mx:GridItem>
+                        
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.paymentdatefromto')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox width="100%">  
+                                <mx:DateField id="paymentDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                                <mx:DateField id="paymentDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                            </mx:HBox>
+                        </mx:GridItem>
+                        
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.exdatefromto')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox width="100%">  
+                                <mx:DateField id="exDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                                <mx:DateField id="exDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                            </mx:HBox>      
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.processstartdatefromto')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox width="100%">  
+                                <mx:DateField id="processStartDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                                <mx:DateField id="processStartDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                            </mx:HBox>
+                        </mx:GridItem>
+                        
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.processenddatefromto')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox width="100%">  
+                                <mx:DateField id="processEndDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                                <mx:DateField id="processEndDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                            </mx:HBox>      
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.giveupindicator')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                             <mx:ComboBox id="giveUpIndicator" labelField="label" prompt="Select"  />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.exceptionflag')}" visible="{mode != 'amend'}" includeInLayout="{mode != 'amend'}"/>
+                            <mx:Label text="" visible="{mode == 'amend'}" includeInLayout="{mode == 'amend'}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                             <mx:ComboBox id="exceptionFlag" labelField="label" prompt="Select" visible="{mode != 'amend'}" includeInLayout="{mode != 'amend'}"/>
+                             <mx:Label text="" visible="{mode == 'amend'}" includeInLayout="{mode == 'amend'}"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.cashinlieuflag')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                             <mx:ComboBox id="cashinLieuFlag" labelField="label" prompt="Select"  />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <!--<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.form')}"/>-->
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.availabledatefromto')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                             <!--<mx:ComboBox id="form" labelField="label" prompt="Select" width="160" />-->
+                             <mx:HBox width="100%">  
+                                <mx:DateField id="availableDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                                <mx:DateField id="availableDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                            </mx:HBox>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_regi_date.from_to')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox width="100%">  
+                                <mx:DateField id="entryDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                                <mx:DateField id="entryDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                            </mx:HBox>
+                        </mx:GridItem>
+                        
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_upd_date.from_to')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox width="100%">  
+                                <mx:DateField id="lastEntryDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                                <mx:DateField id="lastEntryDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                            </mx:HBox>      
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%" >
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.isForTempBalance')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:CheckBox id="isForTempBalance" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.eventdatasource')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        <mx:ComboBox id="dataSource" labelField="label" prompt="Select"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%" >
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.finalizedflag')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="finalizedFlag" labelField="label" prompt="Select"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.inconsistencyflag')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        	<mx:ComboBox id="inconsistencyFlag" labelField="label" prompt="Select"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%" >
+	                    <mx:GridItem width="20%" borderThickness="0">
+	            			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundCategory')}" visible="{mode != 'query'}" includeInLayout="{mode != 'query'}"/>
+	        			</mx:GridItem>
+	        			<mx:GridItem width="30%" borderThickness="0">
+	            			<mx:ComboBox id="fundCategoryList" labelField="label" prompt="Select" visible="{mode != 'query'}" includeInLayout="{mode != 'query'}"/> 
+	        			</mx:GridItem>
+	        			
+	        			<mx:GridItem width="20%" borderThickness="0">
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        </mx:GridItem>
+        			</mx:GridRow>
+        		
+                    
+             </mx:Grid>
+             
+             <flexlib:WindowShade id="ws2" tabChildren="{ws2.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.sortorder.fields')}" opened="true" width="100%">
+                <mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="100%" borderThickness="0">
+                            <mx:HBox width="100%">
+                                <mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()"/>
+                                <mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()"/>
+                                <mx:ComboBox id="sortField3" labelField="label" change="sortOrder3Update()"/>
+                                <mx:ComboBox id="sortField4" labelField="label" />
+                                <!--mx:ComboBox id="sortField5" labelField="label" /-->                                   
+                            </mx:HBox>   
+                        </mx:GridItem>                         
+                    </mx:GridRow>
+                </mx:Grid>                
+            </flexlib:WindowShade>
+            
+             <mx:HBox width="100%" styleName="ButtonBackPanel">            
+                <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="this.submitQuery();" />
+                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle"  click="this.resetQuery();"/>                    
+            </mx:HBox>
+            
+        </mx:VBox>
+     </mx:Canvas>
+      <mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle">
+      <cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" width="100%" />
+           <!-- <mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text=""/> -->
+            <cntrls:CustomDataGrid id="rdSummary" width="100%" height="100%" dataProvider="{summaryResult}" headerRelease="dataGrid_headerRelease(event)" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()">
+                <cntrls:columns>
+                    <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.rightsdetailrefno')}" dataField="detailReferenceNo" width="120" itemRenderer="com.nri.rui.cax.renderers.RightsDetailViewRenderer" sortCompareFunction="sortUtil.sortString"/>
+                    <!--mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.detailtype')}" dataField="detailTypeOrDescription" sortCompareFunction="sortUtil.sortString"/-->
+                    <!--<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.slractionrefno')}" dataField="slrActionReferenceNo" labelFunction="getSlrActionRefNo" visible="false"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.settlementrefno')}" dataField="settlementReferenceNo" labelFunction="getStlActionRefNo" visible="false"/>-->
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fundCode')}" dataField="fundCode" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fundName')}" dataField="fundName" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fundaccountno')}" dataField="accountPk" labelFunction="getAccountNo" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fundaccountname')}" dataField="accountName"  visible="false"  sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.bankno')}" dataField="bankNo" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.bankname')}" dataField="bankName" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.bankaccountno')}" dataField="bankAccountPk" labelFunction="getBankAccountNo" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.bankaccountname')}" dataField="bankAccountName" visible="false" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.rightsconditionrefno')}" dataField="conditionReferenceNo" width="120" itemRenderer="com.nri.rui.cax.renderers.RightConditionQueryDetailRenderer" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.adjustmentdate')}" dataField="adjustmentDateStr" labelFunction="getAdjustmentDate" visible="false" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.eventtype')}" dataField="subEventTypeDescription" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.eventtypename')}" dataField="eventTypeName" sortCompareFunction="sortUtil.sortString"/>
+                    <!--<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrument')}" dataField="allotmentInstCode" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.instrumentcode')}" dataField="instrumentCode" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer"/> -->
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrument')}" dataField="allotmentInstPk" labelFunction="getAllotmentInstCode" itemRenderer="com.nri.rui.core.renderers.AdvInstrumentDetailsRenderer" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrumentname')}" dataField="baseInstrumentName" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.label.alternate.allotedinstrumentcode')}" dataField="alternateAllottedSecurity" width="100" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.instrumentcode')}" dataField="instrumentPk" labelFunction="getInstrumentCode" itemRenderer="com.nri.rui.core.renderers.AdvInstrumentDetailsRenderer" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.instrumentname')}" dataField="allotedInstrumentName" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.label.alternate.instrumentcode')}" dataField="alternateSecurity" width="100" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.cashrate')}" dataField="allottedAmountStr" textAlign="right" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.couponrate')}" dataField="allotmentPercentage" textAlign="right" sortCompareFunction="sortUtil.sortNumeric" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allottedquantity')}" dataField="allottedQuantityStr" textAlign="right" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.netamount')}" dataField="netAmountStr" textAlign="right" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.taxamount')}" dataField="taxAmountStr" textAlign="right" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.securitybalance')}" dataField="securityBalanceStr" textAlign="right" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.deliverreceiveflag')}" dataField="deliverReceiveFlag" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.exceptionflag')}" dataField="exceptionFlag" visible="false" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.isForTempBalance')}" dataField="isForTempBalance" visible="false" sortCompareFunction="sortUtil.sortString"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.pricerate')}" dataField="stockRateStr" textAlign="right" sortCompareFunction="sortUtil.sortNumeric"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.executiondate')}" dataField="executionDateStr" textAlign="right" sortCompareFunction="sortUtil.sortString"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.paymentdate')}" dataField="paymentDateStr" visible="true" sortCompareFunction="sortUtil.sortString"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.availabledate')}" dataField="availableDateStr" visible="false" sortCompareFunction="sortUtil.sortString"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.finalizedflag')}" dataField="finalizedFlag" visible="true" sortCompareFunction="sortUtil.sortString"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.inconsistencyflag')}" dataField="inconsistencyFlag" visible="true" sortCompareFunction="sortUtil.sortString"/>                    
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.status')}" dataField="status" visible="true" itemRenderer="com.nri.rui.core.renderers.StatusRenderer" sortCompareFunction="sortUtil.sortString"/>                    
+                 </cntrls:columns>
+         </cntrls:CustomDataGrid>  
+     </mx:VBox>
+     </mx:HDividedBox>
+     
+     </mx:VBox>
+     </mx:Canvas>       
+</mx:Module>

@@ -1,0 +1,244 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:xenosfn="http://www.nri.co.jp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+<div id="formContainer" class="blueBg paddingFour detailScrnWidth">
+     
+  <jsp:directive.page contentType="text/html;charset=UTF-8"/>
+  <jsp:output omit-xml-declaration="yes"/>
+  
+  <div class="transBg paddingFour">
+    <form:form modelAttribute="commandForm" method="POST" action="${commandForm.options.base}" enctype="multipart/form-data" >
+      <sessionConversation:sessionConversationId attributeName="commandForm"/>
+
+      <tiles:importAttribute name="screenId" ignore="true"/>
+	  <input type="hidden" name="screenId" value="${xenosfn:defaultIfEmpty(commandForm.screenId, screenId)}" />
+	  <input type="hidden" name="versionNo" value="${commandForm.versionNo}"/>
+	  <input type="hidden" name="cursor" value="${commandForm.cursor}"/>
+	  
+      <!-- Form Header Area -->
+      <div class="formHeader headHeit">
+	 <c:if test="${not empty commandForm.title}">
+        <div class="title whiteFont left">
+          <h1><spring:message text="${commandForm.title}" htmlEscape="false"/></h1>
+        </div>
+	 </c:if>
+        <div class="formTabErrorIco right" style="display: none;">
+          <a href="#" title="Error message">Error</a>
+        </div>
+        <div class="formTabWarningIco right" style="display: none; marging-right: 24px; padding: 4px 5px 0 0;">
+          <a href="#" title="Soft Warning message">Warning</a>
+        </div>
+      </div>
+      <!-- /Form Header Area -->
+	  <!--
+      <div id="wizardNavigation">
+        <ul id="wizStep"><spring:message text="" htmlEscape="false"/></ul>
+        <div class="bdr"><spring:message text="" htmlEscape="false"/></div>
+      </div>
+	  -->
+	  
+	  <!-- Breadcrumb Start -->
+	  <div id="carousel" class="es-carousel-wrapper">
+		<div id="wizardNavigation" class="es-carousel">
+			<ul id="wizStep"><spring:message text="" htmlEscape="false"/></ul>				
+		</div>
+	  </div>
+	  <div class="wizBdr"><spring:message text="" htmlEscape="false"/></div>
+	  <!-- Breadcrumb End --> 
+	  
+      <div class="formContent">
+        <div id="wizard-page">
+          <tiles:insertAttribute name="page0" value="${page0}"/>
+        </div>
+
+        <div id="formActionArea">
+
+			<div class="btnsArea left">
+				<spring:message code="form.button.label.back" htmlEscape="false" var="formback_label"/>
+				<spring:message code="form.button.label.previous" htmlEscape="false" var="formprevious_label"/>
+				<spring:message code="form.button.label.next" htmlEscape="false" var="formnext_label"/>
+				<spring:message code="form.button.label.reset" htmlEscape="false" var="formreset_label"/>
+				<spring:message code="form.button.label.submit" htmlEscape="false" var="formsubmit_label"/>
+				<spring:message code="form.button.label.confirm" htmlEscape="false" var="formconfirm_label"/>
+				<spring:message code="form.button.label.ok" htmlEscape="false" var="formok_label"/>
+
+				<div class="formBtnBlock formBtnMargin hideActionArea" style="display:none;">
+				  <div class="btnWrapStyle wizBack"><input type="button" class="inputBtnStyle" value="${formback_label}"/></div>
+				  <div class="btnWrapStyle wizPrev"><input type="button" class="inputBtnStyle" value="${formprevious_label}"/></div>
+				  <div class="btnWrapStyle wizNext"><input type="button" class="inputBtnStyle" value="${formnext_label}"/></div>
+				  <div class="btnWrapStyle wizSubmit submitBtn"><input type="submit" class="inputBtnStyle" value="${formsubmit_label}"/></div>
+				  <div class="btnWrapStyle wizReset resetBtn"><input type="button" class="inputBtnStyle" value="${formreset_label}"/></div>
+				  <div class="btnWrapStyle wizConfirm submitBtn"><input type="submit" class="inputBtnStyle" value="${formconfirm_label}"/></div>
+				  <div class="btnWrapStyle wizOk submitBtn"><input type="submit" class="inputBtnStyle" value="${formok_label}"/></div>
+				</div>
+
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<div class="right">
+				<div class="left marginRight" style="display:none">
+					<a class="pdfBtn" title="PDF" style="color:blue">A</a>
+				</div>
+				<div class="left marginRight" style="display:none">
+					<a class="excelBtn" title="XLS" style="color:blue">G</a>
+				</div>
+			</div>			
+
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+      </div>
+      <!-- /Form Content Area -->
+    </form:form>
+  </div>
+
+  <input type="hidden" id="${commandForm.uniqueId}"/>
+  
+  <!--  When we want to reload it in the entry page 
+		reload:true is not working in the xenos$LoadScript. -->
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/popqueryForm.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+
+  <jsp:element name="script">
+    <jsp:attribute name="type">text/javascript</jsp:attribute>
+    <jsp:body>
+      xenos$onReady$Array.push(function() {
+		var viewcode= '${commandForm.options.mode}';	
+	    if(viewcode=='NONINTERACTIVE'){
+			 $('div','.ui-dialog').removeClass("formHeader headHeit");
+			 $('div','.ui-dialog').removeClass("paddingFour blueBg");
+			 setTopMost();
+			 $('#formActionArea','.ui-dialog.topMost').remove();
+		}
+		
+        var scripts = [
+          // {path: xenos.context.path + '/scripts/jquery.event.drag-2.0.min.js'},
+          // {path: xenos.context.path + '/scripts/slick.core.js'},
+          // {path: xenos.context.path + '/scripts/slick.dataview.js'},
+          // {path: xenos.context.path + '/scripts/slick.grid.js'},
+          // {path: xenos.context.path + '/scripts/xenos.rowselectionmodel.js'},
+          {path: xenos.context.path + '/scripts/xenos.grid.js'},
+          {path: xenos.context.path + '/scripts/xenos.editable.grid.js'},
+          // {path: xenos.context.path + '/scripts/slick.formatters.js'},
+          // {path: xenos.context.path + '/scripts/xenos.formatters.js'},
+          // {path: xenos.context.path + '/scripts/slick.editors.js'},
+          // {path: xenos.context.path + '/scripts/xenos.editors.js'},
+          // {path: xenos.context.path + '/scripts/xenos.slick.editrowplugin.js'},
+          // {path: xenos.context.path + '/scripts/slick.autotooltips.js'},
+          // {path: xenos.context.path + '/scripts/slick.compositeeditor.js'},
+          {path: xenos.context.path + '/scripts/popqueryForm.js'},
+          {path: xenos.context.path + '/scripts/inf/datevalidation.js'},
+          {path: xenos.context.path + '/scripts/ref/wizard.js'},
+          {path: xenos.context.path + '/scripts/inf/utilValidator.js'},
+          {path: xenos.context.path + '/scripts/inf/utilCommons.js'},
+          // {path: xenos.context.path + '/scripts/inf/jquery.fancytree-all.min.js'},
+          // {path: xenos.context.path + '/scripts/xenos-treeview2.js'},
+		      // {path: xenos.context.path + '/scripts/jquery.elastislide.js'},
+		      // {path: xenos.context.path + '/scripts/xenos-multiselect.js'},
+		      {path: xenos.context.path + '/scripts/ref/xenos-preferences.js'},
+		      // {path: xenos.context.path + '/scripts/xenos-datepicker.js'},
+		      {path: xenos.context.path + '/scripts/xenos.authorization.history.js'},
+		      {path: xenos.context.path + '/scripts/xenos.more.js'}
+        ];
+
+        xenos.loadScript(scripts, {
+          ordered: true,
+          success : function() {
+            // define xenos Wizard plugin
+            var xenos$Wizard$plugin = function() {
+              // wizard object
+              var object;
+
+              // Wizard plugin
+              var plugin = {
+                name: 'xenos$Wizard$Object',
+                event: {
+                  prefix: 'xenos$Wizard$Object'
+                },
+
+                init: function($context, title, message, pages, cursor, options,screenId) {
+                  object = new xenos$Wizard$Object($context, title, message, pages, cursor, options,screenId)
+                  object.prepare();
+                },
+
+                destroy: function($context, title, message, pages, cursor, options,screenId) {
+                  object.dispose();
+                }
+              };
+
+              // return
+              return plugin;
+            }();
+
+            var title = '${commandForm.title}';
+            var message = '${commandForm.message}';
+			var screenId = '${commandForm.screenId}';
+            var pages = [];
+            <c:forEach items="${commandForm.pages}" var="page">
+              pages.push({
+                title: "<spring:message code='${page.title}' htmlEscape='false'/>",
+                editTile: '${page.editTile}',
+                viewTile: '${page.viewTile}',
+                submitOn: ${page.submitOn}
+              });
+            </c:forEach>
+
+            var cursor = ${commandForm.cursor};
+            var showTabsOnCancel = '${commandForm.showTabsOnCancel}';
+            var options = {
+              mode: '${commandForm.options.mode}',
+              base: '${commandForm.options.base}',
+			  actionType: '${commandForm.options.actionType}',
+			  hasIntermediatePage: '${commandForm.options.hasIntermediatePage}',
+              uri: {
+              },
+              url: {
+              },
+			  uniqueId : '${commandForm.uniqueId}',
+			  enableBackOnEntryAction : '${commandForm.options.enableBackOnEntryAction}',
+			  hasSingleViewTile : ${commandForm.options.containsSingleTileView}
+            };
+
+            <c:if test="${commandForm.options.editUri != null}">options.uri.edit = '${commandForm.options.editUri}'</c:if>
+            <c:if test="${commandForm.options.viewUri != null}">options.uri.view = '${commandForm.options.viewUri}'</c:if>
+            <c:if test="${commandForm.options.resetUri != null}">options.uri.reset = '${commandForm.options.resetUri}'</c:if>
+            <c:if test="${commandForm.options.submitUri != null}">options.uri.submit = '${commandForm.options.submitUri}'</c:if>
+            <c:if test="${commandForm.options.confirmUri != null}">options.uri.confirm = '${commandForm.options.confirmUri}'</c:if>
+
+            <c:if test="${commandForm.options.editUrl != null}">options.url.edit = '${commandForm.options.editUrl}'</c:if>
+            <c:if test="${commandForm.options.viewUrl != null}">options.url.view = '${commandForm.options.viewUrl}'</c:if>
+            <c:if test="${commandForm.options.resetUrl != null}">options.url.reset = '${commandForm.options.resetUrl}'</c:if>
+            <c:if test="${commandForm.options.submitUrl != null}">options.url.submit = '${commandForm.options.submitUrl}'</c:if>
+            <c:if test="${commandForm.options.confirmUrl != null}">options.url.confirm = '${commandForm.options.confirmUrl}'</c:if>
+			
+			var localeScript = xenos.utils.findLoadLocalizedScriptFromUrl('${commandForm.options.base}');
+			if(localeScript){
+				xenos.loadLocalizedScript(localeScript);
+			}
+            jQuery('#' + '${commandForm.uniqueId}').parent().parent().loadPlugin(xenos$Wizard$plugin, true, [title, message, pages, cursor, options, screenId]);
+            var $cache = $('div#footer>div#xenos-cache-container>span#cache');
+			$cache.data('menuPk','${commandForm.menuPk}');
+          }
+        });
+		
+      });
+    </jsp:body>
+  </jsp:element>
+
+  <tiles:insertAttribute name="wizard-addon" ignore="true"/>
+</div>
+</jsp:root>

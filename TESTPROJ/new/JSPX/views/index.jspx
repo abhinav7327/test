@@ -1,0 +1,109 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:util="urn:jsptagdir:/WEB-INF/tags/util">
+	 
+<div id="dashboard">
+     
+
+  <jsp:directive.page contentType="text/html;charset=UTF-8"/>
+  <jsp:output omit-xml-declaration="yes"/>
+
+  <spring:message text="" htmlEscape="false"/>
+
+  <div id="control">
+    <div class="action left" style="display:none">
+      <span class="editableWorkspace controlButton editable left" title="Make widget editable/uneditable"><spring:message text="" htmlEscape="false"/></span>
+      <span class="addWidget controlButton left iconMarginLeft" title="Add widget">J</span>
+	  <span class="savedQueryList controlButton left iconMarginLeftSmall" title="Saved query list">&amp;nbsp;</span>
+      <span class="addWorkspace controlButton left iconMarginLeft" title="Add new workspace">E</span>
+      <span class="removeWorkspace controlButton left iconMarginLeftSmall" title="Remove this workspace">D</span>
+      <span class="updateWorkspace controlButton hiddenButton left iconMarginLeft" title="Save this workspace">H</span>
+    </div>
+    <div class="controllers left" style="display:none">
+      <spring:message text="" htmlEscape="false"/>
+    </div>
+    <div class="navigation right" style="display:none">
+      <span class="previousWorkspace fixedControlButton left" title="Previous workspace">B</span>
+      <span class="nextWorkspace fixedControlButton left" title="Next workspace">C</span>
+    </div>
+  </div>
+  <div id="workspaces">
+    <img class="loading" src="" alt="" />
+  </div>
+
+  <jsp:element name="script">
+    <jsp:attribute name="type">text/javascript</jsp:attribute>
+    <jsp:body>
+	
+	  // sets CAServiceOn flag, so that xenos.js can use it to load page on session expiry
+         // if session expires and a growl message pops up and takes it to a page, that page is decided by this flag
+         // if CAServiceOn is true then directs to error page otherwise normal flow (xenos login page)
+         // it simply checks whether it has been set or not
+         var CA_SERVICE_ON;
+         <c:if test="${sessionScope.CAServiceOn != null}">
+              CA_SERVICE_ON = <c:out value='${sessionScope.CAServiceOn != null}' />;
+         </c:if>
+         // GV error page in case of session expiry/ not CA authenticated
+         var xenos_ERROR_URI = null;
+         <c:if test="${sessionScope.GVErrorUri != null}">
+              xenos_ERROR_URI = "<c:out value='${sessionScope.GVErrorUri}' />";
+         </c:if>
+
+	  
+      jQuery('.rightDockMenu').hide();
+      jQuery('.loading').attr('src', xenos.context.path + '/images/xenos/xenosLoader.gif');
+	  
+      xenos$onReady$Array.push(function() {
+        var scripts = [
+          {path: xenos.context.path + '/scripts/jquery.mousewheel.min.js'},
+          {path: xenos.context.path + '/scripts/jquery.jscrollpane.min.js'},
+          {path: xenos.context.path + '/scripts/jquery.ajaxq-0.0.1.js'},
+          {path: xenos.context.path + '/scripts/colourpicker.js'},
+          {path: xenos.context.path + '/scripts/highcharts.js'},
+          {path: xenos.context.path + '/scripts/objx-2.3.6.js'},
+          {path: xenos.context.path + '/scripts/group.js'},
+          {path: xenos.context.path + '/scripts/xenos-flow.js'},
+		  {path: xenos.context.path + '/scripts/ref/xenos-dashboard-delete-edit-saved-query.js'},
+          /*{path: xenos.context.path + '/scripts/ref/xenos-dashboard-base.js'},
+          {path: xenos.context.path + '/scripts/ref/xenos-dashboard-object.js'},
+          {path: xenos.context.path + '/scripts/ref/xenos-dashboard-renderer.js'},
+          {path: xenos.context.path + '/scripts/ref/xenos-dashboard-plugin.js'},*/
+          {path: xenos.context.path + '/scripts/ref/xenos-dashboard-all.js'},
+          {path: xenos.context.path + '/scripts/ref/xenos-dashboard-business-feed.js'},
+          {path: xenos.context.path + '/scripts/ref/xenos-dashboard-saved-query.js'},
+          {path: xenos.context.path + '/scripts/ref/xenos-dashboard-task-feed.js'},
+          {path: xenos.context.path + '/scripts/ref/xenos-dashboard-menu-shortcut.js'},
+          {path: xenos.context.path + '/scripts/ref/xenos-dashboard-popup-handler.js'},
+		  {path: xenos.context.path + '/scripts/ref/xenos-saved-query-handler.js'},
+          {path: xenos.context.path + '/scripts/ref/xenos-ns.js'}
+        ];
+
+        xenos.loadLocalizedScript([{path: xenos.context.path + '/scripts/ref/xenos-dashboard-i18n.js', async: false}]);
+
+        xenos.loadScript(scripts, {
+          ordered: true,
+          success: function() {
+            // load xenos Dashboard plugin
+            var _function = function() {
+              jQuery('#content').loadPlugin(xenos$Dashboard$plugin, true);
+            };
+            setTimeout(_function, 0);
+
+
+            // trigger event
+            xenos$Event.trigger('xenos-dashboard-prepared');
+          }
+        });
+      });
+    </jsp:body>
+  </jsp:element>
+</div>
+</jsp:root>

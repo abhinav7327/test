@@ -1,0 +1,128 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div class="formItemArea">
+ 
+	<jsp:directive.page contentType="text/html;charset=UTF-8" />
+	<jsp:output	omit-xml-declaration="yes" />
+ 
+	<jsp:element name="script">
+	<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			var isNext =<c:out value="${isNext}" />;
+			var isPrevious = <c:out value="${isPrevious}" />;
+            var pageNo = <c:out value="${pageNo}" />;
+			var grid_result_data = [];
+			var grid_result_columns = [
+				{name:"<spring:message code="trd.tradequeryaction.label.referenceno" htmlEscape="false"/>", field:"referenceNo",id:"referenceNo", width:100, formatter:Slick.Formatters.TradeDetailViewFormater, sortable:true,isForAuth:false},
+				{name:"<spring:message code="trd.tradeentryaction.label.brokeraccountno" htmlEscape="false"/>", field:"accountNo",id:"accountNo", width:91, formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'brokerAccountPk'},sortable:true},
+				{name:"<spring:message code="trd.tradequeryaction.label.brokeraccname" htmlEscape="false"/>", field:"brokerAccountName",id:"brokerAccountName", width:100,sortable:true},
+				{name:"<spring:message code="trd.tradequeryaction.label.inventoryaccountno" htmlEscape="false"/>", field:"inventoryAccountNo",id:"inventoryAccountNo", width:91, formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'fundAccountPk'}, sortable:true},
+				{name:"<spring:message code="trd.tradeentryaction.label.fundaccountsname" htmlEscape="false"/>", field:"fundAccountName",id:"fundAccountName", width:100,sortable:true},
+				{name:"<spring:message code="trd.tradeentryaction.label.securityinfo" htmlEscape="false"/>", field:"securityId",id:"securityId", width:91, formatter:Slick.Formatters.InstrumentDetailViewFormater,sortable:true},
+				{name:"<spring:message code="trd.tradeentryaction.label.securityname" htmlEscape="false"/>", field:"securityName",id:"securityName", width:100,sortable:true},
+				{name:"<spring:message code="ref.common.label.alternatesecurityid" htmlEscape="false"/>", field:"alternateSecCodeDisp", id:"alternateSecCodeDisp", width:100,sortable:true},
+				{name:"<spring:message code="trd.tradeentryaction.label.tradedate" htmlEscape="false"/>", field:"tradeDateStr", id:"tradeDateStr", width:80,sortable:true},
+				{name:"<spring:message code="trd.tradeentryaction.label.valuedate" htmlEscape="false"/>", field:"valueDateStr",  id:"valueDateStr", width:80,sortable:true},
+				{name:"<spring:message code="trd.tradequeryaction.label.price" htmlEscape="false"/>", field:"priceStr",id:"priceStr", width:130,cssClass:'xenos-grid-number',sortable:true},
+				{name:"<spring:message code="trd.tradeentryaction.label.buysellflag" htmlEscape="false"/>", field:"buySellOrientationDisp",id:"buySellOrientationDisp", width:53,sortable:true},
+				{name:"<spring:message code="trd.tradequeryaction.label.quantity" htmlEscape="false"/>", field:"quantityStr",id:"quantityStr", width:130,cssClass:'xenos-grid-number',sortable:true},
+				{name:"<spring:message code="trd.tradeentryaction.label.principalamount" htmlEscape="false"/>", field:"principalAmountStr",id:"principalAmountStr",width:130,cssClass:'xenos-grid-number',sortable:true},
+				{name:"<spring:message code="trd.tradeentryaction.label.netamount" htmlEscape="false"/>", field:"netAmountStr",id:"netAmountStr", width:130,cssClass:'xenos-grid-number',sortable:true},
+				{name:"<spring:message code="trd.tradeentryaction.label.market" htmlEscape="false"/>", field:"market",id:"market", width:80,sortable:true},
+				{name:"<spring:message code="trd.tradeentryaction.label.marketname" htmlEscape="false"/>", field:"marketName",id:"marketName", width:100,sortable:true},
+				{name:"<spring:message code="trd.tradeentryaction.label.tradetype" htmlEscape="false"/>", field:"tradeType",id:"tradeType", width:80,sortable:true},
+				{name:"<spring:message code="trd.tradeentryaction.label.entrydate" htmlEscape="false"/>", field:"entryDateStr",id:"entryDateStr", width:80,sortable:true}
+			 ];
+			var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				buttons:{
+					print:false,	
+					xls:true,	
+					pdf:true,	
+					xlsPref:true,
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					url: 'secure/trd/summary/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/trd/summary/query/result.json?fetch=next',
+					prevPage : '/secure/trd/summary/query/result.json?fetch=previous',
+					pdfReport: '/secure/trd/summary/query/report.json?outputType=pdf',
+					xlsReport: '/secure/trd/summary/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/trd/summary/query/reportPref.json?outputType=xls'
+				},
+				events:{
+					onDataUpdate : function(data,callback){
+						for(i in data.value){							
+							data.value[i].referenceNo= data.value[i].referenceNo+";"+data.value[i].versionNo;
+							data.value[i].accountNo= data.value[i].brokerAccountPrefix+";"+data.value[i].accountNo;
+						}
+						callback(data);
+					}
+				},
+				afterRenderComplete : function(grid, $context){
+						var cached = xenos$Cache.get('globalPrefs');
+						$context.find('.oddRow').css('background-color',cached.zebraColorOdd || '#E5E9ED');
+						$context.find('.evenRow').css('background-color',cached.zebraColorEven || '#F9F9F9');
+				},
+				defaultInvisibleColumns: ["brokerAccountName", "fundAccountName", "marketName"]
+			
+		};
+			var row_id = 0;			
+			var rec = {};
+			<xenos:out escapeXml="false">
+			<c:forEach items="${value}" var="dl">
+				rec = {};
+				row_id+=1;
+				rec.id = "xenos_" + row_id;
+				rec.tradePk= "<c:out value="${dl.tradePkStr}" />";
+				rec.referenceNo= "<c:out value="${dl.referenceNo}" />";
+				rec.accountNo = "<c:out value="${dl.accountNo}" />";				
+				rec.brokerAccountPk = "<c:out value="${dl.brokerAccountPk}" />";
+				rec.brokerAccountName= "<c:out value="${dl.brokerAccountName}" />";				
+				rec.inventoryAccountNo= "<c:out value="${dl.inventoryAccountNo}" />";
+				rec.fundAccountPk = "<c:out value="${dl.fundAccountPk}" />";	
+				rec.fundAccountName = "<c:out value="${dl.fundAccountName}" />";
+				rec.securityId = "<c:out value="${dl.securityId}" />";
+				rec.instrumentPk= "<c:out value="${dl.instrumentPk}" />";
+				rec.securityName = "<c:out value="${xenosfn:escapeJS(dl.securityName)}" />";
+				rec.alternateSecCodeDisp = "<c:out value="${dl.alternateSecCodeDisp}" />";
+				rec.tradeDateStr = "<c:out value="${dl.tradeDateStr}" />";
+				rec.valueDateStr = "<c:out value="${dl.valueDateStr}" />";
+				rec.priceStr = "<c:out value="${dl.priceStr}" />";
+				rec.buySellOrientationDisp = "<c:out value="${dl.buySellOrientationDisp}" />";
+				rec.quantityStr = "<c:out value="${dl.quantityStr}" />";
+				rec.principalAmountStr = "<c:out value="${dl.principalAmountStr}" />";
+				rec.netAmountStr = "<c:out value="${dl.netAmountStr}" />";
+				rec.market = "<c:out value="${dl.market}" />";
+				rec.market = "<c:out value="${dl.market}" />";
+				rec.marketName = "<c:out value="${dl.marketName}" />";
+				rec.tradeType = "<c:out value="${dl.tradeType}" />";
+				rec.entryDateStr = "<c:out value="${dl.entryDateStr}" />";
+				rec.referenceNo=rec.referenceNo+"-"+"<c:out value="${dl.versionNo}" />";
+				rec.accountNo = "<c:out value="${dl.brokerAccountPrefix}" />"+";"+rec.accountNo;
+				grid_result_data.push(rec);
+			</c:forEach>
+			</xenos:out>
+			
+		</jsp:body>
+	</jsp:element>
+	
+</div>
+</jsp:root>

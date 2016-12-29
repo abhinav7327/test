@@ -1,0 +1,1737 @@
+<!--$Id$-->
+<!--$Author: himanshuk $-->
+<!--$Date: 2016-12-23 15:34:33 $-->
+<jsp:root version="2.0"
+    xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	
+	<div class="entryContainer">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+	
+	<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+	<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+	<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+	<spring:message code="form.button.label.details" htmlEscape="false" var="formdetails_label"/>
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>		
+        <jsp:body>
+
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+					
+					xenos.loadScript([
+						{path: xenos.context.path + '/scripts/ref/fundAccountGeneralEntry.js', async: false},
+						{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+						{path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false}
+					]);
+					if("${commandForm.account.counterPartyDetailType}" == "INTERNAL" <![CDATA[&&]]> "${commandForm.options.actionType}" == "ENTRY"){
+						$("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','none');
+						$("#formActionArea > div > div > .wizPrev > .inputBtnStyle").css('display','block');
+					}
+					
+					var context = $xenos$Wizard.$context;
+		        	var baseUrl = xenos.context.path + "/secure/ref/account/entry";
+					var accountNoEntryResult = [],
+						rowId = 0,		
+						item = {},
+						accountNoEntryGrid = null,
+						accountNoEntryList = [];
+						
+					var brokerOgCodeEntryResult = [],
+						rowId = 0,		
+						item = {},
+						brokerOgCodeEntryGrid = null,
+						brokerOgCodeEntryList = [];
+
+					var userIDEntryResult = [],
+						rowId = 0,		
+						item = {},
+						userIDEntryGrid = null,
+						userIDEntryList = [];
+						
+					var nameDetailEntryResult = [],
+						rowId = 0,		
+						item = {},
+						nameDetailEntryGrid = null,
+						nameDetailEntryList = [];
+						
+						/**
+					* A common request handler to be used server communication.
+					*/
+					var xenos$Handler$RequestHandler = xenos$Handler$function({						
+						get: {
+							contentType: 'json',
+							requestType: xenos$Handler$default.requestType.asynchronous
+						},	
+						settings: {
+							beforeSend: function(request) {
+								request.setRequestHeader('Accept', 'application/json');
+							},
+							type: 'POST'
+						}
+					});
+					
+					
+					var accountNoEntryColumns = [		
+						{name:"<spring:message code="ref.account.label.accountnotype" htmlEscape="false"/>",   		field:"accountNoType",	id:"accountNoType", 	sortable:false},
+						{name:"<spring:message code="ref.account.label.accountno" htmlEscape="false"/>", 		    field:"accountNo",		id:"accountNo",	     	sortable:false}
+						
+					];
+					
+					var accountNoEntryGridConf = {
+						editMode 					: 	'both',	
+						editCallback 				: 	editAccountNoEntryHandler,
+						deleteCallback			    :	deleteAccountNoEntryHandler,	
+						editEnableCallback			:	isEditable,
+						forceFitColumns				:	true
+					};
+					rowId=0;
+
+					<xenos:out escapeXml="false">
+						<c:forEach items="${commandForm.otherAttributes.accountXrefDynaBeans}" var="dl">
+							item = {};
+							rowId+=1;
+							item.id 			= "xenos_" + rowId;
+							item.accountNoType 	= "<c:out value="${dl.map.accountNoType}" />";
+							item.accountNo   	= "<c:out value="${dl.map.accountNo}" />";
+							accountNoEntryResult.push(item);
+							if(${commandForm.otherAttributes.defaultAccountNoType == dl.map.accountNoType}){
+								$("#accEntrySlickIcoLast").css("display", "none");
+							}
+						</c:forEach>
+					</xenos:out>
+									
+	                accountNoEntryGrid = $('#accountNoEntryGrid',context).xenoseditablegrid(accountNoEntryResult, accountNoEntryColumns, accountNoEntryGridConf);
+					
+				var brokerOgCodeEntryColumns = [
+                        {name:"<spring:message code="ref.account.label.brokerogcode" htmlEscape="false"/>",     field:"brokerOgCode",       id:"brokerOgCode",     sortable:false}
+                    ];
+                    
+                    var brokerOgCodeEntryGridConf = {
+                        editMode                        :   'both',
+                        editCallback                    :   editBrokerOgCodeEntryHandler,
+                        deleteCallback                  :   deleteBrokerOgCodeEntryHandler,
+                        forceFitColumns                 :   true
+                    };
+                    rowId=0;
+                    <xenos:out escapeXml="false">
+                        <c:forEach items="${commandForm.otherAttributes.brokerOgCodeDynaBeans}" var="dl">
+                            item = {};
+                            rowId+=1;
+                            item.id             = "xenos_" + rowId;
+                            item.brokerOgCode   = "<c:out value="${dl.map.brokerOgCode}" />";
+                            brokerOgCodeEntryResult.push(item);
+                        </c:forEach>
+                    </xenos:out>
+                    
+                    brokerOgCodeEntryGrid = $('#brokerOgCodeEntryGrid',context).xenoseditablegrid(brokerOgCodeEntryResult, brokerOgCodeEntryColumns, brokerOgCodeEntryGridConf);
+					var userIdEntryColumns = [		
+						{name:"<spring:message code="ref.account.label.userid" htmlEscape="false"/>",   		field:"userId",	            id:"userId", 	       sortable:false},
+						{name:"<spring:message code="ref.account.label.defaultoffice" htmlEscape="false"/>", 	field:"defaultoffice",		id:"defaultoffice",	   sortable:false},
+						{name:"<spring:message code="ref.account.label.salesname" htmlEscape="false"/>", 		field:"salesname",		    id:"salesname",	       sortable:false}
+						
+					];
+					
+					var userIdEntryGridConf = {
+							editMode 					: 	'both',																
+							editCallback 				: 	editUserIdEntryHandler,
+							deleteCallback		     	:	deleteUserIdEntryHandler,
+							forceFitColumns				:	true
+						};
+						rowId=0;
+
+						<xenos:out escapeXml="false">
+							<c:forEach items="${commandForm.otherAttributes.accountSalesDynaBeans}" var="dl">
+								item = {};
+								rowId+=1; 
+								item.id 			    = "xenos_" + rowId;
+								item.userId 	        = "<c:out value="${xenosfn:escapeJS(dl.map.accessUserId)}" />";
+								item.defaultoffice      = "<c:out value="${xenosfn:escapeJS(dl.map.accessUserDefaultOffice)}" />";
+								item.salesname 	        = "<c:out value="${xenosfn:escapeJS(dl.map.userName)}" />";
+								userIDEntryResult.push(item);
+							</c:forEach>
+						</xenos:out>							
+						userIDEntryGrid = $('#userIDEntryGrid',context).xenoseditablegrid(userIDEntryResult, userIdEntryColumns, userIdEntryGridConf);
+
+					var nameDetailEntryColumns = [		
+						{name:"<spring:message code="ref.account.label.langcode" htmlEscape="false"/>",   		field:"langcode",	id:"langcode", 	    sortable:false, width:288},
+						{name:"<spring:message code="ref.account.label.shortname" htmlEscape="false"/>", 		field:"shortname1",	id:"shortname1",	sortable:false, width:288},
+						{name:"<spring:message code="ref.account.label.offname1" htmlEscape="false"/>",   		field:"offname1",	id:"offname1", 	    sortable:false, width:288},
+						{name:"<spring:message code="ref.account.label.offname2" htmlEscape="false"/>", 		field:"offname2",	id:"offname2",	   	sortable:false, width:288},
+						{name:"<spring:message code="ref.account.label.offname3" htmlEscape="false"/>",   		field:"offname3",	id:"offname3", 	    sortable:false, width:288},
+						{name:"<spring:message code="ref.account.label.offname4" htmlEscape="false"/>", 		field:"offname4",	id:"offname4",	   	sortable:false, width:288}
+						
+					];
+					
+					var nameDetailEntryGridConf = {
+						editMode 					: 	'both',	
+						editCallback 				: 	editNameDetailEntryHandler,
+						deleteCallback			    :	deleteNameDetailEntryHandler,						
+						forceFitColumns				:	false
+					};
+					rowId=0;
+						
+						<xenos:out escapeXml="false">
+							<c:forEach items="${commandForm.otherAttributes.accountNameXrefDynaBeans}" var="dl">
+								item = {};
+								rowId+=1; 
+								item.id 			    = "xenos_" + rowId;
+								item.langcode 	        = "<c:out value="${xenosfn:escapeJS(dl.map.charsetCode)}" />";
+								item.shortname1         = "<c:out value="${xenosfn:escapeJS(dl.map.shortName)}" />";
+								item.offname1 	        = "<c:out value="${xenosfn:escapeJS(dl.map.officialName1)}" />";
+								item.offname2 	        = "<c:out value="${xenosfn:escapeJS(dl.map.officialName2)}" />";
+								item.offname3           = "<c:out value="${xenosfn:escapeJS(dl.map.officialName3)}" />";
+								item.offname4 	        = "<c:out value="${xenosfn:escapeJS(dl.map.officialName4)}" />";
+								nameDetailEntryResult.push(item);
+							</c:forEach>
+						</xenos:out>
+						
+	                nameDetailEntryGrid = $('#nameDetailEntryGrid',context).xenoseditablegrid(nameDetailEntryResult, nameDetailEntryColumns, nameDetailEntryGridConf);
+					
+					/**
+					* A function to check whether edit or delete is possible or not.
+					*/
+					 function isEditable(columnName,dataContext){
+						if($.trim(dataContext['accountNoType']) == "${commandForm.otherAttributes.defaultAccountNoType}")
+							return false;
+						return true;
+					}
+		
+					/**
+					* Validate Account No Entry attributes.
+					*/
+					function validateAttributes(){
+						var validationMessages = [];
+						var accountNoType = $.trim($('#accountNoType',context).val());
+						var accountNo = $.trim($('#accountNo',context).val());
+												
+					    if(VALIDATOR.isNullValue(accountNo)){
+							validationMessages.push(xenos$REF$i18n.account.common.account_no_empty);
+						}
+						if (validationMessages.length > 0){
+							 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+							 return false;
+						}else {
+	                           xenos.utils.clearGrowlMessage();
+						}
+						return true;
+					}
+					
+				    
+					/**
+					* Validate Broker Og Code Entry attributes.
+					*/
+					function validateAttributes4(){
+						var validationMessages = [];
+						var brokerOgCode = $.trim($('#brokerOgCode',context).val());
+                        var serviceOffice = $.trim($('#serviceOffice',context).val());
+						
+                        if(VALIDATOR.isNullValue(serviceOffice)){
+                            validationMessages.push(xenos$REF$i18n.account.common.serviceoffice_empty);
+                        }
+                        
+					    else if(VALIDATOR.isNullValue(brokerOgCode)){
+							validationMessages.push(xenos$REF$i18n.account.common.brokerogcode_empty);
+						}
+						if (validationMessages.length > 0){
+							 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+							 return false;
+						}else {
+	                           xenos.utils.clearGrowlMessage();
+						}
+						return true;
+					}
+					/**
+					* Validate User ID Entry attributes.
+					*/
+					function validateAttributes1(){
+						var validationMessages = [];
+						var accessUserId = $.trim($('#accessUserId',context).val());
+						if(VALIDATOR.isNullValue(accessUserId)){
+							validationMessages.push(xenos$REF$i18n.account.common.user_id_empty);
+						}
+						if("${commandForm.salesRoleRequired}" == true){
+							var salesRole = $.trim($('#salesRole',context).val());
+							if(VALIDATOR.isNullValue(salesRole)){
+								validationMessages.push(xenos$REF$i18n.account.common.sales_role_empty);
+							}	
+						}
+						
+						if (validationMessages.length > 0){
+							 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+							 return false;
+						}else {
+	                           xenos.utils.clearGrowlMessage();
+						}
+						return true;
+					}
+					
+					
+					/**
+					* Validate Account No Entry attributes.
+					*/
+					function validateAttributes2(){
+						var validationMessages = [];
+						var charsetCodeAppender = $.trim($('#charsetCodeAppender',context).val());
+						var shortNameAppender = $.trim($('#shortNameAppender',context).val());
+						var offname1Appender = $.trim($('#offname1Appender',context).val());
+												
+					    if(VALIDATOR.isNullValue(charsetCodeAppender)){
+							validationMessages.push(xenos$REF$i18n.account.common.charSet_code_empty);
+						}
+						if(VALIDATOR.isNullValue(shortNameAppender)){
+							validationMessages.push(xenos$REF$i18n.account.common.short_name_reqd);
+						}
+						if(VALIDATOR.isNullValue(offname1Appender)){
+							validationMessages.push(xenos$REF$i18n.account.common.office_name_reqd);
+						}
+						if (validationMessages.length > 0){
+							 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+							 return false;
+						}else {
+	                           xenos.utils.clearGrowlMessage();
+						}
+						return true;
+					}
+					
+					
+					/**
+					* Validate User ID Entry attributes.
+					*/
+					function validateAttributes3(){
+						var validationMessages = [];
+						var shortName = $.trim($('#shortName',context).val());
+						var officialName1 = $.trim($('#officialName1',context).val());
+						if(VALIDATOR.isNullValue(shortName)){
+							validationMessages.push(xenos$REF$i18n.account.common.short_name_reqd);
+						}
+						if(VALIDATOR.isNullValue(officialName1)){
+							validationMessages.push(xenos$REF$i18n.account.common.office_name_reqd);
+						}
+						if (validationMessages.length > 0){
+							 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+							 return false;
+						}else {
+	                           xenos.utils.clearGrowlMessage();
+						}
+						return true;
+					}
+			
+			
+				/**
+				* Populate Default Account No request parameters.
+				*/
+				function addDefaultAccountCodeRequestParam(){
+					var reqObj = {
+					              "otherAttributes.defaultAccountNo"	:	$.trim($('#defaultAcNo',context).val()),
+								};
+					return reqObj;
+				}
+				
+				/**
+				* Populate Account No request parameters.
+				*/
+				function populateAccountNoEntryRequestParam(){
+					var reqObj = {
+					              "otherAttributes.accountNoType"	:	$.trim($('#accountNoType',context).val()),
+								  "otherAttributes.accountNo"		:	$.trim($('#accountNo',context).val())
+								};
+					return reqObj;
+				}
+				
+				/**
+				* Populate Broker Og Code request parameters.
+				*/
+				function populateBrokerOgCodeEntryRequestParam(){
+					var reqObj = {
+					              "otherAttributes.brokerOgCode"	:	$.trim($('#brokerOgCode',context).val()),
+                                  "otherAttributes.serviceOffice"	:	$.trim($('#serviceOffice',context).val())
+								};
+					return reqObj;
+				}
+				/**
+				* Populate User ID request parameters.
+				*/
+				function populateUserIDEntryRequestParam(){
+					var reqObj = {
+					              "otherAttributes.accessUserId"	:	$.trim($('#accessUserId',context).val()),
+								};
+					return reqObj;
+				}
+				
+				
+				/**
+				* Populate Default Account Name Detail request parameters.
+				*/
+				function populateNameDetailEntryRequestParam(){
+					
+					var reqObj = {
+					              "accountNameXref.charsetCode"		:	$.trim($('#charsetCodeAppender',context).val()),
+								  "accountNameXref.shortName"		:	$.trim($('#shortNameAppender',context).val()),
+								  "accountNameXref.officialName1"	:	$.trim($('#offname1Appender',context).val()),
+								  "accountNameXref.officialName2"	:	$.trim($('#offname2Appender',context).val()),
+								  "accountNameXref.officialName3"	:	$.trim($('#offname3Appender',context).val()),
+								  "accountNameXref.officialName4"	:	$.trim($('#offname4Appender',context).val()),
+								};
+					return reqObj;
+				}
+				
+				
+				/**
+				* Populate Account No form.
+				*/
+				function populateDefaultAccountNoEntryForm(result){
+					if(result.otherAttributes){
+						$('#defaultAcNo',context).val(result.otherAttributes.generatedAccountNo);
+					//	$('input[type=text],textarea,select', 'div.formItemBlock').filter(':enabled:visible:first').focus();
+					}
+				} 
+				
+				
+				/**
+				* Populate Account No form.
+				*/
+				function populateAccountNoEntryForm(result){
+					
+					if(result.otherAttributes){
+						$('#accountNoType',context).val(result.otherAttributes.accountNoType);
+						$('#accountNo',context).val(result.otherAttributes.accountNo);
+						$('input[type=text],textarea,select', 'div.formItemBlock').filter(':enabled:visible:first').focus();
+					}
+				}
+
+				/**
+				* Populate Broker Og Code form.
+				*/
+				function populateBrokerOgCodeEntryForm(result){
+                    if(result.otherAttributes){
+						$('#brokerOgCode',context).val(result.otherAttributes.brokerOgCode);
+						$('input[type=text],textarea,select', 'div.formItemBlock').filter(':enabled:visible:first').focus();
+					}
+				}
+
+				/**
+				* Populate User ID form.
+				*/
+				function populateUserIDEntryForm(result){
+					if(result.otherAttributes){
+						$('#accessUserId',context).val(result.otherAttributes.accessUserId);
+						$('input[type=text],textarea,select', 'div.formItemBlock').filter(':enabled:visible:first').focus();
+					}
+				}
+				
+				
+				/**
+				* Populate Default Account Name Detail form.
+				*/
+				function populateNameDetailEntryForm(result){
+					if(result.accountNameXref){
+						$('#charsetCodeAppender',context).val(result.accountNameXref.charsetCode);
+						$('#shortNameAppender',context).val(result.accountNameXref.shortName);
+						$('#offname1Appender',context).val(result.accountNameXref.officialName1);
+						$('#offname2Appender',context).val(result.accountNameXref.officialName2);
+						$('#offname3Appender',context).val(result.accountNameXref.officialName3);
+						$('#offname4Appender',context).val(result.accountNameXref.officialName4);
+						$('input[type=text],textarea,select', 'div.formItemBlock').filter(':enabled:visible:first').focus();
+					}
+				}
+				
+				
+				/**
+				* New Generated Account No add handler.
+				*/
+				function calculateAcnoEntryHandler(e){
+						
+						var requestUrl = baseUrl + "/addDefaultAccountCode.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : addDefaultAccountCodeRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertcalculateAcnoEntry( content.value[0]);
+																		xenos.utils.clearGrowlMessage();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* Insert/ Update Generated Account No.
+				*/
+				function upsertcalculateAcnoEntry(data){
+					var result = data.otherAttributes;
+					if(result){
+						populateDefaultAccountNoEntryForm(data);
+						upsertAccountNoEntry(data)
+					}
+				}
+				
+			    	
+				/**
+				* New Broker Og Code add handler.
+				*/
+				function newBrokerOgCodeEntryHandler(e){
+
+                    var valid = validateAttributes4();
+					if(valid){
+						var requestUrl = baseUrl + "/addBrokerOgCode.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateBrokerOgCodeEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+
+                                                                    if(content.success == true){
+                                                                        upsertBrokerOgCodeEntry( content.value[0]);
+																		xenos.utils.clearGrowlMessage();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+						}
+				}
+                
+                /**
+				* Broker Og Code edit handler.
+				*/
+				function editBrokerOgCodeEntryHandler(rowIndex, dataContext){
+                    var requestUrl = baseUrl + "/editBrokerOgCode.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																settings: {data : {"editIndexBrokerOgCode" : rowIndex}},
+																onJsonContent :  function(e, options, $target, content) {
+
+                                                                    if(content.success == true){
+																		populateBrokerOgCodeEntryForm(content.value[0]);
+																		$('.editBtnBrokerOgCodeEntry',context).css('display','block'); 
+																		$('.addBrokerOgCodeEntry',context).css('display','none'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+                
+                /**
+				* Broker Og Code delete handler.
+				*/
+				function deleteBrokerOgCodeEntryHandler(rowIndex, dataContext){
+					var requestUrl = baseUrl + "/deleteBrokerOgCode/"+ rowIndex +".json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertBrokerOgCodeEntry( content.value[0]);
+																		$('.editBtnBrokerOgCodeEntry',context).hide(); 
+																		$('.addBrokerOgCodeEntry',context).show();
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+				}
+                
+                /**
+				* Broker Og Code update handler.
+				*/
+				function updateBrokerOgCodeEntryHandler(e){
+					var valid = validateAttributes4();
+					if(valid){
+						var requestUrl = baseUrl + "/updateBrokerOgCode.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateBrokerOgCodeEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertBrokerOgCodeEntry( content.value[0]);
+																		$('.editBtnBrokerOgCodeEntry',context).css('display','none'); 
+																		$('.addBrokerOgCodeEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+					}
+				}
+                
+                /**
+				* Broker Og Code cancel handler.
+				*/
+				function cancelBrokerOgCodeEntryHandler(e){
+					var requestUrl = baseUrl + "/cancelBrokerOgCode.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertBrokerOgCodeEntry( content.value[0]);
+																		$('.editBtnBrokerOgCodeEntry',context).css('display','none'); 
+																		$('.addBrokerOgCodeEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+                
+                /**
+				* Insert/ Update Broker Og Code.
+				*/
+				function upsertBrokerOgCodeEntry(data){
+                    var result = data.otherAttributes.brokerOgCodeDynaBeans;
+					if(result){
+						brokerOgCodeEntryGrid.clearData();
+						for(var i in result){
+							item = {};
+							rowId+=1;
+							item.id 				    = "xenos_" + rowId;
+							item.brokerOgCode 		        = $.trim(result[i].map.brokerOgCode);
+					
+							brokerOgCodeEntryGrid.addOrUpdateRow(item,{});
+						}
+						populateBrokerOgCodeEntryForm(data);
+					}
+				}
+				/**
+				* New User ID add handler.
+				*/
+				function newUserIDEntryHandler(e){
+					var valid = validateAttributes1();
+					if(valid){
+						var requestUrl = baseUrl + "/addUserId.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateUserIDEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertUserIDEntry( content.value[0]);
+																		xenos.utils.clearGrowlMessage();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+						}
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function editUserIdEntryHandler(rowIndex, dataContext){
+					
+					var requestUrl = baseUrl + "/editUserId.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																settings: {data : {"editIndexAccountAccessInfo" : rowIndex}},
+																onJsonContent :  function(e, options, $target, content) {
+																	
+																	if(content.success == true){
+																		populateUserIDEntryForm(content.value[0]);
+																		$('.editBtnUserIdEntry',context).css('display','block'); 
+																		$('.addUserIdEntry',context).css('display','none'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function deleteUserIdEntryHandler(rowIndex, dataContext){
+					var requestUrl = baseUrl + "/deleteUserId/"+ rowIndex +".json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertUserIDEntry( content.value[0]);
+																		$('.editBtnUserIdEntry',context).hide(); 
+																		$('.addUserIdEntry',context).show();
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function updateUserIdEntryHandler(e){
+					var valid = validateAttributes1();
+					if(valid){
+						var requestUrl = baseUrl + "/updateUserId.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateUserIDEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertUserIDEntry( content.value[0]);
+																		$('.editBtnUserIdEntry',context).css('display','none'); 
+																		$('.addUserIdEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+					}
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function cancelUserIdEntryHandler(e){
+					var requestUrl = baseUrl + "/cancelUserId.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertUserIDEntry( content.value[0]);
+																		$('.editBtnUserIdEntry',context).css('display','none'); 
+																		$('.addUserIdEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* Insert/ Update User ID.
+				*/
+				function upsertUserIDEntry(data){
+					
+					var result = data.otherAttributes.accountSalesDynaBeans;
+					if(result){
+						userIDEntryGrid.clearData();
+						for(var i in result){
+							item = {};
+							rowId+=1;
+							item.id 				    = "xenos_" + rowId;
+							item.userId 		        = $.trim(result[i].map.accessUserId);
+							item.defaultoffice 			= $.trim(result[i].map.accessUserDefaultOffice);
+							item.salesname 				= $.trim(result[i].map.userName);
+							
+							userIDEntryGrid.addOrUpdateRow(item,{});
+						}
+						populateUserIDEntryForm(data);
+					}
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function addAccountNoEntryHandler(e){
+					var valid = validateAttributes();
+					if(valid){
+						var requestUrl = baseUrl + "/addAccountNo.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateAccountNoEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertAccountNoEntry( content.value[0]);
+																		xenos.utils.clearGrowlMessage();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+					}
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function editAccountNoEntryHandler(rowIndex, dataContext){
+					
+					var requestUrl = baseUrl + "/editAccountNo.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																settings: {data : {"editIndexAccountCode" : rowIndex}},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		populateAccountNoEntryForm(content.value[0]);
+																		$('.editBtnAccountNoEntry',context).css('display','block'); 
+																		$('.addAccountNoEntry',context).css('display','none'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function deleteAccountNoEntryHandler(rowIndex, dataContext){
+					var requestUrl = baseUrl + "/deleteAccountNo/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertAccountNoEntry( content.value[0]);
+																		$('.editBtnAccountNoEntry',context).css('display','none'); 
+																		$('.addAccountNoEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function updateAccountNoEntryHandler(e){
+					var valid = validateAttributes();
+					if(valid){
+						var requestUrl = baseUrl + "/updateAccountNo.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateAccountNoEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertAccountNoEntry( content.value[0]);
+																		$('.editBtnAccountNoEntry',context).css('display','none'); 
+																		$('.addAccountNoEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+					}
+				}
+				
+				/**
+				* New Account No add handler.
+				*/
+				function cancelAccountNoEntryHandler(e){
+					var requestUrl = baseUrl + "/cancelAccountNo.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertAccountNoEntry( content.value[0]);
+																		$('.editBtnAccountNoEntry',context).css('display','none'); 
+																		$('.addAccountNoEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* Insert/ Update Account No.
+				*/
+				function upsertAccountNoEntry(data){
+					
+					var result = data.otherAttributes.accountXrefDynaBeans;
+					if(result){
+						accountNoEntryGrid.clearData();
+						for(var i in result){
+							item = {};
+							rowId+=1;
+							item.id 				    = "xenos_" + rowId;
+							item.accountNoType 		    = $.trim(result[i].map.accountNoType);
+							item.accountNo 				= $.trim(result[i].map.accountNo);
+							
+							accountNoEntryGrid.addOrUpdateRow(item,{});
+						}
+						populateAccountNoEntryForm(data);
+					}
+				}
+				
+				
+				/**
+				* New Default Acount Name add handler.
+				*/
+				function addNameDetailEntryHandler(e){
+					var valid = validateAttributes2();
+					if(valid){
+						var requestUrl = baseUrl + "/addNameDetail.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateNameDetailEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertNameDetailEntry( content.value[0]);
+																		xenos.utils.clearGrowlMessage();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+					}
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function editNameDetailEntryHandler(rowIndex, dataContext){
+					
+					var requestUrl = baseUrl + "/editNameDetail.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																settings: {data : {"editIndexNameXref" : rowIndex}},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		populateNameDetailEntryForm(content.value[0]);
+																		$('.editBtnNameDetailEntry',context).css('display','block'); 
+																		$('.addNameDetailEntry',context).css('display','none'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function deleteNameDetailEntryHandler(rowIndex, dataContext){
+					
+					var requestUrl = baseUrl + "/deleteNameDetail/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertNameDetailEntry( content.value[0]);
+																		$('.editBtnNameDetailEntry',context).css('display','none'); 
+																		$('.addNameDetailEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function updateNameDetailEntryHandler(e){
+					var valid = validateAttributes2();
+					if(valid){
+						var requestUrl = baseUrl + "/updateNameDetail.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateNameDetailEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertNameDetailEntry( content.value[0]);
+																		xenos.utils.clearGrowlMessage();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+					}
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function cancelNameDetailEntryHandler(e){
+					var requestUrl = baseUrl + "/cancelNameDetail.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertNameDetailEntry( content.value[0]);
+																		$('.editBtnNameDetailEntry',context).css('display','none'); 
+																		$('.addNameDetailEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* Insert/ Update Account No.
+				*/
+				function upsertNameDetailEntry(data){
+					
+					var result = data.otherAttributes.accountNameXrefDynaBeans;
+					if(result){
+						nameDetailEntryGrid.clearData();
+						for(var i in result){
+							item = {};
+							rowId+=1;
+							item.id 				= "xenos_" + rowId;
+							item.langcode 		    = $.trim(result[i].map.charsetCode);
+							item.shortname1 		= $.trim(result[i].map.shortName);
+							item.offname1 		    = $.trim(result[i].map.officialName1);
+							item.offname2 			= $.trim(result[i].map.officialName2);
+							item.offname3 		    = $.trim(result[i].map.officialName3);
+							item.offname4 			= $.trim(result[i].map.officialName4);
+							
+							nameDetailEntryGrid.addOrUpdateRow(item,{});
+						}
+						populateNameDetailEntryForm(data);
+					}
+				}
+				
+				
+				var submitValidateHook = function() {	
+					var isValid = validateOnNextForGeneralTabEmpty();
+					return isValid;
+				}
+				
+				var nextValidateHook = function() {
+					var isValid = validateOnNextForGeneralTabEmpty();
+					return isValid;
+				};
+				
+				var previousValidateHook = function() {
+					var isValid = validateAttributes3();
+					return isValid;
+				};
+				
+				function addDefaultAccountEntryHandler(){
+					
+					if($(".abcd").css('display') == 'none'){
+					if(validateAttributes3()){
+							$(".abcd").css('display','block');
+						}
+					}else{
+						$(".abcd").css('display','none');
+					}
+				}
+				
+				$('#calculateAcno',context).bind('click',calculateAcnoEntryHandler);
+				$('#addAccountNoEntryBtn',context).bind('click',addAccountNoEntryHandler);
+				$('#addBrokerOgCodeEntryBtn',context).bind('click',newBrokerOgCodeEntryHandler);
+				$('#addUserIdEntryBtn',context).bind('click',newUserIDEntryHandler);
+				$('#addNameDetailEntryBtn',context).bind('click',addNameDetailEntryHandler);
+				$('#addDefaultAccountEntryBtn',context).bind('click',addDefaultAccountEntryHandler);
+				
+				$('#updateUserIdEntryBtn',context).bind('click',updateUserIdEntryHandler);
+				$('#cancelUserIdEntryBtn',context).bind('click',cancelUserIdEntryHandler);
+				
+				$('#updateBrokerOgCodeEntryBtn',context).bind('click',updateBrokerOgCodeEntryHandler);
+				$('#cancelBrokerOgCodeEntryBtn',context).bind('click',cancelBrokerOgCodeEntryHandler);
+
+				$('#updateAccountNoEntryBtn',context).bind('click',updateAccountNoEntryHandler);
+				$('#cancelAccountNoEntryBtn',context).bind('click',cancelAccountNoEntryHandler);
+				
+				$('#updateNameDetailEntryBtn',context).bind('click',updateNameDetailEntryHandler);
+				$('#cancelNameDetailEntryBtn',context).bind('click',cancelNameDetailEntryHandler);
+				
+				var unloadHook = function(){
+					$('#calculateAcno',context).unbind('click',calculateAcnoEntryHandler);
+					$('#addAccountNoEntryBtn',context).unbind('click',addAccountNoEntryHandler);
+					$('#addBrokerOgCodeEntryBtn',context).unbind('click',newBrokerOgCodeEntryHandler);
+					$('#addUserIdEntryBtn',context).unbind('click',newUserIDEntryHandler);
+					$('#addNameDetailEntryBtn',context).unbind('click',addNameDetailEntryHandler);
+					$('#addDefaultAccountEntryBtn',context).unbind('click',addDefaultAccountEntryHandler);
+					
+					$('#updateUserIdEntryBtn',context).unbind('click',updateUserIdEntryHandler);
+					$('#cancelUserIdEntryBtn',context).unbind('click',cancelUserIdEntryHandler);
+					$('#updateBrokerOgCodeEntryBtn',context).unbind('click',updateBrokerOgCodeEntryHandler);
+					$('#cancelBrokerOgCodeEntryBtn',context).unbind('click',cancelBrokerOgCodeEntryHandler);
+					
+					$('#updateAccountNoEntryBtn',context).unbind('click',updateAccountNoEntryHandler);
+					$('#cancelAccountNoEntryBtn',context).unbind('click',cancelAccountNoEntryHandler);
+					
+					$('#updateNameDetailEntryBtn',context).unbind('click',updateNameDetailEntryHandler);
+					$('#cancelNameDetailEntryBtn',context).unbind('click',cancelNameDetailEntryHandler);
+				
+					$xenos$Wizard.deregister('submit',submitValidateHook);
+					$xenos$Wizard.deregister('next',nextValidateHook);
+					$xenos$Wizard.deregister('previous',previousValidateHook);
+					$xenos$Wizard.deregister('unload',unloadHook);
+					
+					accountNoEntryGrid.destroy();
+					brokerOgCodeEntryGrid.destroy();
+					userIDEntryGrid.destroy();
+					nameDetailEntryGrid.destroy();
+				}
+				
+				$xenos$Wizard.register('next',nextValidateHook);
+				$xenos$Wizard.register('previous',previousValidateHook);
+				$xenos$Wizard.register('submit',submitValidateHook);
+				$xenos$Wizard.register('unload',unloadHook);
+				xenos.utils.afterFormRenderScuts();
+				
+				
+				/**
+				 *	Default Account Section disabling
+				*/
+				if("${commandForm.account.defaultAccountFlag}" == "Y"){
+					$("#fundCode").prop("disabled", true);
+					$("#fundCodePopup").prop("disabled", true);
+					if("${commandForm.account.counterPartyDetailType}" != "BROKER"){
+						$("#serviceOffice").prop("disabled", true);
+					}else{
+						$("#serviceOffice").prop("disabled", false);
+					}
+				}else{
+					$("#serviceOffice").prop("disabled", false);
+					if("${commandForm.account.counterPartyDetailType}" == "INTERNAL"){
+						$("#fundCode").prop("disabled", true);
+						$("#fundCodePopup").prop("disabled", true);
+					}else{
+						$("#fundCode").prop("disabled", false);
+						$("#fundCodePopup").prop("disabled", false);
+					}
+				}
+				
+				$("#counterpartytype").prop("disabled", true);
+				
+				if("${commandForm.account.counterPartyDetailType}" == "BROKER"){
+					$("#nationalityDiv").addClass('twoCols');
+                    $("#bankAccountTypeDiv").show();
+					$("#brokerCodeDiv").show();
+					$("#brokerOgCodeEntryDiv").show();
+                    
+					$("#fundCodeDiv").hide();
+					$("#formarecreatedallowedDiv").hide();
+					$("#mt54xloadreqdDiv").hide();
+					$("#tradetypecategoryDiv").hide();
+					$("#incomeentitlegenflagDiv").hide();
+                    
+				}else{
+					$("#bankAccountTypeDiv").hide();
+					$("#brokerCodeDiv").hide();
+					$("#brokerOgCodeEntryDiv").hide();
+				}
+				
+				// Populate sales role reqd
+					if ("${commandForm.salesRoleRequired}" == true) {
+						$("#salesRoleDiv").show();
+					}else{
+						$("#salesRoleDiv").hide();
+					}
+				
+				if("${commandForm.account.counterPartyDetailType}" == "INTERNAL"){
+					$("#tradetypecategoryDiv").show();
+					$("#formarecreatedallowedDiv").show();
+					$("#mt54xloadreqdDiv").show();
+				}
+				
+				if("${commandForm.options.actionType}" == "ENTRY"){
+					$("#treatycode").prop("disabled", true);
+					$('<input type="hidden" id="treatycodeHidden" value="" name="account.treatyCode" />').appendTo("#appenderHidden");
+				}else if("${commandForm.options.actionType}" == "AMEND"){
+					if("${commandForm.account.counterPartyDetailType}" == "INTERNAL"){
+						$("#treatycode").prop("disabled", true);
+						$('<input type="hidden" id="treatycodeHidden" value="" name="account.treatyCode" />').appendTo("#appenderHidden");
+					}
+				}
+				else if("${commandForm.options.actionType}" == "REOPEN"){
+					if("${commandForm.account.counterPartyDetailType}" == "INTERNAL"){
+						$("#treatycode").prop("disabled", true);
+						$('<input type="hidden" id="treatycodeHidden" value="" name="account.treatyCode" />').appendTo("#appenderHidden");
+					}
+				}
+				
+				if(!("${commandForm.options.actionType}" == "ENTRY" || "${commandForm.options.actionType}" == "COPY")){
+					$("#calculateAcno").prop("disabled", true);
+				}
+				
+				if("${commandForm.account.counterPartyDetailType}" == "INTERNAL"){
+					$("#instructionsendofficeDiv").show();
+					$("#stlInxOutputFormatDiv").show();
+				}else{
+					$("#instructionsendofficeDiv").hide();
+					$("#stlInxOutputFormatDiv").hide();
+				}
+				
+				if("${commandForm.account.counterPartyDetailType}" == "INTERNAL"){
+					$("#longShortFlagDiv").show();
+					
+					if("${commandForm.fund.formaRequired}" == "Y"){
+						$("#formarecreatedallowed").prop("disabled", false);
+					}else{
+						var index = getIndexOfDropdownValue($("#formarecreatedallowed"),"");
+						$("#formarecreatedallowed option").eq(index).prop('selected', true);
+						$("#formarecreatedallowed").prop("disabled", true);
+						$('<input type="hidden" id="formarecreatedallowedHidden" value="" name="account.formaRecreatedAllowed" />').appendTo("#appenderHidden");
+					}
+					$("#brokerAccount").val("${commandForm.account.primeBrokerAccountNo}");
+				}else{
+					$("#longShortFlagDiv").hide();
+					$("#primeBrokerAccountNo").hide();
+				}
+				
+				if("${commandForm.account.counterPartyDetailType}" == "BANK/CUSTODIAN"){
+					$("#nationalityDiv").addClass('twoCols');
+					$("#bankAccountTypeDiv").show();
+					$("#fundCodeDiv").show();
+					$("#finInstCodeDiv").show();
+					$("#brokerCodeDiv").hide();
+					$("#serviceOfficeDiv").hide();
+					$("#brokerOgCodeEntryDiv").hide();
+					$("#longShortFlagDiv").hide();
+					$("#formarecreatedallowedDiv").hide();
+					$("#mt54xloadreqdDiv").hide();
+					$("#instructionsendofficeDiv").hide();
+					$("#tradetypecategoryDiv").hide();
+				}
+				
+				function getIndexOfDropdownValue(list,value){
+					var index = 0;
+					if(value == "" || value == null || value == undefined){
+						return index;
+					}
+					for(var i = 0; i <![CDATA[<]]> list.children('option').length; i++){
+						if(list.children('option').eq(i).val() == value){
+							index = i;
+							break;
+						}
+					}
+					return index;
+				}
+				
+				
+				/**
+				 *	Prime Broker Account visibility event
+				*/
+				if($("#longShortFlag").val() == "S"){
+					$("#primeBrokerAccountNo").show();
+				}else{
+					$("#primeBrokerAccountNo").hide();
+				}
+				
+				/**
+				 *	Default Bank Account Flag 
+				*/
+				$("#defaultAcSelect").prop("disabled",true);
+				var defaultBankAccountFlag = "<c:out value="${commandForm.defaultBankAccountFlag}"/>";
+				if(defaultBankAccountFlag == 'true') {
+					$("#defaultAcSelect").prop("checked", true);
+					$("#defaultAcSelectVal").val("true");
+				} else {
+					$("#defaultAcSelect").prop("checked", false);
+					$("#defaultAcSelectVal").val("false");
+				}
+			}
+			
+			
+		</jsp:body>
+    </jsp:element>
+		<c:if test="${success =='false'}">
+			<ul class="xenosError">
+				<c:forEach items="${value}" var="dl">		
+				<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+				</c:forEach>
+			</ul>	
+		</c:if>
+	
+		<div>
+			<h1><spring:message code="ref.account.title" htmlEscape="false"/> - <spring:message code="ref.account.label.generalinfo" htmlEscape="false"/></h1>
+			<div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.general" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>
+			
+			<div class="entryBlkArea">
+				<div class="formItemBlock topitems fourCol" id="generalInfo">
+					<div class="entryBlkArea">
+						<h1><spring:message code="ref.account.label.defaultaccountcode" htmlEscape="false"/></h1>
+						<div class="formItem">
+							<form:label path="commandForm.account.counterPartyDetailType" class="required"><spring:message code="ref.account.label.counterpartytype" htmlEscape="false"/></form:label>
+							<form:select id="counterpartytype" path="commandForm.account.counterPartyDetailType" class="dropdowninput" >
+									<form:option value=""/>
+									<form:options items="${commandForm.dropDownListValues.counterPartyDetailTypeList}" itemLabel="label" itemValue="value"/>
+							</form:select>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem" id="fundCodeDiv">
+							<form:label path="commandForm.account.fundCode" class="required"><spring:message code="ref.account.label.fundcode" htmlEscape="false"/></form:label>
+							<span><form:input id="fundCode" value="" path="commandForm.account.fundCode"  class="textBox" /></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="popupBtn"><input id="fundCodePopup" type="button" class="popupBtnIco" tgt="fundCode" popType="fundCode" value=""/></div>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+                        <div class="formItem" id="bankAccountTypeDiv">
+							<form:label path="commandForm.account.bankAccountType"><spring:message code="ref.account.label.bankAccountType" htmlEscape="false"/></form:label>
+							<form:select id="bankAccountType" path="commandForm.account.bankAccountType" class="dropdowninput" >
+									<form:option value=""/>
+									<form:options items="${commandForm.dropDownListValues.bankAccountTypeList}" itemLabel="label" itemValue="value"/>
+							</form:select>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						
+						<div class="formItem">
+							<form:label path="commandForm.otherAttributes.defaultAccountNo"><spring:message code="ref.account.label.accountno" htmlEscape="false"/></form:label>
+							<span><form:input id="defaultAcNo" value="" path="commandForm.otherAttributes.defaultAccountNo" class="textBox" maxlength="35" /></span>
+							<c:if test = "${commandForm.options.actionType == 'ENTRY' || commandForm.options.actionType == 'COPY'}">
+							<div class="btnWrapStyle submitBtn gridAddBtn">
+								<span class="addDefaultAccountNoEntry"><input id="calculateAcno" type="button" value="${formadd_label}" class="inputBtnStyle" /></span>
+							</div>
+							</c:if>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+                        <c:if test = "${commandForm.account.counterPartyDetailType == 'BROKER'}">
+                        <div class="formItem" id="brokerCodeDiv">
+                            <form:label path="commandForm.account.brokerCode" class="required"><spring:message code="ref.customer.entry.label.brokercode" htmlEscape="false"/></form:label>
+                            <span><form:input id="brokerCode" value="" path="commandForm.account.brokerCode"  class="textBox popTgt" /></span>
+                            <span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+                            <div class="popupBtn"><input type="button" class="popupBtnIco" tgt="brokerCode" popType="finInstRoleType" bankRoles="Stock Exchange|Security Broker|Bank/Custodian|Central Depository|Transfer Agent" value=""/></div>
+                            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						</c:if>
+						<div class="formItem" id="serviceOfficeDiv">
+							<form:label path="commandForm.otherAttributes.serviceOffice" class="required"><spring:message code="ref.account.label.serviceoffice" htmlEscape="false"/></form:label>
+							<form:select id="serviceOffice" path="commandForm.otherAttributes.serviceOffice" class="dropdowninput" >
+									<form:option value=""/>
+									<form:options items="${commandForm.dropDownListValues.serviceOfficeList}" />
+							</form:select>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<c:if test = "${commandForm.account.counterPartyDetailType == 'BANK/CUSTODIAN'}">
+                        <div class="formItem" id="finInstCodeDiv">
+                            <form:label path="commandForm.account.brokerCode" class="required"><spring:message code="ref.account.label.fininstcodelabel" htmlEscape="false"/></form:label>
+                            <span><form:input id="finInstCode" value="" path="commandForm.account.brokerCode"  class="textBox popTgt" /></span>
+                            <span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+                            <div class="popupBtn"><input type="button" class="popupBtnIco" tgt="finInstCode" popType="finInstRoleType" bankRoles="Security Broker|Bank/Custodian|Central Depository" value=""/></div>
+                            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						</c:if>
+						
+						<c:if test = "${( (commandForm.account.counterPartyDetailType == 'BANK/CUSTODIAN') and ((commandForm.options.actionType == 'AMEND') || (commandForm.options.actionType == 'REOPEN') ) ) }">
+						<div class="formItem" id="defaultAcFlagDiv">
+							<form:label path="commandForm.defaultBankAccountFlag" class="required"><spring:message code="ref.account.label.defaultbankaccount" htmlEscape="false"/></form:label>
+							<span>
+							<input type="hidden" id="defaultAcSelectVal" name="defaultBankAccountFlag" value=""/>
+							<form:checkbox path="commandForm.defaultBankAccountFlag" id="defaultAcSelect"/>
+							</span>
+						</div>
+						</c:if>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="entryBlkArea">
+						<h1><spring:message code="ref.account.label.accountcodeinfo" htmlEscape="false"/></h1>
+						<div class="formItem">
+							<form:label path="commandForm.otherAttributes.accountNoType" class="required"><spring:message code="ref.account.label.accountnotype" htmlEscape="false"/></form:label>
+							<form:select id="accountNoType" path="commandForm.otherAttributes.accountNoType" class="dropdowninput" >
+									<form:options items="${commandForm.dropDownListValues.accountNoTypeList}" itemLabel="label" itemValue="value"/>
+							</form:select>
+						</div>
+						<div class="formItem">
+							<form:label path="commandForm.otherAttributes.accountNo" class="required"><spring:message code="ref.account.label.accountno" htmlEscape="false"/></form:label>
+							<span><form:input id="accountNo" value="" path="commandForm.otherAttributes.accountNo" class="textBox" maxlength="35" /></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div id="formActionArea" class="gridBtnMargin AddBtnformActionAreaBg">
+							<div class="right">
+								<div class="btnWrapStyle submitBtn gridAddBtn">
+									<span class="addAccountNoEntry" style="display:block"><input id="addAccountNoEntryBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+								</div>
+								<span class="editBtnAccountNoEntry" style="display:none">	
+									<div class="btnWrapStyle submitBtn"><input id="updateAccountNoEntryBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+									<div class="btnWrapStyle resetBtn"><input id="cancelAccountNoEntryBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+								</span>
+							</div>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="entryGrid">
+							<div id="accountNoEntryGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+                    
+                    <div class="entryBlkArea" id="brokerOgCodeEntryDiv">
+						<h1><spring:message code="ref.account.label.brokerogcodeinfo" htmlEscape="false"/></h1>
+						<div class="formItem">
+							<span><form:input id="brokerOgCode" value="" path="commandForm.otherAttributes.brokerOgCode" class="textBox" /></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div id="formActionArea" class="gridBtnMargin AddBtnformActionAreaBg">
+							<div class="right">
+								<div class="btnWrapStyle submitBtn gridAddBtn">
+									<span class="addBrokerOgCodeEntry" style="display:block"><input id="addBrokerOgCodeEntryBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+								</div>
+								<span class="editBtnBrokerOgCodeEntry" style="display:none">	
+									<div class="btnWrapStyle submitBtn"><input id="updateBrokerOgCodeEntryBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+									<div class="btnWrapStyle resetBtn"><input id="cancelBrokerOgCodeEntryBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+								</span>
+							</div>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="entryGrid">
+							<div id="brokerOgCodeEntryGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+                    
+					<div class="entryBlkArea">
+						<h1><spring:message code="ref.account.label.accountaccessinfo" htmlEscape="false"/></h1>
+						<div class="formItem">
+							<form:label path="commandForm.otherAttributes.accessUserId"><spring:message code="ref.account.label.userid" htmlEscape="false"/></form:label>
+							<span><form:input id="accessUserId" value="" path="commandForm.otherAttributes.accessUserId" class="txtNormal popTgt" /></span>
+                            <span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+                            <div class="popupBtn"><input type="button" class="popupBtnIco" tgt="accessUserId" popType="employee" value=""/></div>
+                            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						
+						<div class="formItem" id="salesRoleDiv">
+							<form:label path="commandForm.otherAttributes.salesRole" class="required"><spring:message code="ref.account.label.salesrole" htmlEscape="false"/></form:label>
+							<form:select id="salesRole" path="commandForm.otherAttributes.salesRole" class="dropdowninput" >
+									<form:options items="${commandForm.dropDownListValues.salesRoleList}" />
+							</form:select>
+						</div>
+						
+						<div id="formActionArea" class="gridBtnMargin AddBtnformActionAreaBg">
+							<div class="right">
+								<div class="btnWrapStyle submitBtn gridAddBtn">
+									<span class="addUserIdEntry" style="display:block"><input id="addUserIdEntryBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+								</div>
+								<span class="editBtnUserIdEntry" style="display:none">	
+									<div class="btnWrapStyle submitBtn"><input id="updateUserIdEntryBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+									<div class="btnWrapStyle resetBtn"><input id="cancelUserIdEntryBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+								</span>
+							</div>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="entryGrid">
+							<div id="userIDEntryGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			</div>
+
+			
+			<div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.account.label.defaultaccountnameinfo" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>
+			
+			<div class="entryBlkArea">
+				<div class="formItemBlock topitems dottedBg" id="defaultAccountName">
+					<div class="entryBlkArea">
+						<div class="formItem">
+							<form:label path="commandForm.otherAttributes.defaultCharsetCode" class="required"><spring:message code="ref.account.label.languagecode" htmlEscape="false"/></form:label>
+							<form:label path="commandForm.otherAttributes.defaultCharsetCode">${commandForm.otherAttributes.defaultCharsetCode}</form:label>
+						</div>
+						<div class="formItem">
+							<form:label path="commandForm.account.shortName" class="required"><spring:message code="ref.account.label.shortname" htmlEscape="false"/></form:label>
+							<span><form:input id="shortName" value="" path="commandForm.account.shortName" class="textBox" maxlength="35"/></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<form:label path="commandForm.account.officialName1" class="required"><spring:message code="ref.account.label.officialname1" htmlEscape="false"/></form:label>
+							<span><form:input id="officialName1" value="" path="commandForm.account.officialName1" class="textBox" maxlength="35"/></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<form:label path="commandForm.account.officialName2"><spring:message code="ref.account.label.officialname2" htmlEscape="false"/></form:label>
+							<span><form:input id="officialName2" value="" path="commandForm.account.officialName2" class="textBox" maxlength="35"/></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<form:label path="commandForm.account.officialName3"><spring:message code="ref.account.label.officialname3" htmlEscape="false"/></form:label>
+							<span><form:input id="officialName3" value="" path="commandForm.account.officialName3" class="textBox" maxlength="35"/></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<form:label path="commandForm.account.officialName4"><spring:message code="ref.account.label.officialname4" htmlEscape="false"/></form:label>
+							<span><form:input id="officialName4" value="" path="commandForm.account.officialName4" class="textBox" maxlength="35"/></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="right">
+							<div class="btnWrapStyle submitBtn gridAddBtn">
+								<span class="addUserIdEntry" style="display:block"><input id="addDefaultAccountEntryBtn" type="button" value="${formdetails_label}" class="inputBtnStyle"/></span>
+							</div>
+						</div>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					
+					<div class="formItemBlock topitems abcd" style="display:none;">
+						<div class="formItem">
+							<form:label path="commandForm.accountNameXref.charsetCode" class="required"><spring:message code="ref.account.label.languagecode" htmlEscape="false"/></form:label>
+							<form:select id="charsetCodeAppender" path="commandForm.accountNameXref.charsetCode" class="dropdowninput" >
+									<form:option value=""/>
+									<form:options items="${commandForm.dropDownListValues.charsetCodeList}" />
+							</form:select>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+					  
+						<div class="formItem">
+							<form:label path="commandForm.accountNameXref.shortName" class="required"><spring:message code="ref.account.label.shortname" htmlEscape="false"/></form:label>
+							<span><form:input id="shortNameAppender" value="" path="commandForm.accountNameXref.shortName" class="textBox" maxlength="35"/></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<form:label path="commandForm.accountNameXref.officialName1" class="required"><spring:message code="ref.account.label.officialname1" htmlEscape="false"/></form:label>
+							<span><form:input id="offname1Appender" value="" path="commandForm.accountNameXref.officialName1" class="textBox" maxlength="35"/></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<form:label path="commandForm.accountNameXref.officialName2"><spring:message code="ref.account.label.officialname2" htmlEscape="false"/></form:label>
+							<span><form:input id="offname2Appender" value="" path="commandForm.accountNameXref.officialName2" class="textBox" maxlength="35"/></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<form:label path="commandForm.accountNameXref.officialName3"><spring:message code="ref.account.label.officialname3" htmlEscape="false"/></form:label>
+							<span><form:input id="offname3Appender" value="" path="commandForm.accountNameXref.officialName3" class="textBox" maxlength="35"/></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<form:label path="commandForm.accountNameXref.officialName4"><spring:message code="ref.account.label.officialname4" htmlEscape="false"/></form:label>
+							<span><form:input id="offname4Appender" value="" path="commandForm.accountNameXref.officialName4" class="textBox" maxlength="35"/></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						<div id="formActionArea" class="gridBtnMargin AddBtnformActionAreaBg">
+							<div class="right">
+								<div class="btnWrapStyle submitBtn gridAddBtn">
+									<span class="addNameDetailEntry" style="display:block"><input id="addNameDetailEntryBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+								</div>
+								<span class="editBtnNameDetailEntry" style="display:none">
+									<div class="btnWrapStyle submitBtn"><input id="updateNameDetailEntryBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+									<div class="btnWrapStyle resetBtn"><input id="cancelNameDetailEntryBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+								</span>
+							</div>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						<div class="entryGrid">
+							<div id="nameDetailEntryGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			</div>
+			
+			<div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.account.label.basicattribute" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>
+			
+			<div class="entryBlkArea">
+				<div class="formItemBlock topitems dottedBg" id="basicAttribute">
+					<div class="formItem" id="treatycodeDiv">
+						<form:label path="commandForm.account.treatyCode"><spring:message code="ref.account.label.treatycode" htmlEscape="false"/></form:label>
+						<form:select id="treatycode" path="commandForm.account.treatyCode" class="dropdowninput" >
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.treatyCodeList}"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.account.activityStatus"><spring:message code="ref.account.label.activitystatus" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.account.activityStatus">${commandForm.account.activityStatus}</form:label>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.account.residentCountry"><spring:message code="ref.account.label.residentcountry" htmlEscape="false"/></form:label>
+						<span><form:input id="residentcountryCode" path="commandForm.account.residentCountry" size="15" class="textBox" /></span>
+						<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="residentcountryCode" popType="nationality" /></div>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.account.contractCountry"><spring:message code="ref.account.label.contractcountry" htmlEscape="false"/></form:label>
+						<span><form:input id="contractCountry" path="commandForm.account.contractCountry" size="15" class="textBox"  /></span>
+						<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="contractCountry" popType="nationality" /></div>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+					</div>
+					<div class="formItem" id="nationalityDiv">
+						<form:label path="commandForm.account.nationality"><spring:message code="ref.account.label.nationality" htmlEscape="false"/></form:label>
+						<span><form:input id="nationality" path="commandForm.account.nationality" size="15" class="textBox" /></span>
+						<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="nationality" popType="nationality" /></div>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+					</div>
+					<c:if test = "${commandForm.account.counterPartyDetailType == 'INTERNAL'}">
+					<div class="formItem" id="longShortFlagDiv">
+						<form:label path="commandForm.account.longShortFlag" class="required"><spring:message code="ref.account.label.position" htmlEscape="false"/></form:label>
+						<form:select id="longShortFlag" path="commandForm.account.longShortFlag" class="dropdowninput" onchange="onChangeLongShortFlag()" >
+								<form:options items="${commandForm.dropDownListValues.longShortFlagList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					</c:if>
+					<div class="formItem twoCols" id="primeBrokerAccountNo">
+						<form:label path="commandForm.account.primeBrokerAccountNo" class="required"><spring:message code="ref.account.label.primebrokeraccountno" htmlEscape="false"/></form:label>
+						<span><form:input id="brokerAccount" path="commandForm.account.primeBrokerAccountNo" size="15" class="textBox" /></span>
+						<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="brokerAccount" popType="cpAccount" actTypeContext="T|B"
+								actCPTypeContext="BROKER" actStatusContext="OPEN"/></div>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+					</div>
+					<c:if test = "${commandForm.options.actionType == 'AMEND' || commandForm.options.actionType == 'REOPEN'}">
+					<div class="formItem">
+						<form:label path="commandForm.lastActivityDateStr"><spring:message code="ref.account.label.lastactivitydate" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.lastActivityDateStr">${commandForm.lastActivityDateStr}</form:label>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.lastStatementDateStr"><spring:message code="ref.account.label.laststatementdate" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.lastStatementDateStr">${commandForm.lastStatementDateStr}</form:label>
+					</div>
+					</c:if>
+					<div class="formItem">
+						<form:label path="commandForm.account.accountOpenDateStr"><spring:message code="ref.account.label.acopendate" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.account.accountOpenDateStr">${commandForm.account.accountOpenDateStr}</form:label>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.account.accountOpenedBy"><spring:message code="ref.account.label.acopenby" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.account.accountOpenedBy">${commandForm.account.accountOpenedBy}</form:label>
+					</div>
+					<c:if test = "${commandForm.options.actionType == 'AMEND' || commandForm.options.actionType == 'REOPEN' }">
+					<div class="formItem">
+						<form:label path="commandForm.account.accountUpdateDateStr"><spring:message code="ref.account.label.accountupdatedate" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.account.accountUpdateDateStr">${commandForm.account.accountUpdateDateStr}</form:label>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.account.accountUpdatedBy"><spring:message code="ref.account.label.accountupdatedby" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.account.accountUpdatedBy">${commandForm.account.accountUpdatedBy}</form:label>
+					</div>
+					</c:if>
+					<div class="formItem" id="formarecreatedallowedDiv">
+						<form:label path="commandForm.account.formaRecreatedAllowed" ><spring:message code="ref.account.label.formarecreatedallowed" htmlEscape="false"/></form:label>
+						<form:select id="formarecreatedallowed" path="commandForm.account.formaRecreatedAllowed" class="dropdowninput" >
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.formaRequiredAllowedList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem" id="mt54xloadreqdDiv">
+						<form:label path="commandForm.account.mt54xLoadReqd" ><spring:message code="ref.account.label.mt54xloadreqd" htmlEscape="false"/></form:label>
+						<form:select id="mt54xloadreqd" path="commandForm.account.mt54xLoadReqd" class="dropdowninput" >
+								<form:options items="${commandForm.dropDownListValues.mt54xLoadReqdList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem twoCols">
+						<form:label path="commandForm.account.memo"><spring:message code="ref.account.label.memo" htmlEscape="false"/></form:label>
+						<form:input id="memo" value="" path="commandForm.account.memo" class="textBox fullWidthInputMemo" maxlength="255"/>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem" id="instructionsendofficeDiv">
+						<form:label path="commandForm.account.instructionSendOffice" ><spring:message code="ref.account.label.instructionsendoffice" htmlEscape="false"/></form:label>
+						<form:select id="instructionsendoffice" path="commandForm.account.instructionSendOffice" class="dropdowninput" >
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.instructionSendOfficeList}" />
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+                    <c:if test = "${commandForm.account.counterPartyDetailType == 'INTERNAL'}">
+					<div class="formItem" id="stlInxOutputFormatDiv">
+						<form:label path="commandForm.account.stlInxOutputFormat" class="required"><spring:message code="ref.account.label.stlinxoutputformat" htmlEscape="false"/></form:label>
+						<form:select id="stlInxOutputFormat" path="commandForm.account.stlInxOutputFormat" class="dropdowninput" >
+								<form:options items="${commandForm.dropDownListValues.stlInxOutputFormatList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+                    </c:if>
+					<div class="formItem" style="height:auto;" id="tradetypecategoryDiv">
+						<form:label path="commandForm.tradeTypeAccountRolePage.tradeTypeCategoryArray" ><spring:message code="ref.account.label.tradetypecategory" htmlEscape="false"/></form:label>
+						<form:select id="tradetypecategory" path="commandForm.tradeTypeAccountRolePage.tradeTypeCategoryArray" class="dropdowninput" >
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.tradeTypeCategoryList}" />
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+                    <c:if test = "${commandForm.account.counterPartyDetailType == 'INTERNAL'}">
+					<div class="formItem" id="incomeentitlegenflagDiv">
+						<form:label path="commandForm.account.incomeEntitlementGen" class="required"><spring:message code="ref.account.label.incomeentitlegenflag" htmlEscape="false"/></form:label>
+						<form:select id="incomeentitlegenflag" path="commandForm.account.incomeEntitlementGen" class="dropdowninput" >
+								<form:options items="${commandForm.dropDownListValues.incomeEntitlementGenFlagList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+                    </c:if>
+					
+					<!-- <div class="formItem"></div>
+					<div class="formItem"></div> -->
+					<div class="formItem twoCols labelWnoContentFix">
+						<form:label path="commandForm.account.remarks1"><spring:message code="ref.account.label.remarks" htmlEscape="false"/></form:label>
+						<span><form:input id="remarks1" value="" path="commandForm.account.remarks1" class="txtNormal" maxlength="255"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem twoCols labelWnoContentFix">
+						<form:label path="commandForm.account.remarks2"><spring:message text="" htmlEscape="false"/></form:label>
+						<span><form:input id="remarks2" value="" path="commandForm.account.remarks2" class="txtNormal" maxlength="255"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem twoCols labelWnoContentFix">
+						<form:label path="commandForm.account.remarks3"><spring:message text="" htmlEscape="false"/></form:label>
+						<span><form:input id="remarks3" value="" path="commandForm.account.remarks3" class="txtNormal" maxlength="255"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem twoCols labelWnoContentFix">
+						<form:label path="commandForm.account.remarks4"><spring:message text="" htmlEscape="false"/></form:label>
+						<span><form:input id="remarks4" value="" path="commandForm.account.remarks4" class="txtNormal" maxlength="255"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			</div>
+
+		</div>
+		<div id="appenderHidden">
+		</div>
+		<spring:eval expression="T(java.lang.System).currentTimeMillis()" var="myId"/>
+		<input type="hidden" id="${myId}"/>
+	</div>
+</jsp:root>

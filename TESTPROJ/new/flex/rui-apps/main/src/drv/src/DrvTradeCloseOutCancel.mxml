@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<containers:XenosEntryModule xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:frmtrs="com.nri.rui.core.formatters.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.RendererFectory;
+			import com.nri.rui.core.renderers.NullValueRendererForAdvancedDataGrid;
+			import com.nri.rui.core.renderers.NullValueRenderer;
+			import com.nri.rui.core.renderers.StatusRenderer;
+						
+    		import com.nri.rui.core.Globals;
+    		import com.nri.rui.drv.rendrers.TradeDetailsRenderer;
+    		import com.nri.rui.drv.rendrers.CloseOutDetailsRenderer;
+    		[Bindable]
+			public var closeRefNo:String ="";
+		]]>
+	</mx:Script>
+	
+	<mx:Script source="actionscripts/DrvTradeCloseOutCancel.as"/>	
+	<cntrls:XenosHTTPService id="backService" url="drv/drvCloseOutCancel.action?method=doBackCloseOutCancel" fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize')+ ' :  ' + event.fault.faultString)" 
+             method="POST" useProxy="false" result="backResult(event)" showBusyCursor="true"/>	 
+    <mx:VBox width="100%" height="100%" styleName="Padding" creationComplete="loadAll()"> 
+	<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+    <mx:HRule id="ruleBar"  strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+     <mx:HBox id="uConfLabel" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" includeInLayout="false" visible="false">
+		    <mx:Image id="uConfImg" source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+		    <mx:Label id="usrCnfMessage" textAlign="left" fontWeight="bold" text="{this.parentApplication.xResourceManager.getKeyValue('drv.alert.records.cancel')}" width="100%" selectable="true"/>		    
+	    </mx:HBox>
+	    <mx:HBox id="sConfLabel" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" includeInLayout="false" visible="false">
+			    <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>		    
+			    <mx:Label id="txnMessage" textAlign="left" fontWeight="bold" text="{this.parentApplication.xResourceManager.getKeyValue('inf.label.confirm.txn')+ '- '+this.parentApplication.xResourceManager.getKeyValue('drv.label.closeoutreferenceno')+' [ '+closeRefNo+']'}" selectable="true"/>    
+	    </mx:HBox>	
+	    <mx:Label id="contractLbl" text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.contractinfo')+ '[ '+ this.parentApplication.xResourceManager.getKeyValue('drv.label.contractreferenceno')+ '- '+contractRefNoStr+']'}" fontWeight="bold"/>
+		    <mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundcode')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label id="fundCode" text="{contractDetails.getItemAt(0).fundCode}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundaccountno')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label id="fundAccountNo" text="{contractDetails.getItemAt(0).fundAccountNo}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.brokeraccountno')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label id="brkAccountNo" text="{contractDetails.getItemAt(0).cpAccountNo}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securitycode')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label id="securityId" text="{contractDetails.getItemAt(0).securityCode}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securityshortname')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label id="securityShortName" text="{contractDetails.getItemAt(0).securityName}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.underlyingshortname')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label id="underlyingSecShortName" text="{contractDetails.getItemAt(0).underLyingSecurityName}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.status')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label id="status" text="{contractDetails.getItemAt(0).contractStatus}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text=""/>
+					</mx:GridItem>
+				</mx:GridRow>
+			</mx:Grid>
+	       <mx:AdvancedDataGrid id="adg" width="100%" height="100%" dataProvider="{closeOutData}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto">
+         		<mx:groupedColumns>
+         			<mx:AdvancedDataGridColumn id="selectRendererCol" textAlign="center" headerText="" dataField="selected" width="40" resizable="false" sortable="false" visible="true" editable="false">
+         				<mx:itemRenderer>
+         					<mx:Component>
+         					  <mx:VBox>
+         					  	<mx:CheckBox id="cbSelect" label="" click="{parentDocument.checkSelectToModify(data)}" selected="{(data.selected == 'true')?true:false}" visible="true"/>
+         					  </mx:VBox>         						
+         					</mx:Component>
+         				</mx:itemRenderer>
+         			</mx:AdvancedDataGridColumn>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.closeoutreferenceno')}" dataField="referenceNo" itemRenderer="{showDetails == true ? new ClassFactory(CloseOutDetailsRenderer) : new ClassFactory(NullValueRendererForAdvancedDataGrid)}"/>
+     				<mx:AdvancedDataGridColumnGroup headerText="" dataField="buyTradeDetails">
+     					<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.opentrade')}" dataField="buyTradeDetails">
+         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradereferenceno')}" dataField="tradeReferenceNo" itemRenderer="{showDetails == true ? new RendererFectory(TradeDetailsRenderer,'OPEN') : new ClassFactory(NullValueRendererForAdvancedDataGrid)}" width="120"/>
+         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.closeoutqty')}" dataField="quantityStr"/>
+         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.price')}" dataField="priceStr"/>
+         				</mx:AdvancedDataGridColumnGroup>
+     				</mx:AdvancedDataGridColumnGroup>
+     				<mx:AdvancedDataGridColumnGroup headerText="" dataField="sellTradeDetails">
+     					<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.closetrade')}" dataField="sellTradeDetails">
+         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradereferenceno')}" dataField="tradeReferenceNo" itemRenderer="{showDetails == true ? new RendererFectory(TradeDetailsRenderer,'CLOSE') : new ClassFactory(NullValueRendererForAdvancedDataGrid)}" width="120"/>
+         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.closeoutqty')}" dataField="quantityStr"/>
+         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.price')}" dataField="priceStr"/>
+         				</mx:AdvancedDataGridColumnGroup>
+     				</mx:AdvancedDataGridColumnGroup>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.pl')}" dataField="realizedPL"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.status')}" dataField="status" itemRenderer="{new ClassFactory(StatusRenderer)}"/>
+				</mx:groupedColumns>
+         	</mx:AdvancedDataGrid>
+         	<mx:HBox id="submitActionBtnPanel" width="100%" styleName="ButtonBackPanel">
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="{this.dispatchEvent(new Event('cancelEntrySave'))}" />              
+	        </mx:HBox>
+	        <mx:HBox id="actionBtnPanel" width="100%" styleName="ButtonBackPanel" includeInLayout="false" visible="false">
+			   <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="back" styleName="BtnStyle" click="doBack()"/>
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uConfSubmit" styleName="BtnStyle" click="{this.dispatchEvent(new Event('cancelEntryConf'))}" /> 
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.sysconfirm')}" id="sConfSubmit" styleName="BtnStyle" click="{this.dispatchEvent(new Event('cancelEntrySysConf'))}" includeInLayout="false" visible="false"/>               
+	        </mx:HBox>
+    </mx:VBox>
+</containers:XenosEntryModule>

@@ -1,0 +1,187 @@
+<!--$Id$-->
+<!--$Author: sumand $-->
+<!--$Date: 2016-12-23 13:49:40 $-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+<div>
+    
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" /> 
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/ref/cpSSIQueryResult.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;	
+            var grid_result_data = [];
+            var grid_result_columns = [
+				{name:"<spring:message code="ref.ssi.query.label.details" htmlEscape="false"/>",field:"view", id:"viewSsiDetails", width:49, sortable:false, isFromAuthFlow:false, formatter:Slick.Formatters.SsiDetailViewFormater},
+                {name:"<spring:message code="ref.cpstd.label.counterpartyac" htmlEscape="false"/>", field:"tradingAccount", id:"tradingAccount", width:107, sortable:true, formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'accountPk'}},
+                {name:"<spring:message code="ref.cpstd.label.counterpartyaccountname" htmlEscape="false"/>", field:"shortName", id:"shortName", width:200, sortable:true},
+				{name:"<spring:message code="ref.cpstd.label.counterpartycode" htmlEscape="false"/>", field:"finInstRoleCode", id:"finInstRoleCode", width:115, sortable:true},
+				{name:"<spring:message code="ref.cpstd.label.localac" htmlEscape="false"/>", field:"localAccount", id:"localAccount", width:107, sortable:true},
+                {name:"<spring:message code="ref.cpstd.label.settlefor" htmlEscape="false"/>", field:"settlementFor", id:"settlementFor", width:107, sortable:true},
+                {name:"<spring:message code="ref.cpstd.label.cashsec" htmlEscape="false"/>", field:"cashSecurityFlag", id:"cashSecurityFlag", width:75, sortable:true},
+                {name:"<spring:message code="ref.businessrelation.label.market" htmlEscape="false"/>", field:"marketCode", id:"marketCode", width:60, sortable:true},
+				{name:"<spring:message code="ref.cpstd.label.countrycode" htmlEscape="false"/>", field:"countryCode", id:"countryCode", width:100, sortable:true},
+                {name:"<spring:message code="ref.cpstd.label.instrtype" htmlEscape="false"/>", field:"instrumentType", id:"instrumentType", width:82, sortable:true},
+				{name:"<spring:message code="ref.cpstd.label.securityid" htmlEscape="false"/>", field:"securityId", id:"securityId", width:90, sortable:true, formatter:Slick.Formatters.InstrumentDetailViewFormater},
+				{name:"<spring:message code="ref.cpstd.label.securityname" htmlEscape="false"/>", field:"securityName", id:"securityName", width:190, sortable:true},
+				{name:"<spring:message code="ref.cpstd.label.alternate.securityid" htmlEscape="false"/>", field:"alternateSecurityCode", id:"alternateSecurityCode", width:190, sortable:true},
+				{name:"<spring:message code="ref.businessrelation.label.ccy" htmlEscape="false"/>", field:"ccy", id:"ccy", width:35, sortable:true},
+				{name:"<spring:message code="ref.cpstd.label.cpbank" htmlEscape="false"/>", field:"cpBank", id:"cpBank", width:100, sortable:true},
+				{name:"<spring:message code="ref.cpstd.label.settletype" htmlEscape="false"/>", field:"settlementType", id:"settlementType", width:110, sortable:true},
+				{name:"<spring:message code="ref.cpstd.label.contraid" htmlEscape="false"/>", field:"contraId", id:"contraId", width:82, sortable:true},
+				{name:"<spring:message code="ref.ownstanding.label.status" htmlEscape="false"/>", field:"status", id:"status", width:82, sortable:true, formatter:Slick.Formatters.CancelRecordFormatter},
+				{name:"<spring:message code="ref.ownstanding.label.priority" htmlEscape="false"/>", field:"priority", id:"priority", width:60, sortable:true},
+				{name:"<spring:message code="ref.cpstd.label.placeofsettlement" htmlEscape="false"/>", field:"placeOfSettlementStr", id:"placeOfSettlementStr", width:130, sortable:true},
+				{name:"<spring:message code="ref.cpstd.label.participantid" htmlEscape="false"/>", field:"participantId", id:"participantId", width:90, sortable:true},
+				{name:"<spring:message code="ref.cpstd.label.participantid2" htmlEscape="false"/>", field:"participantId2", id:"participantId2", width:92, sortable:true},
+				{name:"<spring:message code="ref.cpstd.label.brokerbic" htmlEscape="false"/>", field:"brokerBic", id:"brokerBic", width:100, sortable:true}
+            ];
+			var entryOperation = "<c:out value="${commandForm.entryOperation}" />";
+			var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:(entryOperation == 'true')? false : true,
+				buttons:{
+					print:true,	
+					xls:true,	
+					pdf:true,
+					xlsPref:true,
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					url: ((entryOperation == 'true') ? 'secure/ref/cpssi/query/entry' : 'secure/ref/cpssi/query') + '/count.json'
+				},
+				urls:{
+					nextPage : ((entryOperation == 'true') ? '/secure/ref/cpssi/query/entry' : '/secure/ref/cpssi/query') + '/result.json?fetch=next',
+                    prevPage : ((entryOperation == 'true') ? '/secure/ref/cpssi/query/entry' : '/secure/ref/cpssi/query') + '/result.json?fetch=previous',
+                    pdfReport: ((entryOperation == 'true') ? '/secure/ref/cpssi/query/entry' : '/secure/ref/cpssi/query') + '/report.json?outputType=pdf',
+                    xlsReport: ((entryOperation == 'true') ? '/secure/ref/cpssi/query/entry' : '/secure/ref/cpssi/query') + '/report.json?outputType=xls',
+                    xlsCurrent: ((entryOperation == 'true')? '/secure/ref/cpssi/query/entry' : '/secure/ref/cpssi/query') + '/reportPref.json?outputType=xls'
+				},
+				afterRenderComplete : function(grid, $context) {
+				  <!--var xenos$Handler$redirectToEntry = xenos$Handler$function({
+				  get: {
+					requestType: xenos$Handler$default.requestType.asynchronous,
+					target: jQuery('#content')
+				  },
+				  settings: {
+					beforeSend: function(request) {
+					  request.setRequestHeader('Accept', 'text/html;type=ajax');
+					},
+					data: {fragments: 'content'}
+				  },
+				  callback : {
+							success : function (evt, options){
+								if(options){
+									$.each(options['gridInstance'] || [], function (ind, grid) {
+										grid.destroy();
+										delete grid;
+									});
+								}
+							}
+				  }
+				});
+				
+				function redirectToEntry(e){
+			      var $form = $(e.target).parents('form#queryResultForm');
+                  var entryPageUrl = xenos.context.path + $form.attr('action').replace('back','redirect');
+			      entryPageUrl += "?commandFormId="+$('[name=commandFormId]',$form).val();
+                  var isDialog = false;
+               
+                  if($(this).parents(".ui-dialog").size()>0){
+		               container = $(this).closest(".ui-dialog-content");
+		               isDialog = true;
+		          }else{
+		            container = $("#content");
+		          }
+			      var gridInstanceArray = [];
+                  var grids = $("[class*=slickgrid_]", $form);
+			      $.each(grids, function (ind, grid) {
+					   gridInstanceArray.push($(grid).data("gridInstance"));
+				  });
+				
+			      xenos$Handler$redirectToEntry.generic(undefined, {requestUri: entryPageUrl,'gridInstance' : gridInstanceArray});
+                }
+               
+	            $context.find('#addSsi').unbind('click').bind('click', redirectToEntry);
+				
+				$context.find('#addSsi').unbind('click');
+				$context.find('#addSsi').bind('click', redirectToEntry);-->
+			 },
+				
+				defaultInvisibleColumns: ["finInstRoleCode", "localAccount"]
+			};
+            var row_id = 0;			
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				rec.accountPk = "<c:out value="${xenosfn:escapeJS(dl.accountPk)}" />";
+				rec.tradingAccountPk = "<c:out value="${xenosfn:escapeJS(dl.tradingAccountPk)}" />";
+				rec.standingRulePk = "<c:out value="${xenosfn:escapeJS(dl.standingRulePk)}" />";
+				rec.tradingAccount= "<c:out value="${xenosfn:escapeJS(dl.tradingAccount)}" />";
+				rec.shortName= "<c:out value="${xenosfn:escapeJS(dl.shortName)}" />";
+				rec.finInstRoleCode= "<c:out value="${xenosfn:escapeJS(dl.finInstRoleCode)}" />";
+				rec.localAccount= "<c:out value="${xenosfn:escapeJS(dl.localAccount)}" />";
+				rec.settlementFor= "<c:out value="${xenosfn:escapeJS(dl.settlementFor)}" />";
+				rec.cashSecurityFlag= "<c:out value="${xenosfn:escapeJS(dl.cashSecurityFlag)}" />";
+				rec.marketCode= "<c:out value="${xenosfn:escapeJS(dl.marketCode)}" />";
+				rec.countryCode= "<c:out value="${xenosfn:escapeJS(dl.countryCode)}" />";
+				rec.instrumentType= "<c:out value="${xenosfn:escapeJS(dl.instrumentType)}" />";
+				rec.securityId= "<c:out value="${xenosfn:escapeJS(dl.securityId)}" />";
+				rec.instrumentPk= "<c:out value="${xenosfn:escapeJS(dl.instrumentPk)}" />";
+				rec.securityName= "<c:out value="${xenosfn:escapeJS(dl.securityName)}" />";
+				rec.alternateSecurityCode= "<c:out value="${xenosfn:escapeJS(dl.alternateSecurityCode)}" />";
+				rec.ccy= "<c:out value="${xenosfn:escapeJS(dl.ccy)}" />";
+				rec.cpBank= "<c:out value="${xenosfn:escapeJS(dl.cpBank)}" />";
+				rec.settlementType= "<c:out value="${xenosfn:escapeJS(dl.settlementType)}" />";
+				rec.contraId= "<c:out value="${xenosfn:escapeJS(dl.contraId)}" />";
+				rec.status= "<c:out value="${xenosfn:escapeJS(dl.status)}" />";
+				rec.priority= "<c:out value="${xenosfn:escapeJS(dl.priority)}" />";
+				rec.placeOfSettlementStr= "<c:out value="${xenosfn:escapeJS(dl.placeOfSettlementStr)}" />";
+				rec.participantId= "<c:out value="${xenosfn:escapeJS(dl.participantId)}" />";
+				rec.participantId2= "<c:out value="${xenosfn:escapeJS(dl.participantId2)}" />";
+				rec.brokerBic= "<c:out value="${xenosfn:escapeJS(dl.brokerBic)}" />";
+				
+				grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+	
+	<div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			  <a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'REFCPAM')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-amendIco.png" title="${record.actionName}" id="amend" status="ready" alt="Amend" /></c:when>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'REFCPCX')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}"  id="cancel" status="ready" alt="Cancel" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			  </a>
+		</c:forEach>	  
+	</div>
+</div>
+</jsp:root>

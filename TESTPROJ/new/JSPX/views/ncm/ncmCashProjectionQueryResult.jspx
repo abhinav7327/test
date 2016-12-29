@@ -1,0 +1,130 @@
+<!--$Id$-->
+<!--$Author: dambarc $-->
+<!--$Date: 2016-12-27 18:35:18 $-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div>	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+			var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+				var grid_result_data = [];
+				var grid_result_columns = [
+				
+					{name:"<spring:message code="ncm.cash.projection.query.label.fundCode" htmlEscape="false"/>", field:"fundCodeDisplay", id:"fundCodeDisplay", sortable: true, width:120,formatter:Slick.Formatters.FundDetailViewFormatter},
+					{name:"<spring:message code="ncm.cash.projection.query.label.fundName" htmlEscape="false"/>", field:"fundName", id:"fundName", sortable: true, width:150},
+					{name:"<spring:message code="ncm.cash.projection.query.label.bankCode" htmlEscape="false"/>", field:"bankCodeDisplay", id:"bankCodeDisplay", sortable: true, width:120,formatter:Slick.Formatters.FinInstDetailViewFormater},
+					{name:"<spring:message code="ncm.cash.projection.query.label.bankName" htmlEscape="false"/>", field:"bankName", id:"bankName", sortable: true, width:130},
+					{name:"<spring:message code="ncm.cash.projection.query.label.bankAccNo" htmlEscape="false"/>", field:"bankAccountNoDisplay", id:"bankAccountNoDisplay", sortable: true, width:100,formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'accountPk'}},
+					{name:"<spring:message code="ncm.cash.projection.query.label.bankAccName" htmlEscape="false"/>", field:"bankAccountName", id:"bankAccountName", sortable: true, width:150},
+					{name:"<spring:message code="ncm.cash.projection.query.label.currency" htmlEscape="false"/>", field:"currencyDisplay", id:"currencyDisplay", sortable: true, width:130,formatter:Slick.Formatters.InstrumentDetailViewFormater},
+					{name:"<spring:message code="ncm.cash.projection.query.label.referenceNo" htmlEscape="false"/>", field:"transactionRefNo", id:"transactionRefNo", sortable: true, width:150},
+					{name:"<spring:message code="ncm.cash.projection.query.label.tradeDate" htmlEscape="false"/>", field:"tradeDateStr", id:"tradeDateStr", sortable: true, width:130},
+					{name:"<spring:message code="ncm.cash.projection.query.label.valueDate" htmlEscape="false"/>", field:"defaultDateFrom", id:"defaultDateFrom",sortable: true, width:120},
+				    {name:"<spring:message code="ncm.cash.projection.query.label.description" htmlEscape="false"/>", field:"description", id:"description", sortable: true, width:100},
+					{name:"<spring:message code="ncm.cash.projection.query.label.debit" htmlEscape="false"/>", field:"formattedCreditAmount", id:"formattedCreditAmount", sortable: true, cssClass:'xenos-grid-number', width:150},
+					{name:"<spring:message code="ncm.cash.projection.query.label.credit" htmlEscape="false"/>", field:"formattedDebitAmount", id:"formattedDebitAmount", sortable: true, cssClass:'xenos-grid-number', width:130},
+					{name:"<spring:message code="ncm.cash.projection.query.label.balance" htmlEscape="false"/>", field:"formattedBalance", id:"formattedBalance", sortable: true, width:150, cssClass:'xenos-grid-number', formatter:Slick.Formatters.NegetiveBalanceFormatter},
+					{name:"<spring:message code="ncm.cash.projection.query.label.exRate" htmlEscape="false"/>", field:"formattedExchangeRate", id:"formattedExchangeRate",cssClass: 'xenos-grid-number', sortable: true, width:130},
+					{name:"<spring:message code="ncm.cash.projection.query.label.totalbalance" htmlEscape="false"/>", field:"formattedTotalBalance", id:"formattedTotalBalance", cssClass: 'xenos-grid-number',sortable: true, width:120,formatter:Slick.Formatters.NegetiveBalanceFormatter}
+			];
+			
+	
+				var grid_result_settings = {
+					enableToolbar:true,
+					consolidateActionFlag:false,
+					buttons: {
+						print:true,	
+						xls:true,	
+						pdf:true,
+						xlsPref:true,
+						columnPicker:true,
+						save:true	
+					},
+					pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+					url: '/secure/ncm/cashprojection/query/count.json'
+					},
+					urls:{
+						nextPage : '/secure/ncm/cashprojection/query/result.json?fetch=next',
+						prevPage : '/secure/ncm/cashprojection/query/result.json?fetch=previous',
+						pdfReport: '/secure/ncm/cashprojection/query/report.json?outputType=pdf',
+						xlsReport: '/secure/ncm/cashprojection/query/report.json?outputType=xls',
+						xlsCurrent: '/secure/ncm/cashprojection/query/reportPref.json?outputType=xls'
+					},
+					resolveBgColor : function(row){
+					
+						if(row.description === 'Opening Balance'){
+						return '#FFCCFF';
+					}
+					return '';
+						
+					},
+					events:{
+						onDataUpdate: function(data,continueUpdate){
+							for(i in data.value){
+								data.value[i].finInstRolePk = data.value[i].bankPk;
+							}
+							continueUpdate(data);
+						}
+					},
+					defaultInvisibleColumns: ["fundName","bankName","bankAccountName"]
+					
+				};
+					
+									
+				
+				var row_id = 0;
+				var rec = {};
+				<xenos:out escapeXml="false">
+				<c:forEach items="${value}" var="dl">
+					rec = {};
+					row_id+=1;
+					rec.id = "xenos_" + row_id;
+					
+					rec.fundCodeDisplay = "<c:out value="${dl.fundCodeDisplay}" />";
+					rec.fundName = "<c:out value="${dl.fundName}" />";
+					rec.bankCodeDisplay = "<c:out value="${dl.bankCodeDisplay}" />";
+					rec.bankName = "<c:out value="${dl.bankName}" />";
+					rec.bankAccountNoDisplay = "<c:out value="${dl.bankAccountNoDisplay}" />";
+					rec.bankAccountName = "<c:out value="${dl.bankAccountName}" />";
+					rec.currencyDisplay = "<c:out value="${dl.currencyDisplay}" />";
+					
+					rec.transactionRefNo = "<c:out value="${dl.transactionRefNo}" />";
+					rec.tradeDateStr = "<c:out value="${dl.tradeDateStr}" />";
+					rec.defaultDateFrom = "<c:out value="${dl.defaultDateFrom}" />";
+					rec.description = "<c:out value="${dl.description}" />";
+					rec.formattedCreditAmount = "<c:out value="${dl.formattedCreditAmount}" />";
+					rec.formattedDebitAmount = "<c:out value="${dl.formattedDebitAmount}" />";
+					
+					rec.formattedBalance = "<c:out value="${dl.formattedBalance}" />";
+					rec.formattedExchangeRate = "<c:out value="${dl.formattedExchangeRate}" />";
+					rec.formattedTotalBalance = "<c:out value="${dl.formattedTotalBalance}" />";
+					
+					rec.fundPk = "<c:out value="${dl.fundPk}" />";
+					rec.finInstRolePk = "<c:out value="${dl.bankPk}" />";
+					rec.accountPk = "<c:out value="${dl.accountPk}" />";
+					
+					rec.instrumentPk = "<c:out value="${dl.instrumentPk}" />";
+								
+					grid_result_data.push(rec);
+				</c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+</div>
+</jsp:root>			
+		

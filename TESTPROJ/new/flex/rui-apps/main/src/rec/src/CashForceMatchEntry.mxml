@@ -1,0 +1,591 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- MXML module for Adjustment Entry.  -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+    xmlns:cntrls="com.nri.rui.core.controls.*" 
+    percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" 
+    verticalScrollPolicy="off" creationComplete="init()">
+    <mx:Script>
+        <![CDATA[
+            import mx.events.CloseEvent;            
+            import mx.controls.advancedDataGridClasses.AdvancedDataGridColumn;
+        	import com.nri.rui.core.utils.XenosStringUtils;            
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.controls.XenosAlert;            
+            import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+            import mx.rpc.events.FaultEvent;            
+            import com.nri.rui.core.Globals;
+
+            [Bindable]private var cashForceMatchViews:ArrayCollection;
+            [Bindable]private var cashForceMatchViews1:ArrayCollection;
+            [Bindable]
+            private var objForm:Object = null;
+            
+            [Bindable]private var movArray : Array = new Array();
+            [Bindable]private var fromPage : String = "";
+           [Bindable]private var accNo : String = " ";
+            public var reasonCode:String = ""; //for using in the CashAdjust Item renderer.  
+           
+            public var usrRmks:String = ""; //for using in the CashAdjust Item renderer.    
+		    
+		    [Bindable]
+		    private var rs:XML = new XML();
+		    
+		    [Bindable]
+		    private var rsUsrConf:XML = new XML();
+		    
+            /**
+             * Extracts the parameters and set them to some variables for query criteria from the Module Loader Info.
+             * 
+             */ 
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if (tempA[0] == "movArray") {
+                            movArray = tempA[1].split(",");
+                        }else if(tempA[0] == "fromPage"){
+                            fromPage = tempA[1];
+                        } 
+                    }                    
+
+                } catch (e:Error) {
+                    trace(e);
+                }               
+            }
+            /**
+             * Initializes the module and send the submit request.
+             * 
+             */     
+            private function init():void{
+                
+                parseUrlString();
+                
+                var rndNo:Number = Math.random();
+                forceMatchViewDtlHttpService.url= "rec/cashReferResultDispatch.action?rnd=" + rndNo;
+                
+                var req : Object = new Object();
+                req.SCREEN_KEY = 10099;
+                req.method="showForceMatchResult";
+                req.movArray=movArray;
+                req.fromPage="fromPage";
+                forceMatchViewDtlHttpService.request=req;
+                
+                forceMatchViewDtlHttpService.send();
+                PopUpManager.centerPopUp(this);
+                forceMatchListViewPage.selectedChild = rslt;
+            }
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function httpService_fault(evt:FaultEvent):void {                
+                XenosAlert.error("Unable to Perform the requested operation." + evt.fault.faultString + evt.fault.faultDetail);
+            }
+            /**
+             * Result handler for the submit Request. 
+             * 
+             */ 
+            private function httpService_result(event:ResultEvent):void {        
+		 		rs = XML(event.result);
+                var tempResult:ArrayCollection = new ArrayCollection();     
+		 		if (null != event) {
+		 			if(rs.child("Errors").length()>0){ 
+						// i.e. Must be error, display it .
+						var errorInfoList : ArrayCollection = new ArrayCollection();
+						//populate the error info list 			 	
+						for each ( var error:XML in rs.Errors.error ) {
+							errorInfoList.addItem(error.toString());
+						}
+						errPage.showError(errorInfoList);//Display the error
+			      	}else {
+			      	 	errPage.removeError();	      	 	
+                        
+                        objForm = rs;
+                        accNo = objForm.recCashReferResultActQueryView.accountNo;
+                        /* if(event.result.recCashReferResultActionForm.cashForceMatchViews != null && event.result.recCashReferResultActionForm.cashForceMatchViews.cashForceMatchView != null){ 
+                        	if(event.result.recCashReferResultActionForm.cashForceMatchViews.cashForceMatchView is ArrayCollection) {
+	                                tempResult = event.result.recCashReferResultActionForm.cashForceMatchViews.cashForceMatchView as ArrayCollection;
+	                        } else {
+	                        		tempResult.removeAll();
+	                                tempResult.addItem(event.result.recCashReferResultActionForm.cashForceMatchViews.cashForceMatchView);
+	                        }
+                        } */                      
+                        
+					    for each ( var rec:XML in rs.cashForceMatchViews.cashForceMatchView ) {
+		 				    tempResult.addItem(rec);
+					    }
+                        cashForceMatchViews = tempResult;                        
+                    } 
+                }else {
+                    cashForceMatchViews.removeAll();
+                    XenosAlert.info("No Results Found !");
+                }
+            }
+            /**
+             * Request for the User Confirmation Page.
+             */           
+            private function viewUserConfirm(event:MouseEvent):void{
+                //Set the request parameters
+             	var requestObj :Object = new Object();
+                requestObj.SCREEN_KEY = 10100;
+             	requestObj.method = "viewForceMatchUserConfirm";
+                var rndNo:Number = Math.random();
+            	if (this.remarks.text == null || this.remarks.text == '') {
+            		XenosAlert.error("Please put remarks!");
+            		return;
+            	}
+                forceMatchUsrCfm.url= "rec/cashReferResultDispatch.action?rnd=" + rndNo;
+                forceMatchUsrCfm.request=requestObj;
+                forceMatchUsrCfm.send();
+                
+            }
+            
+            /**
+            * This method will populate the request parameters for the
+            * submitEntryPopUp call and bind the parameters with the HTTPService
+            * object.
+            */
+           /*  private function populateUsrConfParams():Object {
+            	var reqObj : Object = new Object();
+            	reqObj.method = "viewForceMatchUserConfirm";
+            	if (this.remarks.text == null || this.remarks.text == '') {
+            		XenosAlert.error("Please put remarks!");
+            		return;           		
+            	}
+            	
+             	return reqObj;
+            } */
+
+            /**
+             * Go back to the previous page with the modifications done.
+             * 
+             */  
+            private function backDtlQuery(event:MouseEvent):void{
+                
+                this.parentDocument.dispatchEvent(new Event("RefreshChanges"));   
+                this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+            }
+            
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function usrCnfrm_fault(evt:FaultEvent):void {
+            	if(submitCnf!=null)  
+            	{
+            		submitCnf.enabled=true;            		
+            	}
+                XenosAlert.error("Unable to Perform the requested operation." + evt.fault.faultString + evt.fault.faultDetail);
+            }
+            /**
+             * Result handler for the submit Request. 
+             * 
+             */ 
+            private function usrCnfrm_result(event:ResultEvent):void {     
+            	if(submitCnf!=null)  
+            	{
+            		submitCnf.enabled=true;            		
+            	}
+		 		rsUsrConf = XML(event.result);
+                var tempResult:ArrayCollection = new ArrayCollection();     
+		 		if (null != event) {
+		 			if(rsUsrConf.child("Errors").length()>0){ 
+						// i.e. Must be error, display it .
+						var errorInfoList : ArrayCollection = new ArrayCollection();
+						//populate the error info list 			 	
+						for each ( var error:XML in rsUsrConf.Errors.error ) {
+							errorInfoList.addItem(error.toString());
+						}
+						errPage.showError(errorInfoList);//Display the error
+			      	}else {
+			      	 	errPage.removeError();	 
+                        objForm = rsUsrConf;
+                        
+                        reasonCode = objForm.reasonCode;
+                        if(XenosStringUtils.equals("userConfirm",objForm.modeOfOperation)){
+                            forceMatchListViewPage.selectedChild = userConfirm;
+                            parentDocument.title = this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.forcematch') + " " + this.parentApplication.xResourceManager.getKeyValue('inf.title.entry.user.confirmation');
+                        }else if(XenosStringUtils.equals("systemConfirm",objForm.modeOfOperation)){
+                            forceMatchListViewPage.selectedChild = userConfirm;
+                            parentDocument.title = this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.forcematch') + " " + this.parentApplication.xResourceManager.getKeyValue('inf.title.entry.system.confirmation');
+                            currentState = "confirm";
+                            parentDocument.showCloseButton = false;
+                        }
+                       /*  if(event.result.recCashReferResultActionForm.cashForceMatchViews != null && event.result.recCashReferResultActionForm.cashForceMatchViews.cashForceMatchView != null){ 
+                        	if(event.result.recCashReferResultActionForm.cashForceMatchViews.cashForceMatchView is ArrayCollection) {
+	                                tempResult = event.result.recCashReferResultActionForm.cashForceMatchViews.cashForceMatchView as ArrayCollection;
+	                        } else {
+	                        		tempResult.removeAll();
+	                                tempResult.addItem(event.result.recCashReferResultActionForm.cashForceMatchViews.cashForceMatchView);
+	                        }
+                        } */
+                                             
+                        
+					    for each ( var rec:XML in rsUsrConf.cashForceMatchViews.cashForceMatchView ) {
+		 				    tempResult.addItem(rec);
+					    }
+                        cashForceMatchViews1 = tempResult;
+                        usrRmks = objForm.remarksForceMatch;
+                        if(cashForceMatchViews1.length == 0){
+                        	XenosAlert.info("No Records to Submit.");
+                        }
+                    } 
+                }else {
+                    cashForceMatchViews1.removeAll();
+                    XenosAlert.info("No Results Found !");
+                }
+                       
+            }
+            /**
+             * Request for submitUserConfirm i.e. for System confirmation
+             * 
+             */ 
+            private function submitUserConfirm(event:MouseEvent):void{
+            	submitCnf.enabled=false;
+                var rndNo:Number = Math.random();
+                var reqObj:Object = new Object();
+                reqObj.SCREEN_KEY = 10101;
+                reqObj.method = "submitForceMatchConfirm";
+            	reqObj['remarksForceMatch'] = this.usrRemarks.text;
+                viewForceMatchUsrCfm.url= "rec/cashReferResultDispatch.action?rnd=" + rndNo;
+                viewForceMatchUsrCfm.request = reqObj;
+                viewForceMatchUsrCfm.send();
+            }
+             /**
+             * Refresh the results when return to this window.
+             */             
+            public function refreshData(event:MouseEvent):void{
+                var rndNo:Number = Math.random();
+                backFromForceMatchUsrCfm.url= "rec/cashReferResultDispatch.action?rnd=" + rndNo;
+                
+                var req : Object = new Object();
+                req.method="backForecMatchUserConfirm";
+                this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+                backFromForceMatchUsrCfm.request=req;
+                
+                backFromForceMatchUsrCfm.send();
+            }
+            /**
+             * Go back to the user confirmation page.
+             */ 
+            private function backFrcMtchUsrCnf(event:MouseEvent):void{                
+                forceMatchListViewPage.selectedChild = rslt;
+                parentDocument.title="Force Match Entry";
+            }
+            /**
+             * Request for the System Confirmation completion.
+             * 
+             */  
+            private function submitSysConfirm(event:MouseEvent):void{
+                var rndNo:Number = Math.random();
+                forceMatchSysCfm.url= "rec/cashReferResultDispatch.action?rnd=" + rndNo;
+                
+                var req : Object = new Object();
+                req.method="submitSysConfirm";
+                forceMatchSysCfm.request=req;
+                
+                forceMatchSysCfm.send();
+            }
+            /**
+             * Extract the value of the colum cell removing the prefix added at '0'th index.
+             */ 
+            private function getAccountNo(item:Object, column:AdvancedDataGridColumn):String{
+              	 return accNo;
+            }
+            /**
+             * Result handler for the System Confirmation completion. 
+             * After System Confirmation completion we need to go back to the Query page.
+             * 
+             */ 
+            private function sysOkCnfrm_result(event:ResultEvent):void {                 
+                if(null != event){
+                    if(null == event.result.recCashReferResultActionForm){
+                        if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+                            errPage.clearError(event); //clears the errors if any
+                            XenosAlert.info("No Result Found !");
+                        } else { // Must be error
+                            errPage.displayError(event);    
+                        }          
+                    }
+                    this.parentDocument.dispatchEvent(new Event("OkSystemConfirm"));
+                    this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+                }      
+            }   
+            
+			/**
+             * Extract the value of the colum cell removing the prefix added at '0'th index.
+             */ 
+            private function extractPrecisionedValue(item:Object, column:AdvancedDataGridColumn):String{
+                var strData:String = item[column.dataField];
+                if(!XenosStringUtils.isBlank(strData) && strData.charAt(0)=="F"){
+                    if(strData.length == 1)
+                        return XenosStringUtils.EMPTY_STR;
+                    else
+                        return strData.substring(1);
+                }else{
+                    return item[column.dataField];                    
+                }
+            }         
+        ]]>
+    </mx:Script>
+    
+    <mx:states>
+        <mx:State name="confirm">
+            <mx:SetProperty target="{submitCnf}" name="includeInLayout" value="false"/>
+            <mx:SetProperty target="{submitCnf}" name="visible" value="false"/>
+            <mx:SetProperty target="{backCnf}" name="includeInLayout" value="false"/>
+            <mx:SetProperty target="{backCnf}" name="visible" value="false"/>
+            <mx:SetProperty target="{hb}" name="includeInLayout" value="true"/>
+            <mx:SetProperty target="{hb}" name="visible" value="true"/>
+            <mx:SetProperty target="{okCnf}" name="includeInLayout" value="true"/>
+            <mx:SetProperty target="{okCnf}" name="visible" value="true"/>
+        </mx:State>
+    </mx:states> 
+    
+    <cntrls:XenosHTTPService id="forceMatchViewDtlHttpService" 
+            useProxy="false"
+            fault="httpService_fault(event);"
+            result="httpService_result(event)" showBusyCursor="true"   resultFormat="xml">
+           <!-- <mx:request >
+                <method>showForceMatchResult</method>
+                <movArray>{movArray}</movArray>
+                <fromPage>fromPage</fromPage>
+            </mx:request> -->
+     </cntrls:XenosHTTPService>
+     
+     <cntrls:XenosHTTPService id="backFromForceMatchUsrCfm" url="rec/cashReferResultDispatch.action?"
+            useProxy="false"
+            fault="httpService_fault(event);"
+            result="httpService_result(event)" showBusyCursor="true"   resultFormat="xml">            
+          <!--  <mx:request >
+                <method>backForecMatchUserConfirm</method>
+            </mx:request> -->
+     </cntrls:XenosHTTPService>
+     
+     <cntrls:XenosHTTPService id="forceMatchUsrCfm"
+            useProxy="false"
+            fault="usrCnfrm_fault(event);"
+            result="usrCnfrm_result(event)" showBusyCursor="true"   resultFormat="xml">
+        <!--    <mx:request>
+                <method>viewForceMatchUserConfirm</method>
+            </mx:request> -->
+     </cntrls:XenosHTTPService>
+     <cntrls:XenosHTTPService id="viewForceMatchUsrCfm"
+            useProxy="false"
+            fault="usrCnfrm_fault(event);"
+            result="usrCnfrm_result(event)" showBusyCursor="true"   resultFormat="xml">
+         <!--   <mx:request>
+                <method>submitForceMatchConfirm</method>
+            </mx:request> -->
+     </cntrls:XenosHTTPService>
+     <cntrls:XenosHTTPService id="forceMatchSysCfm"
+            useProxy="false"
+            fault="usrCnfrm_fault(event);"
+            result="sysOkCnfrm_result(event)" showBusyCursor="true">
+        <!--    <mx:request>
+                <method>submitSysConfirm</method>
+            </mx:request>  -->
+     </cntrls:XenosHTTPService>
+    
+    <mx:VBox width="100%" height="100%" id="adjustment" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        
+        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>
+           
+        <mx:ViewStack id="forceMatchListViewPage" width="100%" height="100%" >   
+
+            <mx:VBox width="100%" height="100%" id="rslt" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        
+                <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+                    <mx:GridRow width="100%">
+               			 <mx:GridItem width="20%" styleName="LabelBgColor">
+                    		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.label.referresult.datefrom')}" styleName="FormLabelHeading" />
+                		</mx:GridItem>
+		                <mx:GridItem width="30%">
+		                    <mx:Text text="{objForm.asOfDateFrom}" />
+		                </mx:GridItem>
+		                <mx:GridItem width="20%" styleName="LabelBgColor">
+		                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.label.referresult.dateto')}" styleName="FormLabelHeading" />
+		                </mx:GridItem>
+		                <mx:GridItem width="30%">
+		                    <mx:Text text="{objForm.asOfDateTo}" />
+		                </mx:GridItem>
+		            </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.sec.mov.label.accountno')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <!--<mx:Text text="{objForm.recCashReferResultActQueryView.accountNo}" />-->
+                            <mx:Text text="{objForm.fundSummary=='false'? objForm.recCashReferResultActQueryView.accountNo : ''}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.bank')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.recCashReferResultActQueryView.bankCode}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.officeid')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" >
+                            <mx:Text text="{objForm.serviceOffice}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.sec.mov.label.matchingstatus')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.matchStatus as String}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    
+                </mx:Grid>
+                  <mx:HBox width="100%" styleName="ButtonBackPanel">
+	                <mx:AdvancedDataGrid id="adjEntryDg" dataProvider="{this.cashForceMatchViews}" width="80%" height="100%" sortableColumns="false" variableRowHeight="true" wordWrap="true">
+	                    <mx:groupedColumns>
+	                    <!--<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rcvd.label.accountno')}" dataField="" labelFunction="getAccountNo"  itemRenderer="com.nri.rui.core.renderers.AccountDetailsRendererAdg"/>-->
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rcvd.label.accountno')}" dataField="act"  itemRenderer="com.nri.rui.core.renderers.AccountDetailsRendererAdg"/>
+		                        <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ccy')}" dataField="ccy"/>
+		                        <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.amount')}">
+		                            <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncm')}" dataField="ncmBalDisp"  labelFunction="extractPrecisionedValue"/>
+		                            <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.cust')}" dataField="custBalDisp"  labelFunction="extractPrecisionedValue"/>
+		                        </mx:AdvancedDataGridColumnGroup>
+		                        <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.trntype')}">
+		                            <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncm')}" dataField="ncmTrn"/>
+		                            <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.cust')}" dataField="custTrn"/>
+		                        </mx:AdvancedDataGridColumnGroup>
+                <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.txnrefno')}">
+                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncm')}" dataField="txnRefNo" itemRenderer="com.nri.rui.rec.renderers.NcmTxnDetailsRenderer"/>                        
+                </mx:AdvancedDataGridColumnGroup>
+			                	<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.date')}">
+			                    	<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncm')}" dataField="ncmBdate"/>
+			                    	<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.cust')}" dataField="custBdate"/>
+			                	</mx:AdvancedDataGridColumnGroup>
+		                        <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.mtchstatus')}" dataField="matchStatus"/>                  
+	                    </mx:groupedColumns>
+	                </mx:AdvancedDataGrid>
+	                <mx:VBox width="300" height="100%">
+		                <mx:Text text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.remarks')}" width="100%" height="{adjEntryDg.headerHeight}" textAlign="center" fontWeight="bold"/>
+	                	<mx:TextArea id="remarks" width="100%" height="50" maxChars="1000"/>	
+	                </mx:VBox>                	
+	               </mx:HBox>     
+                
+                <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="left">            
+                    <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="viewUserConfirm(event)"/>
+                    <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('rec.form.button.label.back')}" styleName="BtnStyle" click="refreshData(event)"/>
+                </mx:HBox>
+             
+            </mx:VBox>
+            
+            <mx:VBox width="100%" height="100%" id="userConfirm" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+              <mx:HBox id="hb" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" visible="false" verticalAlign="middle" includeInLayout="false">
+	    		<mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+	    		<mx:Label text=" Transaction Completed Successfully." fontWeight="bold" selectable="true"/>	
+	    	 </mx:HBox>
+                <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+                    <mx:GridRow width="100%">
+               			 <mx:GridItem width="20%" styleName="LabelBgColor">
+                    		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.label.referresult.datefrom')}" styleName="FormLabelHeading" />
+                		</mx:GridItem>
+		                <mx:GridItem width="30%">
+		                    <mx:Text text="{objForm.asOfDateFrom}" />
+		                </mx:GridItem>
+		                <mx:GridItem width="20%" styleName="LabelBgColor">
+		                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.label.referresult.dateto')}" styleName="FormLabelHeading" />
+		                </mx:GridItem>
+		                <mx:GridItem width="30%">
+		                    <mx:Text text="{objForm.asOfDateTo}" />
+		                </mx:GridItem>
+		            </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.sec.mov.label.accountno')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <!--<mx:Text text="{objForm.recCashReferResultActQueryView.accountNo}" />-->
+                            <mx:Text text="{objForm.fundSummary=='false'? objForm.recCashReferResultActQueryView.accountNo : ''}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.bank')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.recCashReferResultActQueryView.bankCode}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.officeid')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" >
+                            <mx:Text text="{objForm.serviceOffice}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.sec.mov.label.matchingstatus')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.matchStatus as String}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    
+                </mx:Grid>
+                    
+              <mx:HBox width="100%" styleName="ButtonBackPanel">                
+                <mx:AdvancedDataGrid id="adjUserConfirmDg" dataProvider="{this.cashForceMatchViews1}" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" wordWrap="true">
+                    <mx:groupedColumns>
+                    			<!--<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rcvd.label.accountno')}" dataField="" labelFunction="getAccountNo"/>-->
+                    			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rcvd.label.accountno')}" dataField="act"  itemRenderer="com.nri.rui.core.renderers.AccountDetailsRendererAdg"/>
+		                        <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ccy')}" dataField="ccy"/>
+		                        <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.amount')}">
+		                            <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncm')}" dataField="ncmBalDisp"  labelFunction="extractPrecisionedValue"/>
+		                            <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.cust')}" dataField="custBalDisp"  labelFunction="extractPrecisionedValue"/>
+		                        </mx:AdvancedDataGridColumnGroup>
+		                        <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.trntype')}">
+		                            <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncm')}" dataField="ncmTrn"/>
+		                            <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.cust')}" dataField="custTrn"/>
+		                        </mx:AdvancedDataGridColumnGroup>
+				                <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.txnrefno')}">
+				                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncm')}" dataField="txnRefNo" itemRenderer="com.nri.rui.rec.renderers.NcmTxnDetailsRenderer"/>                        
+				                </mx:AdvancedDataGridColumnGroup>
+			                	<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.date')}">
+			                    	<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncm')}" dataField="ncmBdate"/>
+			                    	<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.cust')}" dataField="custBdate"/>
+			                	</mx:AdvancedDataGridColumnGroup>
+		                        <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.mtchstatus')}" dataField="matchStatus"/>                  
+                    </mx:groupedColumns>
+    			</mx:AdvancedDataGrid>
+                <mx:VBox width="300" height="100%">
+	                <mx:Text text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.remarks')}" width="100%" height="{adjEntryDg.headerHeight}" textAlign="center" fontWeight="bold"/>
+                	<mx:TextArea id="usrRemarks" width="100%" height="50" text="{this.remarks.text}" editable="false"/>
+                </mx:VBox>                	
+               </mx:HBox> 
+                
+            <mx:HBox id="hbConfirm" width="100%" styleName="ButtonBackPanel" horizontalAlign="left">            
+                <mx:Button id="submitCnf" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="submitUserConfirm(event)"/>
+                <mx:Button id="backCnf" label="{this.parentApplication.xResourceManager.getKeyValue('rec.form.button.label.back')}" styleName="BtnStyle" click="backFrcMtchUsrCnf(event)"/>
+                <mx:Button id="okCnf" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" click="submitSysConfirm(event)" visible="false" includeInLayout="false"/>
+            </mx:HBox>               	
+           </mx:VBox>   
+             
+        </mx:ViewStack>    
+    </mx:VBox>
+</mx:Module>

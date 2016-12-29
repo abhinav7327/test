@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<containers:XenosQueryModule xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" >
+
+	
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.ref.renderers.HolidayAmendQueryRenderer;
+			import mx.resources.ResourceBundle;						
+			import com.nri.rui.core.RendererFectory;
+			import com.nri.rui.ref.renderers.MarketAmendQueryRenderer;
+			import com.nri.rui.core.renderers.ImgSummaryRenderer;
+			
+			    
+    /**
+	 * This method should be called on creationComplete of the datagrid 
+	 */ 
+	 private function bindDataGrid():void {
+		qh.dgrid = resultSummary;
+	}
+		]]>
+	</mx:Script>
+	<mx:Script source="actionscripts/HolidayQuery.as"/>
+	
+	
+     <containers:states>
+        <mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </containers:states>
+    
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions>
+    
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" id="screenNavigater">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance =submit;"  />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>    	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+	
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%">
+	<mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="{this.loadAll()}"  >
+	<!--<containers:CollapsibleHDividedBox id="hdbox1" width="100%" height="100%" x="0" y="0" liveDragging="true" creationComplete="{}" paddingBottom="6" paddingLeft="6" paddingRight="6" paddingTop="6" >-->
+		
+		<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('core.query.criteria')}" width="100%" height="100%" styleName="HDivideStyle" >
+			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.querycriteria')}" fontWeight="bold"/>
+			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		
+			<!--<flexlib:WindowShade id="ws1" tabChildren="{ws1.opened=false}" styleName="linkButtonWindowShade" label="Optional Fields - Group 1" width="100%">-->
+			<mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.calendarid')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:HolidayPopUpHbox id="calendarId" />                            
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.name')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="30%" borderThickness="0">
+	                           <mx:TextInput id="calendarName" />	                          
+	                        </mx:GridItem>                         
+                    </mx:GridRow>	
+               	 	<mx:GridRow width="100%">
+	                        <mx:GridItem width="20%" borderThickness="0">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.year')}" />
+	                        </mx:GridItem>
+	                        <mx:GridItem width="30%" borderThickness="0">
+	                            <mx:TextInput id="calendarYear" maxChars="4" restrict="0-9"/>	                                                   
+	                        </mx:GridItem>	                                           
+                    </mx:GridRow>
+                   <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.sortorder')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="80%" borderThickness="0" horizontalAlign="left">
+                            <mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()"></mx:ComboBox>
+							<mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()"></mx:ComboBox>                            
+                        </mx:GridItem>                        
+                    </mx:GridRow>
+           </mx:Grid>
+
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="{this.mode == 'query' ?  this.dispatchEvent(new Event('querySubmit')) : (this.mode == 'amend' ? this.dispatchEvent(new Event('amendSubmit')) : this.dispatchEvent(new Event('cancelSubmit')))}" />
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="{this.mode == 'query' ?  this.dispatchEvent(new Event('queryReset')) : (this.mode == 'amend' ? this.dispatchEvent(new Event('amendReset')) : this.dispatchEvent(new Event('cancelReset')))}" />
+	        </mx:HBox>
+
+		</mx:VBox>
+		
+		</mx:Canvas>
+				
+		<mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >			
+	    <cntrls:QueryResultHeader id="qh" printFunction="dispatchPrintEvent" pdfFunction="dispatchPdfEvent" xlsFunction="dispatchXlsEvent" previousFunction="dispatchPrevEvent" nextFunction="dispatchNextEvent" startIndex="{this.mode == 'query' ? 1 : 2}"/>
+		<!--<mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text="Query Result"/> -->
+		<cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()" editable="false"> 
+		    <cntrls:columns>		    	   
+		    	   <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" id="imgRenderer" itemRenderer="{mode == 'query' ? new RendererFectory(ImgSummaryRenderer) : new RendererFectory(HolidayAmendQueryRenderer,mode)}" />		    	   
+		    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.calendarid')}" dataField="value" width="200" itemRenderer="com.nri.rui.ref.renderers.HolidayDetailsRenderer"/>
+		    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.name')}" dataField="name" width="200"/>
+		    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.weekendpattern')}" dataField="weekendPattern" width="200"/>
+		    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.year')}" dataField="year" width="200"/>
+		    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.numholidays')}" dataField="noOfHolidays" width="200" textAlign="right"/>		    	   
+           </cntrls:columns>
+		 </cntrls:CustomDataGrid>
+		</mx:VBox>
+	</mx:HDividedBox>
+    </mx:VBox>    
+    </mx:Canvas>  
+		 
+</containers:XenosQueryModule>

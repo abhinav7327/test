@@ -1,0 +1,130 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+		<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+			
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [
+                {name:"<spring:message code="drv.label.fundcode" htmlEscape="false"/>", field:"fundCode", id:"fundCode", sortable: true, width:130,formatter:Slick.Formatters.FundDetailViewFormatter},
+                {name:"<spring:message code="drv.label.fundname" htmlEscape="false"/>", field:"fundName", id:"fundName", width:180, sortable: true },
+				{name:"<spring:message code="drv.label.fundaccountno" htmlEscape="false"/>", field:"inventoryAccountNo", id:"inventoryAccountNo", sortable: true, width:130,formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'fundAccountPk'}},
+				{name:"<spring:message code="drv.label.fundaccountname" htmlEscape="false"/>", field:"fundAccountName", id:"fundAccountName", width:180, sortable: true },
+				{name:"<spring:message code="drv.label.brokeraccountno" htmlEscape="false"/>", field:"cpAccountNo", id:"cpAccountNo", sortable: true, width:130,formatter:Slick.Formatters.BrokerAccountDetailFormatter, accountDetailOptions:{pkFieldName:'brokerAccountPk'}},
+                {name:"<spring:message code="drv.label.accountname" htmlEscape="false"/>", field:"brokerAccountName", id:"brokerAccountName", width:180, sortable: true },
+				{name:"<spring:message code="drv.label.securitycode" htmlEscape="false"/>", field:"securityId", id:"securityId", width:130, sortable:true, formatter:Slick.Formatters.InstrumentDetailViewFormater},
+                {name:"<spring:message code="drv.label.securityname" htmlEscape="false"/>", field:"securityName", id:"securityName", width:182, sortable:true},
+                {name:"<spring:message code="drv.label.alternatesecurityid" htmlEscape="false"/>", field:"alternateSecCodeDisp", id:"alternateSecCodeDisp", sortable: true, width:150},
+                {name:"<spring:message code="drv.label.referenceno" htmlEscape="false"/>", field:"tradeReferenceNo", id:"tradeReferenceNo", sortable: true, width:100, formatter:Slick.Formatters.DrvTradeDetailViewFormater},
+				{name:"<spring:message code="drv.label.tradedate" htmlEscape="false"/>", field:"tradeDateStr", id:"tradeDateStr", width:90, sortable: true },
+				{name:"<spring:message code="drv.label.margin.refno" htmlEscape="false"/>", field:"marginReferenceNo", id:"marginReferenceNo", sortable: true, width:150,  formatter:Slick.Formatters.MarginDetailsViewFormatter},
+				{name:"<spring:message code="drv.label.margin.basedate" htmlEscape="false"/>", field:"baseDateStr", id:"baseDateStr", width:85, sortable: true },
+				{name:"<spring:message code="drv.label.margin.type" htmlEscape="false"/>", field:"marginTypeDisp", id:"marginTypeDisp", sortable: true, width:105},
+				{name:"<spring:message code="drv.label.margin.ccy" htmlEscape="false"/>", field:"marginCcy", id:"marginCcy", width:100, sortable: true },
+				{name:"<spring:message code="drv.label.status" htmlEscape="false"/>", field:"status", id:"status", width:75, formatter:Slick.Formatters.CancelRecordFormatter, sortable: true }
+            ];
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:true,
+				emptyColumnCheck:false,
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,	
+					 xlsPref:true,
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+					 xlsPref:true,
+					url: '/secure/drv/margin/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/drv/margin/query/result.json?fetch=next',
+					prevPage : '/secure/drv/margin/query/result.json?fetch=previous',
+					pdfReport: '/secure/drv/margin/query/report.json?outputType=pdf',
+					xlsReport: '/secure/drv/margin/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/drv/margin/query/reportPref.json?outputType=xls'
+				},
+				
+				defaultInvisibleColumns: ["fundAccountName", "brokerAccountName"]
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+                rec.fundCode = "<c:out value="${dl.fundCode}" />";
+                rec.fundName =  "<c:out value="${dl.fundName}" />";
+				rec.inventoryAccountNo= "<c:out value="${dl.inventoryAccountNo}" />";
+				rec.fundAccountName= "<c:out value="${dl.fundAccountName}" />";
+				rec.cpAccountNo= "<c:out value="${dl.cpAccountNo}" />";
+				rec.brokerAccountName= "<c:out value="${dl.brokerAccountName}" />";
+				rec.brokerAccountPk= "<c:out value="${dl.brokerAccountPk}" />";
+                rec.securityId = "<c:out value="${dl.securityId}" />";
+                rec.securityName = "<c:out value="${dl.securityName}" />";
+                rec.alternateSecCodeDisp = "<c:out value="${dl.alternateSecCodeDisp}" />";
+                rec.tradeReferenceNo= "<c:out value="${dl.tradeReferenceNo}" />";
+                rec.tradeDateStr = "<c:out value="${dl.tradeDateStr}" />";
+                rec.marginReferenceNo= "<c:out value="${dl.marginReferenceNo}" />";
+                rec.baseDateStr = "<c:out value="${dl.baseDateStr}" />";
+                rec.marginTypeDisp = "<c:out value="${dl.marginTypeDisp}" />";
+				rec.marginCcy = "<c:out value="${dl.marginCcy}" />";
+				rec.status = "<c:out value="${dl.status}" />";
+                rec.fundPk = "<c:out value="${dl.fundPk}" />";
+                rec.instrumentPk = "<c:out value="${dl.instrumentPk}" />";
+                rec.marginPk = "<c:out value="${dl.marginPk}" />";
+				rec.fundAccountPk = "<c:out value="${dl.fundAccountPk}" />";
+				rec.brokerAccountPk = "<c:out value="${dl.brokerAccountPk}" />";
+                rec.tradePk = "<c:out value="${dl.tradePk}" />"; 
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+    
+    <!-- consolidate button for amend and cancel -->			
+	<div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			<a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'DRVMRAMN')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-amendIco.png" title="${record.actionName}" id="amend" status="ready" alt="Amend" /></c:when>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'DRVMRCAN')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}"  id="cancel" status="ready" alt="Cancel" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			</a>
+		</c:forEach>	  
+	</div>
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/drv/drvMarginQueryResult.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+    
+</jsp:root>

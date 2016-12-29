@@ -1,0 +1,268 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+   <div class="entryContainer paddingFour">
+   	<jsp:element name="script">
+   		<jsp:attribute name="type">text/javascript</jsp:attribute>
+   		<jsp:body>
+   			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+   				var $context = $xenos$Wizard.$context;
+				var baseUrl = xenos.context.path + $context.find('form').attr('action');
+				/**
+				* A common request handler to be used server communication.
+				*/
+				var xenos$Handler$RequestHandler = xenos$Handler$function({
+					get: {
+						contentType: 'json',
+						requestType: xenos$Handler$default.requestType.asynchronous
+					},	
+					settings: {
+						beforeSend: function(request) {
+							request.setRequestHeader('Accept', 'application/json');
+						},
+						type: 'POST'
+					}
+				});
+				
+				$('#valueDate',$context).unbind('blur').bind('blur', checkValueDate);
+				$('#quantity',$context).unbind('blur').bind('blur', checkQuantity);
+				$('#transmissionRequired',$context).unbind('change').bind('change',enableAutoTransmission);
+				if($.trim($('#transmissionRequired',$context).val()) != 'Y'){
+					$('#autoTransmission',$context).prop("disabled", true);
+				}
+				
+				/**
+				*  JSON call to populate Bank Details when Bank Account Number is entered.
+				*/
+				xenos.ns.filterHiddenTgt.filterHiddenTargetFieldId = function(row, tgt ) {
+					if(tgt.attr("tgt") === "frombankaccount"){			// If the Account Popup is opened from "From Bank Account"
+						$('#fromBankcode').val(row.finInstRoleCode);
+						$('#fromBankname').val(row.finInstShortName);							
+					}else if(tgt.attr("tgt") === "tobankaccount"){		// If the Account Popup is opened from "To Bank Account"
+						$('#toBankcode').val(row.finInstRoleCode);
+						$('#toBankname').val(row.finInstShortName);	
+					}
+				}
+				
+				/**
+				* Verify the value of Date field
+				*/
+				function checkValueDate(){	
+					var valueDate =$("#valueDate").val();						
+					var showMsg = [];
+					
+					if(valueDate){
+						if(isDateCustom(valueDate)==false){
+							showMsg.push(xenos$STL$i18n.banktransfer.date.date_format_check + valueDate);
+							$('.formHeader').find('.formTabErrorIco').css('display', 'block')
+																		 .off('click')
+																		 .on('click', xenos.postNotice(xenos.notice.type.error, showMsg, true));
+							return false;
+						}
+					}
+				}
+				
+				/**
+				* Verify the value of Quantity field
+				*/
+				function checkQuantity(){	
+					var quantity =$("#quantity").val();						
+					var showMsg = [];
+					
+					if(quantity){
+						formatQuantity($('#quantity'),15,3,showMsg,$('#quantity').parent().parent().find('label').text());
+						if (showMsg.length > 0){
+							$('.formHeader').find('.formTabErrorIco').css('display', 'block')
+																		 .off('click')
+																		 .on('click', xenos.postNotice(xenos.notice.type.error, showMsg, true));
+							return false;
+						}
+					}
+				}
+				
+				/**
+				* Enable Auto Transmission field depending on Transmission Required
+				*/
+				function enableAutoTransmission(){
+					var transmissionReqd = $.trim($('#transmissionRequired',$context).val());
+					if(transmissionReqd == 'Y'){
+						$('#autoTransmission',$context).prop("disabled", false);
+					}else{
+						$('#autoTransmission',$context).val('N');
+						$('#autoTransmission',$context).prop("disabled", true);
+					}
+				};
+				
+				//Client Side Validation
+				var validateHook = function(){
+					var validationMessages = [];
+					var fromBankAccount = $.trim($('#frombankaccount',$context).val());
+					var toBankAccount = $.trim($('#tobankaccount',$context).val());
+					var securityCode = $.trim($('#security',$context).val());
+					var quantity = $.trim($('#quantity',$context).val());
+					var transmissionRequired = $.trim($('#transmissionRequired',$context).val());
+					var valueDate = $.trim($('#valueDate',$context).val());
+										
+				    if(VALIDATOR.isNullValue(fromBankAccount)){
+						validationMessages.push(xenos$STL$i18n.banktransfer.entry.frombankaccount_empty);
+					}
+					if(VALIDATOR.isNullValue(toBankAccount)){
+						validationMessages.push(xenos$STL$i18n.banktransfer.entry.tobankaccount_empty);
+					}
+					if(VALIDATOR.isNullValue(securityCode)){
+						validationMessages.push(xenos$STL$i18n.banktransfer.entry.securitycode_empty);
+					}
+					if(VALIDATOR.isNullValue(quantity)){
+						validationMessages.push(xenos$STL$i18n.banktransfer.entry.quantity_empty);
+					} else {
+						formatQuantity($('#quantity'),15,3,validationMessages,$('#quantity').parent().parent().find('label').text());
+					}
+					if(VALIDATOR.isNullValue(transmissionRequired)){
+						validationMessages.push(xenos$STL$i18n.banktransfer.entry.transmissionrequired_empty);
+					}
+					
+					if(!VALIDATOR.isNullValue(valueDate)){
+						if(isDateCustom(valueDate)==false){
+							validationMessages.push(xenos$STL$i18n.banktransfer.date.date_format_check + valueDate);
+						}
+					}
+					
+					if(!(VALIDATOR.isNullValue(fromBankAccount) &amp;&amp; VALIDATOR.isNullValue(toBankAccount))){
+						if(fromBankAccount == toBankAccount){
+							validationMessages.push(xenos$STL$i18n.banktransfer.entry.same_acount);
+						}
+					}
+					
+					if (validationMessages.length > 0){
+						 $('.formHeader').find('.formTabErrorIco').css('display', 'block')
+						                                          .off('click')
+						                                          .on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+						 return false;
+					}else {
+                           $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+					}
+					return true;
+				}
+				
+				var unloadHook = function(){
+						$('#transmissionRequired',$context).unbind('change');
+						$('#valueDate',$context).unbind('blur');
+						$('#quantity',$context).unbind('blur');
+						$xenos$Wizard.deregister('submit',validateHook);
+						$xenos$Wizard.deregister('unload',unloadHook);
+					}
+				$xenos$Wizard.register('submit',validateHook);
+				$xenos$Wizard.register('unload',unloadHook);
+				
+				<!--Assigning shortcuts for form items-->
+				xenos.utils.afterFormRenderScuts();
+   			};
+   		</jsp:body>
+   	</jsp:element>
+	
+	<c:if test="${success =='false'}">
+    <!-- Error message Area -->
+    <ul class="xenosError">
+        <c:forEach items="${value}" var="dl">       
+        <li><spring:message text="${dl}" htmlEscape="false"/></li>  
+        </c:forEach>
+    </ul>   
+    </c:if>
+   
+     <div class="entryBlkArea">
+     	<div class="formItemBlock topitems dottedBg">
+     		<div class="formItem">
+				<form:label path="commandForm.ownAccount" class="required"><spring:message code="stl.label.frombankaccount" htmlEscape="false"/></form:label>
+				<span><form:input value="" id="frombankaccount" path="commandForm.ownAccount"  class="textBox"/></span>
+				<div class="popupBtn">
+				<input type="button" class="popupBtnIco" tgt="frombankaccount" popType="cpAccount" actTypeContext="S|B" actCPTypeContext="BANK/CUSTODIAN|BROKER" actStatusContext="OPEN" value="" hiddenFieldFilteredReqd="true" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+     		<div class="formItem">
+				<form:label path="commandForm.cpAccount" class="required"><spring:message code="stl.label.tobankaccount" htmlEscape="false"/></form:label>
+				<span><form:input value="" id="tobankaccount" path="commandForm.cpAccount"  class="textBox"/></span>
+				<div class="popupBtn">
+				<input type="button" class="popupBtnIco" tgt="tobankaccount" popType="cpAccount" actTypeContext="S|B" actCPTypeContext="BANK/CUSTODIAN|BROKER" actStatusContext="OPEN" value="" hiddenFieldFilteredReqd="true" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div> 	
+			<div class="formItem">
+				<form:label path="commandForm.ownBankCode"><spring:message code="stl.label.bankcode" htmlEscape="false"/></form:label>
+				<span><form:input id="fromBankcode" value="" path="commandForm.ownBankCode" class="text" readonly="true"/></span>            
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+           	</div>
+			<div class="formItem">
+				<form:label path="commandForm.cpBankCode"><spring:message code="stl.label.bankcode" htmlEscape="false"/></form:label>
+				<span><form:input id="toBankcode" value="" path="commandForm.cpBankCode" class="text" readonly="true"/></span>            
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+           	</div>
+			<div class="formItem">
+				<form:label path="commandForm.ownBankName"><spring:message code="stl.label.bankname" htmlEscape="false"/></form:label>
+				<span><form:input id="fromBankname" value="" path="commandForm.ownBankName" class="text" readonly="true"/></span>            
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+           	</div>
+			<div class="formItem">
+				<form:label path="commandForm.cpBankName"><spring:message code="stl.label.bankname" htmlEscape="false"/></form:label>
+				<span><form:input id="toBankname" value="" path="commandForm.cpBankName" class="text" readonly="true"/></span>            
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+           	</div>
+			<div class="formItem">
+				<form:label path="commandForm.securityId" class="required"><spring:message code="stl.label.securitycode" htmlEscape="false"/></form:label>
+				<span><form:input value="" id="security" path="commandForm.securityId" class="textBox" /></span>
+				<div class="popupBtn">
+					<input type="button" class="popupBtnIco" tgt="security" popType="security" value="" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="formItem">
+				<form:label path="commandForm.quantity" class="required"><spring:message code="stl.label.quantity" htmlEscape="false"/></form:label>
+				<span><form:input id="quantity" value="" path="commandForm.quantity" class="textBox"/></span>            
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+           	</div>
+           	<div class="formItem">
+				<form:label path="commandForm.transmissionReqdStr" class="required"><spring:message code="stl.label.transmissionrequired" htmlEscape="false"/></form:label>
+				<form:select id="transmissionRequired" path="commandForm.transmissionReqdStr" class="dropdowninput">
+					<form:option value=" "/>
+					<form:options items="${commandForm.dropDownListValues.inxTransmissionList}" itemLabel="label" itemValue="value"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="formItem">
+				<form:label path="commandForm.valueDateFromUI"><spring:message code="stl.label.valuedate" htmlEscape="false"/></form:label>
+				<span><form:input id="valueDate" value="" path="commandForm.valueDateFromUI" class="dateinput"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="formItem">
+				<form:label path="commandForm.autoTransmissionStr"><spring:message code="stl.label.autotransmission" htmlEscape="false"/></form:label>
+				<form:select id="autoTransmission" path="commandForm.autoTransmissionStr" class="dropdowninput">
+					<form:options items="${commandForm.autoTrxValues}" itemLabel="label" itemValue="value"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="formItem">
+				<form:label path="commandForm.deliveryMethod" class="required"><spring:message code="stl.label.form" htmlEscape="false"/></form:label>
+				<form:select id="form" path="commandForm.deliveryMethod" class="dropdowninput">
+					<form:options items="${commandForm.deliveryMethodList}" itemLabel="label" itemValue="value"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="formItem twoCols">
+				<form:label path="commandForm.remarks"><spring:message code="stl.label.remarks" htmlEscape="false"/></form:label>
+					<form:input value="" path="commandForm.remarks" class="txtNormal fullWidthInput" id="remarks" maxlength="255" />
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+     	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+     	</div>
+     </div>
+   </div>  
+</jsp:root>

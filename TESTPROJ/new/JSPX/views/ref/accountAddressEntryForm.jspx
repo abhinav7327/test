@@ -1,0 +1,883 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+
+	<div class="entryContainer paddingFour">
+		
+		<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+		<jsp:output	omit-xml-declaration="yes" /> 
+		
+		<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>		
+			<jsp:body>
+
+				var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+						
+						xenos.loadScript([
+							//{path: xenos.context.path + '/scripts/ref/AccountDocumentEntry.js', async: false},
+							{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+							{path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false}
+						]);
+						if("${commandForm.account.counterPartyDetailType}" == "INTERNAL"){
+                            $("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','block');
+                            $("#formActionArea > div > div > .wizPrev > .inputBtnStyle").css('display','block');
+                        }
+						
+						var context = $xenos$Wizard.$context;
+						var baseUrl = xenos.context.path + "/secure/ref/account/entry";
+						
+						var deliveryAddressEntryResult = [],
+							rowId = 0,		
+							item = {},
+							deliveryAddressEntryGrid = null,
+							deliveryAddressEntryList = [];
+							
+						var addressEntryResult = [],
+							rowId = 0,		
+							item = {},
+							addressEntryGrid = null,
+							addressEntryList = [];
+							
+				
+				/**
+					* A common request handler to be used server communication.
+					*/
+					var xenos$Handler$RequestHandler = xenos$Handler$function({						
+						get: {
+							contentType: 'json',
+							requestType: xenos$Handler$default.requestType.asynchronous
+						},	
+						settings: {
+							beforeSend: function(request) {
+								request.setRequestHeader('Accept', 'application/json');
+							},
+							type: 'POST'
+						}
+					});
+					
+					
+					var deliveryAddressEntryColumns = [		
+						{name:"<spring:message code="ref.account.label.reportname" htmlEscape="false"/>",   	field:"reportId",			id:"reportId", 	         sortable:false},
+						{name:"<spring:message code="ref.account.label.groupreportname" htmlEscape="false"/>", 	field:"reportGroupId",		id:"reportGroupId",	     sortable:false},
+						{name:"<spring:message code="ref.account.label.tradetype" htmlEscape="false"/>", 		field:"tradeTypePk",		id:"tradeTypePk", 		 sortable:false},
+						{name:"<spring:message code="ref.account.label.market" htmlEscape="false"/>",   		field:"finInstRoleCode",	id:"finInstRoleCode", 	 sortable:false},
+						{name:"<spring:message code="ref.account.label.instrumenttype" htmlEscape="false"/>", 	field:"instrumentType",		id:"instrumentType",	 sortable:false},
+						{name:"<spring:message code="ref.account.label.addressid" htmlEscape="false"/>", 		field:"addressId",			id:"addressId",  		 sortable:false},
+						{name:"<spring:message code="ref.account.label.addresstype" htmlEscape="false"/>", 		field:"addressType",		id:"addressType",        sortable:false}
+							
+					];
+						
+					var deliveryAddressEntryGridConf = {
+						editMode 					: 	'both',	
+						editCallback 				: 	editDeliveryAddressEntryHandler,
+						deleteCallback			    :	deleteDeliveryAddressEntryHandler,						
+						forceFitColumns				:	true
+					};
+					rowId=0;
+
+					<xenos:out escapeXml="false">
+						<c:forEach items="${commandForm.otherAttributes.addressRuleDispDynaBeans}" var="dl">
+							item = {};
+							rowId+=1;
+							item.id 				= "xenos_" + rowId;
+							item.reportId 			= "<c:out value="${dl.map.reportId}" />";
+							item.reportGroupId   	= "<c:out value="${dl.map.reportGroupId}" />";
+							item.tradeTypePk   	= "<c:out value="${dl.map.tradeTypePk}" />";
+							item.finInstRoleCode 			= "<c:out value="${dl.map.finInstRoleCode}" />";
+							item.instrumentType   	= "<c:out value="${dl.map.instrumentType}" />";
+							item.addressId   	= "<c:out value="${dl.map.addressId}" />";
+							item.addressType   	= "<c:out value="${dl.map.addressType}" />";
+							deliveryAddressEntryResult.push(item);
+						</c:forEach>
+					</xenos:out>
+									
+					deliveryAddressEntryGrid = $('#deliveryAddressEntryGrid',context).xenoseditablegrid(deliveryAddressEntryResult, deliveryAddressEntryColumns, deliveryAddressEntryGridConf);
+					
+					
+					
+					
+					var addressEntryColumns = [		
+						{name:"<spring:message code="ref.account.label.addressid" htmlEscape="false"/>",  	 	field:"addressId1",			id:"addressId1", 	       sortable:false},
+						{name:"<spring:message code="ref.account.label.building" htmlEscape="false"/>", 		field:"building",			id:"building",	  	       sortable:false},
+						{name:"<spring:message code="ref.account.label.street" htmlEscape="false"/>", 			field:"street",				id:"street",  		       sortable:false},
+						{name:"<spring:message code="ref.account.label.city" htmlEscape="false"/>",   			field:"city",				id:"city", 	   		       sortable:false},
+						{name:"<spring:message code="ref.account.label.stateandcountry" htmlEscape="false"/>", 	field:"state",				id:"state",	  		       sortable:false},
+						{name:"<spring:message code="ref.account.label.countrycode" htmlEscape="false"/>",	 	field:"countryCode",		id:"countryCode",  	   	   sortable:false},
+						{name:"<spring:message code="ref.account.label.postalcode" htmlEscape="false"/>",   	field:"postalCode",			id:"postalCode", 	   	   sortable:false},
+						{name:"<spring:message code="ref.account.label.ownername#1" htmlEscape="false"/>", 		field:"addressOwnerName1",	id:"addressOwnerName1",	   sortable:false},
+						{name:"<spring:message code="ref.account.label.ownername#2" htmlEscape="false"/>", 		field:"addressOwnerName2",	id:"addressOwnerName2",    sortable:false},
+						{name:"<spring:message code="ref.account.label.ownername#3" htmlEscape="false"/>", 		field:"addressOwnerName3",	id:"addressOwnerName3",	   sortable:false},
+						{name:"<spring:message code="ref.account.label.ownername#4" htmlEscape="false"/>", 		field:"addressOwnerName4",	id:"addressOwnerName4",    sortable:false},
+						{name:"<spring:message code="ref.account.label.returnedstatus" htmlEscape="false"/>", 	field:"returnedStatus",		id:"returnedStatus",	   sortable:false}
+						
+					];
+						
+					var addressEntryGridConf = {
+						editMode 					: 	'both',	
+						editCallback 				: 	editAddressEntryHandler,
+						deleteCallback			    :	deleteAddressEntryHandler,	
+                        editEnableCallback			:	preEditModeEnableFunc,                        
+						forceFitColumns				:	true
+					};
+					rowId=0;
+
+					<xenos:out escapeXml="false">
+						<c:forEach items="${commandForm.otherAttributes.addressDispDynaBeans}" var="dl">
+							item = {};
+							rowId+=1;
+							item.id 					= "xenos_" + rowId;
+							item.addressId1 				= "<c:out value="${dl.map.addressId}" />";
+							item.building   			= "<c:out value="${dl.map.building}" />";
+							item.street   				= "<c:out value="${dl.map.street}" />";
+							item.city 					= "<c:out value="${dl.map.city}" />";
+							item.state   				= "<c:out value="${dl.map.state}" />";
+							item.countryCode   			= "<c:out value="${dl.map.countryCode}" />";
+							item.postalCode 			= "<c:out value="${dl.map.postalCode}" />";
+							item.addressOwnerName1   	= "<c:out value="${dl.map.addressOwnerName1}" />";
+							item.addressOwnerName2   	= "<c:out value="${dl.map.addressOwnerName2}" />";
+							item.addressOwnerName3 		= "<c:out value="${dl.map.addressOwnerName3}" />";
+							item.addressOwnerName4   	= "<c:out value="${dl.map.addressOwnerName4}" />";
+							item.returnedStatus   		= "<c:out value="${dl.map.returnedStatusExp}" />";
+							addressEntryResult.push(item);
+						</c:forEach>
+					</xenos:out>
+									
+					addressEntryGrid = $('#addressEntryGrid',context).xenoseditablegrid(addressEntryResult, addressEntryColumns, addressEntryGridConf);
+					
+					
+					
+					
+					//****************************	VALIDATION LOGIC ***********************************			
+			/**
+			* Validate delivery address to be added or updated.
+			*/
+			function validateOnAddAccountAddress(){
+				var validationMessages = [];
+				
+				if(VALIDATOR.isNullValue($.trim($('#addressId1').val()))){
+				    validationMessages.push(xenos$REF$i18n.account.common.addressid_empty);
+				}
+				
+				if ( validationMessages.length >0){
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+					 return false;
+				}
+
+				if ( VALIDATOR.isNullValue($.trim($('#building').val()))
+					&amp;&amp; VALIDATOR.isNullValue($.trim($('#street').val())) 
+					&amp;&amp; VALIDATOR.isNullValue($.trim($('#city').val())) 
+					&amp;&amp; VALIDATOR.isNullValue($.trim($('#state').val())) 
+					&amp;&amp; VALIDATOR.isNullValue($.trim($('#countryCode').val())) 
+					&amp;&amp; VALIDATOR.isNullValue($.trim($('#postalCode').val()))
+					&amp;&amp; VALIDATOR.isNullValue($.trim($('#addressOwnerName1').val())) 
+					&amp;&amp; VALIDATOR.isNullValue($.trim($('#addressOwnerName2').val())) 
+					&amp;&amp; VALIDATOR.isNullValue($.trim($('#addressOwnerName3').val())) 
+					&amp;&amp; VALIDATOR.isNullValue($.trim($('#addressOwnerName4').val()))    
+				) {
+				    validationMessages.push(xenos$REF$i18n.account.common.one_field_required_except_addressid_and_returned_status);
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+					return false;
+				}  
+				return true;
+			}
+            function preEditModeEnableFunc(columnName,dataContext){
+					
+					if(dataContext["addressId1"] == "Contract"){
+							return false;
+					}
+					else {
+							return true;
+					}							
+			    }
+				
+			/**
+			* Validate delivery address rule to be added or updated.
+			*/
+			function validateOnAddDelivAddressRule(){
+				var validationMessages = [];
+                
+				var repid=VALIDATOR.isNullValue($.trim($('#reportId').val()));
+				var repgrid=VALIDATOR.isNullValue($.trim($('#reportGroupId').val()));
+
+				if(repid == repgrid )
+				{
+				    validationMessages.push(xenos$REF$i18n.account.common.repid_grpid_reqd);
+				}
+				
+				if(VALIDATOR.isNullValue($.trim($('#addressId').val()))){
+				    validationMessages.push(xenos$REF$i18n.account.common.addressid_empty);    
+				}
+				
+				if(VALIDATOR.isNullValue($.trim($('#addressType').val()))){
+				    validationMessages.push(xenos$REF$i18n.account.address.addresstype_empty);
+				}
+				if ( validationMessages.length >0){
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+					 return false;
+				}
+
+				return true;
+			}
+					
+					
+				/**
+				* Populate Delivery Address request parameters.
+				*/
+				function populateDeliveryAddressEntryRequestParam(){
+					var reqObj = {
+					              "delivAddressRule.reportId"				:	$.trim($('#reportId',context).val()),
+								  "delivAddressRule.reportGroupId"			:	$.trim($('#groupreportId',context).val()),
+								  "delivAddressRule.tradeTypePk"			:	$.trim($('#tradeType',context).val()),
+								  "delivAddressRule.finInstRoleCode"		:	$.trim($('#marketId',context).val()),
+								  "delivAddressRule.instrumentType"			:	$.trim($('#instrumentType',context).val()),
+								  "delivAddressRule.addressId"				:	$.trim($('#addressId',context).val()),
+								  "delivAddressRule.addressType"			:	$.trim($('#addressType',context).val())
+								};
+					return reqObj;
+				}
+				
+				
+				/**
+				* Populate Address request parameters.
+				*/
+				function populateAddressEntryRequestParam(){
+					var reqObj = {
+					              "address.addressId"				:	$.trim($('#addressId1',context).val()),
+								  "address.building"				:	$.trim($('#building',context).val()),
+								  "address.street"					:	$.trim($('#street',context).val()),
+								  "address.city"					:	$.trim($('#city',context).val()),
+								  "address.state"					:	$.trim($('#state',context).val()),
+								  "address.countryCode"				:	$.trim($('#countryCode',context).val()),
+								  "address.postalCode"				:	$.trim($('#postalCode',context).val()),
+								  "address.addressOwnerName1"		:	$.trim($('#addressOwnerName1',context).val()),
+								  "address.addressOwnerName2"		:	$.trim($('#addressOwnerName2',context).val()),
+								  "address.addressOwnerName3"		:	$.trim($('#addressOwnerName3',context).val()),
+								  "address.addressOwnerName4"		:	$.trim($('#addressOwnerName4',context).val()),
+								  "address.returnedStatus"			:	$.trim($('#returnedStatus',context).val())
+								};
+					return reqObj;
+				}
+				
+				
+				/**
+				* Populate Delivery Address form.
+				*/
+				function populateDeliveryAddressEntryForm(result){
+					if(result.delivAddressRule){
+						$('#reportId',context).val(result.delivAddressRule.reportId);
+						$('#groupreportId',context).val(result.delivAddressRule.reportGroupId);
+						$('#tradeType',context).val(result.delivAddressRule.tradeTypePk);
+						$('#marketId',context).val(result.delivAddressRule.finInstRoleCode);
+						$('#instrumentType',context).val(result.delivAddressRule.instrumentType);
+						$('#addressId',context).val(result.delivAddressRule.addressId);
+						$('#addressType',context).val(result.delivAddressRule.addressType);
+						$('input[type=text],textarea,select', 'div.formItemBlock').filter(':enabled:visible:first').focus();
+					}
+				} 
+				
+				
+				/**
+				* Populate Address form.
+				*/
+				function populateAddressEntryForm(result){
+					if(result.address){
+						$('#addressId1',context).val(result.address.addressId);
+						$('#building',context).val(result.address.building);
+						$('#street',context).val(result.address.street);
+						$('#city',context).val(result.address.city);
+						$('#state',context).val(result.address.state);
+						$('#countryCode',context).val(result.address.countryCode);
+						$('#postalCode',context).val(result.address.postalCode);
+						$('#addressOwnerName1',context).val(result.address.addressOwnerName1);
+						$('#addressOwnerName2',context).val(result.address.addressOwnerName2);
+						$('#addressOwnerName3',context).val(result.address.addressOwnerName3);
+						$('#addressOwnerName4',context).val(result.address.addressOwnerName4);
+						$('#returnedStatus',context).val(result.address.returnedStatus);
+						$('input[type=text],textarea,select', 'div.formItemBlock').filter(':enabled:visible:first').focus();
+					}
+				} 
+				
+				
+				/**
+				* New Generated Delivery Address add handler.
+				*/
+				function addDeliveryAddressEntryHandler(e){
+                var valid = validateOnAddDelivAddressRule();
+					if(valid){
+						var requestUrl = baseUrl + "/addDeliveryAddress.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateDeliveryAddressEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertDeliveryAddressEntry( content.value[0]);
+																		xenos.utils.clearGrowlMessage();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+                    }
+				}
+				
+				
+				/**
+				* Delivery Address edit handler.
+				*/
+				function editDeliveryAddressEntryHandler(rowIndex, dataContext){
+					
+					var requestUrl = baseUrl + "/editDeliveryAddress.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																settings: {data : {"editIndexDeliveryAddress" : rowIndex}},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		populateDeliveryAddressEntryForm(content.value[0]);
+																		$('.editBtnDeliveryAddressEntry',context).css('display','block'); 
+																		$('.addDeliveryAddressEntry',context).css('display','none'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* Delete Delivery Address handler.
+				*/
+				function deleteDeliveryAddressEntryHandler(rowIndex, dataContext){
+					var requestUrl = baseUrl + "/deleteDeliveryAddress/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertDeliveryAddressEntry( content.value[0]);
+																		$('.editBtnDeliveryAddressEntry',context).css('display','none'); 
+																		$('.addDeliveryAddressEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* Update Delivery Address handler.
+				*/
+				function updateDeliveryAddressEntryHandler(e){
+					var valid = validateOnAddDelivAddressRule();
+					if(true){
+						var requestUrl = baseUrl + "/updateDeliveryAddress.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateDeliveryAddressEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertDeliveryAddressEntry( content.value[0]);
+																		$('.editBtnDeliveryAddressEntry',context).css('display','none'); 
+																		$('.addDeliveryAddressEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+					}
+				}
+				
+				/**
+				* Cancel Delivery Address handler.
+				*/
+				function cancelDeliveryAddressEntryHandler(e){
+					var requestUrl = baseUrl + "/cancelDeliveryAddress.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertDeliveryAddressEntry( content.value[0]);
+																		$('.editBtnDeliveryAddressEntry',context).css('display','none'); 
+																		$('.addDeliveryAddressEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* Insert/ Update Delivery Address
+				*/
+				function upsertDeliveryAddressEntry(data){
+					
+					var result = data.otherAttributes.addressRuleDispDynaBeans;
+					if(result){
+						deliveryAddressEntryGrid.clearData();
+						for(var i in result){
+							item = {};
+							rowId+=1;
+							item.id 					    = "xenos_" + rowId;
+							item.reportId 		   			= $.trim(result[i].map.reportId);
+							item.reportGroupId 				= $.trim(result[i].map.reportGroupId);
+							item.tradeTypePk 		   		= $.trim(result[i].map.tradeTypePk);
+							item.finInstRoleCode 		   	= $.trim(result[i].map.finInstRoleCode);
+							item.instrumentType 			= $.trim(result[i].map.instrumentType);
+							item.addressId 		  			= $.trim(result[i].map.addressId);
+							item.addressType 		    	= $.trim(result[i].map.addressType);
+							
+							deliveryAddressEntryGrid.addOrUpdateRow(item,{});
+							
+						}
+						
+						populateDeliveryAddressEntryForm(data);
+					}
+				}
+				
+				
+				
+				/**
+				* New Generated Address add handler.
+				*/
+				function addAddressEntryHandler(e){
+                var valid = validateOnAddAccountAddress();
+					if(valid){
+						var requestUrl = baseUrl + "/addAddress.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateAddressEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertAddressEntry( content.value[0]);
+																		xenos.utils.clearGrowlMessage();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+                    }
+				}
+				
+				
+				/**
+				* Address edit handler.
+				*/
+				function editAddressEntryHandler(rowIndex, dataContext){
+					
+					var requestUrl = baseUrl + "/editAddress.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																settings: {data : {"editIndexAddress" : rowIndex}},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		populateAddressEntryForm(content.value[0]);
+																		$('.editBtnAddressEntry',context).css('display','block'); 
+																		$('.addAddressEntry',context).css('display','none'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* Delete Address handler.
+				*/
+				function deleteAddressEntryHandler(rowIndex, dataContext){
+					var requestUrl = baseUrl + "/deleteAddress/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertAddressEntry( content.value[0]);
+																		$('.editBtnAddressEntry',context).css('display','none'); 
+																		$('.addAddressEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* Update Address handler.
+				*/
+				function updateAddressEntryHandler(e){
+					var valid = validateOnAddAccountAddress();
+					if(valid){
+						var requestUrl = baseUrl + "/updateAddress.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateAddressEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertAddressEntry( content.value[0]);
+																		$('.editBtnAddressEntry',context).css('display','none'); 
+																		$('.addAddressEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+					}
+				}
+				
+				/**
+				* Cancel Address handler.
+				*/
+				function cancelAddressEntryHandler(e){
+					var requestUrl = baseUrl + "/cancelAddress.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertAddressEntry( content.value[0]);
+																		$('.editBtnAddressEntry',context).css('display','none'); 
+																		$('.addAddressEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* Insert/ Update Address
+				*/
+				function upsertAddressEntry(data){
+					var result = data.otherAttributes.addressDispDynaBeans;
+					if(result){
+						addressEntryGrid.clearData();
+						for(var i in result){
+							item = {};
+							rowId+=1;
+							item.id 					    = "xenos_" + rowId;
+							item.addressId1 		   			= $.trim(result[i].map.addressId);
+							item.building 					= $.trim(result[i].map.building);
+							item.street 		   			= $.trim(result[i].map.street);
+							item.city 		   				= $.trim(result[i].map.city);
+							item.state 						= $.trim(result[i].map.state);
+							item.countryCode 		    	= $.trim(result[i].map.countryCode);
+							item.postalCode 		   		= $.trim(result[i].map.postalCode);
+							item.addressOwnerName1 			= $.trim(result[i].map.addressOwnerName1);
+							item.addressOwnerName2 		    = $.trim(result[i].map.addressOwnerName2);
+							item.addressOwnerName3 		   	= $.trim(result[i].map.addressOwnerName3);
+							item.addressOwnerName4 			= $.trim(result[i].map.addressOwnerName4);
+							item.returnedStatus 		    = $.trim(result[i].map.returnedStatusExp);
+							
+							addressEntryGrid.addOrUpdateRow(item,{});
+							populateAddressID(data);
+						}
+						populateAddressEntryForm(data);
+					}
+				}
+				
+				
+				// populating data in Address Id Dropdown dynamic
+				function populateAddressID(data){
+					if(data){
+						$('#addressId option').remove();
+							
+						var delivAddressIdList = data.dropDownListValues.delivAddressIdList;
+						$('#addressId option').remove();
+						var option = $('<option/>');
+						option.attr('value', "").attr('selected','selected').text("");
+						$('#addressId').append(option);
+						$.each(delivAddressIdList, function(index, item){
+							option = $('<option/>');
+							option.attr('value', item).text(item);
+							$('#addressId').append(option);
+						});
+					}
+				}
+				
+				
+				
+				var submitValidateHook = function() {	
+					
+				}
+				
+				var nextValidateHook = function() {
+					//var isValid = validateOnNextForCustodianTabEmpty();
+					//return isValid;
+				}
+				
+				
+				$('#addDeliveryAddressEntryBtn',context).bind('click',addDeliveryAddressEntryHandler);
+				$('#updateDeliveryAddressEntryBtn',context).bind('click',updateDeliveryAddressEntryHandler);
+				$('#cancelDeliveryAddressEntryBtn',context).bind('click',cancelDeliveryAddressEntryHandler);
+				
+				$('#addAddressEntryBtn',context).bind('click',addAddressEntryHandler);
+				$('#updateAddressEntryBtn',context).bind('click',updateAddressEntryHandler);
+				$('#cancelAddressEntryBtn',context).bind('click',cancelAddressEntryHandler);
+				
+				var unloadHook = function(){
+					$('#addDeliveryAddressEntryBtn',context).unbind('click',addDeliveryAddressEntryHandler);
+					$('#updateDeliveryAddressEntryBtn',context).unbind('click',updateDeliveryAddressEntryHandler);
+					$('#cancelDeliveryAddressEntryBtn',context).unbind('click',cancelDeliveryAddressEntryHandler);
+					
+					$('#addAddressEntryBtn',context).unbind('click',addAddressEntryHandler);
+					$('#updateAddressEntryBtn',context).unbind('click',updateAddressEntryHandler);
+					$('#cancelAddressEntryBtn',context).unbind('click',cancelAddressEntryHandler);
+					
+					$xenos$Wizard.deregister('submit',submitValidateHook);
+					$xenos$Wizard.deregister('next',nextValidateHook);
+					$xenos$Wizard.deregister('unload',unloadHook);
+					
+					deliveryAddressEntryGrid.destroy();
+					addressEntryGrid.destroy();
+				}
+				
+				$xenos$Wizard.register('next',nextValidateHook);
+				$xenos$Wizard.register('submit',submitValidateHook);
+				$xenos$Wizard.register('unload',unloadHook);
+				xenos.utils.afterFormRenderScuts();
+				
+
+				
+				
+			}
+		
+					
+						
+			</jsp:body>
+		</jsp:element>
+		
+		
+		<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+		<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+		<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+		
+		<c:if test="${success =='false'}">
+			<ul class="xenosError">
+				<c:forEach items="${value}" var="dl">		
+				<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+				</c:forEach>
+			</ul>	
+		</c:if>
+	
+		<div>
+			<h1 class="msgHead"><spring:message code="ref.account.entry.label.deliveryaddress.title" htmlEscape="false"/></h1>
+		</div>
+		
+		<table class="tableStyle sixCol">
+            <tr>
+                <td><label><spring:message code="ref.account.label.accountno" htmlEscape="false"/></label></td>
+                <td>${commandForm.accountNoExp}</td>
+                <td><label><spring:message code="ref.account.entry.label.shortname" htmlEscape="false"/></label></td>
+                <td>${commandForm.shortNameExp}</td>	
+            </tr>
+        </table>
+			
+			<div class="entryBlkArea">
+			<div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.account.label.deliveryaddressandrule.section" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>
+							<div class="formItemBlock topitems dottedBg">
+								<div class="formItem">
+									<form:label path="commandForm.delivAddressRule.reportId" ><spring:message code="ref.account.label.reportname" htmlEscape="false"/></form:label>
+									<form:select id="reportId" path="commandForm.delivAddressRule.reportId" class="dropdowninput" >
+											<form:option value=""/>
+											<form:options items="${commandForm.dropDownListValues.addressReportIdList}" itemLabel="label" itemValue="value"/>
+									</form:select>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+								<div class="formItem">
+									<form:label path="commandForm.delivAddressRule.reportGroupId" ><spring:message code="ref.account.label.groupreportname" htmlEscape="false"/></form:label>
+									<form:select id="groupreportId" path="commandForm.delivAddressRule.reportGroupId" class="dropdowninput" >
+											<form:option value=""/>
+											<form:options items="${commandForm.dropDownListValues.addressReportGroupIdList}" />
+									</form:select>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+								<div class="formItem twoCols">
+									<form:label path="commandForm.delivAddressRule.tradeTypePk" ><spring:message code="ref.account.label.tradetype" htmlEscape="false"/></form:label>
+									<form:select id="tradeType" path="commandForm.delivAddressRule.tradeTypePk" class="dropdowninput" >
+											<form:option value=""/>
+											<form:options items="${commandForm.dropDownListValues.tradeTypeList}" />
+									</form:select>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+								<div class="formItem">
+									<form:label path="commandForm.delivAddressRule.finInstRoleCode"><spring:message code="ref.account.label.market" htmlEscape="false"/></form:label> 
+									<span><form:input id="marketId" value="" path="commandForm.delivAddressRule.finInstRoleCode"  class="textBox market" /></span>
+									<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+								<div class="formItem">
+									<form:label path="commandForm.delivAddressRule.instrumentType"><spring:message code="ref.account.label.instrumenttype" htmlEscape="false"/></form:label> 
+									<span><form:input id="instrumentType" value="" path="commandForm.delivAddressRule.instrumentType"  class="textBox instrumentType" /></span>
+									<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+								<div class="formItem">
+									<form:label path="commandForm.delivAddressRule.addressId" class="required"><spring:message code="ref.account.label.addressid" htmlEscape="false"/></form:label>
+									<form:select id="addressId" path="commandForm.delivAddressRule.addressId" class="dropdowninput" >
+											<form:option value=""/>
+											<form:options items="${commandForm.dropDownListValues.delivAddressIdList}" />
+									</form:select>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+								<div class="formItem">
+									<form:label path="commandForm.delivAddressRule.addressType" class="required"><spring:message code="ref.account.label.addresstype" htmlEscape="false"/></form:label>
+									<form:select id="addressType" path="commandForm.delivAddressRule.addressType" class="dropdowninput" >
+											<form:option value=""/>
+											<form:options items="${commandForm.dropDownListValues.addressTypeList}" itemLabel="label" itemValue="value"/>
+									</form:select>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+								<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								<div id="formActionArea" class="gridBtnMargin AddBtnformActionAreaBg">
+									<div class="right">
+										<div class="btnWrapStyle submitBtn gridAddBtn">
+											<span class="addDeliveryAddressEntry" style="display:block"><input id="addDeliveryAddressEntryBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+										</div>
+										<span class="editBtnDeliveryAddressEntry" style="display:none">
+											<div class="btnWrapStyle submitBtn"><input id="updateDeliveryAddressEntryBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+											<div class="btnWrapStyle resetBtn"><input id="cancelDeliveryAddressEntryBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+										</span>
+									</div>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+								<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								<div class="entryGrid">
+									<div id="deliveryAddressEntryGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+							</div>
+						
+			</div>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+		<!-- Account Contract Address Info Block Start -->
+			<div class="entryBlkArea">
+			<div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.account.label.detailaddresstab" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>
+		
+								<div class="formItemBlock topitems Scrn3col dottedBg">
+									<div class="formItem">
+										<form:label path="commandForm.address.addressId" class="required"><spring:message code="ref.account.label.addressid" htmlEscape="false"/></form:label>
+										<form:select id="addressId1" path="commandForm.address.addressId" class="dropdowninput" >
+												<form:option value=""/>
+												<form:options items="${commandForm.dropDownListValues.addressIdList}" itemLabel="label" itemValue="value"/>
+										</form:select>
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+									<div class="formItem">
+										<form:label path="commandForm.address.returnedStatus" ><spring:message code="ref.account.label.returnedstatus" htmlEscape="false"/></form:label>
+										<form:select id="returnedStatus" path="commandForm.address.returnedStatus" class="dropdowninput" >
+												<form:option value=""/>
+												<form:options items="${commandForm.dropDownListValues.returnStatusList}" itemLabel="label" itemValue="value"/>
+										</form:select>
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									<div class="formItem">
+										<form:label path="commandForm.address.building" ><spring:message code="ref.account.label.building" htmlEscape="false"/></form:label>
+										<span><form:input id="building" value="" path="commandForm.address.building" class="textBox" maxlength="35"/></span>
+										<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+									<div class="formItem">
+										<form:label path="commandForm.address.street" ><spring:message code="ref.account.label.street" htmlEscape="false"/></form:label>
+										<span><form:input id="street" value="" path="commandForm.address.street" class="textBox" maxlength="35"/></span>
+										<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									<div class="formItem">
+										<form:label path="commandForm.address.city" ><spring:message code="ref.account.label.city" htmlEscape="false"/></form:label>
+										<span><form:input id="city" value="" path="commandForm.address.city" class="textBox" maxlength="35"/></span>
+										<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+									<div class="formItem">
+										<form:label path="commandForm.address.countryCode" ><spring:message code="ref.account.label.countrycode" htmlEscape="false"/></form:label>
+										<span><form:input id="countryCode" value="" path="commandForm.address.countryCode" class="textBox" maxlength="173"/></span>
+                                        <div class="popupBtn"><input type="button" class="popupBtnIco" tgt="countryCode" popType="nationality"/></div>
+										<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+									<div class="formItem">
+										<form:label path="commandForm.address.state" ><spring:message code="ref.account.label.stateandcountry" htmlEscape="false"/></form:label>
+										<span><form:input id="state" value="" path="commandForm.address.state" class="textBox" maxlength="35"/></span>
+										<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+									<div class="formItem twoCols">
+										<form:label path="commandForm.address.postalCode" ><spring:message code="ref.account.label.postalcode" htmlEscape="false"/></form:label>
+										<span><form:input id="postalCode" value="" path="commandForm.address.postalCode" class="txtNormal" maxlength="20"/></span>
+										<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+									<div class="formItem">
+										<form:label path="commandForm.address.addressOwnerName1" ><spring:message code="ref.account.label.ownername#1" htmlEscape="false"/></form:label>
+										<span><form:input id="addressOwnerName1" value="" path="commandForm.address.addressOwnerName1" class="txtNormal" maxlength="35"/></span>
+										<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+									<div class="formItem">
+										<form:label path="commandForm.address.addressOwnerName2" ><spring:message code="ref.account.label.ownername#2" htmlEscape="false"/></form:label>
+										<span><form:input id="addressOwnerName2" value="" path="commandForm.address.addressOwnerName2" class="txtNormal" maxlength="35"/></span>
+										<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									<div class="formItem">
+										<form:label path="commandForm.address.addressOwnerName3" ><spring:message code="ref.account.label.ownername#3" htmlEscape="false"/></form:label>
+										<span><form:input id="addressOwnerName3" value="" path="commandForm.address.addressOwnerName3" class="txtNormal" maxlength="35"/></span>
+										<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+									<div class="formItem">
+										<form:label path="commandForm.address.addressOwnerName4" ><spring:message code="ref.account.label.ownername#4" htmlEscape="false"/></form:label>
+										<span><form:input id="addressOwnerName4" value="" path="commandForm.address.addressOwnerName4" class="txtNormal" maxlength="35"/></span>
+										<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									<div id="formActionArea" class="gridBtnMargin AddBtnformActionAreaBg">
+										<div class="right">
+											<div class="btnWrapStyle submitBtn gridAddBtn">
+												<span class="addAddressEntry" style="display:block"><input id="addAddressEntryBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+											</div>
+											<span class="editBtnAddressEntry" style="display:none">
+												<div class="btnWrapStyle submitBtn"><input id="updateAddressEntryBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+												<div class="btnWrapStyle resetBtn"><input id="cancelAddressEntryBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+											</span>
+										</div>
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									<div class="entryGrid">
+										<div id="addressEntryGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+								</div>
+			</div>
+	</div>
+</jsp:root>

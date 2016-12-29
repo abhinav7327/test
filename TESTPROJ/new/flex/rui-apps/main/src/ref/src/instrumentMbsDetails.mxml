@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%" 
+	xmlns:cntrls="com.nri.rui.core.controls.*" 
+	xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:rui="*"
+	updateComplete="com.nri.rui.core.controls.AutoScroll.updateDisplayList(event);">
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.binding.utils.BindingUtils;
+			import com.nri.rui.core.controls.AutoScroll;
+			import mx.controls.Label;
+			import mx.controls.Alert;
+			[Bindable] private var warnInfoList : ArrayCollection = new ArrayCollection();
+			
+			[Bindable]
+			private var xmlData:XML;
+						
+			public function loadModule(value:XML):void
+			{
+				this.xmlData = value;
+				softWarn.showWarning(warnInfoList);
+			}
+			
+			public function set xmlSource(xml:XML) : void
+			{
+				this.xmlData = xml;
+				 warnInfoList = new ArrayCollection();
+				if(xml.child("softExceptionList").length()>0){	
+				 	for each ( var warn:XML in xml.softExceptionList.item ) {
+		 			   warnInfoList.addItem(warn.value);
+					}
+		  		}	
+			}		
+			
+			private function displayCmoType(row:Object, column:DataGridColumn):String {
+         		return row.entry.(@key=='cmoDesc').value;
+      		}
+		]]>
+	</mx:Script>
+	<mx:XMLListCollection id="cmoTypes" source="{xmlData.instrumentPage.cmoTypesWrapper.item}" />
+	<mx:XMLListCollection id="factors" source="{xmlData.factorsWrapper.factors}" />
+	<rui:instrumentHeader id="header" setXml="{xmlData}" subTitle="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.mbs')}" styleName="LabelHeading" />
+	<mx:HBox width="100%" height="100%" styleName="Padding" >
+		<mx:VBox width="100%" height="100%" verticalGap="0" horizontalGap="0">
+		<cntrls:SoftWarningControl id="softWarn" width="100%" color="#0000FF" backgroundAlpha="0" borderStyle="none" fontWeight="bold"/>
+			<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.securitycode')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.defaultInstrumentCode}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.instrumenttype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.instrumentType}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.shortname')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.defaultShortName}" selectable="true"/>
+					</mx:GridItem>		
+				</mx:GridRow>
+			</mx:Grid>
+			
+			<mx:Spacer height="10" />
+			<flexlib:WindowShade id="ws1" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws1" tabChildren="{ws1.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.mbsinfo')}" width="100%" >
+			
+			<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.agencyflag')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.agencyFlagDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text=""/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.pooltype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.poolTypeDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.poolresetdate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.poolResetDateStr}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+			</mx:Grid>
+			</flexlib:WindowShade>
+			
+			<mx:Spacer height="10" />
+			
+			<flexlib:WindowShade id="ws2" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws2" tabChildren="{ws2.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.cmotype')}" width="100%" >
+			<cntrls:CustomDataGrid width="100%" height="100%" dataProvider="{cmoTypes}">
+				<cntrls:columns>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.cmotype')}" labelFunction="displayCmoType"/>
+					<mx:DataGridColumn headerText="" dataField=""/>
+				</cntrls:columns>
+			</cntrls:CustomDataGrid>
+			</flexlib:WindowShade>
+			
+			<mx:Spacer height="10" />
+			
+			<flexlib:WindowShade id="ws3" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws3" tabChildren="{ws3.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.factor')}" width="100%" >
+			<cntrls:CustomDataGrid width="100%" height="100%" dataProvider="{factors}">
+				<cntrls:columns>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.poolfactor')}" dataField="poolFactorDisp"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.poolbalance')}" dataField="poolBalanceDisp"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.datefrom')}" dataField="dateFromDisp"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.recorddate')}" dataField="recordDateDisp"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.updatedate')}" dataField="updateDateDisp"/>
+				</cntrls:columns>
+			</cntrls:CustomDataGrid>
+			</flexlib:WindowShade>
+			
+		</mx:VBox>	
+	</mx:HBox>
+</mx:Module>

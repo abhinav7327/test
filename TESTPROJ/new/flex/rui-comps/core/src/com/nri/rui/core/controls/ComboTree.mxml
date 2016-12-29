@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml"  width="100%" creationComplete="init()" height="210">
+<mx:Script>
+	<![CDATA[
+		import mx.events.DropdownEvent;
+		import mx.events.FlexMouseEvent;
+		import mx.controls.treeClasses.TreeListData;
+		import mx.events.ListEvent;
+		import mx.events.TreeEvent;
+        import mx.controls.Alert;
+
+		
+		
+		[Bindable] private var bToggle:Boolean=false;
+		[Bindable] private var lab:String;
+		[Bindable] private var editableCombo:Boolean;
+		[Bindable] private var xmlDocPath:String;
+		[Bindable] private var xmlDoc:XML;
+		[Bindable] private var xmlListDoc:XMLList;
+		[Bindable] private var labelArray:Array=new Array();
+		[Bindable] private var lastOpenNode:XML;
+		[Bindable] private var treeHeight:int=250;
+		[Bindable] private var clearIconImagePath:String="../../../../../assets/clearComboText.png";
+		 
+		
+
+		
+		public function set comboDropDownHeight(value:int):void
+		{
+			treeHeight=value;
+		}
+		
+		public function set xmlObject(value:XML):void
+		{
+			xmlDoc=value;
+			createLabelValueArray();
+			itemTree.dataProvider = xmlDoc;
+		}
+		
+		public function set xmlList(value:XMLList):void{
+			xmlListDoc = value;
+			Alert.show("Value :: "+value);
+			createLabelValueArrayForXmlList();
+			itemTree.dataProvider = xmlListDoc;
+		}
+		
+		public function set xmlFilePath(value:String):void
+		{
+			xmlDocPath=value;
+		}
+		
+		public function set treeLabelField(value:String):void
+		{
+			lab=value;
+		}
+		
+		public function set ComboTreeTrashIcon(value:String):void
+		{
+			this.clearIconImagePath=value;
+		}
+		
+		public function set editable(value:Boolean):void
+		{
+			editableCombo=value;
+		}
+		
+		public function GetComboText():String
+		{
+			return this.itemComboBox.text;
+		}
+		
+		private function init():void
+		{
+             //httpService.url = xmlDocPath;
+             //httpService.send();
+			this.itemTree.labelField = "@"+lab;
+			this.itemComboBox.editable = editableCombo;
+			this.itemTree.height=this.treeHeight;
+			this.itemTree.width=this.itemComboBox.width;
+			//this.itemComboBox.addEventListener(MouseEvent.CLICK,combo_click);
+			
+			this.itemComboBox.addEventListener(DropdownEvent.CLOSE,comboClose_handler);
+			this.itemComboBox.addEventListener(DropdownEvent.OPEN,comboOpen_handler);
+			//this.itemTree.addEventListener(FocusEvent.FOCUS_IN,treeFocus_handler);
+			this.imgTrash.source=this.clearIconImagePath;
+		}
+		
+		/*
+		private function treeFocus_handler(evt:FocusEvent):void
+		{
+		  this.itemComboBox.addEventListener(DropdownEvent.CLOSE,comboClose_handler);	
+		}*/
+		
+		private function comboOpen_handler(evt:DropdownEvent):void	
+		{
+			this.itemTree.visible=true;
+		}
+
+		
+		private function comboClose_handler(evt:DropdownEvent):void	
+		{
+			this.itemTree.visible=false;
+		}
+
+		 private function combo_keypress(evt:KeyboardEvent):void
+		 {
+		 	//this.itemComboBox.addEventListener(DropdownEvent.CLOSE,comboClose_handler);
+		 	this.itemComboBox.open();
+		 	this.selectNode();
+		 	
+		 	if((evt.keyCode==Keyboard.ENTER))
+		 	{
+			 	var node:XML =	XML(itemTree.selectedItem);
+			 	this.itemComboBox.text=node.attribute(lab);
+			 	this.itemTree.visible = false;
+			 	this.itemComboBox.close();
+		 	}	
+		 }
+		 
+		 private function selectNode():void
+		 {
+		 	var searchString:String="";
+		 	searchString=this.itemComboBox.text;
+		 	searchString=findSimilar(this.itemComboBox.text);
+		 	findNodeById(searchString);
+		 }
+		 
+		  private function expandParents(xmlNode:XML):void
+		  {
+		   this.collapseParents(this.lastOpenNode);	
+		   if(xmlNode!=null)	
+		    while (xmlNode.parent() != null) 
+		    {  
+		      xmlNode = xmlNode.parent();
+		      itemTree.expandItem(xmlNode,true, false);
+		    }
+		  }
+		
+		  private function collapseParents(xmlNode:XML):void
+		  {
+		   if(xmlNode!=null)	
+		    while (xmlNode.parent() != null) 
+		    {  
+		      xmlNode = xmlNode.parent();
+		      itemTree.expandItem(xmlNode,false, false);
+		    }
+		  }
+		
+		 private function findNodeById(sId:String):void
+		 {
+		  var xmllistDescendants:XMLList  = xmlDoc.descendants().(attribute(lab) == sId);
+		  expandParents(xmllistDescendants[0]);
+		  itemTree.selectedItem = xmllistDescendants[0];
+		  lastOpenNode=xmllistDescendants[0];
+		  if(xmllistDescendants!=null)
+		   	this.itemTree.visible=true;
+		  }//findNodeById           
+		 
+		 
+		 private function clearCombo():void
+		 {
+		 	this.itemComboBox.text="";
+		 	this.itemTree.dataProvider=this.xmlDoc;
+		 }
+		 
+		 private function treeNode_click(evt:MouseEvent):void
+		 {
+		 	//this.itemComboBox.addEventListener(DropdownEvent.CLOSE,comboClose_handler);
+		 	var node:XML =	XML(itemTree.selectedItem);
+		 	this.itemComboBox.text=node.attribute(lab);
+		 	//this.itemTree.visible=false;
+		 	
+		 }
+		 
+		 private function treeNode_select(evt:ListEvent):void
+		 {
+		 	var node:XML =	XML(itemTree.selectedItem);
+		 	this.itemComboBox.text=node.attribute(lab);
+		 }
+            
+		 private function createLabelValueArray():void
+		 {
+		 	var ar:Array;
+		 	var st:String=this.xmlDoc.toString();
+		 	ar=st.split("=");
+		 	var normalizedString:String="";
+		 	for(var i:int=0;i<ar.length;i++)
+		 	{
+		 		normalizedString="";
+		 		var bFirst:Boolean=false;
+		 		var bSecond:Boolean=false;
+		 		var tempString:String=ar[i].toString();
+		 		var matchString:String=tempString.charAt(0);
+		 		//Alert.show("Match string = "+ matchString);
+		 		var str:String;
+		 		
+		 		for(var j:int=0;j<tempString.length;j++)
+		 		{
+		 			str=tempString.substr(j,1);
+		 			if(tempString.substr(j,1)!= matchString && bFirst)
+		 			  normalizedString+=tempString.substr(j,1);
+		 			else if(!bFirst)
+		 			   bFirst=true;
+		 			else if(bFirst)
+		 			   bSecond=true;
+		 		
+		 		   if(bFirst && bSecond)
+		 		     j=tempString.length;
+		 		}
+		 		bFirst=false;
+		 		bSecond=false;
+		 		this.labelArray.push(normalizedString);
+		 	}
+		 }
+		 
+		 private function createLabelValueArrayForXmlList():void{
+		 	var ar:Array;
+		 	var st:String=this.xmlListDoc.toString();
+		 	ar=st.split("=");
+		 	var normalizedString:String="";
+		 	for(var i:int=0;i<ar.length;i++)
+		 	{
+		 		normalizedString="";
+		 		var bFirst:Boolean=false;
+		 		var bSecond:Boolean=false;
+		 		var tempString:String=ar[i].toString();
+		 		var matchString:String=tempString.charAt(0);
+		 		//Alert.show("Match string = "+ matchString);
+		 		var str:String;
+		 		
+		 		for(var j:int=0;j<tempString.length;j++)
+		 		{
+		 			str=tempString.substr(j,1);
+		 			if(tempString.substr(j,1)!= matchString && bFirst)
+		 			  normalizedString+=tempString.substr(j,1);
+		 			else if(!bFirst)
+		 			   bFirst=true;
+		 			else if(bFirst)
+		 			   bSecond=true;
+		 		
+		 		   if(bFirst && bSecond)
+		 		     j=tempString.length;
+		 		}
+		 		bFirst=false;
+		 		bSecond=false;
+		 		this.labelArray.push(normalizedString);
+		 	}
+		 }
+		 
+		 private function findString():void
+		 {
+		 	this.findSimilar(this.itemComboBox.text);
+		 }
+		 	private function findSimilar(str:String):String
+		 	{
+		 		var fString:String="";
+		 		for(var a:int=0;a<labelArray.length;a++)
+		 		{
+					if(this.findInString(labelArray[a].toString(),str))
+					  {
+					  	fString=labelArray[a].toString();
+					  	//Alert.show(fString);
+					  	a=labelArray.length;
+					  }		 				
+		 		}
+		 		return fString;
+		 	}
+		 	
+		 	private function findInString(strSource:String,strTarget:String):Boolean
+		 	{
+		 		var bFound:Boolean=false;
+		 		if(strTarget.length <= strSource.length)
+		 		{
+			 		for(var outer:int=0;outer<strTarget.length;outer++)
+			 		{
+			 			if(strTarget.substr(outer,1).toUpperCase()== strSource.substr(outer,1).toUpperCase())
+			 			  bFound=true;
+			 			else
+			 			{
+			 			  outer=strTarget.length;	
+			 			  bFound=false;
+			 			}  	
+			 		}
+		 		}
+		 		return bFound;
+		 	}
+		 
+		 
+	]]>
+</mx:Script>
+
+	   <mx:VBox id="comboTree" verticalGap="0">
+			<mx:HBox >
+				<mx:ComboBox tabEnabled="true" tabIndex="1" id="itemComboBox" width="100%"  dropdownWidth="0" keyUp="combo_keypress(event)"   editable="true"  />
+			    <mx:Image id="imgTrash" source="iconUninstall.png" toolTip="Clear DropDown Text" click="clearCombo()" width="100%" height="22"/>
+			</mx:HBox>	    
+		<mx:Tree tabEnabled="true" tabIndex="2" id="itemTree" visible="false" height="250" showRoot="false" dataProvider="{xmlDoc}" change="treeNode_select(event)" click="treeNode_click(event)"  rowCount="8"  showEffect="WipeDown" hideEffect="WipeUp" includeInLayout="false"  />
+	   </mx:VBox>
+	
+</mx:Canvas>

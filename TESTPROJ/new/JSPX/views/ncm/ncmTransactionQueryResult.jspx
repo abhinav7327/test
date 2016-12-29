@@ -1,0 +1,96 @@
+<!--$Id$-->
+<!--$Author: rimap $-->
+<!--$Date: 2016-12-27 09:37:43 $-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div>
+    
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" /> 
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;	
+            var grid_result_data = [];
+            var grid_result_columns = [
+                                {name:"<spring:message code="ncm.transactionquery.label.tranrefno" htmlEscape="false"/>", field:"transactionRefNoDisplay",id:"transactionRefNoDisplay", width:155,sortable:false,formatter:Slick.Formatters.NcmTradeDetailViewFormatter},
+                {name:"<spring:message code="ncm.transactionquery.label.description" htmlEscape="false"/>", field:"description",id:"description", width:605,sortable:false},
+				{name:"<spring:message code="ncm.transactionquery.label.entrydate" htmlEscape="false"/>", field:"entryDateDisp",id:"entryDateDisp", width:170,sortable:false}, 
+                {name:"<spring:message code="ref.label.app_upd_date" htmlEscape="false"/>", field:"lastEntryDateDisp",id:"lastEntryDateDisp", width:170,sortable:false},
+			    {name:"<spring:message code="ref.label.creation_date" htmlEscape="false"/>", field:"entryDateSystemDisp",id:"entryDateSystemDisp", width:170,sortable:false}, 
+                {name:"<spring:message code="ref.label.update_date" htmlEscape="false"/>", field:"lastEntryDateSystemDisp",id:"lastEntryDateSystemDisp", width:170,sortable:false},
+                {name:"<spring:message code="ncm.transactionquery.label.movement" htmlEscape="false"/>", field:"amountDisp",id:"amountDisp", cssClass:'xenos-grid-number',width:130,sortable:false,formatter:Slick.Formatters.NegetiveBalanceFormatter},
+                {name:"<spring:message code="ncm.transactionquery.label.balance" htmlEscape="false"/>", field:"balanceDisp",id:"balanceDisp",cssClass:'xenos-grid-number',width:130,sortable:false,formatter:Slick.Formatters.NegetiveBalanceFormatter}, 
+                {name:"<spring:message code="ncm.transactionquery.label.status" htmlEscape="false"/>", field:"status",  id:"status", width:130,sortable:false,formatter:Slick.Formatters.CancelRecordFormatter}              								
+            ];
+			var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				buttons:{
+					print:true,	
+					xls:true,	
+					pdf:true,	
+					xlsPref:true,
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					url: 'secure/ncm/transaction/query/count.json'
+					},
+				urls:{
+					nextPage : '/secure/ncm/transaction/query/result.json?fetch=next',
+					prevPage : '/secure/ncm/transaction/query/result.json?fetch=previous',
+					pdfReport: '/secure/ncm/transaction/query/report.json?outputType=pdf',
+					xlsReport: '/secure/ncm/transaction/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/ncm/transaction/query/reportPref.json?outputType=xls'
+				},
+				afterRenderComplete : function(grid, $context){
+					
+					var formItemHeight = $context.find('formItemArea').height();
+					
+					if(formItemHeight &lt; 150){
+					$context.find('.xenos-grid').css('min-height',150);
+					grid.resizeCanvas();
+					}
+					},
+				moduleParam:"transaction",
+				forceFitColumns:false
+			};
+            var row_id = 0;			
+            var rec = {};
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				rec.transactionRefNoDisplay = "<c:out value="${dl.transactionRefNoDisplay}" />";
+				rec.description = "<c:out value="${dl.description}" />";
+				rec.entryDateDisp= "<c:out value="${dl.entryDateDisp}" />";
+                rec.lastEntryDateDisp = "<c:out value="${dl.lastEntryDateDisp}" />";
+				rec.entryDateSystemDisp= "<c:out value="${dl.entryDateSystemDisp}" />"
+                rec.lastEntryDateSystemDisp = "<c:out value="${dl.lastEntryDateSystemDisp}" />";
+                rec.amountDisp = "<c:out value="${dl.amountDisp}" />";
+                rec.balanceDisp = "<c:out value="${dl.balanceDisp}" />";
+				rec.status= "<c:out value="${dl.status}" />";
+				rec.module= "<c:out value="${dl.module}" />";
+				rec.triggeringTxnPk= "<c:out value="${dl.triggeringTxnPk}" />";
+               
+                grid_result_data.push(rec);
+            </c:forEach>
+        </jsp:body>
+    </jsp:element>
+	
+</div>
+</jsp:root>

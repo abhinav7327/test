@@ -1,0 +1,148 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+    xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+    xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util"
+    xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"	
+    xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+			
+<div class="formItemArea">
+    
+    <jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+    <jsp:output omit-xml-declaration="yes" /> 
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+       
+        <jsp:body></jsp:body>
+    </jsp:element>
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            // Hide tab area in response
+            (function(){
+                $('.tabArea', '#content').hide();
+                $('.prevNextarea', '#content').hide();
+                $('.queryColumnsReset', '#content').hide();
+            })();
+			
+            var grid_result_data = [];
+			var compTypeList = [];		
+                      
+				var grid_result_columns = [
+				{name:"<spring:message code="stl.authorizationqry.label.authorizationstatus" htmlEscape="false"/>", field:"authReject", id:"authReject", width: 130, sortable:true},
+                {name:"<spring:message code="stl.label.referenceno" htmlEscape="false"/>", field:"referenceNo",id:"referenceNo", width:199,sortable:true,formatter:Slick.Formatters.SettlementDetailViewInstructionCashTransferFormater},
+                {name:"<spring:message code="stl.stlqry.label.wiretype" htmlEscape="false"/>",      field:"wireType",               id:"wireType",                  width:91,      sortable:true},
+				{name:"<spring:message code="ref.fund.label.fundcode" htmlEscape="false"/>", field:"fundCode",id:"fundCode", width:91,sortable:true,formatter:Slick.Formatters.FundDetailViewFormatter},
+				{name:"<spring:message code="ref.fund.label.fundName" htmlEscape="false"/>", field:"fundName",id:"fundName", width:91,sortable:true},
+                 {name:"<spring:message code="stl.label.counterpartyaccountno" htmlEscape="false"/>",     field:"cpAccountNo",       id:"cpAccountNo",          width:100,       sortable:true,formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'cpAccountPk'}},
+				{name:"<spring:message code="stl.label.counterpartyaccountname" htmlEscape="false"/>",     field:"cpAccountName",       id:"cpAccountName",          width:91,       sortable:true},
+                {name:"<spring:message code="stl.label.currency" htmlEscape="false"/>",      field:"currency",               id:"currency",                  width:55,       sortable:true},
+                {name:"<spring:message code="stl.label.wireamount" htmlEscape="false"/>",    field:"wireAmountStr",              id:"wireAmountStr",                 width:119,       sortable:true,   cssClass:'xenos-grid-number'},
+                {name:"<spring:message code="stl.label.valuedate" htmlEscape="false"/>",     field:"displayValueDate",           id:"displayValueDate",              width:91,      sortable:true},
+				{name:"<spring:message code="stl.label.gleledgercode" htmlEscape="false"/>",      field:"gleLedgerCode",               id:"gleLedgerCode",                  width:91,      sortable:true},
+				{name:"<spring:message code="stl.label.tradedate" htmlEscape="false"/>",     field:"displayTradeDate",           id:"displayTradeDate",              width:91,      sortable:true},
+				{name:"<spring:message code="stl.amendment.label.inxtransmission" htmlEscape="false"/>",      field:"inxTransmission",               id:"inxTransmission",                  width:91,      sortable:true},
+				{name:"<spring:message code="stl.wireinstruction.label.correspondingSecurityId" htmlEscape="false"/>",      field:"correspondingSecurityId",               id:"correspondingSecurityId",  width:109,sortable:true,formatter:Slick.Formatters.InstrumentDetailViewFormater},
+                {name:"<spring:message code="stl.stlqry.label.cpbank" htmlEscape="false"/>",      field:"cpBank",               id:"cpBank",                  width:91,      sortable:true},
+				{name:"<spring:message code="stl.label.cpbankname" htmlEscape="false"/>",      field:"cpBankName",               id:"cpBankName",                  width:91,      sortable:true},
+				{name:"<spring:message code="stl.amendment.label.cpsettlea/c" htmlEscape="false"/>",      field:"cpSettlementAcc",               id:"cpSettlementAcc",                  width:91,      sortable:true},
+				{name:"<spring:message code="stl.stlqry.label.beneficiaryname" htmlEscape="false"/>",      field:"beneficiaryName",               id:"beneficiaryName",                  width:91,      sortable:true},
+				{name:"<spring:message code="stl.label.ownbank" htmlEscape="false"/>", field:"ownBank",id:"ownBank", width:100,sortable:true,formatter:Slick.Formatters.FinInstDetailViewFormatter,finInstDetailOptions:{pkFieldName:'ownBankPk'}},
+				{name:"<spring:message code="stl.label.ownbankname" htmlEscape="false"/>",      field:"ownBankName",               id:"ownBankName",                  width:91,      sortable:true},
+				{name:"<spring:message code="stl.label.ownsettleac" htmlEscape="false"/>",     field:"ownSettleAcc",       id:"ownSettleAcc",          width:100,       sortable:true,formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'ownSettleAccPk'}},
+				{name:"<spring:message code="stl.label.tobank" htmlEscape="false"/>", field:"toBank",id:"toBank", width:100,sortable:true,formatter:Slick.Formatters.FinInstDetailViewFormatter,finInstDetailOptions:{pkFieldName:'toBankPk'}},
+				{name:"<spring:message code="stl.label.tobankname" htmlEscape="false"/>",      field:"toBankName",               id:"toBankName",                  width:91,      sortable:true},
+				{name:"<spring:message code="stl.label.tosettleaccount" htmlEscape="false"/>",     field:"toSettleAcc",       id:"toSettleAcc",          width:100,       sortable:true,formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'toSettleAccPk'}},
+				{name:"<spring:message code="stl.label.frombank" htmlEscape="false"/>", field:"fromBank",id:"fromBank", width:100,sortable:true,formatter:Slick.Formatters.FinInstDetailViewFormatter,finInstDetailOptions:{pkFieldName:'fromBankPk'}},
+				{name:"<spring:message code="stl.label.frombankname" htmlEscape="false"/>",      field:"fromBankName",               id:"fromBankName",                  width:91,      sortable:true},
+				{name:"<spring:message code="stl.label.fromsettleaccount" htmlEscape="false"/>",     field:"fromSettleAcc",       id:"fromSettleAcc",          width:100,       sortable:true,formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'fromSettleAccPk'}},
+				{name:"<spring:message code="stl.label.status" htmlEscape="false"/>",        field:"status",                 id:"status",                    width:75,       sortable:true,formatter:Slick.Formatters.CancelRecordFormatter}                
+                ];
+			  
+            var grid_result_settings = {
+                enableToolbar:true,
+				forceFitColumns:false,
+                consolidateActionFlag:false,
+				pagingInfo:{
+				 isNext : isNext,
+                 url: 'secure/stl/settlement/cashTransfer/authQuery/count.json'				
+					
+				},
+                buttons:{ 
+                     				
+                },
+				urls:{                  
+					
+                   
+                },          
+               	
+               
+            };
+			
+            var row_id = 0;         
+            var rec = {};
+		<xenos:out escapeXml="false">
+			
+           
+			<c:forEach items="${commandForm.selectedAuthRejectList}" var ="dl" varStatus="loop">
+                rec = {};			
+				row_id+=1;
+				rec.commandFormId="${requestScope['commandFormId']}";
+				rec.id                      =   "xenos_" + row_id;                
+				rec.authReject = "<c:out value="${dl.authReject}" />";	
+				rec.referenceNo   =   "<c:out value="${dl.referenceNo}" />";
+				rec.fundPk = "<c:out value="${dl.fundPk}"/>";
+				rec.ownBankPk = "<c:out value="${dl.ownBankPk}"/>";
+				rec.ownSettleAccPk = "<c:out value="${dl.ownSettleAccPk}"/>";
+				rec.toSettleAccPk = "<c:out value="${dl.toSettleAccPk}"/>";
+				rec.fromSettleAccPk = "<c:out value="${dl.fromSettleAccPk}"/>";
+				rec.toBankPk = "<c:out value="${dl.toBankPk}"/>";
+				rec.fromBankPk = "<c:out value="${dl.fromBankPk}"/>";				
+				rec.cashEntryPk             =    "<c:out value="${dl.cashEntryPk}" />";
+                rec.wireType                =   "<c:out value="${dl.wireType}" />";
+				rec.fundCode                =   "<c:out value="${dl.fundCode}" />";
+				rec.fundName               =   "<c:out value="${dl.fundName}" />";
+                rec.cpAccountNo        = "<c:out value="${dl.cpAccountNo}" />";				
+				rec.cpAccountName        = "<c:out value="${dl.cpAccountName}" />";
+                rec.currency                = "<c:out value="${dl.currency}" />";				
+                rec.wireAmountStr               ="<c:out value="${dl.wireAmountStr}" />";
+                rec.displayValueDate            = "<c:out value="${dl.displayValueDate}" />";
+				rec.gleLedgerCode            = "<c:out value="${dl.gleLedgerCode}" />";
+				rec.displayTradeDate            = "<c:out value="${dl.displayTradeDate}" />";
+				rec.inxTransmission            = "<c:out value="${dl.inxTransmission}" />";
+				rec.correspondingSecurityId     = "<c:out value="${dl.correspondingSecurityId}" />";
+				rec.cpBank                      = "<c:out value="${dl.cpBank}" />";
+				rec.cpBankName            = "<c:out value="${dl.cpBankName}" />";
+				rec.cpSettlementAcc            = "<c:out value="${dl.cpSettlementAcc}" />";
+				rec.beneficiaryName            = "<c:out value="${dl.beneficiaryName}" />";
+				rec.ownBank            = "<c:out value="${dl.ownBank}" />";
+				rec.ownBankName            = "<c:out value="${dl.ownBankName}" />";
+				rec.ownSettleAcc            = "<c:out value="${dl.ownSettleAcc}" />";
+				rec.toBank            = "<c:out value="${dl.toBank}" />";
+				rec.toBankName            = "<c:out value="${dl.toBankName}" />";
+				rec.toSettleAcc            = "<c:out value="${dl.toSettleAcc}" />";
+				rec.fromBank            = "<c:out value="${dl.fromBank}" />";
+				rec.fromBankName            = "<c:out value="${dl.fromBankName}" />";
+				rec.fromSettleAcc           = "<c:out value="${dl.fromSettleAcc}" />";
+                rec.status                  =   "<c:out value="${dl.status}" />";   
+                rec.cpAccountPk          = "<c:out value="${dl.cpAccountPk}" />";	
+                rec.instrumentPk             =   "<c:out value="${dl.correspondingInstrumentPk}"/>";					
+                grid_result_data.push(rec);
+            </c:forEach>
+		</xenos:out>
+        </jsp:body>
+    </jsp:element>
+    
+        
+	   
+</div>
+</jsp:root>

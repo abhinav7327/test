@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Item Renderer for displaying the RecXenosMovDtlQueryRenderer.  -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%">
+    <mx:Script>
+        <![CDATA[
+        	import mx.events.CloseEvent;
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.Globals;
+            
+            import flash.events.MouseEvent;        
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            
+    
+            [Embed(source="../../../../../assets/popup_icon.png")]
+    		[Bindable]
+    		private var icoSummary:Class;
+    		
+    		public var sPopup : SummaryPopup;
+    		
+    		/**
+        	 * Mouse Click event handler to open a popup with initialization and passing values.
+        	 * 
+        	 */ 
+            public function handleMouseClick(event:MouseEvent):void {
+        			
+        		//var sPopup : SummaryPopup;	
+        		sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+        		
+        		sPopup.addEventListener("OkSystemConfirm",handleOkSystemConfirm);
+        		sPopup.addEventListener(CloseEvent.CLOSE,handleRefreshParentDocument);
+        		
+        		sPopup.title = this.parentApplication.xResourceManager.getKeyValue('rec.sec.bal.label.mov.detail');  //"Cash Balance Detail Query Result Summary";
+                
+                sPopup.width = parentApplication.width - 50;
+        		sPopup.height = parentApplication.height - 100;    		
+        		
+        		PopUpManager.centerPopUp(sPopup);
+        
+	                var rowNum : String = this.parentDocument.resultSummaryBal.selectedItem.rowNo;
+                
+		        var fundCodeStr : String = data.fundCode;
+                
+        		sPopup.moduleUrl = "assets/appl/rec/RecXenosMovDtlQueryResult.swf" + Globals.QS_SIGN + "rowNum" + Globals.EQUALS_SIGN + rowNum + Globals.AND_SIGN  + "fundCode" + Globals.EQUALS_SIGN + fundCodeStr;
+        	}
+        	/**
+        	 * Event Handler for the custom event "OkSystemConfirm"
+        	 */
+        	public function handleOkSystemConfirm(event:Event):void {
+                this.parentDocument.currentState = "";
+                this.parentDocument.initSecReferResultsQuery.send();
+            }
+            
+            /**
+        	 * Event Handler for the custom event "handleRefreshParentDocument"
+        	 */
+        	public function handleRefreshParentDocument(event:Event):void {
+        		var rndNo:Number = Math.random();
+	        	this.parentDocument.viewBalanceLabelDetails.url="rec/recXenosSecBalDispatch.action?rnd=" + rndNo;
+	        	
+		        var requestObj :Object = new Object;
+		        requestObj.method="submitQuery";
+                requestObj.fromPage = "queryResult";
+                requestObj.SCREEN_KEY = 10020;
+		        this.parentDocument.pdfXlsFlag = true;
+		        this.parentDocument.viewBalanceLabelDetails.request=requestObj;
+		        //balLabel=true;
+		        this.parentDocument.viewBalanceLabelDetails.send();
+		        //XenosAlert.info("viewBalanceLabel");
+		        this.parentDocument.qh1.resetPageNo();
+            }
+        ]]>
+    </mx:Script>
+    <mx:Image id="dView" source="{icoSummary}" width="100%" verticalAlign="middle" horizontalAlign="center" buttonMode="true" useHandCursor="true" click="handleMouseClick(event)"/>
+</mx:VBox>

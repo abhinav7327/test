@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+		   xmlns:cntrls="com.nri.rui.core.controls.*"
+		   xmlns:containers="com.nri.rui.core.containers.*" 
+		   xmlns:flexlib="http://code.google.com/p/flexlib/"
+		   xmlns:frmtrs="com.nri.rui.core.formatters.*"
+		   xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+		   xmlns:utils="com.nri.rui.core.utils.*"
+		   layout="vertical" percentWidth="100" 
+		   percentHeight="100" 
+		   horizontalScrollPolicy="off" 
+		   verticalScrollPolicy="off" 
+		   creationComplete="initPage()">
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			import com.nri.rui.core.Globals;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.rpc.events.ResultEvent;
+			import mx.containers.FormItem;
+			import mx.containers.Form;
+			import mx.controls.Alert;
+			import mx.collections.ArrayCollection;
+			import com.nri.rui.core.utils.XenosStringUtils;		
+			import com.nri.rui.core.controls.XenosAlert;
+			import flash.events.*;
+			
+			public var documentTypesFilters:FileFilter = new FileFilter("Documents (*.xls)",("*.xls"));
+			public var documentTypesFilterXlsx:FileFilter = new FileFilter("Documents (*.xlsx)",("*.xlsx"));
+			[Bindable] public var filter:Array = new Array(documentTypesFilters, documentTypesFilterXlsx);
+			[Bindable] public var reqObj:Object = new Object();
+         	
+			private function initPage():void{
+				fc.btnAdd.addEventListener(MouseEvent.CLICK, buttonClickHandler, false, 500);
+				
+				fc.btnUpload.addEventListener(MouseEvent.CLICK, uploadButtonClickHandler, false, 100);
+			}
+			
+			public function buttonClickHandler(event:MouseEvent):void {
+				
+				reqObj = new Object();
+				
+			}
+			
+			public function uploadButtonClickHandler(event:MouseEvent):void {
+				
+				 if(fc.btnUpload.enabled){
+					reqObj = new Object();
+					
+					reqObj.SCREEN_KEY = "11149";
+					
+				}
+				else{
+					event.preventDefault();
+					event.stopImmediatePropagation();
+					return;
+				} 
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Script source="actionscripts/Sbr_StockBorrowEntryModule.as"/>
+
+	<cntrls:XenosHTTPService id="sbrFileLoad"
+		                     url="slr/excelUploadDispatch.action?method=doSubmit"
+		                     fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+		                     result="submitResult(event)" 
+		                     showBusyCursor="true" 
+		                     resultFormat="xml">
+	</cntrls:XenosHTTPService>
+	
+	<cntrls:XenosHTTPService id="fileLoadConfirm" 
+		                     url="slr/excelUploadDispatch.action?method=doConfirm" 
+		                     fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+		                     result="submitConfirmResult(event)" 
+		                     showBusyCursor="true" 
+		                     resultFormat="xml">
+	</cntrls:XenosHTTPService>
+	
+	<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%">
+		<mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%"/>
+		<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		<mx:VBox id="mt" width="100%" height="100%">
+		<mx:Label id="initLabel" text="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.stockborrow.excelupload')}" fontWeight="bold"/>
+		
+			
+			<cntrls:FileUploadControl id="fc" 
+				                      uploadUrl="slr/excelUploadDispatch.action?method=init"
+				                      uploadToFiled="fileName" 
+				                      httpProcess="{sbrFileLoad}" 
+				                      maxNumOfFiles="1" 
+				                      _filter = "{filter}" 				                      
+				                      uploadComplete="Alert.show(this.parentApplication.xResourceManager.getKeyValue('borrow.excel.upload.success'), 'Upload successful')" 
+				                      uploadIOError="Alert.show(this.parentApplication.xResourceManager.getKeyValue('borrow.excel.upload.failure.io'), 'Error')" 
+				                      uploadSecurityError="Alert.show(this.parentApplication.xResourceManager.getKeyValue('borrow.excel.upload.failure.security'), 'Error')"/>
+				                      
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+				<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="this.unselectFile()"/>
+			</mx:HBox>
+		</mx:VBox>
+		
+		<mx:VBox width="100%" height="100%" id="cnf" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" visible="false" includeInLayout="false">
+			<cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" width="100%"/>
+			<mx:HBox id="submitCnf" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle">
+				<mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+				<mx:Label text="{noOfTxnStr}" fontWeight="bold" selectable="true"/>	
+		    </mx:HBox>
+		    <cntrls:SoftWarningControl id="softWarn" width="100%" color="#0000FF" backgroundAlpha="0" borderStyle="none" fontWeight="bold"/>
+		    <utils:FXCPager id="fxcPager" pageIndex="{currentPage}" pageSize="{pageSize}" dataProvider="{summaryResult}"/>
+		    <mx:DataGrid width="100%" 
+		    	         height="100%" 
+		    	         id="confirmResultSummary" 
+		    	         sortableColumns="false" 
+		    	         dataProvider="{fxcPager.pageData}" 
+		    	         variableRowHeight="true" 
+		    	         horizontalScrollPolicy="auto" 
+		    	         creationComplete="bindAll()">
+		    	<mx:columns>
+		    		<mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer"/>
+		    		<mx:DataGridColumn  id="refnoforentry" visible="false" headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.referenceno')}" dataField="referenceNo"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.fundcode')}" dataField="fundCode"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.fundname')}" dataField="fundName"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.fundaccountno')}" dataField="accountNoDisp"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.fundaccountname')}" dataField="fundName"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.tradetype')}" dataField="tradeTypeDisp"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.tradedate')}" dataField="tradeDateDisp"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.valuedate')}" dataField="valueDateDisp"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.orderno')}" dataField="orderNo"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.brokeraccount')}" dataField="brokerAccountNo"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.brokeraccountname')}" dataField="brokerAccountName"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.callable')}" dataField="callableFlag"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.securitycode')}" dataField="secCodeDisp"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.securityname')}" dataField="secCodeNameDisp"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.quantity')}" dataField="quantityDisp" textAlign="right"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.rate')}" dataField="rateDisp" textAlign="right"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.callabledate')}" dataField="callableDateStr" />
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.putthroughflag')}" dataField="putThroughFlag" />
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.lendingdesk')}" dataField="lendingDesk" />
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.externalrefno')}" dataField="externalRefNo" />
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.corporateactionflag')}" dataField="caFlag" />
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.modifiedcontractflag')}" dataField="modifiedContractFlag" />
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.markasmatchflag')}" dataField="markAsMatchFlag" />
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.originalrefno.for.markasmatch')}" dataField="originalRefNoForMarkMatch" />
+		    		
+		    	</mx:columns>
+		    </mx:DataGrid>
+		    
+		    <mx:HBox width="60%" horizontalAlign="right">
+		    	<cntrls:FXCPagerBar id="fxc_pageNav2" pager="{fxcPager}" totalPages="{Math.ceil(summaryResult.length/pageSize)}" maxVisiblePages="{navSize}" buttonMode="true"/>
+		    	<mx:NumericStepper value="{this.pageSize}" change="this.pageSize = event.target.value" maximum="50000"/>
+		    </mx:HBox>
+		    <mx:HBox id="submitCnfButton" width="100%" styleName="ButtonBackPanel">
+		    	<mx:Button id="confirmSubmitFileButton" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="this.confirmSubmitFile()"/>
+		    	<mx:Button id="cancelSubmitFileButton" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.cancel')}" styleName="BtnStyle"  click="this.unselectFile()"/>
+		    </mx:HBox>
+		    <mx:HBox id="sysCnfButton" width="100%" styleName="ButtonBackPanel">
+		    	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" click="this.goToInitialPage()"/>
+		    </mx:HBox>
+		</mx:VBox>
+	</mx:VBox>
+	</mx:Canvas>
+</mx:Module>

@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for EmployeeQuery Implementation -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml"
+		   xmlns:containers="com.nri.rui.core.containers.*"
+		   xmlns:flexlib="http://code.google.com/p/flexlib/"
+		   xmlns:cntrls="com.nri.rui.core.controls.*"
+		   xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"
+		   layout="vertical"
+		   percentWidth="100"
+		   percentHeight="100"
+		   horizontalScrollPolicy="off"
+		   verticalScrollPolicy="off">
+
+<mx:Metadata>
+     [ResourceBundle("namResources")]
+</mx:Metadata>
+ <mx:Metadata>
+     [ResourceBundle("refResources")]
+</mx:Metadata>
+ <mx:Metadata>
+     [ResourceBundle("coreResources")]
+</mx:Metadata>
+
+<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.Globals;
+			import mx.events.DataGridEvent;
+			import com.nri.rui.core.RendererFectory;
+			import com.nri.rui.ref.renderers.EmployeeAmendQueryRenderer;
+			import com.nri.rui.core.renderers.ImgSummaryRenderer;
+			import mx.core.Application;
+
+			 /**
+			 *  datagrid header release event handler to handle datagridcolumn sorting
+			 */
+			public function dataGrid_headerRelease(evt:DataGridEvent):void {				
+				var dg:CustomDataGrid = CustomDataGrid(evt.currentTarget);
+        		sortUtil.clickedColumn = dg.columns[evt.columnIndex];		
+			}
+
+		]]>
+	</mx:Script>
+	<mx:Script source="actionscripts/MonthlyReportSceduleQuery.as"/>
+	
+	<cntrls:XenosHTTPService id="initMvrScheduleQuery" fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('nam.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))" 
+             method="POST" useProxy="false" result="initPage(event)" showBusyCursor="true"/>
+
+   <cntrls:XenosHTTPService id="mvrScheduleSubmitQuery"
+   		 url="nam/mvrScheduleQueryDispatch.action?" 
+   		 fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('nam.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         result="loadSummaryPage(event)" showBusyCursor="true" resultFormat="xml"/>
+
+ 	<mx:states>
+        <mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </mx:states>
+
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+
+	<mx:VBox width="100%" verticalGap="0" horizontalGap="0">
+	    <mx:HBox width="100%" styleName="ExCoBgPanel">
+	    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;" />    	
+	    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+	    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>    	
+	    </mx:HBox>
+	    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+	</mx:VBox>
+
+	<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		
+		<mx:VBox width="100%" height="100%">
+			<mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true"  creationComplete="initPageStart()"  >
+				
+				<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+				<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('core.query.criteria')}" width="100%" height="100%" styleName="HDivideStyle">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+					<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+					<mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+
+					<mx:Grid width="100%" borderThickness="0">
+
+							<mx:GridRow width="100%">
+								<mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.label.fundcode')}" />
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                           <xenospopup:FundPopUpHbox id="fundPopUp"/>
+		                        </mx:GridItem>
+		                		<mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.monthlyReport.label.userId')}" />
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:TextInput id="userId" />
+		                        </mx:GridItem>
+		                	</mx:GridRow>
+
+		                	<mx:GridRow width="100%">
+		                		<mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.monthlyReport.label.temporaryFinal')}" />
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0" colSpan="3">
+		                        	<mx:ComboBox id="tempOrFinal" labelField="label" prompt="Select"/>
+		                        </mx:GridItem>
+		                	</mx:GridRow>
+		                	
+		                	<mx:GridRow width="100%">
+		                		<mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.monthlyReport.label.scheduleType')}" />
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0" colSpan="3">
+		                        	<mx:ComboBox id="scheduleType" labelField="label" prompt="Select"/>
+		                        </mx:GridItem>
+		                	</mx:GridRow>
+		                	
+		                	<mx:GridRow width="100%">
+		                		<mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.monthlyReport.label.referenceNo')}" />
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0" colSpan="3">
+		                        	<mx:TextInput id="referenceNo" />
+		                        </mx:GridItem>
+		                	</mx:GridRow>
+		                	
+		                	
+					</mx:Grid>
+				
+				    <!-- Sort Order -->
+				    <flexlib:WindowShade id="ws3" tabChildren="{ws3.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.sortorder.fields')}" opened="true" width="100%">
+		                <mx:Grid width="100%" borderThickness="0">
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="100%" borderThickness="0">
+		                            <mx:HBox width="100%">
+		                                <mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()"/>
+		                                <mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()"/>
+		                                <mx:ComboBox id="sortField3" labelField="label"/>
+		                            </mx:HBox> 
+		                        </mx:GridItem>                       
+		                    </mx:GridRow>
+		                </mx:Grid>
+		            </flexlib:WindowShade>
+					<mx:HBox width="100%" styleName="ButtonBackPanel">
+				       <cntrls:XenosButton label="Submit" id="submit" styleName="BtnStyle" click="this.submitQuery();" />
+				       <mx:Button label="Reset" styleName="BtnStyle"  click="this.resetQuery();"/>
+				    </mx:HBox>
+				</mx:VBox>
+				</mx:Canvas>
+
+				<mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >                        
+                <cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" />
+                <mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text=""/>
+                <cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()" >
+                    <cntrls:columns>
+                    	<mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+                    	<mx:DataGridColumn textAlign="left" headerText="" width="45" id="dgColumnCb" editable="true" dataField="selected" sortable="false"  itemRenderer="com.nri.rui.core.renderers.SelectItem" headerRenderer="com.nri.rui.core.renderers.SelectAllItem"/>
+                        <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.monthlyReport.label.referenceNo')}" dataField="referenceNo" showDataTips="true"  sortable="true" width="200"/>
+                        <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.fundcode')}" dataField="fundCode" showDataTips="true"  sortable="true" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer" width="190"/>
+                        <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.monthlyReport.label.fundCodePx')}" dataField="fundCodePx" showDataTips="true"  sortable="true" width="190"/>
+                        <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.monthlyReport.label.temporaryFinal')}" dataField="tempOrFinal" wordWrap="true"  draggable="false" resizable="true" sortable="false" width="190"/>
+                    	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.monthlyReport.label.scheduleType')}" dataField="scheduleType" wordWrap="true"  draggable="false" resizable="true" sortable="false" width="190"/>
+                    	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.monthlyReport.label.generationDay')}" dataField="scheduleDayStr" wordWrap="true"  draggable="false" resizable="true" sortable="false" width="180"/>
+                    	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.monthlyReport.label.reportAsOfDate')}" dataField="asOfDateStr" wordWrap="true"  draggable="false" resizable="true" sortable="false" width="190"/>
+                    	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.monthlyReport.label.reportPattern')}" dataField="reportPattern" wordWrap="true"  draggable="false" resizable="true" sortable="false" width="200"/>
+                    	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.monthlyReport.label.userId')}" dataField="userId" wordWrap="true"  draggable="false" resizable="true" sortable="false" width="70"/>
+                    </cntrls:columns>
+                 </cntrls:CustomDataGrid>
+				<mx:HBox width="100%" borderStyle="none" styleName="ButtonBackPanel">
+	            	<cntrls:XenosButton label="Submit" id="deleteSubmit" styleName="BtnStyle" click="this.showDeleteModule();" />                 
+	            </mx:HBox>
+             </mx:VBox>          
+			</mx:HDividedBox>
+		</mx:VBox>
+
+	</mx:Canvas>
+</mx:Module>

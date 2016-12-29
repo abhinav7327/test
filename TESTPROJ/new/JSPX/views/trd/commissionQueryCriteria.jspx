@@ -1,0 +1,218 @@
+<!--$Id$-->
+<!--$Author: ganapriyaa $-->
+<!--$Date: 2016-12-26 11:00:08 $-->
+<jsp:root version="2.0" xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:spring="http://www.springframework.org/tags"
+	xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:tiles="http://tiles.apache.org/tags-tiles"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+
+	<div class="formItemArea">
+		<jsp:directive.page contentType="text/html;charset=UTF-8" />
+		<jsp:output omit-xml-declaration="yes" />
+
+	    <div class="formItemBlock topitems dottedBg">
+			<!-- Report Id Dropdown -->
+			<div class="formItem">
+				<form:label class="required" path="reportId">
+					<spring:message code="trd.commqry.label.reporttitle"
+						htmlEscape="false" />
+				</form:label>
+				<span><form:select id="commQueryReportId" path="reportId" class="dropdowninput">
+						<form:option value="" />
+						<form:options items="${commandForm.reportIdList}"
+							itemLabel="label" itemValue="value" />
+					</form:select>
+				</span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+
+			
+				<!-- Trade Date From-To -->
+				<div class="formItem tradeDate" style="display: none;">
+					<form:label class="required" path="tradeDateFromStr">
+						<spring:message code="trd.tradefeed.label.tradedatefromto"
+							htmlEscape="false" />
+					</form:label>
+					<span><form:input value="" path="tradeDateFromStr"
+							class="dateinput"
+							onchange="if(!checkDate(this)){
+									xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$TRD$i18n.commissionQuery.date_from_format_check, [this.value]))}
+							else{
+									xenos.ns.views.commissionQuery.formatDate(this.value,$('#tradeDateFromStr'))
+								  }
+							"/></span> 
+							<span><form:input value=""
+							path="tradeDateToStr" class="dateinput" onchange="if(!checkDate(this))
+							{xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$TRD$i18n.commissionQuery.date_to_format_check, [this.value]))}
+							else{
+									xenos.ns.views.commissionQuery.formatDate(this.value,$('#tradeDateToStr'))
+								  }"/></span> 
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!-- Broker Account Number -->
+				<div class="formItem brokerAccount" style="display: none;">
+					<form:label path="accountNo">
+						<spring:message code="trd.tradeentryaction.label.brokeraccountno"
+							htmlEscape="false" />
+					</form:label>
+					<span><form:input value="" path="accountNo"
+							class="textBox accountNo" /></span> <span class="remove"
+						title="Remove this field" style="display: none;">
+						<spring:message
+							text="" htmlEscape="false" /></span>
+					<div class="popupBtn">
+						<input type="button" class="popupBtnIco" tgt="accountNo"
+							popType="cpAccount" actTypeContext="T|B"
+							actCPTypeContext="BROKER" actStatusContext="OPEN" value="" />
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+
+				<div class="formItem officeId" style="display: none;">
+					<!-- Office Dropdown -->
+					<form:label path="officeId">
+						<spring:message code="trd.commqry.label.imofcid"
+							htmlEscape="false" />
+					</form:label>
+					<span><form:select id="officeId" path="officePk"
+							class="dropdowninput">
+							<form:option value="-1" label="" />
+							<form:options id="officePk"
+								items="${commandForm.serviceOfficeList}" itemLabel="label"
+								itemValue="value" />
+						</form:select> </span> <span class="remove" title="Remove this field"
+						style="display: none;"><spring:message text=""
+							htmlEscape="false" /></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+		
+
+		
+				<!-- Fund Account Number -->
+				<div class="formItem fundAccountNo" style="display: none;">
+					<form:label path="inventoryAccountNo">
+						<spring:message
+							code="trd.tradeentryaction.label.inventoryaccountno"
+							htmlEscape="false" />
+					</form:label>
+					<span><form:input id="inventoryAccountNo"
+							path="inventoryAccountNo" class="textBox inventoryAccountNo" /></span>
+					<span class="remove" title="Remove this field"
+						style="display: none;"><spring:message text=""
+							htmlEscape="false" /></span>
+					<div class="popupBtn">
+						<input type="button" class="popupBtnIco" tgt="inventoryAccountNo"
+							popType="invAccount" invActTypeContext="T|B"
+							invCPTypeContext="INTERNAL" actStatusContext="OPEN" value="" />
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			
+			
+			<div class="clear clear-block">
+				<spring:message text="" htmlEscape="false" />
+			</div>	
+		</div>
+		
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				<div class="formBrdHide"><spring:message text="" htmlEscape="false"/></div>
+				<div class="formItemBlock delFormItems deltopitems" style="display:none;" >
+				<!-- Deleted Item goes here -->
+				<input type="button" class="restoreAllBtn" value="Restore All" />
+				<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+	
+
+		<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			$(document).ready(function(){
+				onChangeOperationObjective();	
+				$('select[name="reportId"]').trigger('change');	
+			});
+			
+			function onChangeOperationObjective(){
+			$('select[name="reportId"]').change(function(){
+				if($(this).val() == "RPTBYBROKERAC"){
+				
+					$('.tradeDate').show();
+					$('.brokerAccount').show();
+					$('.officeId').show();
+					$('.fundAccountNo').hide();
+				}else if($(this).val() == "RPTBYFUNDBROKERAC"){
+					$('.tradeDate').show();
+					$('.brokerAccount').show();
+					$('.officeId').show();
+					$('.fundAccountNo').show();
+				}else {
+						$('.tradeDate').hide();
+						$('.brokerAccount').hide();
+						$('.officeId').hide();
+						$('.fundAccountNo').hide();
+						$('#accountNo').val('');
+						$('#inventoryAccountNo').val('');	
+						$('#officeId').val('');
+				}
+			});	
+			
+			}
+			
+			function onPersonaliseRestoreAll(){
+				if($('#commQueryReportId').val() == "RPTBYBROKERAC"){
+					$('.tradeDate').show();
+					$('.brokerAccount').show();
+					$('.officeId').show();
+					$('.fundAccountNo').hide();
+				}else if($('#commQueryReportId').val() == "RPTBYFUNDBROKERAC"){
+					$('.tradeDate').show();
+					$('.brokerAccount').show();
+					$('.officeId').show();
+					$('.fundAccountNo').show();
+				}
+			}
+		</jsp:body>
+	</jsp:element>
+
+		<spring:eval expression="T(java.lang.System).currentTimeMillis()"
+			var="myId" />
+		<input type="hidden" id="${myId}" />
+		<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+						
+			xenos.loadLocalizedScript([
+				{path: xenos.context.path + '/scripts/trd/xenos-trd-i18n', async: false}
+			]);			
+			
+			xenos.loadScript([
+				{path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},				
+				{path: xenos.context.path + '/scripts/inf/utilValidator.js', async: false},
+				{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				{path: xenos.context.path + '/scripts/trd/xenos/commissionQuery.js', async: false}
+		
+			],{
+				success: function() {
+					jQuery('#' + '${myId}').parent().xenosform({
+						beforeSubmit:xenos.ns.views.commissionQuery.validateSubmit,
+						afterRendering:onPersonaliseRestoreAll
+					});
+				}
+			});
+			
+			
+		
+		</jsp:body>
+	</jsp:element>
+		<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			var  Xenos$Restore$PostHook = function() {
+					onPersonaliseRestoreAll();
+			}
+				
+		</jsp:body>
+	</jsp:element>
+</div>
+</jsp:root>

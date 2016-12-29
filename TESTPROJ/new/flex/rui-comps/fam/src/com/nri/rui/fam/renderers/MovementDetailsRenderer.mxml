@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Item Renderer for displaying the Movement Detail for a specific journal Pk.  -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%">
+    <mx:Script>
+        <![CDATA[
+        	import com.nri.rui.fam.FamConstants;
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.Globals;
+            import com.nri.rui.core.utils.XenosStringUtils;
+            
+            import flash.events.MouseEvent;        
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            
+    
+            [Embed(source="../../../../../assets/popup_icon.png")]
+    		[Bindable]
+    		private var icoSummary:Class;
+    		
+    		/**
+    	 * Mouse Click event handler to open a popup with initialization and passing values.
+    	 * 
+    	 */ 
+        public function handleMouseClick(event:MouseEvent):void {
+    			
+    		var sPopup : SummaryPopup;	
+    		sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));    		
+            //set the width and height of the popup
+            sPopup.width = parentApplication.width - 100;
+    		sPopup.height = parentApplication.height - 100;    		
+    		
+    		PopUpManager.centerPopUp(sPopup);
+    		
+    		var movementPk : String = XenosStringUtils.EMPTY_STR;
+    	
+    		var movementType : String =XenosStringUtils.EMPTY_STR;
+			
+			var transactionType : String =XenosStringUtils.EMPTY_STR;
+			
+			var voucherType : String =XenosStringUtils.EMPTY_STR;
+			
+    		if(!XenosStringUtils.isBlank(data.movementInfoPk)){						
+    			sPopup.title = parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movementdetails.onbalanceasset');
+    			movementPk = data.movementInfoPk;
+    			movementType = FamConstants.MOVEMENT_TYPE_ONBALANCE;
+    		}else if(!XenosStringUtils.isBlank(data.cashMovementInfoPk)){
+    			sPopup.title = parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movementdetails.cash');
+    			movementPk = data.cashMovementInfoPk;
+    			movementType = FamConstants.MOVEMENT_TYPE_CASH;
+    		}else if(!XenosStringUtils.isBlank(data.drvMovementInfoPk)){
+    			sPopup.title = parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movementdetails.derivatives');
+    			movementPk = data.drvMovementInfoPk;
+    			movementType = FamConstants.MOVEMENT_TYPE_DRV;
+    		} else if (!XenosStringUtils.isBlank(data.adjustIncomePk)) {
+				sPopup.title = parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movementdetails.adjustmentincome');
+				movementPk = data.adjustIncomePk;
+				movementType = FamConstants.MOVEMENT_TYPE_AJUSTMENT_INCOME;
+			} else if (!XenosStringUtils.isBlank(data.rcvIncomeBalancePk)) {
+				sPopup.title = parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movementdetails.receivableincome');
+				movementPk = data.rcvIncomeBalancePk;
+				movementType = FamConstants.MOVEMENT_TYPE_RECEIVABLE_INCOME_BALANCE;
+			}
+    		
+    		var commandFormId : String = data.commandFormId;
+    		
+    		//Setting the Module path with some parameters which will be needed in the module for internal processing.
+    		sPopup.moduleUrl = Globals.FAM_MOVEMENT_DETAILS_SWF + Globals.QS_SIGN + FamConstants.FAM_MOVEMENT_PK + Globals.EQUALS_SIGN + movementPk + 
+								Globals.AND_SIGN + Globals.COMMAND_FORM_ID + Globals.EQUALS_SIGN + commandFormId 
+								+ Globals.AND_SIGN + FamConstants.MOVEMENT_TYPE + Globals.EQUALS_SIGN + movementType;
+								
+								
+    	}
+        ]]>
+    </mx:Script>
+    <mx:Image id="dView" source="{icoSummary}" width="100%" verticalAlign="middle" horizontalAlign="center" buttonMode="true" useHandCursor="true" click="handleMouseClick(event)"/>
+</mx:VBox>

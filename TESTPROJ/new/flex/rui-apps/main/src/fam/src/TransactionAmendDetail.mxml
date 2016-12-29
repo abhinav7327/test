@@ -1,0 +1,665 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<!-- MXML module for displaying the Transaction Detail for a specific reference Number.  -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" 
+    xmlns:cntrls="com.nri.rui.core.controls.*" 
+    xmlns:famCntrls="com.nri.rui.fam.controls.*"
+    xmlns:flexlib="http://code.google.com/p/flexlib/"  
+    width="100%" height="100%" creationComplete="initPage()">
+    <mx:Script>
+        <![CDATA[
+        	import mx.collections.XMLListCollection;
+            import mx.binding.utils.BindingUtils;
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.controls.XenosAlert;
+            import mx.managers.FocusManager;
+            import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+            import mx.rpc.events.FaultEvent;
+            import mx.controls.Alert;
+            import com.nri.rui.core.Globals;
+            import com.nri.rui.core.utils.PrintUtils;
+			import com.nri.rui.core.utils.XenosStringUtils;
+            import com.nri.rui.core.controls.XenosHTTPServiceForSpring;
+            
+            import mx.core.UIComponent;
+            import com.nri.rui.core.utils.XenosPopupUtils;
+            import com.nri.rui.fam.FamConstants;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import mx.utils.ObjectUtil;
+            
+            [Bindable]private var summaryResult:ArrayCollection = new ArrayCollection;
+            
+            //[Bindable]private var transactionPk : String = Globals.EMPTY_STRING;
+           
+            //[Bindable]private var commandFormId : String = Globals.EMPTY_STRING;
+            
+            [Bindable]
+            private var objAudit:Object = null;
+          
+            [Bindable]
+            private var objTxn:Object = null;
+        
+            [Bindable]
+            private var txnDetailsForm:Object = null;
+            
+            [Bindable]
+            private var txnInfoLc:Object = null;
+             
+            [Bindable]
+            private var txnInfoBc:Object = null;
+             
+            
+        ]]>
+    </mx:Script>
+   	<mx:Script source="actionscripts/TransactionAmendDetail.as"/>
+   	
+   <cntrls:XenosHTTPServiceForSpring id="transactionAmendService"
+             url="fam/transactionAmendQuery.spring?method=viewTransactionAmendDetail" commandFormId="{commandFormId}"
+ 		     fault="amendReset.enabled = true;cancelSubmit.enabled = true;XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)" 
+             method="POST" useProxy="false" result="transactionAmendServiceHandler(event)" showBusyCursor="true" resultFormat="xml" />
+             
+     <cntrls:XenosHTTPServiceForSpring id="transactionAmendSubmitService"
+             url="fam/transactionAmendQuery.spring?method=submitTransactionAmend" commandFormId="{commandFormId}" 
+ 		     fault="cancelSubmit.enabled = true;amendReset.enabled = true;XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)" 
+             method="POST" useProxy="false" result="transactionAmendSubmitServiceHandler(event)" showBusyCursor="true" resultFormat="xml" />
+    
+     <cntrls:XenosHTTPServiceForSpring id="transactionAmendConfirmService"
+             url="fam/transactionAmendQuery.spring?method=confirmTransactionAmend" commandFormId="{commandFormId}" 
+ 		     fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)" 
+             method="POST" useProxy="false" result="transactionAmendConfirmServiceHandler(event)" showBusyCursor="true" resultFormat="xml" /> 
+             
+	     <cntrls:XenosHTTPServiceForSpring id="transactionAmendResetRequest" 
+      	     url="fam/transactionAmendQuery.spring?method=viewTransactionAmendDetail" commandFormId="{commandFormId}"
+      	     fault="amendReset.enabled = true;cancelSubmit.enabled = true;XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)"
+      	     method="POST" useProxy="false" result="transactionAmendServiceHandler(event)" showBusyCursor="true" resultFormat="xml" />  
+      	     
+      	 <cntrls:XenosHTTPServiceForSpring id="dummyService" url="fam/transactionAmendQuery.spring?method=dummyViewTransaction"
+							 		fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)" 
+             			            method="POST" useProxy="false" showBusyCursor="true" 
+             			            result="dummyServiceResultHandler(event)" />
+     
+     <mx:VBox width="100%" height="0%">	   	 
+	    <mx:HBox width="100%" styleName="ButtonBackPanel" >
+	    <mx:Grid width="100%" horizontalGap="0" verticalGap="0" borderThickness="0" >
+	      <mx:GridRow width="100%" borderThickness="0" >
+	         <mx:GridItem width="50%" borderThickness="0" horizontalAlign="left" id ="confLabel" >
+	         	<mx:Label id="ucsclbl" text="" fontWeight="bold" />
+	          </mx:GridItem>
+	         <mx:GridItem width="50%" borderThickness="0" horizontalAlign="right" id="printLabel">
+	        <mx:Button id="Print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetail(this.detail)"/>
+	         </mx:GridItem>
+	      </mx:GridRow>                                                               
+        </mx:Grid>	        
+	    </mx:HBox>
+   	 	<mx:HBox id="sconfMsg"  styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" > 
+            <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.label.sysconf.msg') + amendResult.txnReferenceNo}" fontWeight="bold" selectable="true"/>
+	    </mx:HBox>
+    </mx:VBox>
+     
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="off">
+    	<mx:VBox width="100%" height="100%" id="detail">
+		
+        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>
+            <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+                
+                <!-- Fund Code & Fund Name -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.fundcode')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.fundCode}" useHandCursor="true" styleName="TextLink" click="showFundDetails(amendResult.fundPk)" buttonMode="true" mouseChildren="false" selectable="true"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.fundname')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.fundName}" selectable="true"/>
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Security Code & Security Name -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.securitycode')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label id="securityCodeLink" text="{amendResult.securityCode}" useHandCursor="true" click="showInstrumentDetails(amendResult.instrumentPk)" styleName="TextLink" selectable="true" buttonMode="true" mouseChildren="false" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.securityname')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.securityName}" selectable="true"/>
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Transaction Type & Trade Type -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.transaction.type')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.transactionTypeStr}" selectable="true" id ="transactionType"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.tradetype')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.tradeTypeStr}" selectable="true"/>
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Trade Type Remarks & Wire Type -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.trade.type.remarks')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.tradeRemarks}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.wiretype')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.wireTypeStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+               
+                <!-- Reference No  & Version No -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.refno')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label id="refno" text="{amendResult.txnReferenceNo}" selectable="true" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="" />
+                    </mx:GridItem>
+                </mx:GridRow>                
+                
+                <!--Parent Txn Ref No  &  Voucher Type -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.parenttxnrefno')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.txnReferenceNoParentStr}" click="showTxnDetails(txnInfoLc.parentPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.voucherType')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.voucherTypeStr}" selectable="true"  />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Event Type &  -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.eventtype')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.subEventTypeStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Buy/Sell & L/S -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.buysell')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.buySellStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.ls')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.longShortStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Trade Date & Value Date -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.tradedate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.tradeDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.valuedate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.valueDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Settlement Date & Local Ccy -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.settlementdate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.settlementDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.localccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.localCcy}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Settlement Ccy & Quantity -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.settlement.ccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.settlementCcy}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.quantity')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{amendResult.quantityStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow> 
+                
+                <!--Price & Accrued Interest Paid -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.price')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.priceStr}"  selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.accrued.interest.paid')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.accruedInterestPaidStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Principal Amount (SC) & Net Amount (SC) -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.principal.amount.sc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{amendResult.principalAmountStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.net.amount.sc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{amendResult.netAmountScStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Exchange Rate LC to SC & Profit /Loss -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.exchange.rate.lc.to.sc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.exchangeRateLcScStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.profit.loss')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{amendResult.profitLossStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Net Amount (LC) &   -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.net.amount.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{amendResult.netAmountLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="" />
+                    </mx:GridItem>
+                </mx:GridRow> 
+                
+                <!--Allotted Security Code & Sub Wire Type -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.allotted.security.code')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+					<mx:Label id="allotedSecurityCodeLink" text="{amendResult.allottedSecurityCode}" selectable="true" useHandCursor="true" 
+						styleName="TextLink" buttonMode="true" mouseChildren="false" click="showInstrumentDetails(amendResult.allottedInstrumentPk)" />
+					</mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.sub.wire.type')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.subWireTypeStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Hedge Ccy & Negative Accrual Flag -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.hedge.ccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.hedgeCcy}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.negative.accrual.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.negativeAccrualFlagStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Underlying Asset Type &  -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.underlying.asset.type')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.underlyingAssetType}"  selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.pl.suppress.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.plSuppressFlag}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Next Payment Date & Principal Flag -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.next.payment.date')}" id="nextPaymentDate" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.nextPayDateStr}" selectable="true"  id ="nextPayDateLbl"/>
+                        <mx:DateField id="nextPayDateStr"  formatString="YYYYMMDD" editable="true" width="100" text="{amendResult.nextPayDateStr}"  restrict="0-9" enabled="true"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.principal.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.principalFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Ledger Code & Status -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.ledgercode')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.ledgerCode}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.status')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.statusStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Eligible Qty  & Transaction Approved By -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.eligible.qty')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{amendResult.eligibleQuantityStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.transaction.approvedby')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.transactionApprovedBy}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Original Book Date  & Inventory At Cost -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.original.book.date')}"  id="originalBookDate"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.originalBookDateString}" selectable="true" id="originalBookDateLbl"/>
+                        <mx:DateField id="originalBookDateStr"  formatString="YYYYMMDD" editable="true" width="100" text="{amendResult.originalBookDateString}" restrict="0-9" enabled="true"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.inventory.at.cost')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{amendResult.inventoryAtCostStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Derivative STL AC Type & Processing Order -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.derivative.stl.ac.type')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.derivativeStlAcTypeStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.margin.inout.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.marginInOutFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Open Reference No & Security I/O -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.open.reference.no')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.openReferenceNo}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.security.io')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.securityInOutFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Cash I/O & Book Date -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.cash.io')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.cashInOutFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.book.date')}"  id="bookDate"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.bookDateStr}" selectable="true" id = "bookDateLbl"/>
+                        <mx:DateField id="bookDateStr"  formatString="YYYYMMDD" editable="true" width="100" text="{amendResult.bookDateStr}" restrict="0-9" enabled="true"/>
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Source Component & Tax Amount -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.source.component')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.sourceComponent}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.tax.amount')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.taxAmountStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Directed Broker Flag & Recalculation Suppress Flag -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.directed.broker.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.directedBrokerFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.recalculation.suppress.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.recalculationSuppressFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Group ID & P/L -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.groupid')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.groupId}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.pl')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.plIndicatorStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Data Source & Processed Flag -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.data.source')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.dataSource}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.processed.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.processedFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Fund Account No & Underlying Instrument -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.fund.account.no')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.fundAccountNo}" click="showAccountDetails(amendResult.fundAccountPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.underlying.instrument')}" styleName="FormLabelHeading"  />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label  id="underlyingSecurityCodeLink" text="{amendResult.underlyingInstrumentStr}" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true" click="showInstrumentDetails(amendResult.underlyingInstrumentPk)" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--  Broker Account No &  -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.broker.account.no')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%"> 
+                        <mx:Label text="{amendResult.brokerAccountNo}" click="showAccountDetails(amendResult.brokerAccountPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Entry Date & Last Entry Date-->
+                <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.entrydate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.appRegiDateStr}"  selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.entrydate.last')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.appUpdDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Entry Date (Time) & Last Entry Date (Time)-->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.entry.date.time')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.creationDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.entry.date.time.last')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.updateDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Entry By & Last Entry By-->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.entryby')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.createdBy}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionamend.details.label.lastentryby')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{amendResult.updatedBy}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>                                                               
+               </mx:Grid>
+     </mx:VBox>
+   </mx:Canvas>
+   <mx:HBox width="100%" id="buttonPanel" styleName="ButtonBackPanel" >               			      	            
+	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="cancelSubmit" visible="true" includeInLayout="true"  styleName="BtnStyle" click="doSubmit()"/> 
+	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" id="amendReset" visible="true"  includeInLayout="true" styleName="BtnStyle" click="doAmendReset()"/>
+	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uCancelConfSubmit" visible="false" includeInLayout="false"  styleName="BtnStyle" click="doConfirm()"/>  
+	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="backButton" visible="false" includeInLayout="false" styleName="BtnStyle" click="doBack()"/>
+	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.sysconfirm')}" id="sConfSubmit" visible="false" includeInLayout="false"  styleName="BtnStyle" click="doOk()"/>               
+	     </mx:HBox>
+</mx:Module>

@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<cntrls:WizardPage xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:frmtrs="com.nri.rui.core.formatters.*" xmlns:valdtrs="com.nri.rui.core.validators.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" xmlns:com="*" width="100%" height ="100%" shortTitle="Fund" horizontalScrollPolicy="auto" verticalScrollPolicy="auto" 
+	longTitle="{this.parentApplication.xResourceManager.getKeyValue('ref.account.title')} - {this.parentApplication.xResourceManager.getKeyValue('ref.account.label.fundConfirmation')}">
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.Globals;
+			import mx.core.Application;
+			
+		private function getFundCodeType(item:Object,column : DataGridColumn):String {
+			trace("item.fundCodeType :: " + unescape(item.fundCodeType));
+			if(new XML(unescape(item.fundCodeType)).child("LABEL").length() > 0){
+				return (new XML(unescape(item.fundCodeType))).LABEL;
+			}
+			else{
+				return unescape(item.fundCodeType);
+			}
+		}
+		]]>
+	</mx:Script>
+	
+	<mx:Script source="actionscripts/AccountFundTab.as"/>
+	
+	<cntrls:XenosHTTPService id="addFundCodeService"
+         showBusyCursor="true"
+         method="POST" url="ref/account{urlModeBind}Dispatch.action?method=addFundCodeInfo"
+         result="fundCodeResult(event)"
+         fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         useProxy="false" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="editFundCodeService"
+         showBusyCursor="true"
+         method="POST" url="ref/account{urlModeBind}Dispatch.action?method=editFundCodeInfo"
+         result="fundCodeEditResult(event)"
+         fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         useProxy="false" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="saveFundCodeService"
+         showBusyCursor="true"
+         method="POST" url="ref/account{urlModeBind}Dispatch.action?method=updateFundCodeInfo"
+         result="fundCodeResult(event)"
+         fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         useProxy="false" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="cancelEditFundCodeService"
+         showBusyCursor="true"
+         method="POST" url="ref/account{urlModeBind}Dispatch.action?method=cancelFundCodeInfo"
+         result="fundCodeResult(event)"
+         fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         useProxy="false" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="deleteFundCodeService"
+         showBusyCursor="true"
+         method="POST" url="ref/account{urlModeBind}Dispatch.action?method=deleteFundCodeInfo"
+         result="fundCodeResult(event)"
+         fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         useProxy="false" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosErrors id="errPage" width="100%" height="15%" maxHeight="40" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+    <mx:VBox id="fudEntryTab" width="100%">
+	<flexlib:WindowShade id="ws1" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws1" tabChildren="{ws1.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.fundinfo')}" width="100%">
+		<mx:Grid id="fundInfo" width="100%" borderThickness="0">
+			<mx:GridRow width="100%">
+        		<mx:GridItem width="20%" borderThickness="0">
+             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.fundcode')}" styleName="ReqdLabel"/>
+        		</mx:GridItem>
+	    		<mx:GridItem width="30%" borderThickness="0">
+	                <mx:TextInput id="fundCode" text="{xml.fund.fundCode}" restrict="{Globals.INPUT_PATTERN}" maxChars="20"/>
+	            </mx:GridItem>		         		
+	            <mx:GridItem width="20%" borderThickness="0">
+            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundName')}" styleName="ReqdLabel"/>
+        		</mx:GridItem>
+        		<mx:GridItem width="30%" borderThickness="0">
+            		<mx:TextInput id="fundName" text="{xml.fund.fundName}" restrict="{Globals.INPUT_PATTERN}"/>
+        		</mx:GridItem>               
+    		</mx:GridRow>  
+    		<mx:GridRow width="100%">
+        		<mx:GridItem width="20%" borderThickness="0">
+             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.officeId')}" styleName="ReqdLabel"/>
+        		</mx:GridItem>
+        		<mx:GridItem width="30%" borderThickness="0">
+            		<mx:ComboBox id="officeId" dataProvider="{officeIdList}" change="onChangeLMOffice(true)"/> 
+        		</mx:GridItem>                       
+         		<mx:GridItem width="20%" borderThickness="0">
+            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundCategory')}" styleName="ReqdLabel"/>
+        		</mx:GridItem>
+        		<mx:GridItem width="30%" borderThickness="0">
+            		<mx:ComboBox id="fundCategory" dataProvider="{fundCategoryList}" change="onChangeFundCategory(true)" labelField="label"/> 
+        		</mx:GridItem>            
+    		</mx:GridRow>
+    		<mx:GridRow width="100%">
+        		<mx:GridItem width="20%" borderThickness="0">
+             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.baseCurrency')}" styleName="ReqdLabel"/>
+        		</mx:GridItem>
+        		<mx:GridItem width="30%" borderThickness="0">
+            		<cntrls:CurrencyHBox id="baseCurrency"/>
+        		</mx:GridItem>  
+        		<mx:GridItem width="20%" borderThickness="0">
+            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.lmpositioncustody')}" styleName="ReqdLabel"/>
+        		</mx:GridItem>
+        		<mx:GridItem width="30%" borderThickness="0">
+            		<!--<mx:TextInput id="trialBalanceId" text="{xml.fund.trialBalanceId}" visible="false" includeInLayout="false" restrict="{Globals.INPUT_PATTERN}"/>-->
+            		<mx:ComboBox id="lmPositionCustody" dataProvider="{lmPositionCustodyList}" labelField="label"/> 
+        		</mx:GridItem>               
+    		</mx:GridRow>
+    		<mx:GridRow width="100%">
+        		<mx:GridItem width="20%" borderThickness="0">
+             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.startDateStr')}" />
+        		</mx:GridItem>
+        		<mx:GridItem width="30%" borderThickness="0">
+            		<mx:DateField id="startDateStr"  formatString="YYYYMMDD" editable="true"/> 
+        		</mx:GridItem>                       
+         		<mx:GridItem width="20%" borderThickness="0">
+            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.closeDateStr')}"/>
+        		</mx:GridItem>
+        		<mx:GridItem width="30%" borderThickness="0">
+            		<mx:DateField id="closeDateStr" formatString="YYYYMMDD" editable="true"/> 
+        		</mx:GridItem>               
+    		</mx:GridRow>
+    		<mx:GridRow width="100%">
+        		<mx:GridItem width="20%" borderThickness="0">
+             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.taxfeeinclusion')}" styleName="ReqdLabel"/>
+        		</mx:GridItem>
+        		<mx:GridItem width="30%" borderThickness="0">
+            		<mx:ComboBox id="taxFeeInclusion" dataProvider="{taxFeeInclusionList}" labelField="label"/> 
+        		</mx:GridItem>                       
+         		<mx:GridItem width="20%" borderThickness="0">
+             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.lmimvalidationflag')}" styleName="ReqdLabel" />
+        		</mx:GridItem>
+        		<mx:GridItem width="30%" borderThickness="0">
+            		<mx:ComboBox id="lmImValdationReqd" dataProvider="{lmImValidationRequiredList}" labelField="label"/> 
+        		</mx:GridItem>             
+    		</mx:GridRow>
+    		<mx:GridRow width="100%">
+        		<mx:GridItem width="20%" borderThickness="0">
+             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.cxlforextagreqd')}"  />
+        		</mx:GridItem>
+        		<mx:GridItem width="30%" borderThickness="0">
+            		<mx:ComboBox id="cxlForexTagReqd" dataProvider="{cxlForexTagReqdList}" labelField="label" change="changeCxlForexTagReqd()"/> 
+        		</mx:GridItem>                      
+           		<mx:GridItem width="20%" borderThickness="0">
+             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.swiftreceiveoffice')}" />
+        		</mx:GridItem>
+        		<mx:GridItem width="30%" borderThickness="0">
+            		<mx:ComboBox id="swiftReceiveOfficeId" dataProvider="{swiftReceiveOfficeIdList}" />
+        		</mx:GridItem> 
+    		</mx:GridRow>
+    		<mx:GridRow width="100%">
+        		<mx:GridItem width="20%" borderThickness="0">
+             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.instruction.copy.rcv.bic')}" />
+        		</mx:GridItem>
+        		<mx:GridItem width="30%" borderThickness="0">
+            		<mx:TextInput id="instructionCopyRcvBic" text="{xml.fund.instructionCopyRcvBic}" restrict="{Globals.INPUT_PATTERN}"/> 
+        		</mx:GridItem>                       
+         		<mx:GridItem width="20%" borderThickness="0">
+             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.copy.instruction.type')}" />
+        		</mx:GridItem>
+        		<mx:GridItem width="30%" borderThickness="0">
+            		<mx:ComboBox id="copyInstructionType" dataProvider="{copyInstructionTypeList}" />
+        		</mx:GridItem>           
+    		</mx:GridRow>
+    		<mx:GridRow width="100%">
+         		<mx:GridItem width="20%" borderThickness="0">
+            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.shortsellflag')}"  />
+        		</mx:GridItem>
+        		<mx:GridItem width="30%" borderThickness="0">
+            		<mx:ComboBox id="shortSellFlag" dataProvider="{shortSellFlagList}" labelField="label"/>
+        		</mx:GridItem> 
+        		<mx:GridItem width="20%" borderThickness="0">
+        		</mx:GridItem>
+        		<mx:GridItem width="30%" borderThickness="0">
+        		</mx:GridItem>                
+    		</mx:GridRow>  
+   		</mx:Grid>
+	</flexlib:WindowShade>
+	
+	<flexlib:WindowShade id="ws4" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws4" tabChildren="{ws4.opened = (mode=='amend' || mode=='entry')?true: false}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.interfacecontrol')}" width="100%">
+		<mx:VBox width="100%" height="100%">
+			<mx:Grid width="100%" borderThickness="0">
+				<mx:GridRow width="100%">
+    		        <mx:GridItem width="20%" borderThickness="0">
+	            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.iconrequired')}" styleName="ReqdLabel"/>
+	        		</mx:GridItem>
+	        		<mx:GridItem width="30%" borderThickness="0">
+	            		<mx:ComboBox id="iconRequired" dataProvider="{iconRequiredList}" labelField="label"/> 
+	        		</mx:GridItem>
+	        		<mx:GridItem width="20%" borderThickness="0">
+	             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.tfrequired')}" styleName="ReqdLabel" />
+	        		</mx:GridItem>
+	        		<mx:GridItem width="30%" borderThickness="0">
+	            		<mx:ComboBox id="tfRequired" dataProvider="{tfRequiredList}" labelField="label"/> 
+	        		</mx:GridItem>      
+    			</mx:GridRow>
+    			<mx:GridRow width="100%">                     
+	        		<mx:GridItem width="20%" borderThickness="0">
+	             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.gemsrequired')}" styleName="ReqdLabel" />
+	        		</mx:GridItem>
+	        		<mx:GridItem width="30%" borderThickness="0">
+	            		<mx:ComboBox id="gemsRequired" dataProvider="{gemsRequiredList}" labelField="label"/> 
+	        		</mx:GridItem>	        		
+	        		<mx:GridItem width="20%" borderThickness="0">
+	             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.formarequired')}" styleName="ReqdLabel" />
+	        		</mx:GridItem>
+	        		<mx:GridItem width="30%" borderThickness="0">
+	            		<mx:ComboBox id="formaRequired" dataProvider="{formaRequiredList}" labelField="label"/> 
+	        		</mx:GridItem>     
+    			</mx:GridRow>    			
+    			<mx:GridRow width="100%">
+        			<mx:GridItem width="20%" borderThickness="0">
+	             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.cashviewerrequired')}" styleName="ReqdLabel" />
+	        		</mx:GridItem>
+	        		<mx:GridItem width="30%" borderThickness="0">
+	            		<mx:ComboBox id="cashViewerRequired" dataProvider="{cashViewerRequiredList}" labelField="label"/> 
+	        		</mx:GridItem>
+	        		<mx:GridItem width="20%" borderThickness="0">
+	             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fbpifreqd')}" styleName="ReqdLabel" />
+	        		</mx:GridItem>
+	        		<mx:GridItem width="30%" borderThickness="0">
+	            		<mx:ComboBox id="fbpifRequired" dataProvider="{fbpifRequiredList}" labelField="label"/> 
+	        		</mx:GridItem>
+	        	</mx:GridRow> 
+    		</mx:Grid> 
+    	</mx:VBox>	  
+    </flexlib:WindowShade> 
+	
+	<flexlib:WindowShade id="ws3" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws3" tabChildren="{ws3.opened = false}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.forexinstrinfo')}" width="100%">
+		<com:ForexInstructionInfoPopulator id="forexInstrInfo" setErrorController="{errPage}" setUrlMode="{urlModeBind}" enabled="false" alter="alterForexInstrInfo()"/>
+    </flexlib:WindowShade> 
+	
+	<flexlib:WindowShade id="ws2" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws2" tabChildren="{ws2.opened = (mode=='amend' || mode=='entry')?true: false}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcodeinfo')}" width="100%">
+		<mx:VBox id="fundCodeInfo" width="100%" height="100%">
+			<mx:Grid width="100%" borderThickness="0">
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="11%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcodetype')}" styleName="ReqdLabel"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="22%" borderThickness="0">
+                        <mx:ComboBox id="fundCodeType" dataProvider="{fundCodeTypeList}"/>  
+                    </mx:GridItem> 
+                    <mx:GridItem width="11%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.code')}" styleName="ReqdLabel"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="22%" borderThickness="0">
+                        <mx:TextInput id="code" width="90" maxChars="20" restrict="{Globals.INPUT_PATTERN}"/>
+                    </mx:GridItem> 
+                    <mx:GridItem width="11%" borderThickness="0">
+                        <mx:Label text="" styleName="ReqdLabel"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="22%" borderThickness="0">
+                        <cntrls:XenosButton id="addBtn" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.add')}" styleName="BtnStyle" click="addFundCode()" visible="{!editMode}" includeInLayout="{!editMode}"/>
+                        <cntrls:XenosButton id="cancelBtn" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.cancel')}" styleName="BtnStyle" click="cancelEditFundCode()" visible="{editMode}" includeInLayout="{editMode}"/>
+                        <cntrls:XenosButton id="saveBtn" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.save')}" styleName="BtnStyle" click="saveFundCode()" visible="{editMode}" includeInLayout="{editMode}"/>
+                    </mx:GridItem>                       
+                </mx:GridRow>
+            </mx:Grid>
+            <mx:VBox width="100%" height="30%">
+                <cntrls:CustomDataGrid id="fundCodeSummary" dataProvider="{fundCodeSummaryResult}" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="on" visible="true" includeInLayout="true" rowCount="4"> 
+                    <cntrls:columns>
+                        <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcodetype')}" width="250" labelFunction="getFundCodeType" />
+                        <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.code')}" width="250" dataField="fundCode" />
+                        <mx:DataGridColumn headerText="" width="150" textAlign="center">
+                            <mx:itemRenderer>
+                                <mx:Component>
+                                    <mx:HBox>
+                                        <cntrls:XenosButton id="editCode" enabled ="{data.isVisible == 'true' || data.isVisible == true?true:false}" styleName="BtnEdit" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.edit')}" click="outerDocument.editFundCode(data)" width="18" height="18"/>
+                                        <cntrls:XenosButton id="deleteCode" enabled ="{data.isVisible == 'true' || data.isVisible == true?true:false}" styleName="BtnDelete" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.delete')}" click="outerDocument.deleteFundCode(data)" width="18" height="18"/>
+                                    </mx:HBox>
+                                </mx:Component>
+                                
+                            </mx:itemRenderer>
+                        </mx:DataGridColumn>
+                   </cntrls:columns>
+                </cntrls:CustomDataGrid>
+            </mx:VBox>
+    	</mx:VBox>
+    </flexlib:WindowShade> 
+    </mx:VBox>
+    
+      <mx:VBox id="fundConfirmation" width="100%">
+      
+      </mx:VBox>
+       
+</cntrls:WizardPage>

@@ -1,0 +1,1044 @@
+<!--$Id$-->
+<!--$Author: amanj $-->
+<!--$Date: 2016-12-23 16:57:50 $-->
+
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:xenos="http://www.nri.co.jp/xenos"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+<div class="entryContainer paddingFour">
+		
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+	<!-- Date Validator loaded   -->
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src">
+			<c:url value="/scripts/inf/fieldvalidator.js"/>
+		</jsp:attribute>
+		<jsp:attribute name="src">
+			<c:url value="/scripts/inf/datevalidation.js"/>
+		</jsp:attribute>		
+		<jsp:attribute name="src">
+			<c:url value="/scripts/inf/utilCommons.js"/>
+		</jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src">
+			<c:url value="/scripts/stl/cashTransferEntry.js"/>
+		</jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+	
+	<!-- xenos OnLoad Script -->
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+		        var context = $xenos$Wizard.$context;
+	        	var baseUrl = xenos.context.path + context.find('form').attr('action');
+				
+				$cashTransferEntry$context = $('#commandForm');
+				
+				$('#fundCode',context).unbind('blur').bind('blur',['OWN'],autoCompleteBankHandler);
+				$('#ccy',context).unbind('blur').bind('blur',['CC'],autoCompleteBankHandler);
+				$('#accountNo',context).unbind('blur').bind('blur',['CP'],autoCompleteBankHandler);				
+				
+				$('#wireAmount',context).unbind('blur').bind('blur',checkAmountOnBlur);
+
+				$('#wireInstValueDate',context).unbind('blur').bind('blur', checkValueDate);	
+				$('#wireInstTradeDate',context).unbind('blur').bind('blur', checkTradeDate);					
+				
+				$('#ourBankListPopUp1',context).off('click').on('click',['CP'],  bankListPopUpValidator);	
+				$('#ourBankListPopUp2',context).off('click').on('click',['OWN'], bankListPopUpValidator);
+				$('#cpBankListPopUp',context).off('click').on('click',['CP'],  bankListPopUpValidator);	
+
+				$('.cash-mgmt-detail-view-hyperlink',context).unbind('click').bind('click', cashManagementHandler);
+								
+				var validateHook = function() {
+					var valid = validateAllFields();
+					if(valid){
+						clearSettleStandingRuleForBankToBank();
+						return true;
+					} else {
+						return false;
+					}
+				};
+				
+				var unloadHook = function(){					
+					//cleanup code
+					$xenos$Wizard.deregister('submit',validateHook);
+					$xenos$Wizard.deregister('unload',unloadHook);
+					
+					$('#fundCode',context).unbind('blur');
+					$('#ccy',context).unbind('blur');
+					$('#accountNo',context).unbind('blur');
+					
+					$('#wireAmount',context).unbind('blur')
+					
+					$('#ourBankListPopUp1',context).off('click');	
+					$('#ourBankListPopUp2',context).off('click');
+					$('#cpBankListPopUp',context).off('click');	
+					
+					$('.cash-mgmt-detail-view-hyperlink',context).unbind('click');
+					
+				};
+				
+				/**
+		         * A common request handler to be used server communication.
+		         */
+		         var xenos$Handler$RequestHandler = xenos$Handler$function({
+		             get: {
+		                 contentType: 'json',
+		                 requestType: xenos$Handler$default.requestType.asynchronous
+		             },  
+		             settings: {
+		                 beforeSend: function(request) {
+		                     request.setRequestHeader('Accept', 'application/json');
+		                 },
+		                 type: 'POST'
+		             }
+		         });
+				 					
+				$xenos$Wizard.register('submit',validateHook);
+				$xenos$Wizard.register('unload',unloadHook);
+				
+				<!--Assigning shortcuts for form items-->
+				xenos.utils.afterFormRenderScuts();			
+				
+				onPageLoad();	//Display the screen fields as per the wire_type value					
+				
+				/**
+				* On change of wire_type 
+				*/
+				$("#wireType").change(function() {
+					var selectedWireType = $("#wireType").find(":selected").text();
+					
+					if(selectedWireType == "BANK_TO_BANK"){
+						screenChangeForBank();	// Show/Hide fields when wire_type: BANK_TO_BANK
+						
+					}else{
+						screenChangeForFirm();	// Show/Hide fields when wire_type: FIRM_PAYMENT or FIRM_RECEIPT	
+						gleLedPopulate(); 		// GLE Ledger Code drop down list population logic
+					}					
+							
+					clearOwnBankInformation(); // Clear the Own Bank Information when wire_type changes
+					clearCPBankInformation(); // Clear the CP Bank Information when wire_type changes
+					
+					
+					
+				});	
+								
+				/**
+				*  JSON call to populate Bank Details when Bank Account Number is entered.
+				*/
+				xenos.ns.filterHiddenTgt.filterHiddenTargetFieldId = function(row, tgt ) {
+					
+					if(tgt.attr("tgt") === "ownAccount"){			// If the Account Popup is opened from "Own Account"
+						$('#ownBankCode').val(row.finInstRoleCode);
+						$('#ownBankName').val(row.finInstShortName);
+						$('#ownSettleAccName').val(row.shortName);
+						$('#ownSettleAccountLabel').val('');
+												
+						
+					}else if(tgt.attr("tgt") === "cpAccount"){		// If the Account Popup is opened from "CP Account"
+						$('#cpBankCode').val(row.finInstRoleCode);
+						$('#cpBankName').val(row.finInstShortName);
+						$('#cpSettleAccName').val(row.shortName);
+						$('#cpSettleAccountLabel').val('');	
+						
+					}else if(tgt.attr("tgt") === "fundCode"){		// If the Fund Popup is opened from "Fund Code"
+						$('#fundName').val(row.fundName);
+						
+					}else if(tgt.attr("tgt") === "accountNo"){		// If the Account Popup is opened from "Counter Party Account no."
+						$('#accountName').val(row.shortName);
+						
+					}else if(tgt.attr("tgt") === "securityCode"){	// If the Security Popup is opened from "Corresponding Security ID"
+						$('#securityName').val(row.officialName);
+					
+					}else if(tgt.attr("id") === "ourBankListPopUp1"){	
+						$('#cpBankCode').val(row.finInstRoleCode);
+						$('#cpBankName').val(row.bankName);
+						$('#cpAccount').val(row.accountNo);
+						$('#cpStandingRulePk').val(row.standingRulePkStr);						
+						$('#cpSettleAccountLabel').val(row.accountNo);
+
+						
+					}else if(tgt.attr("id") === "cpBankListPopUp"){	
+						$('#cpBankCode').val(row.settlementBank);
+						$('#cpBankName').val(row.bankName);
+						$('#cpAccount').val(row.settlementAc);
+						$('#beneficiaryName').val(row.beneficiaryNameEscaped);
+						$('#cpStandingRulePk').val(row.standingRulePkStr);
+						$('#cpSettleAccountLabel').val(row.settlementAc);
+
+					
+					}else if(tgt.attr("id") === "ourBankListPopUp2"){	
+						$('#ownBankCode').val(row.finInstRoleCode);
+						$('#ownBankName').val(row.bankName);
+						$('#ownAccount').val(row.accountNo);
+						$('#ownStandingRulePk').val(row.ownSettleStandingRulePk);
+						$('#ownSettleAccountLabel').val(row.accountNo);										
+					}	
+				}
+				
+				/**
+				*  To open the Cash Management popup
+				*/
+				function cashManagementHandler(e){ 
+				
+					e.preventDefault();
+					var messages = [];
+					var ccy = $.trim($("#ccy").val());
+					var fundCode = $.trim($("#fundCode").val());
+					
+					if(VALIDATOR.isNullValue(fundCode)){
+						messages.push(xenos$STL$i18n.cashtransfer.entry.fundCode_for_popup_missing);						
+					}
+					
+					if(VALIDATOR.isNullValue(ccy)){
+						messages.push(xenos$STL$i18n.cashtransfer.entry.currency_for_popup_missing);						
+					}
+										
+					if (messages.length > 0){						
+						$('.formHeader').find('.formTabErrorIco').css('display', 'block')
+						                                         .off('click')
+						                                         .on('click', xenos.postNotice(xenos.notice.type.error, messages, true));
+						return false;
+					}
+										
+					var settings = {
+						view: 'CashMqmt',
+						dialogTitle:xenos.title.cashManagementQueryPopUp,
+						href: "/secure/ncm/cashmanagement/query/details/balance/"+ccy+"/"+fundCode+"?popup=true",
+						dialogHeight:300,
+						onOpen: function(ev,ui){
+							//Remove header portion 
+							$('div','.ui-dialog').removeClass("paddingFour blueBg");
+							$('.formHeader','.ui-dialog').empty();	
+						}
+					};
+					xenos$detailViewHandler(e,settings);
+				}
+				
+				
+				/**
+				*  To auto-populate Bank Details when 
+				*  Fund Code, Currency or Counter Party Account No. is populated.
+				*/
+				function autoCompleteBankHandler(e){ 
+					var label = "";
+					if(e.data)
+						label = e.data[0] || "";
+					if(label=="")
+						return;
+						
+					var currency = $.trim($("#ccy").val());
+					var counterPartyAccNo = $.trim($("#accountNo").val());
+					var fundCode = $.trim($("#fundCode").val());
+					var wireType = $.trim($("#wireType").find(":selected").text());
+					 
+					if(!(VALIDATOR.isNullValue(currency))){
+						if(wireType == "BANK_TO_BANK"){
+							if($("#tempFundCode").val()!=fundCode) {
+								clearOwnBankInformation();				// Clears the OWN bank details
+								$("#tempFundCode").val(fundCode);
+							}
+							if($("#tempCcy").val()!=currency) {
+								clearCPBankInformation();				// Clears the CP bank details
+								clearOwnBankInformation();				// Clears the OWN bank details								
+								
+								$("#tempFundCode").val(fundCode);
+								$("#tempCcy").val(currency);
+							}
+						}
+						else{
+							if(label == 'OWN'){
+								clearOwnBankInformation();				// Clears the OWN bank details
+								
+								/* Call the OWN Auto-complete function with valid arguments */				
+								if(!(VALIDATOR.isNullValue(fundCode))){
+								
+									var requestUrl = baseUrl + "/autoPopulateOwnBankDetails/"+ label + ".json?commandFormId=" + $('[name=commandFormId]').val();
+									var reqObj = {"fundCode": fundCode,
+												  "ccy": currency,
+												  "wireType": wireType}; 
+									
+									autoPopulate(label, reqObj, requestUrl); 
+								}
+							}else if(label == 'CP'){
+								clearCPBankInformation();				// Clears the CP bank details
+								
+								/* Call the CP Auto-complete function with valid arguments */		
+								if(!(VALIDATOR.isNullValue(counterPartyAccNo))){
+								
+									var requestUrl = baseUrl + "/autoPopulateCpOwnBankDetails/"+ label + ".json?commandFormId=" + $('[name=commandFormId]').val();
+									var reqObj = {"fundCode": fundCode,
+												  "ccy": currency,
+												  "accountNo": counterPartyAccNo};
+									autoPopulate(label, reqObj, requestUrl); 
+								}
+								
+							}else if(label == 'CC'){
+								clearOwnBankInformation();				// Clears the OWN bank details
+								clearCPBankInformation();				// Clears the CP bank details
+								
+								/* Call the OWN Auto-complete function with valid arguments */		
+								if(!(VALIDATOR.isNullValue(fundCode))){
+									var requestUrl = baseUrl + "/autoPopulateOwnBankDetails/"+ label + ".json?commandFormId=" + $('[name=commandFormId]').val();
+									var reqObj = {"fundCode": fundCode,
+												  "ccy": currency,
+												  "wireType": wireType}; 
+									
+									autoPopulate(label, reqObj, requestUrl); 
+								}
+								
+								/* Call the  CP Auto-complete function with valid arguments */		
+								if(!(VALIDATOR.isNullValue(counterPartyAccNo))){
+								
+									var requestUrl = baseUrl + "/autoPopulateCpOwnBankDetails/"+ label + ".json?commandFormId=" + $('[name=commandFormId]').val();
+									var reqObj = {"fundCode": fundCode,
+												  "ccy": currency,
+												  "accountNo": counterPartyAccNo};
+									autoPopulate(label, reqObj, requestUrl); 
+								}						
+							}
+						}
+					}else{
+							if(!(VALIDATOR.isNullValue(wireType))){
+								clearOwnBankInformation();				// Clears the OWN bank details
+								clearCPBankInformation();				// Clears the CP bank details
+							}
+						}	
+				}
+			
+				
+				/**
+				*  JSON call to auto-populate Bank Details.
+				*/				
+				function autoPopulate(label, reqObj, requestUrl){ 
+										
+					xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                             settings: {data : JSON.stringify(reqObj)},
+                                                             onJsonContent :  function(e, options, $target, content) {
+                                                                 if(content.success == true){
+																	if(label == 'OWN'){
+																		populateOwnDetails(content);	// Populate Own bank Details																		
+																	}else if(label == 'CP'){
+																		populateCpDetails(content);	// Populate CP and Own bank Details
+																	}else if(label == 'CC'){
+																		populateOwnDetails(content);	// Populate Own bank Details
+																		populateCpDetails(content);	// Populate CP and Own bank Details
+																	}
+                                                                 } else {
+                                                                    xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	clearOwnBankInformation();				// Clears the OWN bank details
+																	clearCPBankInformation();				// Clears the CP and Own bank details
+                                                                 }
+                                                             }
+                                                          }
+                                             );
+				}
+				
+				/**
+				*  Function to populate Own bank Details
+				*/
+				function populateOwnDetails(content){
+					var ownBankCode = content.value[0].sdVO.otherAttributes.map.ourBank;
+					var ownBankName = content.value[0].sdVO.otherAttributes.map.ourBankShortname;
+					var ownAccount = content.value[0].sdVO.otherAttributes.map.ourSettleAc;
+					var fromBrkNo = content.value[0].sdVO.otherAttributes.map.fromBrkNo;
+																		
+					$('#ownBankCode').val(ownBankCode);
+					$('#ownBankName').val(ownBankName);
+					$('#ownAccount').val(ownAccount);
+					
+				}
+				
+				/**
+				*  Function to populate CP bank Details
+				*/
+				function populateCpDetails(content){
+					var cpBankCode = content.value[0].sdVO.otherAttributes.map.cpBank;
+					var cpBankName = content.value[0].sdVO.otherAttributes.map.cpBankShortname;
+					var cpAccount = content.value[0].sdVO.otherAttributes.map.cpSettleAc;
+					var toBrkNo = content.value[0].sdVO.otherAttributes.map.toBrkNo;
+																																				
+					$('#cpBankCode').val(cpBankCode);
+					$('#cpBankName').val(cpBankName);
+					$('#cpAccount').val(cpAccount);
+					
+				}
+				
+				/**
+				*  To validate whether the fields which are required to open Bank List Pop-up have values or not.
+				*
+				*/
+				function bankListPopUpValidator(e){      
+					
+					var label = "";
+					if(e.data)
+						label = e.data[0] || "";
+					if(label=="")
+						return;
+                    
+                    var messages = [];
+					var selectedWireType = $("#wireType").find(":selected").text();
+					var currency = $.trim($("#ccy").val());
+					var counterPartyAccNo = $.trim($("#accountNo").val());
+					var fundCode = $.trim($("#fundCode").val());
+					
+					
+					//Fields Check Common to BANK_TO_BANK, FIRM_PAYMENT and FIRM_RECEIPT
+					if(VALIDATOR.isNullValue(fundCode)){
+						messages.push(xenos$STL$i18n.cashtransfer.entry.fundCode_for_popup_missing);
+						
+					}
+					
+					if(VALIDATOR.isNullValue(currency)){
+						messages.push(xenos$STL$i18n.cashtransfer.entry.currency_for_popup_missing);
+						
+					}
+					
+					//Mandatory Fields Check Specific to Wire Type:FIRM_PAYMENT and FIRM_RECEIPT
+					if(label == "CP" &amp;&amp; (selectedWireType == "FIRM_PAYMENT" || selectedWireType == "FIRM_RECEIPT")){	
+						if(VALIDATOR.isNullValue(counterPartyAccNo)){
+							messages.push(xenos$STL$i18n.cashtransfer.entry.cpAccountNo_for_popup_missing);
+							
+						}
+					}					
+					if (messages.length > 0){
+						
+						$('.formHeader').find('.formTabErrorIco').css('display', 'block')
+						                                         .off('click')
+						                                         .on('click', xenos.postNotice(xenos.notice.type.error, messages, true));
+						return false;
+					}					
+					return true;														
+				}				
+				
+				/**
+				* Clear the Settlement Standing Rule in case of wire_type: BANK_TO_BANK
+				*/
+				function clearSettleStandingRuleForBankToBank(){
+					var selectedWireType = $("#wireType").find(":selected").text();
+					
+					if(selectedWireType == "BANK_TO_BANK"){
+						$('#cpStandingRulePk').val('');
+						$('#ownStandingRulePk').val('');
+					}
+				}
+				
+				/**
+				* Ensure all the mandatory fields are populated properly.
+				*/
+				function validateAllFields(){
+				
+					var validationMessages = [];
+					var wireTypeValidate;
+					
+					var wireType 			= $('#wireType',			$cashTransferEntry$context).val();
+					var fundCode 			= $('#fundCode',			$cashTransferEntry$context).val();
+					var ccy 				= $('#ccy',					$cashTransferEntry$context).val();
+					var accountNo 			= $('#accountNo',			$cashTransferEntry$context).val();					
+					var wireAmount 			= $('#wireAmount',			$cashTransferEntry$context).val();
+					var wireInstValueDate 	= $('#wireInstValueDate',	$cashTransferEntry$context).val();
+					var wireInstTradeDate 	= $('#wireInstTradeDate',	$cashTransferEntry$context).val();
+					var gleLedgerCode 		= $('#gleLedgerCode',		$cashTransferEntry$context).val();
+					var inxTransmission 	= $('#inxTransmission',		$cashTransferEntry$context).val();
+					var cpBankCode 			= $('#cpBankCode',			$cashTransferEntry$context).val();
+					var cpAccount 			= $('#cpAccount',			$cashTransferEntry$context).val();
+					var ownBankCode 		= $('#ownBankCode',			$cashTransferEntry$context).val();
+					var ownAccount 			= $('#ownAccount',			$cashTransferEntry$context).val();					
+					
+					if(VALIDATOR.isNullValue(wireType)){
+						validationMessages.push(xenos$STL$i18n.wireinstruction.entry.wire_type_cant_empty);
+					}
+					
+					 if(wireType == "BANK_TO_BANK"){
+						wireTypeValidate = "BANK";
+					}else if(wireType == "FIRM_PAYMENT" || wireType == "FIRM_RECEIPT"){
+						wireTypeValidate = "FIRM";
+					}
+					
+					//Mandatory Fields Check Common to BANK_TO_BANK, FIRM_PAYMENT and FIRM_RECEIPT
+					if(VALIDATOR.isNullValue(fundCode)){
+						validationMessages.push(xenos$STL$i18n.cashtransfer.entry.fundCode_cant_empty);
+					}
+					
+					if(VALIDATOR.isNullValue(ccy)){
+						validationMessages.push(xenos$STL$i18n.cashtransfer.entry.currency_cant_empty);
+					}
+					
+					//Mandatory Fields Check Specific to Wire Type:FIRM_PAYMENT and FIRM_RECEIPT
+					if(wireTypeValidate == "FIRM"){	
+						if(VALIDATOR.isNullValue(accountNo)){
+							validationMessages.push(xenos$STL$i18n.cashtransfer.entry.cpBankAccountNo_cant_empty);
+						}
+					}
+					
+					//Mandatory Fields Check Common to BANK_TO_BANK, FIRM_PAYMENT and FIRM_RECEIPT
+					if(VALIDATOR.isNullValue(wireAmount)){
+						validationMessages.push(xenos$STL$i18n.cashtransfer.entry.wireAmount_cant_empty);
+					}else{
+					    checkAmount(validationMessages);
+					}
+					
+					if(VALIDATOR.isNullValue(wireInstValueDate)){
+						validationMessages.push(xenos$STL$i18n.cashtransfer.entry.valueDate_cant_empty);
+						
+					}else if(isDateCustom(wireInstValueDate)==false){
+						validationMessages.push(xenos$STL$i18n.cashtransfer.date.date_format_check + wireInstValueDate);
+					}
+					
+					//Mandatory Fields Check Specific to Wire Type:FIRM_PAYMENT and FIRM_RECEIPT
+					if(wireTypeValidate == "FIRM"){						
+						if(VALIDATOR.isNullValue(gleLedgerCode)){
+							validationMessages.push(xenos$STL$i18n.cashtransfer.entry.gleLedgerCode_cant_empty);
+						}
+						
+						if(VALIDATOR.isNullValue(wireInstTradeDate)){
+							validationMessages.push(xenos$STL$i18n.cashtransfer.entry.tradeDate_cant_empty);
+							
+						}else if(isDateCustom(wireInstTradeDate)==false){							
+							validationMessages.push(xenos$STL$i18n.cashtransfer.date.date_format_check + wireInstTradeDate);
+						}
+					}
+					
+					//Mandatory Fields Check Common to BANK_TO_BANK, FIRM_PAYMENT and FIRM_RECEIPT
+					if(VALIDATOR.isNullValue(inxTransmission)){
+						validationMessages.push(xenos$STL$i18n.cashtransfer.entry.inxTransmission_cant_empty);
+					}
+					
+					//Mandatory Fields Check Specific to Wire Type:BANK_TO_BANK
+					if(wireTypeValidate == "BANK"){		
+						if(VALIDATOR.isNullValue(cpBankCode)){
+							validationMessages.push(xenos$STL$i18n.cashtransfer.entry.toBank_cant_empty);
+						}
+						
+						if(VALIDATOR.isNullValue(cpAccount)){
+							validationMessages.push(xenos$STL$i18n.cashtransfer.entry.toSettleAcc_cant_empty);
+						}
+					
+						if(VALIDATOR.isNullValue(ownBankCode)){
+							validationMessages.push(xenos$STL$i18n.cashtransfer.entry.fromBank_cant_empty);
+						}
+							
+						if(VALIDATOR.isNullValue(ownAccount)){
+							validationMessages.push(xenos$STL$i18n.cashtransfer.entry.fromSettleAcc_cant_empty);
+						}
+					}
+					
+					//Mandatory Fields Check Specific to Wire Type:FIRM_PAYMENT and FIRM_RECEIPT
+					if(wireTypeValidate == "FIRM"){						
+						if(VALIDATOR.isNullValue(ownBankCode)){
+							validationMessages.push(xenos$STL$i18n.cashtransfer.entry.ownBank_cant_empty);
+						}
+						
+						if(VALIDATOR.isNullValue(ownAccount)){
+							validationMessages.push(xenos$STL$i18n.cashtransfer.entry.ownSettleAcc_cant_empty);
+						}
+					}
+					
+					if (validationMessages.length > 0){
+						$('.formHeader').find('.formTabErrorIco').css('display', 'block')
+						                                         .off('click')
+						                                         .on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+						return false;
+					}
+					return true;
+				}
+				
+				/**
+				* Screen Change whenever page gets loaded.
+				*/
+				function onPageLoad() {				
+					var wireType = $('#hidWireType').val();
+					
+					if(wireType!='undefined' &amp;&amp; wireType == "FIRM_PAYMENT"){
+						screenChangeForFirm();
+							
+					}else if(wireType!='undefined' &amp;&amp; wireType == "FIRM_RECEIPT"){
+						screenChangeForFirm();
+						
+					}else{
+						screenChangeForBank();							
+					}
+
+					gleLedPopulate();
+					
+					displayAccNoLabel();
+				}
+				
+				/** 
+				* If the value in cpAccLabel or ownAccLabel of commandForm's attribute is present, 
+				* then append the markUp at proper place to display account no in Bank Information
+				* surrounded by braces
+				*/
+				function displayAccNoLabel() {				
+					var ownSettleAccountLabelVal = $('#ownSettleAccountLabel').val();
+					var cpSettleAccountLabelVal = $('#cpSettleAccountLabel').val();
+					
+					
+	
+
+				}	
+			
+				/**
+				* Screen Change for wire_type: BANK_TO_BANK 
+				*/
+				function screenChangeForBank() { 
+					$('.hideForBankToBank').hide();
+					$('.showForBankToBank').show();		
+						
+					/* Clear the fields which has to be hidden */
+					$("#wireInstTradeDate").val('');
+					$("#accountNo").val('');
+					$("#gleLedgerCode").val('');				
+				}
+					
+				/**
+				* Screen Change for wire_type: FIRM_PAYMENT or FIRM_RECEIPT 
+				*/
+				function screenChangeForFirm(){ 
+					$('.hideForBankToBank').show();
+					$('.showForBankToBank').hide();
+					
+					$("#wireInstTradeDate").val($("#tradeDate").val());	//Set the default value of Trade Date			
+				}
+					
+				/**
+				* Clear CP Bank Information
+				*/
+				function clearCPBankInformation() { 
+					$("#cpBankCode").val('');
+					$("#cpBankName").val('');
+					$("#cpAccount").val('');
+					$("#beneficiaryName").val('');
+					$("#cpSettleAccName").val('');
+					$("#cpStandingRulePk").val('');
+					$("#cpSettleAccountLabel").val('');	
+
+								
+				}
+				
+				/**
+				* Clear Own Bank Information
+				*/
+				function clearOwnBankInformation() { 						
+					$("#ownBankCode").val('');
+					$("#ownBankName").val('');
+					$("#ownAccount").val('');
+					$("#ownSettleAccName").val('');
+					$("#ownStandingRulePk").val('');
+					$("#ownSettleAccountLabel").val('');
+					
+						
+				}
+					
+				/**
+				* GLE LEDGER Drop Down List populate
+				*/
+				function gleLedPopulate(){ 
+					var selectedWireType = $("#wireType").find(":selected").text();
+					var gleLedgerCodeHidden = $('#gleLedgerCodeHidden').val();
+					
+					if(selectedWireType=="FIRM_PAYMENT"){
+						$('#gleLedgerCode').html($('.glePaymentList').html());	// Populate GLE LEDGER CODE  List for wire_type: FIRM_PAYMENT
+						if(gleLedgerCodeHidden!='undefined'){
+							$('#gleLedgerCode').val(gleLedgerCodeHidden);
+						}
+					}						
+					else if(selectedWireType=="FIRM_RECEIPT"){
+						$('#gleLedgerCode').html($('.gleReceiptList').html());	// Populate GLE LEDGER CODE  List for wire_type: FIRM_RECEIPT
+						if(gleLedgerCodeHidden!='undefined'){
+							$('#gleLedgerCode').val(gleLedgerCodeHidden);
+						}
+					}
+					else
+					{
+						$('#gleLedgerCode').html('');
+					}
+					
+				}				
+				
+				/**
+				* Verify the Value Date field
+				*/
+				function checkValueDate(){	
+					var wireInstValueDate =$("#wireInstValueDate").val();						
+					var showMsg = [];
+					
+					if(wireInstValueDate){
+						if(isDateCustom(wireInstValueDate)==false){
+							showMsg.push(xenos$STL$i18n.cashtransfer.date.date_format_check + wireInstValueDate);
+							$('.formHeader').find('.formTabErrorIco').css('display', 'block')
+																		 .off('click')
+																		 .on('click', xenos.postNotice(xenos.notice.type.error, showMsg, true));
+							return false;
+						}
+					}
+				}
+				
+				/**
+				* Verify the Trade Date field
+				*/
+				function checkTradeDate(){	
+					var wireInstTradeDate =$("#wireInstTradeDate").val();						
+					var showMsg = [];
+					
+					if(wireInstTradeDate){
+						if(isDateCustom(wireInstTradeDate)==false){
+							showMsg.push(xenos$STL$i18n.cashtransfer.date.date_format_check + wireInstTradeDate);
+							$('.formHeader').find('.formTabErrorIco').css('display', 'block')
+																		 .off('click')
+																		 .on('click', xenos.postNotice(xenos.notice.type.error, showMsg, true));
+							return false;
+						}
+					}
+				}
+
+				/**
+				* called on blur
+				*/
+                function checkAmountOnBlur(){
+				var validationMessages = [];
+				checkAmount(validationMessages)
+				}
+				/**
+				* Verify the amount for Invalid entry, Negative value, Zero
+				*/
+				function checkAmount(showMsg){
+					var label = $('#wireAmount').parent().parent().find('label').text();					 
+					var wireAmount =$("#wireAmount").val();
+					if(xenos.ns.views.cashTransferEntry.checkInvalidNumber(wireAmount)==false){
+					        showMsg.push(xenos.utils.evaluateMessage(xenos.i18n.message.invalid_values,[label]));
+							$('.formHeader').find('.formTabErrorIco').css('display', 'block')
+																 .off('click')
+																 .on('click', xenos.postNotice(xenos.notice.type.error, showMsg, true));
+		                   return false;
+					}else if(xenos.ns.views.cashTransferEntry.checkNegativeNumber(wireAmount)==false || $.trim(wireAmount)== '0'){
+					       showMsg.push(xenos$STL$i18n.cashtransfer.entry.wireamount_cant_negative);
+							$('.formHeader').find('.formTabErrorIco').css('display', 'block')
+																 .off('click')
+																 .on('click', xenos.postNotice(xenos.notice.type.error, showMsg, true));	
+						return false;
+					} else if(formatAmount($('#wireAmount'),null,null,null,label)==false){
+					    showMsg.push(xenos.utils.evaluateMessage(xenos.i18n.message.invalid_values,[label]));
+						$('.formHeader').find('.formTabErrorIco').css('display', 'block')
+																	 .off('click')
+																	 .on('click', xenos.postNotice(xenos.notice.type.error, showMsg, true));
+					    return false;
+					}
+					return true;				
+				}		
+			};
+            
+        </jsp:body>
+    </jsp:element>
+    
+    <c:if test="${success =='false'}">
+    <!-- Error message Area -->
+    <ul class="xenosError">
+        <c:forEach items="${value}" var="dl">       
+        <li><spring:message text="${dl}" htmlEscape="false"/></li>  
+        </c:forEach>
+    </ul>   
+    </c:if>
+	
+	<input type="hidden" id="cpStandingRulePk" value="${commandForm.cpSettleStandingRulePkStr}" name="cpSettleStandingRulePkStr" />
+	<input type="hidden" id="ownStandingRulePk" value="${commandForm.ownSettleStandingRulePkStr}" name="ownSettleStandingRulePkStr"/>
+	<input type="hidden" id="hidWireType" value="${commandForm.clientSettlementInfoVO.wireType}"/>
+
+	<input type="hidden" id="accountName" value="${commandForm.siVO.otherAttributes.map['accountName']}" name="siVO.otherAttributes.map['accountName']"/>		
+	<input type="hidden" id="securityName" value="${commandForm.siVO.otherAttributes.map['correspondingSecurityName']}" name="siVO.otherAttributes.map['correspondingSecurityName']"/>	
+	<input type="hidden" id="cpSettleAccName" value="${commandForm.sdVO.otherAttributes.map['cpSettleAcName']}" name="sdVO.otherAttributes.map['cpSettleAcName']"/>
+	<input type="hidden" id="ownSettleAccName" value="${commandForm.sdVO.otherAttributes.map['ourSettleAcName']}" name="sdVO.otherAttributes.map['ourSettleAcName']"/>
+	<input type="hidden" id="gleLedgerCodeHidden" value="${commandForm.csiVO.otherAttributes.map['gleLedgerCode']}"/>
+	<input type="hidden" id="tradeDate" value="${commandForm.tradeDateStr}"/>
+	<input type="hidden" id="tempFundCode" value=""/>
+	<input type="hidden" id="tempCcy" value=""/>
+	<input type="hidden" id="cpSettleAccountLabel" value="${commandForm.cpAccLabel}" name="cpAccLabel" />
+	<input type="hidden" id="ownSettleAccountLabel" value="${commandForm.ownAccLabel}" name="ownAccLabel" />
+
+	<div class="entryBlkArea">
+		<div class="formItemBlock dottedBg">
+			<!-- Wire Type **START -->
+			<div class="formItem twoCols">
+				<form:label path="commandForm.clientSettlementInfoVO.wireType" class="required"><spring:message code="stl.label.wiretype" htmlEscape="false"/></form:label> 
+				<form:select path="commandForm.clientSettlementInfoVO.wireType" class="dropdowninputDropDown" id ="wireType">
+					<form:options items="${commandForm.dropDownListValues.wireTypeList}" itemLabel="label" itemValue="value"/>
+				</form:select>
+			</div>
+			<!-- Wire Type **END -->
+			
+			
+			<!-- Fund Code **START -->
+			<div class="formItem">
+				<form:label path="commandForm.siVO.otherAttributes.map['fundCode']" class="required"><spring:message code="stl.label.fundcode" htmlEscape="false"/></form:label>
+				<span><form:input id="fundCode" value="" path="commandForm.siVO.otherAttributes.map['fundCode']" class="textBox" /></span>	
+				<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="fundCode" popType="fundCode" value=""/></div>
+			</div>	
+			<!-- Fund Code **END -->
+			
+			<!-- Currency **START -->
+			<div class="formItem">
+				<form:label path="commandForm.sdVO.otherAttributes.map['currency']" class="required"><spring:message code="stl.label.currency" htmlEscape="false"/></form:label> 
+				<span><form:input id="ccy" value="" path="commandForm.sdVO.otherAttributes.map['currency']"  class="textBox" /></span>
+				<div class="popupBtn">
+					<input type="button" class="popupBtnIco" tgt="ccy" popType="currency" value="" />
+				</div>
+				<spring:message code="stl.label.cashtransfer.entry.cashmanagement" htmlEscape="false" var="cashManagement"/>
+				<div class="hyperlink-relative-div left cash-management-link">
+           <a href="javascript:void(0)" style="outline:0;" class="cash-mgmt-detail-view-hyperlink">${cashManagement}</a>
+        </div>
+			</div>
+			<!-- Currency **END -->
+			
+			<!-- Counter Party Account No **START -->
+			<div class="formItem hideForBankToBank twoCols">
+				<form:label path="commandForm.siVO.otherAttributes.map['account']" class="required"><spring:message code="stl.label.counterpartyaccountno" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.siVO.otherAttributes.map['account']"  class="textBox accountNo" id="accountNo" /></span>
+				<div class="popupBtn hideForBankToBank">
+					<input type="button" class="popupBtnIco" id="accountNoPopup" tgt="accountNo" popType="cpAccount" actTypeContext="S|B|T" actCPTypeContext="BANK/CUSTODIAN|BROKER|FUND" actStatusContext="OPEN" value=""/>
+                </div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Counter Party Account No **END -->
+			
+		
+			
+			<!-- Wire Amount **START -->
+			<div class="formItem">
+				<form:label path="commandForm.sdVO.otherAttributes.map['wireAmount']" class="required"><spring:message code="stl.label.wireamount" htmlEscape="false"/></form:label>
+				<span>
+					<form:input value="" path="commandForm.sdVO.otherAttributes.map['wireAmount']" class="textBox" id="wireAmount"/>
+				</span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Wire Amount **END -->
+			
+			<!-- Value Date **START -->
+			<div class="formItem">
+				<form:label path="commandForm.siVO.otherAttributes.map['valueDate']" class="required"><spring:message code="stl.label.valuedate" htmlEscape="false"/></form:label>
+				<span><form:input value="" id="wireInstValueDate" path="commandForm.siVO.otherAttributes.map['valueDate']" class="dateinput" onchange="if(!checkDate(this)){
+																											 xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos.i18n.datevalidationmessage.incorrect_date,[this.value]))
+																											 }else{
+																											formatDate(this.value,$('#wireInstValueDate'))
+																											 }"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Value Date **END -->
+			
+			<!-- GLE Ledger Code **START -->
+			<div class="formItem tog hideForBankToBank">
+				<form:label path="commandForm.csiVO.otherAttributes.map['gleLedgerCode']" class="required"><spring:message code="stl.label.gleLedgerCode" htmlEscape="false"/></form:label> 
+				<form:select path="commandForm.csiVO.otherAttributes.map['gleLedgerCode']" class="dropdowninput" id = "gleLedgerCode">
+				</form:select>
+				
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- GLE Ledger Code ** END -->
+			
+			<!-- Trade Date **START -->
+			<div class="formItem hideForBankToBank">
+				<form:label path="commandForm.csiVO.otherAttributes.map['tradeDate']" class="required"><spring:message code="stl.label.tradedate" htmlEscape="false"/></form:label>
+				<span><form:input value="" id="wireInstTradeDate" path="commandForm.csiVO.otherAttributes.map['tradeDate']" class="dateinput" onchange="if(!checkDate(this)){
+																											 xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos.i18n.datevalidationmessage.incorrect_date,[this.value]))
+																											 }else{
+																											 formatDate(this.value,$('#wireInstTradeDate'))
+																											 }"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Trade Date **END -->
+			
+			<!-- Inx Transmission [User] **START -->
+			<div class="formItem">
+				<form:label path="commandForm.settlementInfoVO.transmissionReqdFlag" class="required"><spring:message code="stl.label.inxtransmission" htmlEscape="false"/></form:label> 
+				
+				<span>
+					<form:select path="commandForm.settlementInfoVO.transmissionReqdFlag" class="dropdowninputDropDown" id = "inxTransmission">
+						<form:options items="${commandForm.dropDownListValues.inxTransmissionList}" itemLabel="label" itemValue="value"/>
+					</form:select>
+				</span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>			
+			<!-- Inx Transmission **END -->	
+			
+			<!-- Corresponding Security Id **START -->
+			<div class="formItem">
+				<form:label path="commandForm.siVO.otherAttributes.map['correspondingSecurityId']"><spring:message code="stl.label.correspondingsecurityid" htmlEscape="false"/></form:label>
+				<span><form:input id="securityCode" value="" path="commandForm.siVO.otherAttributes.map['correspondingSecurityId']"  class="textBox" /></span>
+				<div class="popupBtn">
+					<input type="button" class="popupBtnIco" tgt="securityCode" popType="security" value="" statusContext="NORMAL"/>
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Corresponding Security Id **END -->			
+			
+			<!-- Remarks **START -->
+			<div class="formItem twoCols">
+				<form:label path="commandForm.clientSettlementInfoVO.remarks"><spring:message code="stl.label.remarks" htmlEscape="false"/></form:label>
+	
+					<form:input value="" path="commandForm.clientSettlementInfoVO.remarks" class="textBox txtNormal fullWidthInput" id="remarks" maxlength="255" />
+
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+            <!-- Remarks **END -->
+			
+			<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>			
+		</div>		
+	</div>
+	
+	<!-- To Bank Details/ Counter Party Details **START -->
+	<h1>
+		<div class="showForBankToBank"><spring:message code="stl.label.tobankdetails" htmlEscape="false"/></div>
+		<div class="hideForBankToBank"><spring:message code="stl.label.counterpartydetails" htmlEscape="false"/></div>
+		<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+	</h1>
+	<div class="entryBlkArea">
+		<div class="formItemBlock topitems dottedBg">
+			<!-- To Bank / CP Bank **START -->
+			<div class="BtnPosWrapper">
+				<div class="formItem valPlaceHolder">
+					<form:label class="required showForBankToBank" path="commandForm.sdVO.otherAttributes.map['cpBank']">
+            <spring:message code="stl.label.tobank" htmlEscape="false"/>              
+            <span class="listBtnPos showForBankToBank cashTransfEntry popupBtn">
+              <input id="ourBankListPopUp1" class="inputBtnStyle small-btn-style"  type="button" tgt="cpBankCode" hiddenTgt="cpBankCode:finInstRoleCode,cpBankName:bankName,cpAccount:accountNo,ownStandingRulePk:ownSettleStandingRulePk" popType="ourBankList" value="List" hiddenFieldFilteredReqd="true"/>
+            </span>          
+          </form:label>          
+					<form:label class="hideForBankToBank" path="commandForm.sdVO.otherAttributes.map['cpBank']">
+            <spring:message code="stl.label.cpbank" htmlEscape="false"/>
+            <span class="listBtnPos cashTransfEntry hideForBankToBank popupBtn">
+              <input id="cpBankListPopUp" class="inputBtnStyle small-btn-style"  type="button" tgt="cpBankCode" hiddenTgt="cpBankCode:settlementBank,cpBankName:bankName,cpAccount:settlementAc,beneficiaryName:beneficiaryNameEscaped,cpStandingRulePk:standingRulePkStr" popType="cpBankList" value="List"  hiddenFieldFilteredReqd="true"/>
+            </span>          
+          </form:label>					
+          <form:input id="cpBankCode" value="" path="commandForm.sdVO.otherAttributes.map['cpBank']"  class="textBox" readonly="true"/>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>	
+				</div>		
+			</div>			
+			<!-- To Bank / CP Bank **END -->     
+			
+			<!-- Bank Name **START -->
+			<div class="formItem">
+				<form:label path="commandForm.sdVO.otherAttributes.map['cpBankShortname']"><spring:message code="stl.label.bankname" htmlEscape="false"/></form:label>
+				<span><form:input id="cpBankName" value="" path="commandForm.sdVO.otherAttributes.map['cpBankShortname']" class="text" readonly="true"/></span>            
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+           	</div>
+			<!-- Bank Name **END -->
+			
+			<!-- To Settle Account/ CP Settle Account **START -->
+			<div class="formItem twoCols" id = "cpSettleAcc">
+				<form:label class="required showForBankToBank" path="commandForm.sdVO.otherAttributes.map['cpSettleAc']"><spring:message code="stl.label.tosettleaccount" htmlEscape="false"/></form:label>
+				<form:label class="hideForBankToBank" path="commandForm.sdVO.otherAttributes.map['cpSettleAc']"><spring:message code="stl.label.cpsettleaccount" htmlEscape="false"/></form:label>
+				<span><form:input id="cpAccount" value="" path="commandForm.sdVO.otherAttributes.map['cpSettleAc']" class="text" readonly="true"/></span>            
+				<div class="popupBtn showForBankToBank">
+					<input type="button" class="popupBtnIco" tgt="cpAccount" popType="cpAccount" actTypeContext="S|B" actCPTypeContext="BANK/CUSTODIAN|BROKER|FUND" actStatusContext="OPEN" value="" hiddenFieldFilteredReqd="true" />
+				</div>
+				<div class="clear" id="cpBankCodeId"><spring:message text="" htmlEscape="false"/></div>
+           	</div>
+			<!-- To Settle Account/ CP Settle Account **END -->
+			
+			
+			
+			<!-- Beneficiary Name **START -->
+			<div class="formItem hideForBankToBank">
+				<form:label path="commandForm.settlementDetailVO.beneficiaryName"><spring:message code="stl.label.beneficiaryname" htmlEscape="false"/></form:label>
+				<span><form:input id="beneficiaryName" value="" path="commandForm.settlementDetailVO.beneficiaryName" class="text" readonly="true"/></span>            
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+           	</div>
+			<!-- Beneficiary Name **END -->
+			
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+	</div>
+	<!-- To Bank Details/ Counter Party Details **END -->
+	
+	<!-- From Bank Details/ Our Party **START -->
+	<h1>
+		<div class="showForBankToBank"><spring:message code="stl.label.frombankdetails" htmlEscape="false"/></div>
+		<div class="hideForBankToBank"><spring:message code="stl.label.ourdetails" htmlEscape="false"/></div>
+		<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+	</h1>
+     <div class="entryBlkArea">
+		<div class="formItemBlock topitems dottedBg">
+			<!-- From Bank / Own Bank **START -->
+			<div class="BtnPosWrapper">
+				<div class="formItem valPlaceHolder">
+					<form:label class="required showForBankToBank" path="commandForm.sdVO.otherAttributes.map['ourBank']">
+            <spring:message code="stl.label.frombank" htmlEscape="false"/>
+            <span class="popupBtn listBtnPos cashTransfEntry">
+              <input id="ourBankListPopUp2" class="inputBtnStyle small-btn-style" type="button" tgt="ownBankCode" hiddenTgt="ownBankCode:finInstRoleCode,ownBankName:bankName,ownAccount:accountNo,ownStandingRulePk:ownSettleStandingRulePk" popType="ourBankList" value="List" hiddenFieldFilteredReqd="true"/>
+            </span>          
+          </form:label>
+					<form:label class="required hideForBankToBank" path="commandForm.sdVO.otherAttributes.map['ourBank']">
+            <spring:message code="stl.label.ownbank" htmlEscape="false"/>
+            <span class="popupBtn listBtnPos cashTransfEntry">
+              <input id="ourBankListPopUp2" class="inputBtnStyle small-btn-style" type="button" tgt="ownBankCode" hiddenTgt="ownBankCode:finInstRoleCode,ownBankName:bankName,ownAccount:accountNo,ownStandingRulePk:ownSettleStandingRulePk" popType="ourBankList" value="List" hiddenFieldFilteredReqd="true"/>
+            </span>
+          </form:label>
+					<form:input id="ownBankCode" value=""  path="commandForm.sdVO.otherAttributes.map['ourBank']"  class="textBox" readonly="true"/>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>	
+				</div>
+			</div>
+			<!-- From Bank / Own Bank **END -->
+			
+			<!-- Bank Name **START -->
+			<div class="formItem">
+				<form:label path="commandForm.sdVO.otherAttributes.map['ourBankShortname']"><spring:message code="stl.label.bankname" htmlEscape="false"/></form:label>
+				<span><form:input id="ownBankName" value="" path="commandForm.sdVO.otherAttributes.map['ourBankShortname']" class="text" readonly="true"/></span>            
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+           	</div>
+			<!-- Bank Name **END -->
+			
+			<!-- From Settle Account / Own Settle Account **START -->
+			<div class="formItem" id = "ownSettleAcc">
+				<form:label class="required showForBankToBank" path="commandForm.sdVO.otherAttributes.map['ourSettleAc']"><spring:message code="stl.label.fromsettleaccount" htmlEscape="false"/></form:label>
+				<form:label class="required hideForBankToBank" path="commandForm.sdVO.otherAttributes.map['ourSettleAc']"><spring:message code="stl.label.ownsettleac" htmlEscape="false"/></form:label>
+				<span><form:input   id="ownAccount" value="" path="commandForm.sdVO.otherAttributes.map['ourSettleAc']" class="text" readonly="true"/></span>            
+				<div class="popupBtn showForBankToBank">
+					<input type="button" class="popupBtnIco" tgt="ownAccount" popType="cpAccount" actTypeContext="S|B" actCPTypeContext="BANK/CUSTODIAN|BROKER|FUND" actStatusContext="OPEN" value="" hiddenFieldFilteredReqd="true" />
+				</div>
+				<div class="clear"  id="ownBankCodeId"><spring:message text="" htmlEscape="false"/></div>
+           	</div>
+			<!-- From Settle Account / Own Settle Account **END -->
+			
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+	</div>
+	<!-- From Bank Details/ Our Details **END -->
+	
+	<!-- [HIDDEN] GLE Ledger Code PAYMENT/ RECEIPT List **START -->
+	<div class="glePaymentList" style="display:none;">
+		<option></option>
+		<c:forEach items="${commandForm.dropDownListValues.firmPaymentLedgerList}" var="dl">
+			<option value="${dl.value}">${dl.label}</option>
+		</c:forEach>
+	</div>	
+	<div class="gleReceiptList" style="display:none;">			
+		<option></option>
+		<c:forEach items="${commandForm.dropDownListValues.firmReceiptLedgerList}" var="dl">
+			<option value="${dl.value}">${dl.label}</option>
+		</c:forEach>
+	</div>
+	<!-- [HIDDEN] GLE Ledger Code PAYMENT/ RECEIPT List **END -->
+	
+	<!-- jQuery  -->	
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>			
+		</jsp:body>
+	</jsp:element>	
+</div>
+</jsp:root>

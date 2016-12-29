@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" 
+	xmlns:cntrls="com.nri.rui.core.controls.*" 
+	height="100%" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:rui="*"
+	updateComplete="com.nri.rui.core.controls.AutoScroll.updateDisplayList(event);">
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.controls.XenosAlert;
+			import mx.collections.ArrayCollection;
+			import mx.binding.utils.BindingUtils;
+			import com.nri.rui.core.controls.AutoScroll;
+			import mx.controls.Label;
+			import mx.controls.Alert;
+			
+			[Bindable]
+			private var xmlData:XML;
+			[Bindable] private var warnInfoList : ArrayCollection = new ArrayCollection();
+						
+			public function loadModule(value:XML):void
+			{
+				this.xmlData = value;
+				softWarn.showWarning(warnInfoList);
+				
+			}
+
+			public function set xmlSource(xml:XML) : void
+			{
+				this.xmlData = xml;
+				//XenosAlert.info("warn1 :: ");
+				warnInfoList  = new ArrayCollection();
+				if(xml.child("softExceptionList").length()>0){
+					//XenosAlert.info("warn2 :: ");
+				 	for each ( var warn:XML in xml.softExceptionList.item ) {
+				 		//XenosAlert.info("warn3 :: "+warn.value);
+		 			   warnInfoList.addItem(warn.value);
+					}
+		  		}
+				 //softWarn.showWarning(warnInfoList);
+				 showOnlyCouponFields(xmlData);
+			}
+			
+			public function showOnlyCouponFields(xmlData:XML):void{
+				//XenosAlert.info("type :: "+xmlData.instrumentPage.discountCouponType);
+				if(xmlData.instrumentPage.discountCouponType == 'COUPON'){
+					//XenosAlert.info("fixed :: "+xmlData.instrumentPage.fixedDayCouponFlagDisp);
+					fixedDaysCouponFlagLbl.includeInLayout = true;
+					fixedDaysCouponFlagLbl.visible = true;
+					fixedDaysCouponFlag.includeInLayout = true;
+					fixedDaysCouponFlag.visible = true;
+					
+					investmentBondLbl.includeInLayout=true;
+					investmentBondLbl.visible=true;
+					
+					investmentBondLblValue.includeInLayout=true;
+					investmentBondLblValue.visible=true;
+					
+					bondFlagLbl.includeInLayout=true;
+					bondFlagLbl.visible=true;
+					
+					bondFlagLblValue.includeInLayout=true;
+					bondFlagLblValue.visible=true;
+						
+					if(xmlData.instrumentPage.fixedDayCouponFlagDisp == 'Yes'){
+						prevCouponDateLbl.includeInLayout = true;
+						prevCouponDateLbl.visible = true;
+						prevCouponDate.includeInLayout = true;
+						prevCouponDate.visible = true;
+						fixedCouponDaysLbl.includeInLayout = true;
+						fixedCouponDaysLbl.visible = true;
+						fixedCouponDays.includeInLayout = true;
+						fixedCouponDays.visible = true;
+						nextCouponDaysLbl.includeInLayout = true;
+						nextCouponDaysLbl.visible = true;
+						nextCouponDays.includeInLayout = true;
+						nextCouponDays.visible = true;
+						
+						
+						
+					}
+				}
+			}
+			
+		]]>
+	</mx:Script>
+	<mx:XMLListCollection id="paymentSchedules" source="{xmlData.paymentSchedulesWrapper.paymentSchedules}" />
+	<mx:XMLListCollection id="paymentDates" source="{xmlData.paymentDatesWrapper.item.entry}" />
+	<mx:XMLListCollection id="couponRates" source="{xmlData.couponRatesWrapper.couponRates}" />
+	<rui:instrumentHeader id="header" setXml="{xmlData}" subTitle="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.bond')}" styleName="LabelHeading" />
+	<mx:HBox width="100%" height="100%" styleName="Padding" >
+	
+		<mx:VBox width="100%" height="100%" verticalGap="0" horizontalGap="0">
+		<cntrls:SoftWarningControl id="softWarn" height="20" width="100%" color="#0000FF" backgroundAlpha="0" borderStyle="none" fontWeight="bold"/>
+			<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.securitycode')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.defaultInstrumentCode}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.instrumenttype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.instrumentType}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.shortname')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.defaultShortName}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+			</mx:Grid>
+			
+			<mx:Spacer height="10" />
+			
+			<flexlib:WindowShade id="ws1" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws1" tabChildren="{ws1.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.basicbondinfo')}" width="100%" >
+			<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.bondtype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.discountCouponType}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.issueprice')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.issuePriceStr}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.redemptionccy')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.redemptionCcy}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.redemptionprice')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.redemptionPriceStr}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.issuedate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.issueDateStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.maturitydate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.maturityDateStr}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.delaydays')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.delayDaysStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.paydownflag')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.payDownFlagDisp}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.tipsflag')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.tipsFlagDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.tipsbase')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.tipsBase}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.principalpaymentfreq')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.principalPaymentFreqDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.striptype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.stripTypeDisp}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.recorddays')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.recordDaysStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text=""/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.couponfrequency')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.couponPaymentFreqDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.couponccy')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.couponCcy}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.accintstartdate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.accruedInterestInitDateStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.accintcalctype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.accruedInterestCalcType}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.initialcoupondate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.initialCouponDateStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text=""/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text=""/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.initialcoupontype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.initialCouponType}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.finalcoupontype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.finalCouponType}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.ratetype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.floatingFixFlag}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.fixedcouponrate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.fixedCouponRateStr}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.couponresetdate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.couponResetDateStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.floatingbaserate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.floatingBaseRate}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.businessdayconvention')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.businessDayConventionDisplay}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.dirtypriceflag')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.dirtyPriceFlagDisp}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label id="fixedDaysCouponFlagLbl" text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.fixeddayscpnflag')}" styleName="FormLabelHeading" includeInLayout="false" visible="false"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label id="fixedDaysCouponFlag" text="{xmlData.instrumentPage.fixedDayCouponFlagDisp}" selectable="true" includeInLayout="false" visible="false"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label id="prevCouponDateLbl" text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.prevcpndate')}" styleName="FormLabelHeading" includeInLayout="false" visible="false"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label id="prevCouponDate" text="{xmlData.instrumentPage.prevCouponDateStr}" selectable="true" includeInLayout="false" visible="false"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label id="fixedCouponDaysLbl" text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.fixedcoupondays')}" styleName="FormLabelHeading" includeInLayout="false" visible="false"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label id="fixedCouponDays" text="{xmlData.instrumentPage.fixedCouponDaysStr}" selectable="true" includeInLayout="false" visible="false"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label id="nextCouponDaysLbl" text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.nextcoupondays')}" styleName="FormLabelHeading" includeInLayout="false" visible="false"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label id="nextCouponDays" text="{xmlData.instrumentPage.nextCouponDateStr}" selectable="true" includeInLayout="false" visible="false"/>
+					</mx:GridItem>
+				</mx:GridRow>
+							
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label id="investmentBondLbl" text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.investmentbondcategory')}" styleName="FormLabelHeading" includeInLayout="false" visible="false"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label id="investmentBondLblValue"  text="{xmlData.investBondCategoryDisp}" selectable="true" includeInLayout="false" visible="false"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label id="bondFlagLbl"  text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.euroyenbondflag')}" styleName="FormLabelHeading" includeInLayout="false" visible="false"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label id="bondFlagLblValue" text="{xmlData.euroYenBondFlagDisp}" selectable="true" includeInLayout="false" visible="false"/>
+					</mx:GridItem>
+				</mx:GridRow>
+			</mx:Grid>
+			</flexlib:WindowShade>
+			
+			<mx:Spacer height="10" />
+			
+			<flexlib:WindowShade id="ws2" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws2" tabChildren="{ws2.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.lessimportant.fields')}" width="100%" >
+			<mx:HBox horizontalGap="0" width="100%" height="100%">
+				<mx:Box width="33%" height="100%">
+					<mx:HBox width="100%" styleName="HeadingBackPanel">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.accrualstartdate')}" />
+					</mx:HBox>
+					<cntrls:CustomDataGrid width="100%" height="100%" dataProvider="{paymentSchedules}">
+						<cntrls:columns>
+							<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.paymentmonth')}" dataField="paymentMonth"/>
+							<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.paymentday')}" dataField="paymentDay"/>
+						</cntrls:columns>
+					</cntrls:CustomDataGrid>					
+				</mx:Box>
+				<mx:Spacer width="4" />
+				<mx:Box width="33%" height="100%">
+					<mx:HBox width="100%" styleName="HeadingBackPanel">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.paymentdate')}" />
+					</mx:HBox>
+					<cntrls:CustomDataGrid width="100%" height="100%" dataProvider="{paymentDates}">
+						<cntrls:columns>
+							<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.date')}" dataField="value"/>
+						</cntrls:columns>
+					</cntrls:CustomDataGrid>					
+				</mx:Box>
+				<mx:Spacer width="4" />
+				<mx:Box width="33%" height="100%">
+					<mx:HBox width="100%" styleName="HeadingBackPanel">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.couponrates')}" />
+					</mx:HBox>
+					
+					<cntrls:CustomDataGrid width="100%" height="100%" dataProvider="{couponRates}">
+						<cntrls:columns>
+							<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.effstartdate')}" dataField="dateFromDisp"/>
+							<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.rate')}" dataField="rateDisp"/>
+						</cntrls:columns>
+					</cntrls:CustomDataGrid>					
+				</mx:Box>
+				
+			</mx:HBox>
+			
+			</flexlib:WindowShade>
+			
+		</mx:VBox>	
+	</mx:HBox>
+</mx:Module>

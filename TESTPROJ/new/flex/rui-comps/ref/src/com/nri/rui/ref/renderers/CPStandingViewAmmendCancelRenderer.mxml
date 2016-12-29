@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%" verticalAlign="middle" horizontalAlign="center">
+<mx:Script>
+	<![CDATA[
+		import mx.events.CloseEvent;
+		import mx.managers.PopUpManager;
+		import mx.managers.ToolTipManager;
+		import mx.controls.ToolTip;
+		import com.nri.rui.core.utils.XenosPopupUtils;
+		import com.nri.rui.core.Globals;
+		import com.nri.rui.core.containers.SummaryPopup;
+		import mx.core.UIComponent;
+				
+		[Embed(source="../../../../../../assets/icon_view.png")]
+		[Bindable]
+		private var icoView:Class;
+	   [Bindable] 
+	    public var _mode:String = "QUERY";
+	     private var sPopup : SummaryPopup;	
+	     private var standingRulePk:String="";
+					
+
+		  
+		public function handleMouseClick(event:MouseEvent):void {
+			standingRulePk =data.standingRulePk;
+			var parentApp :UIComponent = UIComponent(this.parentApplication);
+    		var viewType:String = _mode;
+    	
+    		if(event.target is Image){
+    			viewType="QUERY";
+    		}
+	     	
+	     	sPopup= SummaryPopup(PopUpManager.createPopUp(parentApp,SummaryPopup,true));
+	     	if(viewType=='CANCEL'){
+				sPopup.title = this.parentApplication.xResourceManager.getKeyValue('ref.cpstandingviewamend.title.renderer.cancel');	
+				setModuleUrl(sPopup,viewType);
+			}else if(viewType=='AMEND'){
+				sPopup.title = this.parentApplication.xResourceManager.getKeyValue('ref.cpstandingviewamend.title.renderer.amend');
+				setModuleUrl(sPopup,viewType);
+			}else{
+			   sPopup.title = this.parentApplication.xResourceManager.getKeyValue('ref.cpstandingviewamend.title.renderer.other');
+			   setModuleUrl(sPopup,viewType);
+			}
+	     	sPopup.addEventListener(CloseEvent.CLOSE,closeHandler,false,0,true);
+	     	sPopup.width = parentApp.width - 100;
+    		sPopup.height = parentApp.height - 100;
+	    	PopUpManager.centerPopUp(sPopup);	
+		}
+		
+		 private function setModuleUrl(sPopup:SummaryPopup,viewType:String):void{
+		 	if(viewType=="AMEND"){
+		 	sPopup.moduleUrl = Globals.CP_STANDING_ADD_AMMEND_SWF+Globals.QS_SIGN+Globals.RULE_PK+Globals.EQUALS_SIGN+standingRulePk+
+			Globals.AND_SIGN+Globals.MODE_OF_TRAN+Globals.EQUALS_SIGN+viewType;
+		 	}else if(viewType=="QUERY"){
+			sPopup.moduleUrl = Globals.CP_STANDING_DETAIL_VIEW_SWF+Globals.QS_SIGN+Globals.RULE_PK+Globals.EQUALS_SIGN+standingRulePk+
+			Globals.AND_SIGN+Globals.VIEW_TYPE+Globals.EQUALS_SIGN+viewType;
+		 	}else{
+		 	sPopup.moduleUrl = Globals.CP_STANDING_CANCEL_VIEW_SWF+Globals.QS_SIGN+Globals.RULE_PK+Globals.EQUALS_SIGN+standingRulePk+
+			Globals.AND_SIGN+Globals.VIEW_TYPE+Globals.EQUALS_SIGN+viewType;
+		 	}
+		 	
+		 }
+			/**
+        	 * Event Handler for the custom event "OkSystemConfirm"
+        	 */
+        	public function closeHandler(event:Event):void {
+                  this.parentDocument.dispatchEvent(new Event("querySubmit"));
+                  sPopup.removeMe();
+            }
+		
+	]]>
+</mx:Script>
+	<mx:Button id="editCancel" styleName="{_mode == 'AMEND' ? 'BtnEdit' : 'BtnDelete'}" width="18" height="18" label="{_mode == 'AMEND' ? 'Edit' : 'Cancel'}" includeInLayout="{_mode == 'QUERY' ?false :true }"  visible="{editCancel.includeInLayout}" click="handleMouseClick(event)"/>
+	<mx:Image id="sView" source="{icoView}" click="handleMouseClick(event)" buttonMode="true" verticalAlign="middle" toolTip="View Details"/>
+</mx:HBox>
+

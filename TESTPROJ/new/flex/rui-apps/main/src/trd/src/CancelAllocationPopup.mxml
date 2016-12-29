@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Trade Allocation Cancel Popup Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:containers="com.nri.rui.core.containers.*" 
+	xmlns:flexlib="http://code.google.com/p/flexlib/" 
+	xmlns:cntrls="com.nri.rui.core.controls.*" 
+	xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+	layout="vertical" 
+	percentWidth="100" 
+	percentHeight ="100" 
+	horizontalScrollPolicy="off" 
+	verticalScrollPolicy="off" 
+	creationComplete="init()">
+
+	<mx:Script>
+	
+		<![CDATA[
+			import mx.utils.StringUtil;
+			import com.nri.rui.core.utils.ProcessResultUtil;
+			import mx.containers.TitleWindow;
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.controls.CheckBox;
+			import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+			import com.nri.rui.core.controls.XenosAlert;
+			
+			
+			[Bindable] private var selectedIndexArray:Array = new Array();
+			[Bindable] private var queryResult:ArrayCollection= new ArrayCollection();
+			[Bindable] private var initColl:ArrayCollection;			
+			private var rndNo:Number = 0;
+			private function init():void{
+				parseUrlString();
+				var obj:Object=new Object();
+				rndNo = Math.random();
+				obj.rnd = rndNo+"";
+				obj.method="allocTradeCancellation";
+				obj.selector = selectedIndexArray;
+				allocTradeCancel.request = obj;
+				allocTradeCancel.send();
+			}
+			
+			private function parseUrlString():void {
+		        var o:Object = new Object();
+		        try {
+		            // Remove everything before the question mark, including
+		            // the question mark.
+		            var myPattern:RegExp = /.*\?/; 
+		            var s:String = this.loaderInfo.url.toString();
+		            s = s.replace(myPattern, "");
+		            // Create an Array of name=value Strings.
+		            var params:Array = s.split("="); 
+		            // Set the values of the salutation.
+	                if (params[0] == "selectedIndexArray") {
+	                	var selectedRowNum:String = params[1];
+	                	if(selectedRowNum.indexOf(",",0)){
+	                		var selArr:Array = selectedRowNum.split(",");
+	                		for(var i:int = 0;i<selArr.length;i++){
+	                			selectedIndexArray.push(selArr[i]);
+	                		}
+	                		selectedIndexArray.push("-1");
+	                	}else {
+	                		selectedIndexArray.push(selectedRowNum);
+	                	}
+	                }
+		        } catch (e:Error) {
+		            trace(e);
+		        }
+		    }
+		    
+	    public function submitCancel(event:Event):void {
+	    	var reqObj:Object = new Object();
+	    	reqObj.reasonCode = this.reasonCode.selectedItem != null ? StringUtil.trim(this.reasonCode.selectedItem.value) : "";
+	    	reqObj.remarks = this.remarks.text;
+	    	if((this.remarks.text != null && StringUtil.trim(this.remarks.text) != "") ||
+	    	 (this.reasonCode.selectedItem != null &&  StringUtil.trim(this.reasonCode.selectedItem.value) != "")){
+	    		reqObj.method = "findCancelAllocationTrade";
+		    	rndNo = Math.random();
+				reqObj.rnd = rndNo+"";
+		    	allocTradeCancelConfirm.request=reqObj;
+				allocTradeCancelConfirm.send();
+	    	}else{
+	    		XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('trd.error.rsncode.remarks.req'));
+	    	}
+	    }
+			
+			
+        public function LoadAllocCancelConfirmPage(event:ResultEvent):void {
+			if (null != event) {
+				if(event.result != null){
+					if(event.result.tradeRcvdConfQueryActionForm != null){
+						if(event.result.tradeRcvdConfQueryActionForm.rcvdQueryViewList!= null) {
+							if(event.result.tradeRcvdConfQueryActionForm.rcvdQueryViewList.rcvdQueryView!= null){
+								errPage.clearError(event);
+					            queryResult.removeAll();
+					            if(event.result.tradeRcvdConfQueryActionForm.rcvdQueryViewList.rcvdQueryView is ArrayCollection){
+					            	queryResult = event.result.tradeRcvdConfQueryActionForm.rcvdQueryViewList.rcvdQueryView;
+					            }else{
+					            	queryResult.addItem(event.result.tradeRcvdConfQueryActionForm.rcvdQueryViewList.rcvdQueryView);
+					            }
+							}else {
+							 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+							 	queryResult.removeAll(); // clear previous data if any as there is no result now.
+							 	errPage.removeError(); //clears the errors if any
+							 }
+						 } else if(event.result.tradeRcvdConfQueryActionForm.Errors != null) {
+			                //some error found
+			                // clear previous data if any as there is no result now.
+						 	queryResult.removeAll(); 
+						 	var errorInfoList : ArrayCollection = new ArrayCollection();
+			                //populate the error info list 	
+			                if(event.result.tradeRcvdConfQueryActionForm.Errors.error != null){
+			                	if(event.result.tradeRcvdConfQueryActionForm.Errors.error is ArrayCollection){
+			                		errorInfoList = event.result.tradeRcvdConfQueryActionForm.Errors.error;
+			                	}else{
+			                		errorInfoList.addItem(event.result.tradeRcvdConfQueryActionForm.Errors.error);
+			                	}
+			                }		 	
+						 	//Display the error
+						 	errPage.showError(errorInfoList);
+						 } else {
+						 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+						 	queryResult.removeAll(); // clear previous data if any as there is no result now.
+						 	errPage.removeError(); //clears the errors if any
+						 }
+						 
+						 if(event.result.tradeRcvdConfQueryActionForm.reasonList != null){
+						 	initColl = new ArrayCollection();
+						 	initColl.addItem({label:" ", value: " "});
+						 	if(event.result.tradeRcvdConfQueryActionForm.reasonList.item != null){
+						 		if(event.result.tradeRcvdConfQueryActionForm.reasonList.item != null){
+						        	if(event.result.tradeRcvdConfQueryActionForm.reasonList.item is ArrayCollection){
+							        	initColl = event.result.tradeRcvdConfQueryActionForm.reasonList.item as ArrayCollection;
+							        }else{
+							        	initColl.addItem(event.result.tradeRcvdConfQueryActionForm.reasonList.item);
+							        }
+						        }
+						 		reasonCode.dataProvider = initColl;
+						 	}
+						 }
+					}
+				}
+	        }
+       }
+       
+	    private function closeHandler():void{
+	   		parentDocument.owner.submitQuery();
+	        this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+        }
+        
+        private function closeHandlerOnError():void{
+        	this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+        }
+        
+        public function LoadMatchingQueryResult(event:ResultEvent):void{
+        	if (null != event) {
+        		var rs:XML = XML(event.result);
+        		if(null != rs){
+        			if(rs.child("Errors") != null && rs.child("Errors").length()>0){
+						 	var errorInfoList : ArrayCollection = new ArrayCollection();
+						 	var errorStr:String = "";
+			                //populate the error info list 			 	
+						 	for each ( var error:XML in rs.Errors.error ) {
+						 	   errorStr = errorStr + error.toString()+"\n";
+				 			   errorInfoList.addItem(error.toString());
+							}
+							//Display the error
+							errPage.showError(errorInfoList);
+        			}else{
+        				this.closeHandler();
+        			}
+        		}else{
+        			XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+        			this.closeHandler();
+        		}
+        	}else{
+        		XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+        		this.closeHandler();
+        	}
+        }
+        
+		]]>
+	</mx:Script>
+	
+	<cntrls:XenosHTTPService id="allocTradeCancel" 
+         url="trd/tradeAllocCxlQueryDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         result="LoadAllocCancelConfirmPage(event)" 
+         showBusyCursor="true" 
+         method="POST">
+    </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="allocTradeCancelConfirm" 
+         url="trd/tradeAllocCxlQueryDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         result="LoadMatchingQueryResult(event)" 
+         showBusyCursor="true" 
+         resultFormat="xml" 
+         method="POST">
+    </cntrls:XenosHTTPService>	
+    
+    
+		<mx:VBox width="100%" height="100%" id="rslt" styleName="HDivideStyle">			
+		<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		
+			<mx:DataGrid id="tradeRcvdQueryResult" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto">
+				<mx:columns> 
+	               <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.referenceno')}" dataField="allocationReferenceNo"/>
+	               <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.securitycode')}" dataField="securityId"/>
+	               <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.buysellflag')}" dataField="buySellFlagDisp"/>
+	               <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.tradedate')}" dataField="tradeDateDisp"/>
+	               <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.valuedate')}" dataField="valueDateDisp"/>
+	               <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.quantity')}"  dataField="quantityDisp"/>
+	               <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.netamount')}" dataField="netAmountDisp"/>
+	            </mx:columns>
+	     	</mx:DataGrid>
+	     	<mx:Spacer/>
+     		<mx:HBox>
+	     		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.reasoncode')}" />
+	     		<mx:ComboBox id="reasonCode" labelField="label" prompt="Select"/>
+	     		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.remarks')}" />
+	     		<mx:TextInput id="remarks"/>
+	     	</mx:HBox>
+	     	<mx:Spacer/>
+	     	<mx:HBox>
+	     		<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="this.submitCancel(event);"/>
+	     		<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" styleName="BtnStyle" click="this.closeHandlerOnError();"/>
+	     	</mx:HBox>
+		</mx:VBox>
+</mx:Module>

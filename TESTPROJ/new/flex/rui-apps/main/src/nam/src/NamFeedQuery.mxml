@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<!--Mxml file for NAM Feed Query Implementation -->
+<mx:Module
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:flexlib="http://code.google.com/p/flexlib/"
+	xmlns:containers="com.nri.rui.core.containers.*"
+	xmlns:cntrls="com.nri.rui.core.controls.*"
+	xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"
+	xmlns:nampopup="com.nri.rui.nam.popupImpl.*"
+	xmlns:utils="com.nri.rui.core.utils.*"
+	layout="vertical" percentWidth="100"
+	percentHeight ="100" horizontalScrollPolicy="off"
+	verticalScrollPolicy="off" creationComplete="loadAll()" >
+
+    <mx:Metadata>
+         [ResourceBundle("namResources")]
+    </mx:Metadata>
+    <mx:Metadata>
+         [ResourceBundle("trdResources")]
+    </mx:Metadata>
+    <mx:Metadata>
+         [ResourceBundle("stlResources")]
+    </mx:Metadata>
+    <mx:Metadata>
+         [ResourceBundle("caxResources")]
+    </mx:Metadata>
+    <mx:Metadata>
+         [ResourceBundle("frxResources")]
+    </mx:Metadata>
+    <mx:Metadata>
+     	[ResourceBundle("drvResources")]
+    </mx:Metadata>
+    <mx:Metadata>
+     	[ResourceBundle("bkgResources")]
+    </mx:Metadata>
+    <mx:Metadata>
+         [ResourceBundle("camResources")]
+    </mx:Metadata>
+    <mx:Metadata>
+         [ResourceBundle("ncmResources")]
+    </mx:Metadata>
+
+    <mx:Script>
+        <![CDATA[
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.containers.TitleWindow;
+            import mx.collections.ArrayCollection;
+            import mx.events.CloseEvent;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import mx.controls.CheckBox;
+            import mx.managers.PopUpManager;
+            import com.nri.rui.core.controls.XenosAlert;
+            [Bindable]
+            public var module_mode:String = "Query";
+
+            private function changeCurrentState():void{
+                currentState = "result";
+                app.submitButtonInstance = null;
+            }
+        ]]>
+    </mx:Script>
+
+    <mx:Script source="actionscripts/NamFeedQuery.as"/>
+
+    <mx:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+        </mx:State>
+    </mx:states>
+
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+
+    <cntrls:XenosHTTPService id="initializeNamFeedQuery"
+        method="POST"
+        useProxy="false"
+        fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString)"
+        result="initPage(event)"
+        showBusyCursor="true"/>
+
+    <cntrls:XenosHTTPService id="NamFeedQueryRequest"
+         url="nam/namFeedStatusQueryDispatch.action"
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+         result="LoadSummaryPage(event)" showBusyCursor="true" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+
+    <cntrls:XenosHTTPService id="NamFeedResetQueryRequest"
+    	url="nam/namFeedStatusQueryDispatch.action?method=initialExecute"
+        result="initPage(event)"
+        showBusyCursor="true">
+    </cntrls:XenosHTTPService>
+
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0">
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';destinationSystem.setFocus();app.submitButtonInstance = submit;"  />
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'"  />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'" />   	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+	    <mx:VBox width="100%" height="100%">
+		    <mx:HDividedBox id="hdbox1" styleName="Padding4" width="100%" height="100%" liveDragging="true" creationComplete="initPageStart()" >
+		    <mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		        <mx:VBox label="Query Criteria" width="100%" height="100%" styleName="HDivideStyle" >
+		            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+		            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		            <mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+		                <mx:Grid width="100%" borderThickness="0">
+		                	<mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.label.destinationsystem')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+
+		                        	<mx:ComboBox id="destinationSystem" labelField="label" prompt="Select"/>
+		                        </mx:GridItem>
+		                        <!--<mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.label.acceptancestatus')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:ComboBox id="acceptanceStatus" labelField="label" prompt="Select"/>
+		                        </mx:GridItem> -->
+		                    </mx:GridRow>
+
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.label.interfaceid')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+									<nampopup:IntfPopUpHbox id="intfPopUp"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.label.officeid')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:ComboBox id="officeId" labelField="label" prompt="Select"/>
+		                        </mx:GridItem>
+		                    </mx:GridRow>
+
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.label.interfacename')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:TextInput id="interfaceName"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.label.xenosrefno')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:TextInput restrict="{Globals.INPUT_PATTERN}" id="xnsRefNo"/>
+		                        </mx:GridItem>
+		                    </mx:GridRow>
+
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.label.destsysrefno')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:TextInput restrict="{Globals.INPUT_PATTERN}" id="destSystemRefno"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.label.feedtype')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:ComboBox id="feedType" labelField="label" prompt="Select"/>
+		                        </mx:GridItem>
+		                    </mx:GridRow>
+
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.label.srccomponent')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:ComboBox id="srcComponent" labelField="label" prompt="Select"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.label.feedstatus')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:ComboBox id="feedStatus" labelField="label" prompt="Select"/>
+		                        </mx:GridItem>
+		                    </mx:GridRow>
+
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.label.errorid')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:TextInput restrict="{Globals.INPUT_PATTERN}" id="errorId"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.label.errormsg')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:TextInput id="errorMsg"/>
+		                        </mx:GridItem>
+		                    </mx:GridRow>
+
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.label.creationdate')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:DateField id="creationDate"  formatString="YYYYMMDD" editable="true" width="90"/>
+		                        </mx:GridItem>
+		                       <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('nam.label.acceptancestatus')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:ComboBox id="acceptanceStatus" labelField="label" prompt="Select"/>
+		                        </mx:GridItem>
+		                    </mx:GridRow>
+		                </mx:Grid>
+
+		           <flexlib:WindowShade id="ws3" tabChildren="{ws3.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('nam.label.sortorder')}" opened="true" width="100%"  > 
+		                <mx:Grid width="100%" borderThickness="0">
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="100%" borderThickness="0">
+		                            <mx:HBox width="100%">
+		                                <mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()" width="200" itemRenderer="mx.controls.Label" /> 
+		                                <mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()" width="200" itemRenderer="mx.controls.Label" /> 
+		                                <mx:ComboBox id="sortField3" labelField="label" change="sortOrder3Update()" width="200" itemRenderer="mx.controls.Label"/>
+		                            </mx:HBox>
+		                        </mx:GridItem>
+		                    </mx:GridRow>
+		                </mx:Grid>
+		              </flexlib:WindowShade>
+
+		            <mx:HBox width="100%" styleName="ButtonBackPanel">
+		                <cntrls:XenosButton id="submit"  label="{this.parentApplication.xResourceManager.getKeyValue('nam.button.submit')}" styleName="BtnStyle" click="this.submitQuery();" />
+		                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('nam.button.reset')}" styleName="BtnStyle" click="this.resetQuery();"/>
+		            </mx:HBox>
+
+		        </mx:VBox>
+		        </mx:Canvas>
+		        <mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >
+			        <cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" width="100%" visible="true" />
+			        <mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text=""/>
+					  <mx:DataGrid id="movementSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()">
+			            <mx:columns>
+				   		   <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+	               			<mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.view')}" resizable="false" itemRenderer="com.nri.rui.nam.renderers.NamFeedDetailViewRenderer"  showDataTips="true" sortable="false" visible="true"/>
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.interfaceid')}" dataField="interfaceId" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.interfacename')}" dataField="interfaceName"/>
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.officeid')}" dataField="officeId"/>
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.xenosrefno')}" dataField="xnsRefNo" itemRenderer="com.nri.rui.nam.renderers.NamFeedDetailRenderer"  visible="true" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.destinationsystem')}" dataField="destinationSystem"/>
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.destsysrefno')}" dataField="destSystemRefNo"/>
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.feedtype')}" dataField="feedType"/>
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.srccomponent')}" dataField="feedTxnType"/>
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.feedstatus')}" dataField="status"/>
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.creationdate')}" dataField="creationDateStr"/>
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.errorid')}" dataField="errorId"/>
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.errormsg')}" dataField="errorMsg"/>
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.acceptancestatus')}" dataField="acceptanceStatus" itemRenderer="com.nri.rui.nam.renderers.AcceptanceStatusRenderer" />
+			            </mx:columns>
+			         </mx:DataGrid>
+		        </mx:VBox>
+		    </mx:HDividedBox>
+	    </mx:VBox>
+    </mx:Canvas>
+</mx:Module>

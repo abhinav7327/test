@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+
+
+-->
+
+<!--Mxml file for CamBalanceQuery Implementation -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="loadAll()">
+    
+    <mx:Script>
+        <![CDATA[
+        	import com.nri.rui.core.RendererFectory;
+        	import com.nri.rui.rec.renderers.CashSwiftFileViewRenderer;
+        	import mx.events.DataGridEvent;
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.containers.TitleWindow;
+            import mx.collections.ArrayCollection;
+            import mx.events.CloseEvent;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import mx.controls.CheckBox;
+            import mx.managers.PopUpManager;
+            
+            import com.nri.rui.core.controls.XenosAlert;
+            
+            /**
+            * 
+            */
+            private function changeCurrentState():void{
+                currentState = "result";
+                app.submitButtonInstance = null;
+            }
+            /**
+             * Retrieve and return the Account Name for dataTip.
+             */
+            private function getAccountName(item:Object):String {
+                return item.accountNo;
+            }
+            
+            /**
+ 			*  datagrid header release event handler to handle datagridcolumn sorting
+ 			*/
+			public function dataGrid_headerRelease(evt:DataGridEvent):void {				
+				var dg:DataGrid = DataGrid(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];	
+			}
+                        
+        ]]>
+    </mx:Script>
+    <mx:Script source="actionscripts/ReferRawFile.as"/>
+    
+  	<mx:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+        	<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </mx:states>
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+    
+      <cntrls:XenosHTTPService id="initializeCashRawQuery" fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString)" 
+             method="POST" useProxy="false" result="initPage(event)" showBusyCursor="true"/>    
+
+    <cntrls:XenosHTTPService id="cashRawQueryRequest" 
+         url="rec/cashReferRawDispatch.action?" 
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+         result="loadSummaryPage(event)" showBusyCursor="true" resultFormat="xml" />
+     
+    <cntrls:XenosHTTPService id="cashRawResetQueryRequest" url="rec/cashReferRawDispatch.action?method=resetQuery"
+        result="initPage(event)" showBusyCursor="true" />
+    
+    <cntrls:XenosHTTPService id="loadBankAndBankAccountForFund" 
+    	url="rec/cashReferRawDispatch.action?" 
+    	fault="XenosAlert.error('Error Occured  :  ' + event.fault.faultString)" 
+        result="populateBankAndBankAccount(event)" showBusyCursor="true" resultFormat="xml" />
+        
+    <!--
+    <cntrls:XenosHTTPService id="loadBankAccount" 
+    	url="rec/cashReferRawDispatch.action?"
+    	fault="XenosAlert.error('Error Occured  :  ' + event.fault.faultString)"
+        result="populateBankAccount(event)" showBusyCursor="true" />
+    -->
+    <!-- <mx:Validator source="{ccyBox.ccyText}" required="true" property="text" /> -->
+        
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;" />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>    	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+
+
+
+	<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		<mx:VBox width="100%" height="100%"> 
+        	<mx:HDividedBox id="hdbox1" width="100%" height="100%" liveDragging="true" styleName="Padding4" creationComplete="initPageStart()">
+        		<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        		<mx:VBox label="Query Criteria" width="100%" height="100%" styleName="HDivideStyle" >
+        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+        			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+        			<mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+        			
+        			    <mx:Grid width="100%" borderThickness="0">
+                            <mx:GridRow width="100%">
+	                            <mx:GridItem width="20%" borderThickness="0">
+	                            	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.receivedDateFromTo')}"/>
+	                        	</mx:GridItem>
+	                        	<mx:GridItem width="30%" borderThickness="0">
+	                        		<mx:DateField id="rcvdDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+	                        		<mx:DateField id="rcvdDateTo"  formatString="YYYYMMDD" editable="true" width="90"/>
+	                        	</mx:GridItem> 
+	                        	<mx:GridItem width="20%" borderThickness="0">
+	                            	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.fundcode')}"/>
+	                        	</mx:GridItem>
+	                       	    <mx:GridItem width="30%" borderThickness="0">
+									<xenospopup:FundPopUpHbox id="fundPopUp" inputEvent="inputHandler();"/>
+	                        	</mx:GridItem>
+                            </mx:GridRow>
+                            <mx:GridRow width="100%">
+								<mx:GridItem width="20%" borderThickness="0">  
+									<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.bank')}"/>
+								</mx:GridItem>
+								<mx:GridItem  width="30%" borderThickness="0">
+									<xenospopup:finInstForFundPopUpHBox id="finInstPopUp" retContextItem="{returnFinContext}" recContextItem="{populatefinRoleContext()}" />
+								</mx:GridItem>
+								<mx:GridItem width="20%" borderThickness="0">  
+									<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.bankaccountno')}"/>
+								</mx:GridItem>
+								<mx:GridItem  width="30%" borderThickness="0">
+									<xenospopup:AccountPopUpHbox id="actPopUp" retContextItem="{returnContextItem}" recContextItem="{stlAccForFundContextList}" />
+								</mx:GridItem>
+							</mx:GridRow>
+							<mx:GridRow width="100%">
+								<mx:GridItem width="20%" borderThickness="0">  
+									<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.transactionreferenceno')}"/>
+								</mx:GridItem>
+								<mx:GridItem  width="30%" borderThickness="0">
+									<mx:TextInput id="transactionReferenceNo" text="" maxChars="20" width="90" restrict="{Globals.INPUT_PATTERN}"/>
+								</mx:GridItem>
+								<mx:GridItem width="20%" borderThickness="0">  
+									<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.currencycode')}"/>
+								</mx:GridItem>
+								<mx:GridItem  width="30%" borderThickness="0">
+									<cntrls:CurrencyHBox id="ccyBox"/>
+								</mx:GridItem>
+							</mx:GridRow>
+                        </mx:Grid>
+                      
+                      <!-- Sort Order -->
+					<flexlib:WindowShade id="ws3" tabChildren="{ws3.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.sortorder.fields')}" opened="true" width="100%">
+		                <mx:Grid width="100%" borderThickness="0">
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="100%" borderThickness="0">
+		                            <mx:HBox width="100%">
+		                                <mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()"/>
+		                                <mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()"/>
+		                                <mx:ComboBox id="sortField3" labelField="label" change="sortOrder3Update()"/>
+		                                <mx:ComboBox id="sortField4" labelField="label" />
+		                            </mx:HBox> 
+		                        </mx:GridItem>                         
+		                    </mx:GridRow>
+		                </mx:Grid>
+		            </flexlib:WindowShade>  
+            
+                 	<mx:HBox width="100%" styleName="ButtonBackPanel">
+        				<cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="this.submitQuery();" />
+        	            <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="this.resetQuery()"/>					
+        			</mx:HBox>
+        </mx:VBox>
+        </mx:Canvas>
+        		
+        	<mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >                        
+                <cntrls:QueryResultHeader id="qh" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext"  startIndex="1"/>
+                <mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text=""/>
+                <mx:DataGrid id="resultSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()" headerRelease="dataGrid_headerRelease(event)">
+                    <mx:columns>
+                       <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/> 
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.receivedDate')}" dataField="receivedDateDisplay" showDataTips="true" sortable="true" minWidth="120" textAlign="center" sortCompareFunction="sortUtil.sortString"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.fundcode')}" dataField="fundCode" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer" sortable="true" textAlign="right" minWidth="120" sortCompareFunction="sortUtil.sortString"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.bankcode')}" dataField="bankCode" sortable="true" itemRenderer="com.nri.rui.core.renderers.FinancialInstitutionDetailsRenderer" textAlign="right" minWidth="120" sortCompareFunction="sortUtil.sortString"/>                       
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.bankaccountno')}" dataField="accountNo" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRenderer" sortable="true" sortCompareFunction="sortUtil.sortString"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.currencycode')}" dataField="currencyCode" sortable="true" textAlign="right" minWidth="120" sortCompareFunction="sortUtil.sortString"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.transactionreferenceno')}" dataField="trnRefNo" sortable="true" textAlign="right" minWidth="120" sortCompareFunction="sortUtil.sortString"/>                       
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.statementNo')}" dataField="statementNo" sortable="true" textAlign="right" sortCompareFunction="sortUtil.sortString"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.sequenceNo')}" dataField="sequenceNo" sortable="true" textAlign="right" minWidth="120" sortCompareFunction="sortUtil.sortString"/>
+                       <mx:DataGridColumn id="status" headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rawfile.label.status')}" dataField="status" itemRenderer="com.nri.rui.core.renderers.StatusRenderer" sortable="true" textAlign="right" minWidth="120" sortCompareFunction="sortUtil.sortString"/>
+                       
+                       <mx:DataGridColumn headerText=""  draggable="false" resizable="false" itemRenderer="{new RendererFectory(CashSwiftFileViewRenderer,this.actionType)}" sortable="false"/>
+                       <mx:DataGridColumn headerText="" dataField="cancelStatus" itemRenderer="com.nri.rui.rec.renderers.RawFileCancelRenderer" draggable="false" resizable="false" sortable="false"/>
+                       
+                     </mx:columns>
+                 </mx:DataGrid>
+       		 </mx:VBox>
+        	</mx:HDividedBox>
+        </mx:VBox>	
+	</mx:Canvas>
+</mx:Module>

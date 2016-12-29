@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- MXML module for CashAdjustEntry.  -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+    xmlns:cntrls="com.nri.rui.core.controls.*"
+    xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"
+    xmlns:glePopUp="com.nri.rui.gle.popupImpl.*" 
+    percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" 
+    verticalScrollPolicy="off" creationComplete="init()">
+    <mx:Script>
+        <![CDATA[
+        	import mx.utils.StringUtil;
+            import mx.events.StateChangeEvent;
+            import mx.events.CloseEvent;
+            import mx.collections.XMLListCollection;
+            import mx.controls.advancedDataGridClasses.AdvancedDataGridColumn;
+            import com.nri.rui.core.utils.XenosStringUtils;
+ 			import com.nri.rui.core.utils.DateUtils;
+            import mx.binding.utils.BindingUtils;
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.controls.XenosAlert;
+            import mx.managers.FocusManager;
+            import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+            import mx.rpc.events.FaultEvent;
+            import mx.controls.Alert;
+            import com.nri.rui.core.Globals;
+            
+            [Bindable]private var rowNum : String = "";
+            
+		    [Bindable]
+		    private var initColl:ArrayCollection;
+            [Bindable]
+            private var objForm:Object = null;
+            [Bindable]
+            private var objActQryView:Object = null;
+		    [Bindable]
+		    public var adj:String = " ";
+		    
+		    [Bindable]
+		    private var rs:XML = new XML();
+
+            /**
+             * Extracts the parameters and set them to some variables for query criteria from the Module Loader Info.
+             * 
+             */ 
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if(tempA[0] == "rowNum"){
+                            rowNum = tempA[1];
+//                            XenosAlert.info("rowNum = " + rowNum);
+                        } 
+                    }
+                } catch (e:Error) {
+                    trace(e);
+                }               
+            }
+            /**
+             * Initializes the module and send the submit request.
+             * 
+             */     
+            private function init():void{
+                
+                parseUrlString();
+                
+                var rndNo:Number = Math.random();
+                cashAdjEntryInitHttpService.url= "rec/cashReferResultDispatch.action?rnd=" + rndNo;
+                
+                var req : Object = new Object();
+                req.method="viewEntryPopUp";
+                req.rowNum=rowNum;
+                cashAdjEntryInitHttpService.request=req;
+                
+                cashAdjEntryInitHttpService.send();
+                PopUpManager.centerPopUp(this);
+            }
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function initHttpService_fault(evt:FaultEvent):void {
+                XenosAlert.error("Unable to Perform the requested operation." + evt.fault.faultString + evt.fault.faultDetail);
+            }
+            /**
+             * Result handler for the init submit Request. 
+             * 
+             */ 
+            private function initHttpService_result(event:ResultEvent):void { 
+                var selIndex:int = 0;
+                var i:int = 0;
+                var defaultAdjType:String = "";
+                var defaultReasonCode:String = "";
+		 		rs = XML(event.result);
+		 		
+                var tempResult:ArrayCollection = new ArrayCollection();     
+		 		if (null != event) {
+		 			if(rs.child("Errors").length()>0){ 
+						// i.e. Must be error, display it .
+						var errorInfoList : ArrayCollection = new ArrayCollection();
+						//populate the error info list 			 	
+						for each ( var error:XML in rs.Errors.error ) {
+							errorInfoList.addItem(error.toString());
+						}
+						errPage.showError(errorInfoList);//Display the error
+			      	}else {
+			      	 	errPage.removeError();	      	 	
+                        
+                        objForm = rs;
+                        
+                        if(objForm != null){                            
+                            fundCode.text = objForm.fundCode;
+                            defaultReasonCode = objForm.reasonCode;
+                            
+                            if(null != objForm.recDtlViewObj){
+                                ccy.text = objForm.recDtlViewObj.ccy;
+                                if(XenosStringUtils.isBlank(objForm.recDtlViewObj.ncmBal)){
+                                //if(null == objForm.recDtlViewObj.ncmBalDisp) {
+                                	ncmBalDisp.text = objForm.recDtlViewObj.custBal;
+                                }else{
+                                	ncmBalDisp.text = objForm.recDtlViewObj.ncmBal;
+                                }	
+                                 //if(null == objForm.recDtlViewObj.custBal) {
+                                if(XenosStringUtils.isBlank(objForm.recDtlViewObj.custBal)) {
+                                	if(objForm.recDtlViewObj.ncmBal>0 && objForm.recDtlViewObj.ncmDc=="D" )
+                                		adjustmentType.text = "CASH IN";
+                                	else
+                                		adjustmentType.text = "CASH OUT";
+                                	adj = objForm.recDtlViewObj.ncmBdate;
+                                }else{
+                                	if(objForm.recDtlViewObj.custBal>0 && objForm.recDtlViewObj.custDc=="C"){
+                                		adjustmentType.text = "CASH IN";
+                                	}else if(objForm.recDtlViewObj.custBal>0 && objForm.recDtlViewObj.custDc=="RD"){
+                                		adjustmentType.text = "CASH IN";
+                                	}else{
+                                		adjustmentType.text = "CASH OUT";
+                                	}
+                                	//adjustmentType.text = objForm.recDtlViewObj.ncmTrn;
+                                	adj = objForm.recDtlViewObj.custBdate;                                	
+                                } 
+                                // XPI-320
+                                adjustmentDate.selectedDate = DateUtils.toDate(adj);
+                                //gleledger.gleCode.text = objForm.recDtlViewObj.gleLedgerCode;
+                            }else{
+                                XenosAlert.error("Unable to initialize the Entry Form");
+                            }
+                            
+                            
+				          
+				           
+				           
+                            if(null != objForm.gleLedgerList && null != objForm.gleLedgerList.item){
+                                var gleCodeColl:ArrayCollection = new ArrayCollection();
+                                
+                        
+							    for each ( var rec:XML in rs.gleLedgerList.item ) {
+				 				    gleCodeColl.addItem(rec);
+							    }
+							    
+				                gleledger.dataProvider = gleCodeColl;
+				                gleledger.selectedItem = gleCodeColl.getItemAt(0);   
+				                
+				            }else{
+                                XenosAlert.error("Unable to initialize the GleLedger Codes.");
+                            }
+                            
+                            
+                            if(null != objForm.recCashReferResultActQueryView){
+                                bankCode.text = objForm.recCashReferResultActQueryView.bankCode;
+                                accountNo.text = objForm.recDtlViewObj.act;
+                                
+                                //adj = objForm.recCashReferResultActQueryView.basedateCloseDisp;
+                            }else{
+                                XenosAlert.error("Unable to initialize the Entry Form");
+                            }
+                            
+                            if(null != objForm.reasonCodeList && null != objForm.reasonCodeList.item){
+                                var reasonCodeColl:ArrayCollection = new ArrayCollection();
+                                reasonCodeColl.addItem({label:" ", value: " "});
+                        
+							    for each ( var rec:XML in rs.reasonCodeList.item ) {
+				 				    reasonCodeColl.addItem(rec);
+							    }
+                                /* if(objForm.reasonCodeList.item is ArrayCollection){
+                                	
+                                	XenosAlert.info("I am objForm.reasonCodeList.item is ArrayCollection");
+                                	
+                                    reasonCodeColl = objForm.reasonCodeList.item as ArrayCollection;
+                                }else{
+                                	
+                                	XenosAlert.info("I am objForm.reasonCodeList.item NOOOOOOT ArrayCollection");
+                                	
+                                    reasonCodeColl = new ArrayCollection();
+                                    reasonCodeColl.addItem(objForm.reasonCodeList.item);
+                                } */
+                                
+                                selIndex = 0;
+                                for(i = 0; i<reasonCodeColl.length; i++) {
+                                    //Get the default value object's index
+                                    if(XenosStringUtils.equals((reasonCodeColl[i].value),defaultReasonCode)){                    
+                                        selIndex = i;
+                                    }           
+                                }                                 
+                                reasonCode.dataProvider = reasonCodeColl;
+                                reasonCode.selectedItem = reasonCodeColl.getItemAt(selIndex);                            
+                            }else{
+                                XenosAlert.error("Unable to initialize the reasonCodes.");
+                            }
+                        }
+                    } 
+                }
+            }
+            /**
+             * Close this window.
+             */ 
+            private function doClose(event:MouseEvent):void{
+                this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+            }
+            /**
+             * Submit data for entry.
+             */ 
+            private function submitEntryPopUp(event:MouseEvent):void{
+                // validation for Adjustment Date          
+	            if (XenosStringUtils.isBlank(adjustmentDate.text)) {
+	                XenosAlert.error("Please Enter Adjustment Date");
+	                return;
+	            }	             
+	            if(!DateUtils.isValidDate(adjustmentDate.text)){
+	                XenosAlert.error("Please Enter Valid Adjustment Date");
+	                return;
+	            }
+	            
+                //Set the request parameters
+             	var requestObj :Object = populateRequestParams();
+             	
+             	var rndNo:Number = Math.random();
+                cashAdjEntrySubmitHttpService.url= "rec/cashReferResultDispatch.action?rnd=" + rndNo;
+                
+             	cashAdjEntrySubmitHttpService.request = requestObj;
+             	cashAdjEntrySubmitHttpService.send();
+            }
+            
+            /**
+            * This method will populate the request parameters for the
+            * submitEntryPopUp call and bind the parameters with the HTTPService
+            * object.
+            */
+            private function populateRequestParams():Object {
+            	var reqObj : Object = new Object();
+            	reqObj.method = "submitEntryPopUp";
+            	
+            	reqObj['fundCode'] = this.fundCode.text;
+            	reqObj['recDtlViewObj.ccy'] = this.ccy.text;
+            	reqObj['recDtlViewObj.ncmBalDisp'] = this.ncmBalDisp.text;
+            	reqObj['recCashReferResultActQueryView.bankCode'] = this.bankCode.text;
+            	//reqObj['recCashReferResultActQueryView.accountNo'] = this.accountNo.text;
+            	reqObj['recDtlViewObj.act'] = this.accountNo.text;
+            	//reqObj['date'] = adDate.text;
+            	reqObj['date'] = adjustmentDate.text;
+            	reqObj['adjustmentType'] = this.adjustmentType.text;//this.adjustmentType.selectedItem != null ?  this.adjustmentType.selectedItem.value : "" ;
+            	reqObj['reasonCode'] = this.reasonCode.selectedItem.value ;
+            	reqObj['recDtlViewObj.reasonCode'] = this.reasonCode.selectedItem.value ;
+            	reqObj['recDtlViewObj.gleLedgerCode'] = this.gleledger.selectedItem.value;
+            	reqObj['recDtlViewObj.remarks'] = this.remarks.text;
+            	
+             	return reqObj;
+            }
+
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function submit_fault(evt:FaultEvent):void {
+                XenosAlert.error("Unable to Perform the requested operation." + evt.fault.faultString + evt.fault.faultDetail);
+            }
+            /**
+             * Result handler for the submit Request. 
+             * 
+             */ 
+            private function submit_result(event:ResultEvent):void {        
+		 		rs = XML(event.result);   
+		 		if (null != event) {
+		 			if(rs.child("Errors").length()>0){ 
+						// i.e. Must be error, display it .
+						var errorInfoList : ArrayCollection = new ArrayCollection();
+						//populate the error info list 			 	
+						for each ( var error:XML in rs.Errors.error ) {
+							errorInfoList.addItem(error.toString());
+						}
+						errPage.showError(errorInfoList);//Display the error
+			      	}else {
+			      	 	errPage.removeError();	      	 	
+                        
+                        objForm = rs;
+                        
+                        if(objForm != null){
+                            if(objForm.submitFlg == true){
+                                if(objForm.errorFlg == false){
+                                    
+                                    this.parentDocument.dispatchEvent(new Event("RefreshChanges"));
+                                    this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+                                }
+                            }
+                        }
+                    } 
+             }
+        }           
+        ]]>
+    </mx:Script>    
+    
+    <cntrls:XenosHTTPService id="cashAdjEntryInitHttpService" 
+            useProxy="false"
+            fault="initHttpService_fault(event);"
+            result="initHttpService_result(event)" showBusyCursor="true"  resultFormat="xml">
+         <!--   <mx:request>
+                <method>viewEntryPopUp</method>
+                <rowNum>{rowNum}</rowNum>
+            </mx:request> -->
+     </cntrls:XenosHTTPService>
+     <cntrls:XenosHTTPService id="cashAdjEntrySubmitHttpService"
+            useProxy="false"
+            fault="submit_fault(event);"
+            result="submit_result(event)" showBusyCursor="true"  resultFormat="xml">            
+         <!--   <mx:request>
+                <method>submitEntryPopUp</method>
+            </mx:request>  -->
+     </cntrls:XenosHTTPService>
+    
+    <mx:VBox width="100%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+    
+        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>
+        
+            <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.file.fund.label.fundcode')}" styleName="ReqdLabel" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:TextInput id="fundCode" text="{}" editable="false" width="100%"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Text text="" />
+                    </mx:GridItem>
+                </mx:GridRow>                
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.currencycode')}" styleName="ReqdLabel" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:TextInput id="ccy" text="" editable="false" width="100%"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.amount')}" styleName="ReqdLabel" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:TextInput id="ncmBalDisp" text="" width="100%"/>
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.bankcustcode')}" styleName="ReqdLabel" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                        <mx:TextInput id="bankCode" text="" editable="false" width="100%"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.bankactno')}" styleName="ReqdLabel" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:TextInput id="accountNo" text="" editable="false" width="100%"/>
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.adjustmentdt')}" styleName="ReqdLabel" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                        <!--<mx:TextInput id="adDate" text="{adj}" editable="false" width="100%"/>-->
+                        <mx:DateField id="adjustmentDate"  formatString="YYYYMMDD" editable="true" width="100%"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.adjustmenttype')}" styleName="ReqdLabel" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:TextInput id="adjustmentType" text="" editable="false" width="100%"/>
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.adjustmentreason')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                        <mx:ComboBox id="reasonCode" labelField="label" width="200" itemRenderer="mx.controls.Label"/>                        
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.gleldgrcode')}" styleName="ReqdLabel" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:ComboBox id="gleledger" labelField="label" prompt="Select"/>
+                    </mx:GridItem>
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.remarks')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem colSpan="3" width="80%" >
+                        <!--<mx:TextInput id="remarks" text="" width="100%"/>-->
+                        <mx:TextArea id="remarks" width="100%" height="50" maxChars="100"/>                        
+                    </mx:GridItem>                    
+                </mx:GridRow>                
+            </mx:Grid>
+            <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="left">            
+                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="submitEntryPopUp(event)" />
+                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('rec.form.button.label.close')}" styleName="BtnStyle" click="doClose(event)"/>
+            </mx:HBox>             
+            
+     </mx:VBox>
+</mx:Module>

@@ -1,0 +1,385 @@
+<!--$Id$-->
+<!--$Author: shivams $-->
+<!--$Date: 2016-12-23 21:02:20 $-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core"
+    xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+    xmlns:spring="http://www.springframework.org/tags" 
+    xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+    xmlns:form="http://www.springframework.org/tags/form"
+    xmlns:display="http://displaytag.sf.net"
+    xmlns:valueDifference="http://www.nri.co.jp/valueDifference"
+    xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div class="formItemArea entryContainerConfirm paddingFour">
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		var xenos$Dialog$Detail$Hook = function (container, btnContainer) {
+					var details$View$print$Handler = function printHandler(e){
+							e.preventDefault();
+							container.printArea(xenos.utils.defaultPrintOption);
+						};
+					
+					var $btn2 = jQuery('.btn2', btnContainer);
+						$btn2.children().first().html(xenos.title.printInfo);
+						$btn2.show();
+						$btn2.click(details$View$print$Handler);
+				};
+				
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+				var context = $xenos$Wizard.$context;
+				var cached = xenos$Cache.get('globalPrefs');
+				var evenRowColor = cached.zebraColorEven ? cached.zebraColorEven:'#F9F9F9';
+				var oddRowColor = cached.zebraColorOdd ?cached.zebraColorOdd:'#E5E9ED';
+				$('tr.evenRowColor',context).css('background-color',evenRowColor);
+				$('tr.oddRowColor',context).css('background-color',oddRowColor);
+				
+				if(${commandForm.options.actionType != 'CANCEL'}) {	
+					$("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','none');
+				}
+				
+				<c:if test="${success =='true'}">
+					xenos.utils.clearGrowlMessage();
+				</c:if>
+				var mode = $xenos$Wizard.options.mode;
+				var warningMsg = [];
+				<c:forEach items="${softWarning}" var="dl">
+					warningMsg.push("<c:out value="${dl}" />");
+				</c:forEach>
+				if (mode === 'CONFIRM' <![CDATA[&&]]> warningMsg.length>0){
+					$('.formHeader').find('.formTabErrorIco').css('display', 'block');
+					$('.formHeader').find('.formTabErrorIco').off('click');
+					$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.warning, warningMsg, true));
+					$('.formHeader').find('.formTabErrorIco a').attr('title','Warning Message');
+				} 
+				
+				function showCrossRefs(e) {
+					if($('#instrumentNameCrossRefsTbl').css("display")=="none") {
+						$('#instrumentNameCrossRefsTbl').show();
+					} else {
+						$('#instrumentNameCrossRefsTbl').hide();
+					}
+				}
+				$('#dtlsBtn').unbind('click');
+				$('#dtlsBtn').bind('click', showCrossRefs);
+			};      
+        </jsp:body>
+     </jsp:element>
+    
+    <c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">       
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>  
+			</c:forEach>
+		</ul>   
+    </c:if>
+	<c:if test="${isSoftValidationExists =='true'}">
+	<!-- Warning message Area -->
+		<ul class="xenosWarn">
+			<c:forEach items="${softValidationList}" var="dl">		
+				<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+    
+    <div class="headerForPrint" style="display:none;"><h1><spring:message code="ref.label.instrument.generalinfodetails" htmlEscape="false"/></h1></div>
+    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+    <div class="detailBlock entrySingleCol">
+		<h1><spring:message code="ref.label.instrument.generalinfodetails" htmlEscape="false"/></h1>
+		
+		<div>
+			<h1 class="msgHead"><spring:message code="ref.instrument.label.securitycodeinfo" htmlEscape="false"/>
+				<span class="toggleHandle collapse"></span>
+			</h1>
+		</div>
+        <div class="dtlInfoBlock">
+            
+            <div class="left width50Perc">
+            <table class="reportTbl">
+                <tr>			
+                    <th width="30%"><spring:message code="ref.insturment.entry.label.generaltab.codetype" htmlEscape="false"/></th>
+                    <th width="60%"><spring:message code="ref.instrument.label.code" htmlEscape="false"/></th>
+                </tr>
+                <c:if test="${empty commandForm.instrumentCrossRefs}">
+					<tr>
+						<td colspan="3" class="noRecord">
+							<spring:message code="xenos.no.record" htmlEscape="false"/>
+						</td>
+					</tr>
+				</c:if>
+                <c:forEach var="secInfo" items="${commandForm.instrumentCrossRefs}" varStatus="loopStatus">
+                    <tr class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">
+                        <td width="20%"><span class="detailTxtVal">${secInfo.instrumentCodeType}</span></td>
+                        <td width="70%"><span class="detailTxtVal">${secInfo.securityId}</span></td>
+					</tr>
+                </c:forEach> 
+            </table>
+            </div>
+            
+            
+            <div class="right width50Perc">
+		            <table class="tableStyle sixCol">
+		                <tr>
+		                    <td><label><spring:message code="ref.instrument.label.securitytype" htmlEscape="false"/></label></td>
+		                    <td><span class="detailTxtVal">${commandForm.instrumentPage.instrumentType}</span></td>
+		                </tr>
+		                <tr>    
+		                    <td><label><spring:message code="ref.insturment.entry.label.generaltab.contractsize" htmlEscape="false"/></label></td>
+		                    <td><span class="detailTxtVal">${commandForm.instrumentPage.contractSizeStr}</span></td>
+		                </tr>
+		                <tr>    
+		                    <td><label><spring:message code="ref.insturment.entry.label.generaltab.countrycode" htmlEscape="false"/></label></td>
+		                    <td><span class="detailTxtVal">${commandForm.instrumentPage.countryCode}</span></td>
+		                </tr>
+		                <tr>    
+		                    <td><label><spring:message code="ref.label.instrument.issueccy" htmlEscape="false"/></label></td>
+		                    <td><span class="detailTxtVal">${commandForm.instrumentPage.tradeCcy}</span></td>
+		                </tr> 
+		                <tr>    
+		                    <td><label><spring:message code="ref.insturment.entry.label.generaltab.mtu" htmlEscape="false"/></label></td>
+		                    <td><span class="detailTxtVal">${commandForm.instrumentPage.minTradingUnitStr}</span></td>
+		                </tr>
+		                <tr>    
+		                    <td><label><spring:message code="ref.insturment.entry.label.generaltab.listedid" htmlEscape="false"/></label></td>
+		                    <td><span class="detailTxtVal">${commandForm.instrumentPage.listedId}</span></td>
+		                </tr>
+		                <tr>    
+		                    <td><label><spring:message code="ref.insturment.entry.label.generaltab.pricetype" htmlEscape="false"/></label></td>
+		                    <td><span class="detailTxtVal">${commandForm.instrumentPage.priceUnit}</span></td>
+		                </tr>
+						<tr>    
+		                    <td><label><spring:message code="ref.instrument.label.investmentcountrycode" htmlEscape="false"/></label></td>
+		                    <td><span class="detailTxtVal">${commandForm.instrumentPage.investmentCountryCode}</span></td>
+		                </tr>
+		             </table>  
+	            
+	            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	            
+            </div>
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+        
+		<div>
+			<h1 class="msgHead"><spring:message code="ref.instrument.label.instrumentnameinfo" htmlEscape="false"/>
+				<span class="toggleHandle collapse"></span>
+			</h1>
+		</div>
+        <div class="dtlInfoBlock">  
+				<table class="tableStyle sixCol">
+                    <tr>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.languagecode" htmlEscape="false"/></label></td>                    
+                        <td><span class="detailTxtVal">${commandForm.defaultCharsetCode}</span></td>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.shortname" htmlEscape="false"/></label></td>                    
+                        <td><span class="detailTxtVal">${commandForm.defaultShortName}</span></td>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.officialname" htmlEscape="false"/></label></td>                    
+                        <td><span class="detailTxtVal">${commandForm.defaultOfficialName}</span></td>
+                    </tr>
+				</table>
+				
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				<div class="primaryBtn btnMarginTopBtm right">
+				  <spring:message code="ref.account.label.button.details" htmlEscape="false" var="detail_label"/>
+				  <input type="button" id="dtlsBtn" value="${detail_label}" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			<div id="instrumentNameCrossRefsTbl" style="display:none;">
+            <table class="reportTbl">   
+                <tr>			
+                    <th width="12%"><spring:message code="ref.insturment.entry.label.generaltab.languagecode" htmlEscape="false"/></th>
+                    <th width="34%"><spring:message code="ref.insturment.entry.label.generaltab.shortname" htmlEscape="false"/></th>
+                    <th width="44%"><spring:message code="ref.insturment.entry.label.generaltab.officialname" htmlEscape="false"/></th>
+                </tr>
+				<c:if test="${empty commandForm.instrumentNameCrossRefs}">
+					<tr>
+						<td colspan="4" class="noRecord">
+							<spring:message code="xenos.no.record" htmlEscape="false"/>
+						</td>
+					</tr>
+				</c:if>
+                <c:forEach var="nameInfo" items="${commandForm.instrumentNameCrossRefs}" varStatus="loopStatus">
+                <tr class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">
+                    <td width="12%"><span class="detailTxtVal">${nameInfo.charsetCode}</span></td>
+                    <td width="34%"><span class="detailTxtVal">${nameInfo.shortName}</span></td>
+                    <td width="44%"><span class="detailTxtVal">${nameInfo.officialName}</span></td>         
+                </tr>
+                </c:forEach>                
+            </table>
+			</div>
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>       
+        </div>
+		 
+		<div>
+			<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.generaltab.basicattributes" htmlEscape="false"/>
+				<span class="toggleHandle collapse"></span>
+			</h1>
+		</div>
+        <div class="dtlInfoBlock">
+            
+                <table class="tableStyle sixCol">
+                    <tr>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.listeddate" htmlEscape="false"/></label></td>                    
+                        <td><span class="detailTxtVal">${commandForm.instrumentPage.listedDate}</span></td>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.delisteddate" htmlEscape="false"/></label></td>                    
+                        <td><span class="detailTxtVal">${commandForm.instrumentPage.delistedDate}</span></td>
+                    </tr>
+                    <tr>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.auctiondate" htmlEscape="false"/></label></td>                    
+                        <td><span class="detailTxtVal">${commandForm.instrumentPage.auctionDateStr}</span></td>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.issuestatus" htmlEscape="false"/></label></td>                   
+                        <td><span class="detailTxtVal">${commandForm.instrumentPage.issueStatus}</span></td>
+					</tr>
+					<tr>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.issuer" htmlEscape="false"/></label></td>                    
+                        <td><span class="detailTxtVal">${commandForm.instrumentPage.issuerDisp}</span></td>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.whenissuedflag" htmlEscape="false"/></label></td>
+                        <td><span class="detailTxtVal">${commandForm.instrumentPage.whenIssuedFlagDisp}</span></td>
+                    </tr>
+                    <tr>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.issuequantity" htmlEscape="false"/></label></td>                   
+                        <td><span class="detailTxtVal">${commandForm.instrumentPage.issueQuantityStr}</span></td>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.outstandingquantity" htmlEscape="false"/></label></td>                    
+                        <td><span class="detailTxtVal">${commandForm.instrumentPage.outstandingQuantityStr}</span></td> 
+                    </tr>
+                    <tr>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.deliveryform" htmlEscape="false"/></label></td>
+                        <td><span class="detailTxtVal">${commandForm.defaultDeliveryMethodDisp}</span></td>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.transferagent" htmlEscape="false"/></label></td>                    
+                        <td><span class="detailTxtVal">${commandForm.instrumentPage.transferAgentCode}</span></td>
+                    </tr>
+                    <tr>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.duallistedflag" htmlEscape="false"/></label></td>
+                        <td><span class="detailTxtVal">${commandForm.dualListedFlagDisp}</span></td>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.defaultstllocation" htmlEscape="false"/></label></td>
+                        <td><span class="detailTxtVal">${commandForm.defaultSettlementLocationDisp}</span></td>
+                    </tr>
+					<tr>
+                        <td><label><spring:message code="ref.instrument.label.investmentsector" htmlEscape="false"/></label></td>                    
+                        <td><span class="detailTxtVal">${commandForm.investmentSectorDisp}</span></td>
+                        <td><label><spring:message code="ref.instrument.label.mutualfundcategory" htmlEscape="false"/></label></td>                       
+                        <td><span class="detailTxtVal">${commandForm.mutualFundCategoryDisp}</span></td>
+					</tr>
+                    <tr>
+                        <td><label><spring:message code="ref.insturment.entry.label.generaltab.datasource" htmlEscape="false"/></label></td>                    
+                        <td><span class="detailTxtVal">${commandForm.instrumentPage.dataSource}</span></td>
+                        <td><label><spring:message code="ref.instrument.label.alternate.securitycode" htmlEscape="false"/></label></td>                       
+                        <td><span class="detailTxtVal">${commandForm.instrumentPage.alternateSecurityCode}</span></td>
+                    </tr>
+                    
+                    <tr>
+                        <td><label><spring:message code="ref.label.app_regi_date" htmlEscape="false"/></label></td> 
+						<td><span class="detailTxtVal">${commandForm.instrumentPage.appRegiDateStr}</span></td>
+                        <td><label><spring:message code="ref.label.created_by" htmlEscape="false"/></label></td>  
+						<td><span class="detailTxtVal">${commandForm.instrumentPage.createdBy}</span></td>
+                    </tr>
+                    <tr>
+                        <td><label><spring:message code="ref.label.app_upd_date" htmlEscape="false"/></label></td>   
+						<td><span class="detailTxtVal">${commandForm.instrumentPage.appUpdDateStr}</span></td>
+                        <td><label><spring:message code="ref.label.updated_by" htmlEscape="false"/></label></td>    
+						<td><span class="detailTxtVal">${commandForm.instrumentPage.updatedBy}</span></td>
+                    </tr>
+                    <tr>
+                        <td><label><spring:message code="ref.label.creation_date" htmlEscape="false"/></label></td> 
+						<td><span class="detailTxtVal">${commandForm.instrumentPage.creationDateStr}</span></td>
+                        <td><label><spring:message code="ref.label.update_date" htmlEscape="false"/></label></td> 
+						<td><span class="detailTxtVal">${commandForm.instrumentPage.updateDateStr}</span></td>
+                    </tr>
+                    <tr>
+                        <td><label><spring:message code="ref.label.instrument.status" htmlEscape="false"/></label></td> 
+						<td><span class="detailTxtVal">${commandForm.instrumentPage.status}</span></td>
+                        <c:choose>
+							<c:when test="${commandForm.options.actionType == 'ENTRY' || commandForm.options.actionType == 'AMEND' || commandForm.options.actionType == 'CANCEL'}">
+								<td></td>
+								<td><span class="detailTxtVal"></span></td>
+							</c:when>
+							<c:otherwise>
+								<td><label><spring:message code="ref.instrument.label.positions" htmlEscape="false"/></label></td>
+								<c:choose>
+									<c:when test = "${empty commandForm.instrumentPosition.secPositionIndicatXenosDisp and empty commandForm.instrumentPosition.secPositionIndicatMutualDisp and empty commandForm.instrumentPosition.secPositionIndicatAdvisoryDisp}">
+										<td><span class="detailTxtVal"></span></td>
+									</c:when>
+									<c:otherwise>
+										<td><span class="detailTxtVal">${commandForm.instrumentPosition.secPositionIndicatXenosDisp} / ${commandForm.instrumentPosition.secPositionIndicatMutualDisp} / ${commandForm.instrumentPosition.secPositionIndicatAdvisoryDisp}</span></td>
+									</c:otherwise>
+								</c:choose>
+							</c:otherwise>
+						</c:choose>
+					</tr>
+					<c:if test="${(commandForm.options.actionType != 'ENTRY') and (commandForm.options.actionType != 'AMEND') and (commandForm.options.actionType != 'CANCEL')}">
+						<tr>
+							<td><label><spring:message code="ref.instrument.label.positionsstartdate" htmlEscape="false"/></label> </td> 
+							<td><span class="detailTxtVal">${commandForm.instrumentPosition.investStartDateXenosDisp}</span></td>
+							<td><label><spring:message code="ref.instrument.label.positionsenddate" htmlEscape="false"/></label> </td> 
+							<td><span class="detailTxtVal">${commandForm.instrumentPosition.investEndDateXenosDisp}</span></td>
+						</tr>
+					</c:if>
+                </table>
+            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            
+        </div>
+		
+		<div>
+			<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.generaltab.categoryinfo" htmlEscape="false"/>
+				<span class="toggleHandle collapse"></span>
+			</h1>
+		</div>
+        <div class="dtlInfoBlock">
+            <table class="reportTbl">
+                <tr>			
+                    <th><spring:message code="ref.insturment.entry.label.generaltab.categorytype" htmlEscape="false"/></th>
+                    <th><spring:message code="ref.insturment.entry.label.generaltab.categoryid" htmlEscape="false"/></th>
+                </tr>
+                <c:if test="${empty commandForm.categories}">
+					<tr>
+						<td colspan="3" class="noRecord">
+							<spring:message code="xenos.no.record" htmlEscape="false"/>
+						</td>
+					</tr>
+				</c:if>
+                <c:forEach var="category" items="${commandForm.categories}" varStatus="loopStatus">
+                    <tr class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">
+                        <td><span class="detailTxtVal">${category.categoryType}</span></td>
+                        <td><span class="detailTxtVal">${category.categoryId}</span></td>
+                    </tr>
+                </c:forEach> 
+            </table>
+        </div> 
+        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		
+		<div>
+			<h1 class="msgHead"><spring:message code="ref.instrument.label.memo" htmlEscape="false"/>
+				<span class="toggleHandle collapse"></span>
+			</h1>
+		</div>
+        <div class="dtlInfoBlock">
+            <table class="reportTbl">
+                <tr>			
+                    <th><spring:message code="ref.instrument.label.memo" htmlEscape="false"/></th>
+                    <th><spring:message code="ref.instrument.label.description1" htmlEscape="false"/></th>
+                    <th><spring:message code="ref.instrument.label.description2" htmlEscape="false"/></th>
+                </tr>
+                <c:if test="${empty commandForm.memos}">
+					<tr>
+						<td colspan="3" class="noRecord">
+							<spring:message code="xenos.no.record" htmlEscape="false"/>
+						</td>
+					</tr>
+				</c:if>
+                <c:forEach var="memo" items="${commandForm.memos}" varStatus="loopStatus">
+                    <tr class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">
+                        <td><span class="detailTxtVal">${memo.memoCode}</span></td>
+                        <td><span class="detailTxtVal">${memo.description1}</span></td>
+                        <td><span class="detailTxtVal">${memo.description2}</span></td>
+                    </tr>
+                </c:forEach> 
+            </table>
+        </div>  
+        
+        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+    </div>
+    
+</div>
+</jsp:root>

@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<containers:XenosQueryModule xmlns:containers="com.nri.rui.core.containers.*" xmlns:mx="http://www.adobe.com/2006/mxml"
+                            xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+                            xmlns:flexlib="http://code.google.com/p/flexlib/"
+                            xmlns:frmtrs="com.nri.rui.core.formatters.*" xmlns:valdtrs="com.nri.rui.core.validators.*"
+                            layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="focusManager.setFocus(submit);">
+
+
+	<mx:Script source="actionscripts/SecurityRegistrationQuery.as" />
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.utils.StringUtil;
+			import mx.containers.TitleWindow;
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.controls.CheckBox;
+			import mx.managers.PopUpManager;
+			
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.RendererFectory;
+			import com.nri.rui.core.renderers.ImgSummaryRenderer;
+			import mx.controls.DataGrid;
+            import mx.events.DataGridEvent;
+            import mx.core.Application;
+			/**
+             * This method should be called on creationComplete of the datagrid 
+             */ 
+             private function bindDataGrid1():void {
+                qh1.dgrid = resultSummary1;
+                qh1.xls.visible = true;
+			    qh1.pdf.visible= true;
+			    qh1.resultHeader.text = "Xenos Details";
+			   /*  qh1.print.visible = false; */
+            }
+            /**
+             * This method should be called on creationComplete of the datagrid 
+             */ 
+             private function bindDataGrid2():void {
+                qh2.dgrid = resultSummary2;
+                qh2.xls.visible = true;
+			    qh2.pdf.visible= true;
+			    qh2.resultHeader.text = "Bloomberg Bulk Details";
+			    /* qh2.print.visible = false; */
+            }
+            /**
+            * 
+            */           
+            
+			private function changeCurrentState():void{
+				currentState = "result";
+				app.submitButtonInstance = null;
+			}		
+			/**
+			 *  datagrid header release event handler to handle datagridcolumn sorting
+			 */
+			public function dataGrid_headerRelease1(evt:DataGridEvent):void {				
+				var dg:CustomDataGrid = CustomDataGrid(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];		
+			}	
+			/**
+			 *  datagrid header release event handler to handle datagridcolumn sorting
+			 */
+			public function dataGrid_headerRelease2(evt:DataGridEvent):void {				
+				var dg:CustomDataGrid = CustomDataGrid(evt.currentTarget);
+                sortUtil2.clickedColumn = dg.columns[evt.columnIndex];		
+			}	
+		]]>
+	</mx:Script>	
+	<containers:states>
+        <mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions>
+    
+    <cntrls:XenosHTTPService id="validateRequest" 
+         url="smr/securityRegistrationEntryDispatch.action?" 
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)" method="POST"
+         result="resultHandler(event)" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+	<mx:VBox width="100%" verticalGap="0" horizontalGap="0" id="screenNavigater">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+        <mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;"  />       
+        <mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result';" />
+        <mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres';"/>        
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+    <mx:VBox width="100%" height="100%">
+    <mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="{this.loadAll()}"  >
+    
+    	<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    		<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" width="100%" height="100%" styleName="HDivideStyle" >
+    			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+            	<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+            	<mx:Grid width="100%" borderThickness="0">
+            		<mx:GridRow width="100%">
+            			<mx:GridItem width="20%" borderThickness="0">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.secregistration.label.bbticker')}"/>
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="0">
+	                        <mx:TextInput id="ticker" restrict="{Globals.INPUT_PATTERN}"/>
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" borderThickness="0">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.secregistration.label.bbexchangecode')}"/>
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="0">
+	                        <mx:TextInput id="exchngCode" restrict="{Globals.INPUT_PATTERN}"/>
+	                    </mx:GridItem>  
+            		</mx:GridRow>
+            		<mx:GridRow width="100%">
+	            		<mx:GridItem width="20%" borderThickness="0">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.secregistration.label.sedolseccode')}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="0">
+	                    	<mx:TextInput id="sedolSecCode" restrict="{Globals.INPUT_PATTERN}" maxChars="7" width="160"/>
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" borderThickness="0">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.secregistration.label.secname')}"/>
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="0">
+	                        <mx:TextInput id="secCcyName" restrict="{Globals.INPUT_PATTERN}"/>
+	                    </mx:GridItem>
+            		</mx:GridRow>
+            		<mx:GridRow width="100%">
+            			<mx:GridItem width="20%" borderThickness="0">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.secregistration.label.cusipseccode')}"/>
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="0">
+	                       	<mx:TextInput id="cusipSecCode" restrict="{Globals.INPUT_PATTERN}" maxChars="9" width="160"/>
+	                    </mx:GridItem>
+            			<mx:GridItem width="20%" borderThickness="0">
+	                        <mx:Label text=" "/>
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="0">
+	                        <!--<cntrls:TreeCombo id="instrumentType" dataSource="{new XML((app.cachedItems.instrumentTree).toString())}" editMode="true" displayClearIcon="true" labelField="label" treeHeight="200"  x="10" y="10"/>-->
+	                        <mx:Label text=" "/>
+	                    </mx:GridItem>
+	               </mx:GridRow>
+            		<mx:GridRow width="100%">
+            			<mx:GridItem width="20%" borderThickness="0">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.secregistration.label.isinseccode')}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="0">
+	                       	<mx:TextInput id="isinSecCode" restrict="{Globals.INPUT_PATTERN}" maxChars="12" width="160"/>
+	                    </mx:GridItem>
+            			<mx:GridItem width="20%" borderThickness="0">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.secregistration.label.issueccy')}"/>
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="0">
+	                        <cntrls:CurrencyHBox id="ccyBox"/>
+	                    </mx:GridItem>
+	               </mx:GridRow>
+            		<mx:GridRow width="100%">
+            			<mx:GridItem width="20%" borderThickness="0">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.secregistration.label.namseccode')}"/>
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="0">
+	                       	<mx:TextInput id="namSecCode" restrict="{Globals.INPUT_PATTERN}"/>
+	                    </mx:GridItem>
+            			<mx:GridItem width="20%" borderThickness="0">
+	                        <mx:Label text=""/>
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="0">
+							<mx:Label text=""/>
+	                    </mx:GridItem>
+	               </mx:GridRow>
+	               
+            	</mx:Grid>
+            	
+            	<mx:HBox width="100%" styleName="ButtonBackPanel">
+	                <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="{this.mode == 'query' ?  this.dispatchEvent(new Event('querySubmit')) : this.dispatchEvent(new Event('amendSubmit'))}" />
+	                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="{this.mode == 'query' ? this.dispatchEvent(new Event('queryReset')) : this.dispatchEvent(new Event('amendReset')) }" />
+	                <mx:Button id="addNew" label="{this.parentApplication.xResourceManager.getKeyValue('smr.form.button.label.addNew')}" styleName="BtnStyle" click="openDetailsEntryPopup(event,true);"/>
+	            </mx:HBox>
+    		</mx:VBox>
+    	</mx:Canvas>
+    	
+    	<mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >   
+    		<cntrls:XenosErrors id="qerrPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/> 
+    		<cntrls:QueryResultHeader id="qh1" pdfFunction="dispatchPdfEvent" xlsFunction="dispatchXlsEvent" previousFunction="dispatchPrevEvent" nextFunction="dispatchNextEvent" />
+    		<cntrls:CustomDataGrid id="resultSummary1" width="100%" height="100%" dataProvider="{queryResult1}" sortableColumns="{this.mode =='query'}" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid1()" headerRelease="dataGrid_headerRelease1(event)"> 
+            <cntrls:columns>
+            	<mx:DataGridColumn headerText="" width="36" draggable="false" resizable="false" sortable="false" textAlign="center">
+            		<mx:itemRenderer>
+		    	   	 	<mx:Component>
+		    	   	 		<mx:VBox width="100%" horizontalAlign="center">
+		    	   	 			<mx:RadioButton groupName="addBtn" click="{parentDocument.selectXenosSecurity(data)}" selected="{data.selected == 'true' ?true:false}"/>
+		    	   	 		</mx:VBox>
+		    	   	 	</mx:Component>
+		    	   	 </mx:itemRenderer>
+            	</mx:DataGridColumn>            
+            	<mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" editable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+           		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.ticker')}" dataField="ticker" sortCompareFunction="sortUtil.sortString" />
+           		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.instrumentcode')}" dataField="instrumentCode" width="120" textAlign="left"  showDataTips="true" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer" sortCompareFunction="sortUtil.sortString"/>
+           		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.securityname')}" dataField="shortName" width="120" sortCompareFunction="sortUtil.sortString" />
+           		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.sedolcode')}" dataField="sedolCode" sortCompareFunction="sortUtil.sortString" />
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.isincode')}" dataField="isinCode" sortCompareFunction="sortUtil.sortString" />	
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.cusipcode')}" dataField="cusipCode" sortCompareFunction="sortUtil.sortString" />
+											
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.instrumenttype')}" dataField="instrumentType" sortCompareFunction="sortUtil.sortString" />
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.countrycode')}" dataField="countryCode" sortCompareFunction="sortUtil.sortString" />
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.issueccy')}" dataField="tradingCcyCode" sortCompareFunction="sortUtil.sortString" />
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.bondtype')}" dataField="discountCouponType" sortCompareFunction="sortUtil.sortString" />
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.issuedate')}" dataField="issueDateStr" sortCompareFunction="sortUtil.sortString" />
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.maturitydate')}" dataField="maturityDateStr" sortCompareFunction="sortUtil.sortString" />
+				
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.couponrate')}" dataField="ratestr" sortCompareFunction="sortUtil.sortNumeric" />
+				
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.quantityperunit')}" dataField="quantityPerUnitStr" sortCompareFunction="sortUtil.sortNumeric" textAlign="right" />
+				
+           		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.posxenos')}" dataField="posXenos" visible="false" />
+				
+            </cntrls:columns>
+            </cntrls:CustomDataGrid>
+            
+            <cntrls:QueryResultHeader id="qh2" pdfFunction="dispatchBBPdfEvent" xlsFunction="dispatchBBXlsEvent" previousFunction="dispatchBBPrevEvent" nextFunction="dispatchBBNextEvent" startIndex="2"/>
+    		<cntrls:CustomDataGrid id="resultSummary2" width="100%" height="100%" dataProvider="{queryResult2}" sortableColumns="{this.mode =='query'}" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid2()" headerRelease="dataGrid_headerRelease2(event)"> 
+            <cntrls:columns>
+            	<mx:DataGridColumn headerText="" width="36" draggable="false" resizable="false" sortable="false" textAlign="center">
+            		<mx:itemRenderer>
+		    	   	 	<mx:Component>
+		    	   	 		<mx:VBox width="100%" horizontalAlign="center">
+		    	   	 			<mx:RadioButton groupName="addBtn" click="{parentDocument.selectBloombergSecurity(data)}" selected="{data.selected == 'true' ?true:false}"/>
+		    	   	 		</mx:VBox>
+		    	   	 	</mx:Component>
+		    	   	 </mx:itemRenderer>
+            	</mx:DataGridColumn>
+            	<mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" editable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+           		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.ticker')}" dataField="ticker" sortCompareFunction="sortUtil2.sortString" />
+           		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.instrumentcode')}" dataField="bbUniqueId" width="120" textAlign="left" sortCompareFunction="sortUtil2.sortString"/>
+           		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.securityname')}" dataField="name" width="120" sortCompareFunction="sortUtil2.sortString" />
+           		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.sedolcode')}" dataField="sedolCode" sortCompareFunction="sortUtil2.sortString" />
+           		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.isincode')}" dataField="isinCode" sortCompareFunction="sortUtil2.sortString" />	
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.cusipcode')}" dataField="cusipCode" sortCompareFunction="sortUtil2.sortString" />
+											
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.instrumenttype')}" dataField="securityType" sortCompareFunction="sortUtil2.sortString" />
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.countryofincorporation')}" dataField="cntryOfIncorporation" sortCompareFunction="sortUtil2.sortString" />
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.issueccy')}" dataField="issueCCY" sortCompareFunction="sortUtil2.sortString" />
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.bondtype')}" dataField="bondType" sortCompareFunction="sortUtil2.sortString" />
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.issuedate')}" dataField="issueDate" sortCompareFunction="sortUtil2.sortString" />
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.maturitydate')}" dataField="maturityDate" sortCompareFunction="sortUtil2.sortString" />
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.couponrate')}" dataField="couponRate" sortCompareFunction="sortUtil2.sortNumeric" />
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.quantityperunit')}" dataField="quantityPerUnitStr" sortCompareFunction="sortUtil2.sortNumeric" textAlign="right" />
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.posxenos')}" dataField="posXenos" visible="false" />
+			</cntrls:columns>
+            </cntrls:CustomDataGrid>
+            
+            <mx:HBox id="hbtnGroup" width="100%" styleName="ButtonBackPanel">
+            	<mx:Button id="addfromBB" label="{this.parentApplication.xResourceManager.getKeyValue('smr.form.button.label.addfromBB')}" enabled="{this.queryResult2.length > 0}" styleName="BtnStyle" click="validateSecurity(event,false);"/>
+            	<mx:Button id="sendrequesttoBB" label="{this.parentApplication.xResourceManager.getKeyValue('smr.form.button.label.sendrequesttoBB')}" styleName="BtnStyle" click="sendRequestToBB()"/>
+            	<mx:Button id="updatefromBB" label="{this.parentApplication.xResourceManager.getKeyValue('smr.form.button.label.updatefromBB')}" styleName="BtnStyle" click="validateSecurity(event,true);"/>
+            </mx:HBox>
+    	</mx:VBox>
+    	
+    </mx:HDividedBox>
+    </mx:VBox>
+    </mx:Canvas>
+</containers:XenosQueryModule>

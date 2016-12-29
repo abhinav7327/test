@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:containers="com.nri.rui.core.containers.*" 
+	xmlns:flexlib="http://code.google.com/p/flexlib/" 
+	xmlns:cntrls="com.nri.rui.core.controls.*" 
+	xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+	layout="vertical" 
+	percentWidth="100" 
+	percentHeight ="100" 
+	horizontalScrollPolicy="off" 
+	verticalScrollPolicy="off" 
+	creationComplete="init()">
+    <mx:Script>
+        
+        <![CDATA[
+            import mx.controls.Alert;
+            import com.nri.rui.core.Globals;
+            import mx.controls.CheckBox;        
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.events.DataGridEvent;
+            private function changeCurrentState():void{
+                currentState = "result";
+//                app.submitButtonInstance = null;
+            }
+            
+            /**
+             * Extract the value of the colum cell removing the prefix added at '0'th index.
+             */ 
+            private function extractPrecisionedValue(item:Object, column:DataGridColumn):String{
+                var strData:String = item[column.dataField];
+                if(!XenosStringUtils.isBlank(strData) && strData.charAt(0)=="F"){
+                    if(strData.length == 1)
+                        return XenosStringUtils.EMPTY_STR;
+                    else
+                        return strData.substring(1);
+                }else{
+                    return item[column.dataField];                    
+                }
+            }
+        ]]>
+    </mx:Script>
+
+    <mx:Script source="actionscripts/StlCashTransferAuthConfirmationPopup.as"/>
+     
+	<cntrls:XenosHTTPService id="stlCashTransferAuthorizationUconf" 
+         url="stl/stlCashTransferAuthQueryDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         result="LoadUserConfirmPage(event)" 
+         showBusyCursor="true" 
+         method="POST">
+    </cntrls:XenosHTTPService>   
+        <cntrls:XenosHTTPService id="stlCashTransferAuthorizationSconf" 
+         url="stl/stlCashTransferAuthQueryDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         result="LoadSysConfirmPage(event)" 
+         showBusyCursor="true"
+         method="POST">
+    </cntrls:XenosHTTPService>	
+        <cntrls:XenosHTTPService id="stlCashTransferAuthorizationOkConfirmRequest" 
+         url="stl/stlCashTransferAuthQueryDispatch.action?method=okSystemConformation" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)" 
+         method="POST" useProxy="false" result="backToQueryResultPage()" showBusyCursor="true"/>	
+   
+    
+        <mx:VBox width="100%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >            
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>            
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.message.userconfirmation')}" fontWeight="bold" id="uConfLabel"/>
+
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.authorization.entry.label.transaction.complete')}" fontWeight="bold" id="sConfLabel" includeInLayout="false" visible="false"/>
+            <cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" editable="false" visible="{this.mode != 'cancel'}" includeInLayout="{this.mode != 'cancel'}"> 
+            <cntrls:columns>
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.authorizationqry.label.authorizationstatus')}" headerWordWrap="false" wordWrap="false" dataField="authReject"/>
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.referenceno')}" headerWordWrap="false" wordWrap="false" dataField="referenceNo" />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.wiretype')}" dataField="wireType" />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" dataField="fundCode"  itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer"/>
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundName')}" dataField="fundName" />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.counterpartyaccountno')}" dataField="cpAccountNo" />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.counterpartyaccountname')}" dataField="cpAccountName" />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.currency')}" dataField="currency" />  
+                              
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.wireamount')}" dataField="wireAmountStr" textAlign="right" />                
+                
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.valuedate')}" dataField="displayValueDate" />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.gleledgercode')}"  dataField="gleLedgerCode" />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tradedate')}" dataField="displayTradeDate" />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.amendment.label.inxtransmission')}"  dataField="inxTransmission" />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.wireinstruction.label.correspondingSecurityId')}"  dataField="correspondingSecurityId" width="200"/>
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.cpbank')}" dataField="cpBank"  />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.cpbankname')}" dataField="cpBankName"  />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.amendment.label.cpsettlea/c')}" dataField="cpSettlementAcc"   />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.beneficiaryname')}" dataField="benificiaryName"   />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ownbank')}" dataField="ownBank"/>
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ownbankname')}" dataField="ownBankName"  />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ownsettleac')}" dataField="displayOwnSettleAcc"/>
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tobank')}" dataField="toBank"/>
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tobankname')}" dataField="toBankName" itemRenderer="com.nri.rui.core.renderers.StatusRenderer" />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tosettleaccount')}" dataField="displayToSettleAcc"/>
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.frombank')}" dataField="fromBank"/>
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.frombankname')}" dataField="fromBankName"  />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fromsettleaccount')}" dataField="displayFromSettleAcc"/>
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.status')}" dataField="status" />
+           </cntrls:columns>
+         </cntrls:CustomDataGrid>         
+            <mx:HBox width="100%" styleName="ButtonBackPanel">
+	     		<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uConfSubmit" includeInLayout="true" styleName="BtnStyle" click="this.submitConfirm(event);"/>
+	     		<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="uConfBack" styleName="BtnStyle" includeInLayout="true" click="this.closeHandlerOnError();"/>
+	            <mx:Button  label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.sysconfirm')}" id="sConfSubmit" styleName="BtnStyle" click="this.submitOkConfirm()" includeInLayout="false" visible="false"/>               
+            </mx:HBox>
+        </mx:VBox>     
+</mx:Module>

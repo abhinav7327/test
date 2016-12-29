@@ -1,0 +1,725 @@
+<?xml version="1.0" encoding="utf-8"?>
+<containers:XenosQueryModule xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:frmtrs="com.nri.rui.core.formatters.*" xmlns:valdtrs="com.nri.rui.core.validators.*" xmlns:controls="*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" >
+    <mx:Script>
+        <![CDATA[
+        	import com.nri.rui.core.utils.XenosStringUtils;
+        	import mx.utils.ObjectUtil;
+        	import mx.events.ValidationResultEvent;
+        	import mx.formatters.NumberBase;
+            import mx.events.FlexEvent;
+            import mx.controls.DataGrid;
+            import com.nri.rui.core.controls.XenosAlert;
+            import mx.events.DataGridEvent;
+            import mx.resources.ResourceBundle;
+            import com.nri.rui.core.RendererFectory;
+            import com.nri.rui.core.renderers.ImgSummaryRenderer;
+            import com.nri.rui.core.formatters.XenosNumberFormatter;
+            
+                
+    /**
+     * This method should be called on creationComplete of the datagrid 
+     */ 
+     private function bindDataGrid():void {
+        qh.dgrid = resultSummary;
+    }
+    
+    private function displayRightsCode(item:Object,column : DataGridColumn):String{
+        //XenosAlert.info("referenceNo ::"+item.referenceNo+" versionNoStr :: "+item.versionNoStr);
+        return item.rightsCode;
+        
+    }
+    
+    private function dispFinalizeFlag(item:Object,column : DataGridColumn):String{        
+        var finalizeFlagStr:String=item.exerciseFinalizeFlag;
+        if(finalizeFlagStr=='Y')
+        	return finalizeFlagStr;
+        else
+        	return XenosStringUtils.EMPTY_STR;        
+    }
+    
+    
+    private function displaySecurityCode(item:Object,column : DataGridColumn):String{
+        //XenosAlert.info("referenceNo ::"+item.referenceNo+" versionNoStr :: "+item.versionNoStr);
+        return item.fullyPaidSecurityCode;
+        
+    }
+    
+    private function returnQuantityStr(item:Object,column : DataGridColumn):String{
+        //XenosAlert.info("referenceNo ::"+item.referenceNo+" versionNoStr :: "+item.versionNoStr);
+        return item.availableRightsStr;
+        
+    }
+    
+    public function calculateExpiryQty(data:Object):void{
+    	//calculate expiry quantity
+    	if(data.exerciseFinalizeFlag=='Y'){
+	    	var numberBs:NumberBase=new NumberBase();
+		    var availableRights:Number=new Number(numberBs.parseNumberString(data.availableRightsStr));
+		    var exercisingQuantity:Number=new Number(numberBs.parseNumberString(data.exercisingQuantityStr));
+		    data.expiryQuantityStr=new XenosNumberFormatter().format(Number(availableRights-exercisingQuantity).toString());
+		    //trace("availableRights:"+availableRights+"||exercisingQuantity:"+exercisingQuantity);
+		    if(XenosStringUtils.isBlank(data.exercisingQuantityStr) ){//&& mode=="amend"
+		    	data.exercisingQuantityStr="0";
+		    }						            	
+			queryResult.refresh();
+    	}
+		
+    }
+    public function formatString(event:FocusEvent):void{
+        var targetObj:TextInput = TextInput(event.currentTarget);
+        numVal1.source = targetObj;
+        numVal1.handleNumericField(numberFormatter);
+        /* if(!numVal1.handleNumericField(numberFormatter)){
+            //targetObj.setFocus();
+            event.preventDefault();
+        }else{
+            return;
+        }
+        targetObj.invalidateDisplayList(); */
+    }
+    
+     public function validateDate(event:FocusEvent,data:Object):void{
+     	
+     	if(this.mode=="amend" && data.hasOwnProperty("selected") && (data.selected=='true' || data.selected==true)){
+     		
+        var targetObj:DateField = DateField(event.currentTarget);       
+        dateval1.source = targetObj;        
+        if( dateval1.validate().type!=ValidationResultEvent.VALID){        	     	
+            event.preventDefault();
+        	XenosAlert.error("Enter a valid payment date");
+        }
+      }
+        
+    }
+    
+   /*  private function formatEditorField(event:DataGridEvent):void{
+        //var editedString:String = event.currentTarget.editedItemRenderer.data[event.dataField]; 
+        //XenosAlert.info("#formatEditorField" + TextInput(event.currentTarget.itemEditorInstance));
+        var textObj:Object = new Object();
+        textObj.text = TextInput(event.currentTarget.itemEditorInstance).text;
+        var columns:Array = DataGrid(event.currentTarget).columns;
+        queryResult.getItemAt(event.rowIndex)[columns[event.columnIndex].dataField] = textObj.text;
+         formatString(textObj);
+         event.preventDefault();
+    } */
+        ]]>
+    </mx:Script>
+    <mx:Script source="actionscripts/RightsExerciseQuery.as"/>
+    
+    <!--mx:HTTPService id="initHttpService" 
+         url="ref/marketPriceQueryDispatchAction.action?" 
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+         result="initPage(event)" showBusyCursor="true" resultFormat="xml">
+    </mx:HTTPService>
+    
+    <cntrls:XenosHTTPService id="submitQueryService" 
+         url="ref/marketPriceQueryDispatchAction.action?" 
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+         result="submitEntryResult(event)" showBusyCursor="true" resultFormat="xml">
+    </cntrls:XenosHTTPService-->
+     <containers:states>
+        <mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions>
+    <frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+    <valdtrs:XenosNumberValidator id="numVal1" requiredFieldError=""
+        invalidCharError="Please enter a valid value for Quantity" exceedsMaxError="15 digits are allowed before decimal point" negativeError="Please enter a valid value for Quantity" separationError="" property="text" 
+        allowNegative="false" domain="real" lowerThanMinError="" maxValue="999999999999999" minValue="" invalidFormatCharsError="Please enter a valid value for Rate" decimalPointCountError="Please enter a valid value for Quantity" precision="3" precisionError="3 digits are allowed after decimal point" />
+    
+    
+    <mx:DateValidator id="dateval1" inputFormat="YYYYMMDD" property="text" required="true" requiredFieldError="Enter a valid date" invalidCharError="Enter a valid date" />
+    
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" id="screenNavigater">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+        <mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState=''; app.submitButtonInstance = submit"  />      
+        <mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'; mode != 'query' ? app.submitButtonInstance = submitResult : app.submitButtonInstance = null" />
+        <mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres';"/>       
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+    <mx:VBox width="100%" height="100%">
+    <mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="{this.loadAll()}"  >
+    <!--<containers:CollapsibleHDividedBox id="hdbox1" width="100%" height="100%" x="0" y="0" liveDragging="true" creationComplete="{}" paddingBottom="6" paddingLeft="6" paddingRight="6" paddingTop="6" >-->
+        
+        <mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        <mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" width="100%" height="100%" styleName="HDivideStyle" >
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+        
+            <!--<flexlib:WindowShade id="ws1" tabChildren="{ws1.opened=false}" styleName="linkButtonWindowShade" label="Optional Fields - Group 1" width="100%">-->
+            <mx:Grid width="100%" borderThickness="0">
+                <mx:GridRow width="100%" visible="{mode != 'entry'}" includeInLayout="{mode != 'entry'}">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.rightsexerciserefno')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:TextInput id="rightsexerciserefno" width="90" restrict="{Globals.INPUT_PATTERN}"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.fundcode')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:FundPopUpHbox id="fundPopUpQuery"/>                       
+                    </mx:GridItem>                     
+                </mx:GridRow>
+                <mx:GridRow width="100%" visible="{mode == 'entry'}" includeInLayout="{mode == 'entry'}">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.fundcode')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:FundPopUpHbox id="fundPopUpEntry"/>                       
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.fullypaidsharecode')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:InstrumentPopUpHbox id="fullypaidShareCode"/>                       
+                    </mx:GridItem>                     
+                </mx:GridRow>  
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.fundaccountno')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:AccountPopUpHbox id="fundaccountno" retContextItem="{returnContextItem}" recContextItem="{populateInvActContext()}"/>
+                    </mx:GridItem>                       
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.securitycode')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:InstrumentPopUpHbox id="securityCode"/>                          
+                    </mx:GridItem>              
+                </mx:GridRow> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.eventReferenceNo')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:TextInput id="conditionReferenceNo" width="90" restrict="{Globals.INPUT_PATTERN}"/>
+                    </mx:GridItem>                       
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.rightscode')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:InstrumentPopUpHbox id="rightscode"/>                          
+                    </mx:GridItem>              
+                </mx:GridRow> 
+                <mx:GridRow width="100%" visible="{mode == 'query'}" includeInLayout="{mode == 'query'}">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.status')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:ComboBox id="status"/> 
+                    </mx:GridItem>                       
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:Label text=""/>
+                    </mx:GridItem>               
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.exdatefromto')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:HBox>
+                            <mx:DateField id="exdateFromStr"  formatString="YYYYMMDD" editable="true" width="90"/>
+                            <mx:DateField id="exdateToStr" formatString="YYYYMMDD" editable="true" width="90"/>
+                        </mx:HBox>                         
+                    </mx:GridItem>  
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.recorddatefromto')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:HBox>
+                            <mx:DateField id="recorddateFromStr"  formatString="YYYYMMDD" editable="true" width="90"/>
+                            <mx:DateField id="recorddateToStr" formatString="YYYYMMDD" editable="true" width="90"/>
+                        </mx:HBox>                         
+                    </mx:GridItem>                
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.deadlinedatefromto')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:HBox>
+                            <mx:DateField id="deadlinedateFromStr"  formatString="YYYYMMDD" editable="true" width="90"/>
+                            <mx:DateField id="deadlinedateToStr" formatString="YYYYMMDD" editable="true" width="90"/>
+                        </mx:HBox>                         
+                    </mx:GridItem>  
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.expirydatefromto')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:HBox>
+                            <mx:DateField id="expirydateFromStr"  formatString="YYYYMMDD" editable="true" width="90"/>
+                            <mx:DateField id="expirydateToStr" formatString="YYYYMMDD" editable="true" width="90"/>
+                        </mx:HBox>                         
+                    </mx:GridItem>              
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                     <!-- Payment Date(New Share)from - to -->
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.paymentdateNewShareFromTo')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:HBox>
+                            <mx:DateField id="paymentdateFromStr"  formatString="YYYYMMDD" editable="true" width="90"/>
+                            <mx:DateField id="paymentdateToStr" formatString="YYYYMMDD" editable="true" width="90"/>
+                        </mx:HBox>                         
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%" borderThickness="0" visible="{mode != 'entry'}" includeInLayout="{mode != 'entry'}">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.exercisedatefromto')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0" visible="{mode != 'entry'}" includeInLayout="{mode != 'entry'}">
+                        <mx:HBox>
+                            <mx:DateField id="exercisedateFromStr"  formatString="YYYYMMDD" editable="true" width="90"/>
+                            <mx:DateField id="exercisedateToStr" formatString="YYYYMMDD" editable="true" width="90"/>
+                        </mx:HBox>                         
+                    </mx:GridItem>               
+                </mx:GridRow>
+                 <mx:GridRow width="100%">
+                    <!-- Payment Date(Take up cost)from - to --> 
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.paymentdateTakeUpFromTo')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:HBox>
+                            <mx:DateField id="paymentdateTakeUpFromStr"  formatString="YYYYMMDD" editable="true" width="90"/>
+                            <mx:DateField id="paymentdateTakeUpToStr" formatString="YYYYMMDD" editable="true" width="90"/>
+                        </mx:HBox>                         
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" borderThickness="0" includeInLayout="{this.mode!='entry'}" visible="{this.mode!='entry'}">                            
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.availabledatefromto')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0" includeInLayout="{this.mode!='entry'}" visible="{this.mode!='entry'}">                             
+                             <mx:HBox width="100%">  
+                                <mx:DateField id="availableDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                                <mx:DateField id="availableDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                            </mx:HBox>
+                        </mx:GridItem>               
+                </mx:GridRow>              
+            </mx:Grid>
+    
+            <!-- Sort Order -->
+            <flexlib:WindowShade id="ws3" tabChildren="{ws3.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.sortorder.fields')}" opened="true" width="100%">
+                <mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="100%" borderThickness="0">
+                            <mx:HBox width="100%">
+                                <mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()" width="200" itemRenderer="mx.controls.Label"></mx:ComboBox>
+                                <mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()" width="200" itemRenderer="mx.controls.Label"> </mx:ComboBox>
+                                <mx:ComboBox id="sortField3" labelField="label" width="200" itemRenderer="mx.controls.Label"> </mx:ComboBox>
+                            </mx:HBox> 
+                        </mx:GridItem>                         
+                    </mx:GridRow>
+                </mx:Grid>
+            </flexlib:WindowShade>
+
+            <mx:HBox width="100%" styleName="ButtonBackPanel">
+               <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="{this.mode == 'query' ?  this.dispatchEvent(new Event('querySubmit')) : (this.mode == 'amend' || this.mode == 'entry' ? this.dispatchEvent(new Event('amendSubmit')) : this.dispatchEvent(new Event('cancelSubmit')))}" />
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="{this.mode == 'query' ?  this.dispatchEvent(new Event('queryReset')) : (this.mode == 'amend' || this.mode == 'entry' ? this.dispatchEvent(new Event('amendReset')) : this.dispatchEvent(new Event('cancelReset')))}" />
+            </mx:HBox>
+
+        </mx:VBox>
+        
+        </mx:Canvas>
+                
+        <mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >          
+             <cntrls:QueryResultHeader id="qh" printFunction="dispatchPrintEvent" pdfFunction="dispatchPdfEvent" xlsFunction="dispatchXlsEvent" previousFunction="dispatchPrevEvent" nextFunction="dispatchNextEvent" startIndex="{this.mode == 'query' ? 1 : 2}" skipColumnArray = "{skippedColumns}" />
+        
+        <cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{queryResult}" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()" editable="true"> 
+            <cntrls:columns>                   
+                   <mx:DataGridColumn textAlign="center" headerText="" dataField="selected" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.SelectItem" headerRenderer="com.nri.rui.core.renderers.SelectAllItem" sortable="false" visible="{mode != 'query'}" editable="false"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.rightsexerciserefno')}" dataField="exerciseReferenceNo" visible="{mode != 'entry'}"  editable="false" itemRenderer ="com.nri.rui.cax.renderers.RightsExerciseDetailViewRenderer" /> 
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.fundcode')}" dataField="fundCode" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer" editable="false" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.fundname')}" dataField="fundName"  editable="false" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.fundaccountno')}" dataField="fundAccountNoDisp" itemRenderer="com.nri.rui.core.renderers.FundAccountDetailRenderer" editable="false"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.fundaccountname')}" width="150" dataField="fundAccountName" visible="false" editable="false"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.rightscode')}" dataField="instrumentPk" labelFunction="displayRightsCode" itemRenderer="com.nri.rui.core.renderers.AdvInstrumentDetailsRenderer" editable="false" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.rightsname')}" dataField="rightsName" editable="false"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.alternate.label.rights')}" dataField="alternateSecurity" editable="false"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.fullypaidsecuritycode')}" dataField="allottedInstrumentPk" labelFunction="displaySecurityCode" itemRenderer="com.nri.rui.core.renderers.AdvInstrumentDetailsRenderer" editable="false"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.fullypaidsecurityname')}" dataField="fullyPaidSecurityName" editable="false" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.alternate.label.fullypaidsecurity')}" dataField="alternateAllottedSecurity" editable="false" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.total')}" dataField="totalRightsStr" textAlign="right" visible="{(mode == 'entry' || mode=='amend')}" editable="false" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.exercisedquantity')}" dataField="exerciseQuantityStr"  textAlign="right" editable="false" visible="{mode != 'entry'}" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.exercisedquantity')}" dataField="exercisedRightsStr" textAlign="right" editable="false" visible="{mode == 'entry'}" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.fullypaidshare')}" dataField="fullyPaidShareStr" textAlign="right" visible="{mode == 'query' || mode == 'cancel'}" editable="false" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.subscriptioncost')}" dataField="totalSubscriptionCostStr" textAlign="right"  visible="{mode == 'query' || mode == 'cancel'}" editable="false"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.availablerightsquantity')}" dataField="availableRightsStr" textAlign="right" visible="{mode == 'entry' || mode == 'amend'}" editable="false" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.exercisingquantity')}" visible="{mode == 'entry' || mode == 'amend'}" dataField="exercisingQuantityStr"  editable="true" rendererIsEditor="true">
+                        <mx:itemRenderer>
+                            <mx:Component>
+                                <mx:TextInput focusIn="resetTakeUpCost()" focusOut="outerDocument.calculateExpiryQty(data);outerDocument.formatString(event);resetTakeUpCost()" valueCommit="refreshData(event)" creationComplete="init()" enabled="{(outerDocument.mode!='amend' || !(data.exerciseFinalizeFlag=='Y' || data.prevFinalizeFlag=='Y'))}" >
+                                <mx:Script>
+                                    
+                                    <![CDATA[
+                                    	import mx.events.FlexEvent;
+                                        import mx.controls.dataGridClasses.DataGridListData;
+                                        
+                                        public function refreshData(event:FlexEvent):void{
+                                        	data.exercisingQuantityStr = this.text;
+                                        	
+                                        }
+                                        
+                                        private function resetTakeUpCost():void {
+                                            data.totalSubscriptionCostStr = "";
+                                            
+                                            this.parentDocument.invalidateDisplayList();
+                                        }
+                                        
+                                         public override function set data(value:Object):void{
+                                            // This will fire off the FlexEvent.DATA_CHANGE Event
+                                            
+                                            super.data = value;
+                                            this.text = data.exercisingQuantityStr;
+                                            // if the value is null this cell is empty
+                                            if(value == null){
+                                            // clear all the controls
+                                            return;
+                                            }
+                                            // set the controls with this data
+                                            } 
+                                        
+                                    ]]>
+                                </mx:Script>
+                                </mx:TextInput> 
+                            </mx:Component>
+                        </mx:itemRenderer>
+                    </mx:DataGridColumn>
+                    <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.subscriptioncostpershare')}" dataField="subscriptionCostPerShare"  editable="false" visible="{mode == 'entry' || mode == 'amend'}"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.subscriptioncost')}" visible="{mode == 'entry' || mode == 'amend'}" dataField="totalSubscriptionCostStr"  editable="true" rendererIsEditor="true" itemRenderer="com.nri.rui.cax.renderers.TakeUpCostRenderer"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.exercisedate')}" dataField="exerciseDateStr" editable="false" visible="{mode == 'query' || mode == 'cancel'}" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.deadlinedate')}" dataField="deadlineDateStr" editable="false" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.expirydate')}" dataField="expiryDateStr" editable="false" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.paymentDate.takeup')}" width="120" dataField="paymentDateCashStr" visible="{mode == 'amend' || mode=='entry'}" editable="true" rendererIsEditor="true">
+                    <mx:itemRenderer>
+                        <mx:Component>
+							<mx:DateField textAlign="center" editable="true" formatString="YYYYMMDD" width="90" change="onDateChange()" valueCommit="onDateChange()" dataChange="onDateChange()" focusOut="outerDocument.validateDate(event,data);" >
+							    <mx:Script>
+							        <![CDATA[
+							            import mx.events.FlexEvent;
+							            import com.nri.rui.core.utils.XenosStringUtils;
+							            private var _data:Object;
+							            override public function set data(value:Object):void {
+							                _data = value;
+							                
+							                try {
+							                	if(value.paymentDateCashStr != null){
+							                		text = value.paymentDateCashStr.toString();
+								                    selectedDate = stringToDate(text, "YYYYMMDD");
+								                    this.dispatchEvent(new FlexEvent(FlexEvent.DATA_CHANGE));
+							                	}
+							                    
+							                } catch(e:Error) {
+							                    trace(e.message);
+							                }
+							            }
+							                                                
+							            override public function get data():Object {
+							            	if(_data!=null) {
+							            	    //_data.stlDateStr = text;
+							            	}
+							                return _data;
+							            }
+							            
+							            private function onDateChange():void{
+							            	if(!XenosStringUtils.isBlank(text))
+							            		selectedDate = stringToDate(text, "YYYYMMDD");
+							                 if(_data!=null) {
+                                                _data.paymentDateCashStr = text;
+                                            }
+                                            
+                                            this.enabled=(outerDocument.mode!='amend' || !(data.exerciseFinalizeFlag=='Y' || data.prevFinalizeFlag=='Y'))?true:false;
+							            }
+							        ]]>
+							    </mx:Script>
+							</mx:DateField>
+						</mx:Component>
+						</mx:itemRenderer>  
+					</mx:DataGridColumn>                 
+					
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.paymentDate.newshare')}" width="120" dataField="paymentDateStr" visible="{mode == 'amend' || mode=='entry'}" editable="true" rendererIsEditor="true">
+                    <mx:itemRenderer>
+                        <mx:Component>
+							<mx:DateField textAlign="center" editable="true" formatString="YYYYMMDD" width="90" change="onDateChange()" valueCommit="onDateChange()" dataChange="onDateChange()" focusOut="outerDocument.validateDate(event,data);" >
+							    <mx:Script>
+							        <![CDATA[
+							            import mx.events.FlexEvent;
+							            import com.nri.rui.core.utils.XenosStringUtils;
+							            private var _data:Object;
+							            override public function set data(value:Object):void {
+							                _data = value;
+							                
+							                try {
+							                	if(value.paymentDateStr != null){
+							                		text = value.paymentDateStr.toString();
+								                    selectedDate = stringToDate(text, "YYYYMMDD");
+								                    this.dispatchEvent(new FlexEvent(FlexEvent.DATA_CHANGE));
+							                	}
+							                    
+							                } catch(e:Error) {
+							                    trace(e.message);
+							                }
+							            }
+							                                                
+							            override public function get data():Object {
+							            	if(_data!=null) {
+							            	    //_data.stlDateStr = text;
+							            	}
+							                return _data;
+							            }
+							            
+							            private function onDateChange():void{
+							            	if(!XenosStringUtils.isBlank(text))
+							            		selectedDate = stringToDate(text, "YYYYMMDD");
+							                 if(_data!=null) {
+                                                _data.paymentDateStr = text;
+                                            }
+                                            this.enabled=(outerDocument.mode!='amend' || !(data.exerciseFinalizeFlag=='Y' || data.prevFinalizeFlag=='Y'))?true:false;
+							            }
+							        ]]>
+							    </mx:Script>
+							</mx:DateField>
+						</mx:Component>
+						</mx:itemRenderer>  
+					</mx:DataGridColumn>          
+					
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.paymentDate.newshare')}" width="120" dataField="paymentDateStr" visible="{mode == 'query' || mode=='cancel'}" editable="false" />
+					                               
+                    
+                    <mx:DataGridColumn id="availableDtDg" headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.availabledate')}" dataField="availableDateStr" visible="{mode == 'amend' || mode=='entry'}" editable="true" rendererIsEditor="true">                    
+                    <mx:itemRenderer>
+                        <mx:Component>
+							<mx:DateField textAlign="center" editable="true" formatString="YYYYMMDD" width="90" change="onDateChange()" valueCommit="onDateChange()" dataChange="onDateChange()">
+							    <mx:Script>
+							        <![CDATA[
+							            import mx.events.FlexEvent;
+							            import com.nri.rui.core.utils.XenosStringUtils;
+							            private var _data:Object;
+							            override public function set data(value:Object):void {
+							                _data = value;
+							                
+							                try {
+							                	if(value.availableDateStr != null){
+							                		text = value.availableDateStr.toString();
+								                    selectedDate = stringToDate(text, "YYYYMMDD");
+								                    this.dispatchEvent(new FlexEvent(FlexEvent.DATA_CHANGE));
+							                	}
+							                    
+							                } catch(e:Error) {
+							                    trace(e.message);
+							                }
+							            }
+							                                                
+							            override public function get data():Object {
+							            	if(_data!=null) {
+							            	    //_data.stlDateStr = text;
+							            	}
+							                return _data;
+							            }
+							            
+							            private function onDateChange():void{
+							            	if(!XenosStringUtils.isBlank(text))
+							            		selectedDate = stringToDate(text, "YYYYMMDD");
+							                 if(_data!=null) {
+                                                _data.availableDateStr = text;
+                                            }
+							            }
+							        ]]>
+							    </mx:Script>
+							</mx:DateField>
+						</mx:Component>
+						</mx:itemRenderer>                    
+                    </mx:DataGridColumn>
+                  
+                  
+                  <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.paymentDate.takeup')}" width="120" dataField="paymentDateCashStr" visible="{mode == 'query' || mode=='cancel'}" editable="false" />
+                  <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.availabledate')}" dataField="availableDateStr" editable="false" visible="{mode == 'query' || mode=='cancel'}"/>
+                  
+                  <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.exerciseFinalize')}" dataField="exerciseFinalizeFlag" width="70" draggable="false" resizable="false"   sortable="false" visible="{(mode == 'query' || mode=='cancel' )}" editable="false" labelFunction="dispFinalizeFlag" />
+                  
+                    <mx:DataGridColumn id ="finalise" textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.exerciseFinalize')}" dataField="exerciseFinalizeFlag" width="70" draggable="false" resizable="false"   sortable="false" visible="{(mode == 'entry' || mode=='amend' )}" editable="false">
+                    <mx:itemRenderer>
+                        <mx:Component>
+                        <mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" horizontalAlign="center" creationComplete="init();" dataChange="onDataChange();">
+     
+						    <mx:Script>
+						        <![CDATA[
+						        	import mx.controls.Alert;
+						        	import mx.events.CloseEvent;
+						        	import com.nri.rui.core.controls.XenosAlert;
+						        	import mx.utils.ObjectUtil;
+						        	import com.nri.rui.core.utils.XenosStringUtils;
+						        	import mx.utils.StringUtil;
+						        	import mx.formatters.NumberBase;
+						            import mx.core.Application;
+						            import flash.events.Event;
+						        	import com.nri.rui.core.formatters.XenosNumberFormatter;
+						        	
+						            public function init():void {
+						            	finalizeCheckBox.selected = (data.exerciseFinalizeFlag == 'Y')?true:false;
+						                if(data.editableFlag==false){
+						                	finalizeCheckBox.enabled=false;
+						                }
+						            }
+						            
+						            public function selectOne():void {
+						            	var isSelected:String = (data.exerciseFinalizeFlag == 'Y')?'N':'Y';
+						            	data.exerciseFinalizeFlag=isSelected;
+						            	
+						            	//parentDocument.checkSelectToModify(data);
+						            	if(isSelected=='Y'){						
+						            		//if ex. finalize flag is changed from N to Y,reset all amend changes -XGA-790
+						            		if(outerDocument.mode=='amend' && data.prevFinalizeFlag!='Y'){
+						            			//trace("originalIndex:"+data.originalIndex);
+						            			var selectedItem:Object=data.selected;
+						            			//var originalIndex:Object=data.originalIndex;
+						            			var index:int=outerDocument.queryResult.getItemIndex(data);
+						            			var prevObj:Object=ObjectUtil.copy(outerDocument.tempQueryResult.getItemAt(data.originalIndex));
+						            			prevObj.exerciseFinalizeFlag=isSelected;
+						            			prevObj.selected=selectedItem;
+						            			
+						            			//var tempData:Object=ObjectUtil.copy(data);
+						            			
+						            			if(outerDocument.isDataAmended(data,prevObj)){
+						            				XenosAlert.confirm("Both exercise amend and finalize cannot be performed at the same time.Do you want to finalize?",confirmHandler);
+						            			}
+						            			else{
+						            				outerDocument.calculateExpiryQty(data);
+						            			}						            			
+						            			
+						            		}
+						            		else{            		
+						            			outerDocument.calculateExpiryQty(data);	
+						            		}					            		
+						            	}	
+						            	else
+						            	{
+						            		data.expiryQuantityStr=XenosStringUtils.EMPTY_STR;
+						            		outerDocument.queryResult.refresh();
+						            	}					            	
+						            }
+						            
+						            public function confirmHandler(event:CloseEvent):void{
+						            	if(event.detail==Alert.YES){
+						            		//finalize
+						            		//if ex. finalize flag is changed from N to Y,reset all amend changes -XGA-790
+						            		var isSelected:String=data.exerciseFinalizeFlag;
+						            		var selectedItem:Object=data.selected;						            			
+						            		var index:int=outerDocument.queryResult.getItemIndex(data);
+						            		var prevObj:Object=ObjectUtil.copy(outerDocument.tempQueryResult.getItemAt(data.originalIndex));
+						            		prevObj.exerciseFinalizeFlag=isSelected;
+						            		prevObj.selected=selectedItem;
+						            		outerDocument.queryResult.setItemAt(prevObj,index);
+						            		outerDocument.queryResult.refresh();	
+						            		outerDocument.calculateExpiryQty(prevObj);		
+						            	}
+						            	else{
+						            		//do not finalize
+						            		data.exerciseFinalizeFlag='N';
+						            		data.expiryQuantityStr=XenosStringUtils.EMPTY_STR;
+						            		outerDocument.queryResult.refresh();
+						            		
+						            	}
+						            }
+						            private function onDataChange():void{
+						           		finalizeCheckBox.enabled=(outerDocument.mode == 'amend' && data.availableRightsStr=='0' && data.prevFinalizeFlag != 'Y')?false:true;
+						            }
+						        
+						        ]]>
+						    </mx:Script>
+						        
+						    <mx:CheckBox id="finalizeCheckBox" label="" click="selectOne()" selected="{(data.exerciseFinalizeFlag == 'Y')?true:false}" visible="true" />
+						    
+						</mx:VBox>
+						</mx:Component>
+						</mx:itemRenderer>              
+                    </mx:DataGridColumn>                    
+                    
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.expiryQty')}" dataField="expiryQuantityStr" editable="false" textAlign="right"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.exdate')}" width="120" dataField="exerciseDateStr" visible="{mode == 'entry' || mode=='amend'}" rendererIsEditor="true">
+					 <mx:itemRenderer>
+                        <mx:Component>
+							<mx:DateField textAlign="center" editable="true" formatString="YYYYMMDD" width="90" change="onDateChange()" valueCommit="onDateChange()" dataChange="onDateChange()">
+							    <mx:Script>
+							        <![CDATA[
+							            import mx.events.FlexEvent;
+							            import com.nri.rui.core.utils.XenosStringUtils;
+							            private var _data:Object;
+							            override public function set data(value:Object):void {
+							                _data = value;
+							                
+							                try {
+							                	if(value.availableDateStr != null){
+							                		text = value.exerciseDateStr.toString();
+								                    selectedDate = stringToDate(text, "YYYYMMDD");
+								                    this.dispatchEvent(new FlexEvent(FlexEvent.DATA_CHANGE));
+							                	}
+							                    
+							                } catch(e:Error) {
+							                    trace(e.message);
+							                }
+							            }
+							                                                
+							            override public function get data():Object {
+							            	if(_data!=null) {
+							            	    //_data.stlDateStr = text;
+							            	}
+							                return _data;
+							            }
+							            
+							            private function onDateChange():void{
+							            	if(!XenosStringUtils.isBlank(text))
+							            		selectedDate = stringToDate(text, "YYYYMMDD");
+							                 if(_data!=null) {
+                                                _data.exerciseDateStr = text;
+                                            }
+							            }
+							        ]]>
+							    </mx:Script>
+							</mx:DateField>
+						</mx:Component>
+						</mx:itemRenderer> 
+						</mx:DataGridColumn>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.status')}" dataField="status" itemRenderer="com.nri.rui.core.renderers.StatusRenderer" editable="false" visible="{mode == 'query'}"/> 
+           </cntrls:columns>
+         </cntrls:CustomDataGrid>
+         <mx:HBox visible="{mode != 'query'}" includeInLayout="{mode != 'query'}">
+            <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submitResult" styleName="BtnStyle" click="showConfirmModule()"/>
+            <mx:Button label="Reset"  styleName="BtnStyle" click="resetQuantityCol(); resetTakeUpCostCol(); resetAvailableDate();resetOtherFields();"/>
+         </mx:HBox>
+         
+        </mx:VBox>
+    </mx:HDividedBox>
+    </mx:VBox>
+    
+    </mx:Canvas>  
+         
+</containers:XenosQueryModule>

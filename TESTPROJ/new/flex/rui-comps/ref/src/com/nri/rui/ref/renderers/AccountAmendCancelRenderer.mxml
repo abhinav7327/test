@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%" horizontalAlign="center">
+    <mx:Script>
+        <![CDATA[
+        	import mx.events.CloseEvent;            
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.Globals;
+            
+            import flash.events.MouseEvent;        
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            
+			 private var sPopup : SummaryPopup;	
+            [Bindable] public var _mode:String = null;
+
+    		/**
+        	 * Mouse Click event handler to open a popup with initialization and passing values.
+        	 * 
+        	 */ 
+            public function handleMouseClick(event:MouseEvent):void {
+        			
+        		var parentApp :UIComponent = UIComponent(this.parentApplication);	
+        		sPopup= SummaryPopup(PopUpManager.createPopUp(parentApp,SummaryPopup,true));
+                //set the width and height of the popup
+                sPopup.width = parentApp.width - 60;
+    			sPopup.height = parentApp.height - 60;  		
+        		/* sPopup.horizontalScrollPolicy="off";
+        		sPopup.verticalScrollPolicy="off"; */
+        		PopUpManager.centerPopUp(sPopup);        		
+        		var queryString:String;
+        		trace("_mode :: " + _mode);
+        		if (_mode == "amend") {        			
+					sPopup.title = this.parentApplication.xResourceManager.getKeyValue('ref.accountamend.title.renderer.amend');
+					queryString = "mode=" + this._mode + "&accountPk=" + data['accountPk']+"&reopenFlag=false&counterPartyType=" + data['counterPartyType'];
+        		   	sPopup.moduleUrl = Globals.ACCOUNT_AMEND_SWF + Globals.QS_SIGN + queryString;
+        		}else if (_mode == "reopen") {       			
+					sPopup.title = this.parentApplication.xResourceManager.getKeyValue('ref.accountamend.title.renderer.reopen');				
+					queryString = "mode=" + this._mode + "&accountPk=" + data['accountPk']+"&reopenFlag=true"
+        		   	sPopup.moduleUrl = Globals.ACCOUNT_AMEND_SWF + Globals.QS_SIGN + queryString;
+        		} else {
+        			sPopup.title = this.parentApplication.xResourceManager.getKeyValue('ref.accountamend.title.renderer.cancel');
+        			queryString = "mode=" + this._mode + "&accountPk=" + data['accountPk'];
+        			sPopup.moduleUrl = Globals.ACCOUNT_CANCEL_SWF + Globals.QS_SIGN + queryString;
+        		}
+        		sPopup.addEventListener("OkSystemConfirm",handleOkSystemConfirm,false,0,true);    
+        		
+        		
+        	}
+        	
+        	/**
+        	 * Event Handler for the custom event "OkSystemConfirm"
+        	 */
+        	public function handleOkSystemConfirm(event:Event):void {
+        		
+        		this.parentDocument.currentState = "";
+                /* if(_mode == "amend")
+                  this.parentDocument.dispatchEvent(new Event("amendReset"));
+                else if(_mode == "cancel")
+                  this.parentDocument.dispatchEvent(new Event("cancelReset")); */
+                  parentDocument.resetQuery();
+                  
+                  sPopup.removeMe();
+                
+            }
+        ]]>
+    </mx:Script>
+    <mx:Button id="editRemarks" styleName="{(_mode == 'amend' || _mode == 'reopen') ? 'BtnEdit' : 'BtnDelete'}" width="18" height="18" label="{(_mode == 'amend' || _mode == 'reopen') ? 'Edit' : 'Cancel'}" click="handleMouseClick(event)"/>
+</mx:VBox>

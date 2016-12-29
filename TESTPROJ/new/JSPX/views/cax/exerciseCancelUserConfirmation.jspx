@@ -1,0 +1,133 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+
+
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext 			= <c:out value="${isNext}" />;
+			var isPrevious 		= <c:out value="${isPrevious}" />;
+            var pageNo 			= <c:out value="${pageNo}" />;
+			var lmOffice 		= "";
+			var fundCategory 	= "";
+			<!--The message in the screen is different for User and System confirmation -->
+			<c:if test="${fn:containsIgnoreCase(commandForm.headerInfo, 'User Confirmation')}">
+			   <c:set var="willBeCancelledText" value="Rights Exercise exerciseReferenceNo will be cancelled." />
+			</c:if>
+			<c:if test="${fn:containsIgnoreCase(commandForm.headerInfo, 'System Confirmation')}">
+			   <c:set var="willBeCancelledText" value="Rights Exercise exerciseReferenceNo is cancelled." />
+			</c:if>	
+			
+            var grid_result_data = [];
+            var grid_result_columns = [	
+				{name:"", field:"exerciseReferenceNo", id:"exerciseReferenceNo", sortable: true, width:100}		
+  						];
+            var grid_result_settings = {
+				enableToolbar:false,
+				consolidateActionFlag:false,
+				forceFitColumns : true,
+				emptyColumnCheck : false,
+				buttons: {
+					print:false,	
+					xls:false,	
+					xlsPref:false,
+					pdf:false,					
+					columnPicker:false,
+					save:false					
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					url: '/secure/cax/exercise/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/cax/exercise/query/result.json?fetch=next',
+					prevPage : '/secure/cax/exercise/query/result.json?fetch=previous',
+					pdfReport: '/secure/cax/exercise/query/report.json?outputType=pdf',
+					xlsReport: '/secure/cax/exercise/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/cax/exercise/query/reportPref.json?outputType=xls'
+				}
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${commandForm.selectedExerciseRefrenceNoList}" var="dl">
+ 				rec = {};
+                row_id+=1;
+				rec.id 							= "xenos_" + row_id;
+				<c:set var="finalText" value="${fn:replace(willBeCancelledText,'exerciseReferenceNo', dl)}" />
+				rec.exerciseReferenceNo 		= row_id + ". " + "<c:out value="${finalText}" />";
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+
+	
+	
+	<div id="formActionArea">
+	<div class="left">
+	<div class="formBtnBlock">
+	<div class="btnWrapStyle submitBtn exerciseCancelCfmBtnBlock">
+	<input tabindex="49" class="inputBtnStyle" id="confirmCancelBtn" type="submit" value="Confirm"/>
+	</div>
+	<div class="btnWrapStyle resetBtn">
+	<input tabindex="50" class="inputBtnStyle" id="backCancelBtn" type="button" value="Back"/>
+	</div>
+	<div class="btnWrapStyle submitBtn exerciseCancelOkBtnBlock">
+	<input tabindex="50" class="inputBtnStyle" id="okCancelBtn" style="display:none" type="submit" value="Ok" />
+	</div>
+	</div>
+	<div class="clear">
+	</div>
+	</div>
+	<div class="clear"></div>
+	</div>
+
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		
+			xenos.loadScript([
+				{path: xenos.context.path + '/scripts/cax/xenos-cax-i18n_en.js', async: false},
+				{path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},
+                {path: xenos.context.path + '/scripts/cax/rightsExerciseCancel.js', async: false}
+			],{
+				success: function() {
+					var context = $("#formContainer");
+					$('.exerciseCancelCfmBtnBlock',context).unbind('click');
+					$('.exerciseCancelCfmBtnBlock',context).bind('click', xenos.ns.rightsExerciseCancel.confirmhandler);	
+					$('#backCancelBtn',context).unbind('click');
+					$('#backCancelBtn',context).bind('click', xenos.ns.rightsExerciseCancel.backtoqueryresulthandler);
+					$('.exerciseCancelOkBtnBlock',context).unbind('click');
+					$('.exerciseCancelOkBtnBlock',context).bind('click', xenos.ns.rightsExerciseCancel.backFromOkHandler);
+					
+				}
+			});	
+
+		</jsp:body>
+    </jsp:element>
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+
+		<jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+	
+
+	
+</jsp:root>

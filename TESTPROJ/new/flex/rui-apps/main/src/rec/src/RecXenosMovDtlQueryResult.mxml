@@ -1,0 +1,494 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+
+
+-->
+
+<!-- MXML module for displaying the Cash Refer Result Detail.  -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+    xmlns:cntrls="com.nri.rui.core.controls.*" 
+    percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" 
+    verticalScrollPolicy="off" creationComplete="init()">
+    <mx:Script>
+        <![CDATA[
+            import mx.controls.advancedDataGridClasses.AdvancedDataGridColumn;
+        	import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.binding.utils.BindingUtils;
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.controls.XenosAlert;
+            import mx.managers.FocusManager;
+            import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+            import mx.rpc.events.FaultEvent;
+            import mx.controls.Alert;
+            import com.nri.rui.core.Globals;
+           
+            [Bindable]private var cashReferDtlResult:ArrayCollection = new ArrayCollection;
+            
+            [Bindable]private var rowNum : String = "";
+            
+            [Bindable]
+            private var objForm:Object = null;
+            [Bindable]
+            private var objActQryView:Object = null;
+            [Bindable]
+            private var objBalQryView:Object = null;
+            
+            [Bindable]
+            public var movArray:Array = new Array();
+		    [Bindable]
+		    public var adjdate:String;
+		    [Bindable]
+		    public var fundCodeStr:String;
+		    
+		    [Bindable]
+		    public var balanceBasis:String;
+		    [Bindable]
+		    public var selectAllBind:Boolean=false;
+		    [Bindable]
+		    public var selectCheckBox:Boolean=true;
+		    [Bindable]
+		    private var rs:XML = new XML();
+		    
+            /**
+             * Extracts the parameters and set them to some variables for query criteria from the Module Loader Info.
+             * 
+             */ 
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if (tempA[0] == "rowNum") {
+                            rowNum = tempA[1];
+                        } 
+                        if (tempA[0] == "fundCode") {
+                            fundCodeStr = tempA[1];
+                        } 
+                    }
+                } catch (e:Error) {
+                    trace(e);
+                }               
+            }
+            /**
+             * Initializes the module and send the submit request.
+             * 
+             */     
+            private function init():void{
+                
+                parseUrlString();
+                this.selectCheckBox = true;
+                initService();
+            }
+            
+           /**
+             * Initializes the module and send the submit request.
+             * 
+             */ 
+            private function initService():void{
+            	var rndNo:Number = Math.random();
+                cashRefDtlHttpService.url= "rec/recXenosSecBalDispatch.action?rnd=" + rndNo;
+                //Populate request params
+                var reqObject:Object = new Object();
+                reqObject.method = "viewMovDetails";
+                reqObject.rowNum = rowNum;
+                reqObject.fromPage = "queryResultSecBal";
+                reqObject.SCREEN_KEY = 10021;
+                //set the request object
+                cashRefDtlHttpService.request = reqObject;
+                
+                cashRefDtlHttpService.send();
+                PopUpManager.centerPopUp(this);
+            }
+            
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function httpService_fault(evt:FaultEvent):void {
+                XenosAlert.error(evt.fault.faultDetail);
+            }
+            /**
+             * Result handler for the submit Request. 
+             * 
+             */ 
+            private function httpService_result(event:ResultEvent):void {         
+		 		rs = XML(event.result);
+                var tempResult:ArrayCollection = new ArrayCollection();     
+		 		if (null != event) {
+		 			if(rs.child("Errors").length()>0){ 
+						// i.e. Must be error, display it .
+						var errorInfoList : ArrayCollection = new ArrayCollection();
+						//populate the error info list 			 	
+						for each ( var error:XML in rs.Errors.error ) {
+							errorInfoList.addItem(error.toString());
+						}
+						errPage.showError(errorInfoList);//Display the error
+			      	}else {
+			      	 	errPage.removeError();	      	 	
+                        
+                        objForm = rs;
+                        
+                        if(null == rs.recXenosSecBalActView){ //means Audit Object is null
+                            //XenosAlert.info("Security A/C Level View Details Not Found!"); 
+                        }else{                          
+                            //populate the Transaction Object value
+                            objActQryView =  rs.recXenosSecBalActView;
+                        }
+                        //Handle the Transaction Object  objBalQryView
+                        if(null == rs.recXenosSecBalQueryView){ //means Audit Object is null
+                            XenosAlert.info("Security Balance Level View Details Not Found!"); 
+                        }else{                          
+                            //populate the Transaction Object value
+                            objBalQryView =  rs.recXenosSecBalQueryView;
+                            adjdate = rs.date;
+                            balanceBasis = rs.balanceBasis;
+                        }
+                        /* if(event.result.recXenosSecBalActionForm.resultView3List != null && event.result.recXenosSecBalActionForm.resultView3List.resultView3 != null){ 
+                        	if(event.result.recXenosSecBalActionForm.resultView3List.resultView3 is ArrayCollection) {
+	                                tempResult = event.result.recXenosSecBalActionForm.resultView3List.resultView3 as ArrayCollection;
+	                        } else {
+	                        		tempResult.removeAll();
+	                                tempResult.addItem(event.result.recXenosSecBalActionForm.resultView3List.resultView3);
+	                        }
+                        } */
+                        
+                        
+					    for each ( var rec:XML in rs.resultView3List.resultView3 ) {
+		 				    tempResult.addItem(rec);
+					    }
+					    
+                        for(var i:int=0; i<tempResult.length;i++){
+                            tempResult[i].selected=false;
+                            tempResult[i].rowNo=i;
+	                    	tempResult[i].auditFlag=tempResult[i].remarksAuditFlag.toString();
+	                    	
+	                         //XenosAlert.info("tempQueryResult[tempItr].auditFlag : "+tempResult[i].auditFlag);
+                        }
+                        
+                        //setting the check boxes which were already selected.
+                        var indx:int=-1;
+                        for(var j:int=0;j<movArray.length;j++){
+                            indx=int(movArray[j]);
+                            tempResult[indx].selected=true;
+                        }
+                        
+                        if(!selectCheckBox){
+                        	movArray = new Array();
+                        	for(var i:int=0; i<tempResult.length;i++){
+	                            tempResult[i].selected=false;
+	                        }
+                        }
+                        
+                        cashReferDtlResult = tempResult;
+                        setIfAllSelected();
+                        qh.setOnResultVisibility();
+			            qh.setPrevNextVisibility((rs.previousTraversable3 == "true")?true:false,(rs.nextTraversable3 == "true")?true:false );
+                        //qh.setPrevNextVisibility(Boolean(objForm.previousTraversable3),Boolean(objForm.nextTraversable3));
+                        qh.PopulateDefaultVisibleColumns();
+                        //qh.pdf.visible = false;
+                        //qh.xls.visible = false;
+                        
+                        //XenosAlert.info("cashReferDtlResult= " + cashReferDtlResult.length);
+                    } 
+                }else {
+                    cashReferDtlResult.removeAll();
+                    XenosAlert.info("No Results Found");
+                }                
+            }
+            /**
+             * Label Function for the matchStatus column in the result.
+             * 
+             */   
+            private function getMatchStatus(item:Object, column:AdvancedDataGridColumn):String {
+                if(item.matchStatus == "UNMATCHED"){                   
+                   return "UNMATCHED";
+                }else if(item.matchStatus == "UNPAIRED"){                   
+                   return "UNPAIRED";
+                }else if(item.matchStatus == "FORCE_MATCHED"){                   
+                   return "FORCE MATCHED";
+                }else if(item.matchStatus == "MATCHED"){                   
+                   return " ";
+                }else{
+                    return "";
+                }
+                
+            }
+            
+            
+            /**
+             * Adding values to the movArray.
+             */ 
+            public function addToMovArray(index:Object ):void{
+                if(movArray.indexOf(index)== -1)
+                    movArray.push(index);
+              //  XenosAlert.info("parentDocument.movArray :: "+movArray + "index :: " + index);            
+                movArray = movArray.sort(Array.NUMERIC);
+            }
+            /**
+             * Removing values from the movArray.
+             */             
+            public function removeFromMovArray(index:Object ):void{
+                var tmpArr:Array=new Array();
+                var j:int=0;
+                for(var i:int=0;i<movArray.length;i++){
+                    if(movArray[i]!=index)
+                       tmpArr[j++] =movArray[i];
+                }
+                movArray = tmpArr;  
+                //XenosAlert.info("parentDocument.movArray :: "+movArray + "index :: " + index);                          
+            }
+            /**
+             * Select all and Add values to the movArray.
+             */
+            public function selectAll():void{
+                
+                for(var i:int=0;i<cashReferDtlResult.length;i++){
+                    if(XenosStringUtils.equals('Y',cashReferDtlResult[i].remarksEntryFlag)){
+                        if(movArray.indexOf(i) == -1){
+                            cashReferDtlResult[i].selected = true;
+                            movArray.push(i);
+                        }
+                    }
+                }              
+                movArray = movArray.sort(Array.NUMERIC);
+                //XenosAlert.info("parentDocument.movArray :: " + movArray);            
+            }
+             public function setIfAllSelected() : void {
+		    	if(isAllSelected()){
+		    		selectAllBind=true;
+		    	} else {
+		    		selectAllBind=false;
+		    	}
+		    	
+            }
+            public function isAllSelected(): Boolean {
+		    	var i:Number = 0;        	
+		    	if(cashReferDtlResult == null)
+		    		return false;
+		    		
+		    	for(i=0; i<cashReferDtlResult.length; i++){
+		    		if(cashReferDtlResult[i].selected == false) {
+		    			
+		        		return false;
+		        	}
+		    	}
+		    	if(i == cashReferDtlResult.length) {
+		    		return true;
+		         }else {			
+		    		return false;        		
+		    	}
+		    }
+		     public function selectAllRecords(flag:Boolean): void {
+		     	movArray = new Array();
+			    for(var i:int=0;i<cashReferDtlResult.length;i++){
+                    if(XenosStringUtils.equals('Y',cashReferDtlResult[i].remarksEntryFlag)){
+                    	var obj:XML=cashReferDtlResult[i];
+                        if(selectAllBind){
+                            //cashReferDtlResult[i].selected = true;
+		            		obj.selected = true;		
+		            		cashReferDtlResult[i]=obj;
+                            movArray.push(i);
+                        }else {
+                        	//cashReferDtlResult[i].selected = false;
+                        	obj.selected = false;		
+		            		cashReferDtlResult[i]=obj;
+                            movArray.pop();
+                        }
+                    }
+                }              
+                movArray = movArray.sort(Array.NUMERIC);
+            }
+            /**
+             * Refresh the results when return to this window.
+             */             
+            public function refreshData():void{
+                var rndNo:Number = Math.random();
+                cashRefDtlHttpServiceBackDetail.url= "rec/recXenosSecBalDispatch.action?rnd=" + rndNo;
+                
+                var req : Object = new Object();
+                req.method="backDtlQuery";
+                cashRefDtlHttpServiceBackDetail.request=req;
+                
+                cashRefDtlHttpServiceBackDetail.send();
+            }
+            /* private function selectFailStatusColor(item:Object, color:uint):Object {
+				if(item.ncmTrn == "CLOSE" || item.ncmTrn == "OPEN" || item.custTrn == "CLOSE" || item.custTrn == "OPEN" ){
+					return {color:0xFFCCFF};
+				}
+				return color;
+			} */
+			private function selectFailStatusColor(item:Object, color:uint):uint {
+				if(item.recType == "BALANCE"){
+					return 0xFFCCFF;
+				}
+				return color;
+			}
+            
+			/**
+             * Extract the value of the colum cell removing the prefix added at '0'th index.
+             */ 
+            private function extractPrecisionedValue(item:Object, column:AdvancedDataGridColumn):String{
+                var strData:String = item[column.dataField];
+                if(!XenosStringUtils.isBlank(strData) && strData.charAt(0)=="F"){
+                    if(strData.length == 1)
+                        return XenosStringUtils.EMPTY_STR;
+                    else
+                        return strData.substring(1);
+                }else{
+                    return item[column.dataField];                    
+                }
+            }
+        ]]>
+    </mx:Script>
+    <mx:Script source="actionscripts/RecXenosMovDtlQueryResults.as"/>
+    
+    <cntrls:XenosHTTPService id="cashRefDtlHttpService" 
+            useProxy="false"
+            fault="httpService_fault(event);"
+            result="httpService_result(event)" showBusyCursor="true"  resultFormat="xml">
+          <!--  <mx:request >
+                <method>viewMovDetails</method>
+                <rowNum>{this.rowNum}</rowNum>
+                <fromPage>queryResultSecBal</fromPage>
+            </mx:request> -->
+     </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="cashRefDtlHttpServiceBackDetail"
+            useProxy="false"
+            fault="httpService_fault(event);"
+            result="httpService_result(event)" showBusyCursor="true"  resultFormat="xml">
+         <!--   <mx:request >
+                <method>backDtlQuery</method>
+            </mx:request>  -->
+     </cntrls:XenosHTTPService>
+    <mx:VBox width="100%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off">       
+        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>
+        <cntrls:QueryResultHeaderForAdvancedDataGrid id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" />
+
+        <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+            <mx:GridRow width="100%">
+            	<mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.fundcode')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{fundCodeStr==null? '' : fundCodeStr}" />
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.date')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{adjdate==null? '' : adjdate}" />
+                </mx:GridItem>
+            </mx:GridRow>
+            
+            <mx:GridRow width="100%">
+            	<mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.bank')}" styleName="FormLabelHeading"/>
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{objBalQryView.bankCode==null? '' : objBalQryView.bankCode}" />
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.balancebasis')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{balanceBasis==null? '' : balanceBasis}" />
+                </mx:GridItem>
+            </mx:GridRow>
+            
+            
+            <mx:GridRow width="100%">
+            	<mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.sec.mov.label.accountno')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{objBalQryView.accountNo==null? '' : objBalQryView.accountNo}" />
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.officeid')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%" >
+                    <mx:Text text="{objForm.serviceOffice==null? '' : objForm.serviceOffice}" />
+                </mx:GridItem>
+            </mx:GridRow>
+            
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.securitycode')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%" >
+                    <mx:Text text="{objBalQryView.securityCode==null? '' : objBalQryView.securityCode}" />
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.securityname')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%" >
+                    <mx:Text text="{objBalQryView.shortName==null? '' : objBalQryView.shortName}" />
+                </mx:GridItem>
+            </mx:GridRow>
+            
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.sec.mov.label.matchingstatus')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{objBalQryView.matchStatus==null? '' : objBalQryView.matchStatus}" />
+                </mx:GridItem>                
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.label.alternatesecurityid')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{XenosStringUtils.isBlank(objBalQryView.alternateSecurityCodeDisp)? XenosStringUtils.EMPTY_STR : objBalQryView.alternateSecurityCodeDisp}" />
+                </mx:GridItem>
+            </mx:GridRow>
+            
+        </mx:Grid>
+            
+        <cntrls:XenosAdvancedDataGrid id="cashReferDtlDG" dataProvider="{this.cashReferDtlResult}" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" wordWrap="true" creationComplete="bindDataGrid()" rowColorFunction="selectFailStatusColor">
+            <cntrls:groupedColumns>
+                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.rectype')}" dataField="recType"/>
+                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.date')}" dataField="asOfDateDisp"/>
+                <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.amount')}">
+                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncm')}" dataField="ncmQuantityDisp"  labelFunction="extractPrecisionedValue"/>
+                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.cust')}" dataField="custQuantityDisp"  labelFunction="extractPrecisionedValue"/>
+                </mx:AdvancedDataGridColumnGroup>
+                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.difference')}" dataField="differenceDisp"  labelFunction="extractPrecisionedValue"/>
+                
+                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.txnreferenceno')}" dataField="txnRefNo"  itemRenderer="com.nri.rui.rec.renderers.NcmTxnDetailsRenderer"/>
+                
+                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.txntype')}" dataField="txnType"/>
+                
+                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.mtchstatus')}" dataField="matchStatus" labelFunction="getMatchStatus" color="#FF0000"/>
+                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.select')}" dataField="remarksEntryFlag" itemRenderer="com.nri.rui.rec.renderers.SecReferSelectRecord" headerRenderer="com.nri.rui.core.renderers.SelectAllItem"/>
+                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.audit')}" dataField="remarksAuditFlag" itemRenderer="com.nri.rui.rec.renderers.SecRefAuditViewRendererMov" sortable="false"/>
+                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.label.unknownsecurity')}" dataField="unknownSecurityDisp"/>
+                   
+            </cntrls:groupedColumns>
+        </cntrls:XenosAdvancedDataGrid>
+        
+        <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="left">            
+            <mx:VBox width="70%">
+                <mx:HBox width="100%">
+                    <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('rec.form.button.label.back')}" styleName="BtnStyle" click="doBack(event)"/>
+                    <!--<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('rec.form.button.label.entry')}" styleName="BtnStyle" click="doEntry(event)"/>
+                    <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('rec.form.button.label.forceMatch')}" styleName="BtnStyle" click="doForceMatch(event)"/-->
+                    <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('rec.form.button.label.remarks')}" styleName="BtnStyle" click="doRemarksEntry(event)"/>      
+                </mx:HBox>
+            </mx:VBox>
+                     
+        </mx:HBox>
+     </mx:VBox>
+</mx:Module>

@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+<!--Mxml file for Displaying the contents for Entitlement Amend -->
+
+<containers:XenosEntryModule xmlns:mx="http://www.adobe.com/2006/mxml" 
+    xmlns:containers="com.nri.rui.core.containers.*" 
+    xmlns:flexlib="http://code.google.com/p/flexlib/"
+    xmlns:cntrls="com.nri.rui.core.controls.*"
+    xmlns:frmtrs="com.nri.rui.core.formatters.*"
+    xmlns:valdtrs="com.nri.rui.core.validators.*"
+    xmlns:controls="*" 
+    xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"  
+    horizontalScrollPolicy="off" verticalScrollPolicy="off" width="100%" height="100%">
+    
+    <mx:Script>
+        <![CDATA[
+            import mx.resources.ResourceBundle;  
+            import mx.controls.TextInput;
+            public function numberHandler(event:FocusEvent):void{
+                var targetObj:TextInput = TextInput(event.currentTarget);
+                numVal1.source = targetObj;
+                numVal1.handleNumericField(numberFormatter);    
+            }
+              
+        ]]>
+    </mx:Script>
+
+    <mx:Script source="actionscripts/rdStockMerger.as"/>   
+ 
+  <!-- HttpService request used by method preCalculateHandler and the result of the request is fires the postCalculateHandler method -->
+    <cntrls:XenosHTTPService id="securityBalance" fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize')+' ' + event.fault.faultString)"
+        method="POST" useProxy="false" result="postCalculateHandler(event)" showBusyCursor="true" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <!-- HttpService request used by method preBalanceHandler and the result of the request is fires the postBalanceHandler method -->
+    <cntrls:XenosHTTPService id="accountBalance" fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize')+' ' + event.fault.faultString)"
+        method="POST" useProxy="false" result="postBalanceHandler(event)" showBusyCursor="true" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+   <!-- Number Formatter with Validator -->
+     <frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+      <valdtrs:XenosNumberValidator id="numVal1" requiredFieldError=""
+         invalidCharError="Please enter a valid value" 
+         exceedsMaxError="15 digits are allowed before decimal point" 
+         separationError="" property="text" 
+         allowNegative="true" domain="real" negativeError="Value cannot be negative"
+         lowerThanMinError="" maxValue="999999999999999" minValue="-999999999999999" 
+         invalidFormatCharsError="Please enter a valid value" 
+         precision="3" precisionError="3 digits are allowed after decimal point" />
+         
+     <valdtrs:XenosNumberValidator id="numVal2" requiredFieldError=""
+         invalidCharError="Please enter a valid value" 
+         exceedsMaxError="8 digits are allowed before decimal point" 
+         separationError="" property="text" 
+         allowNegative="false" domain="real" negativeError="Value cannot be negative"
+         lowerThanMinError="" maxValue="99999999" minValue="" 
+         invalidFormatCharsError="Please enter a valid value" 
+         precision="10" precisionError="10 digits are allowed after decimal point" />
+        
+<mx:Canvas width="100%" id="mainDetails" height="100%" creationComplete="loadAll()" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+  
+
+<mx:VBox width="100%" height="100%">
+
+    <mx:VBox width="100%" horizontalGap="0" verticalGap="0">
+        <mx:HBox id="uConfLabel" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" includeInLayout="false" visible="false">
+            <mx:Label id="usrCnfMessage" textAlign="left" fontWeight="bold" text="{this.parentApplication.xResourceManager.getKeyValue('cax.adjustment.entry.userconf')}" width="100%" selectable="true"/>         
+        </mx:HBox>
+        <mx:HBox id="sConfLabel" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" includeInLayout="false" visible="false">
+                <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+                <mx:Label textAlign="left" fontWeight="bold"/>          
+                <mx:Label id="txnMessage" textAlign="left" fontWeight="bold" text="{this.parentApplication.xResourceManager.getKeyValue('cax.transaction.completed.successfully')}" selectable="true"/>    
+        </mx:HBox>          
+    <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+    
+    <mx:Grid id="main" verticalGap="0" horizontalGap="0" width="100%">
+        <mx:GridRow width="100%">
+            <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.entitlement.label.eventRefNo')}" styleName="FormLabelHeading" />
+            </mx:GridItem>
+            <mx:GridItem width="30%">
+                <mx:Label id ="rcReferenceNo" selectable="true"/>
+            </mx:GridItem>   
+             <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="" styleName="FormLabelHeading" />
+            </mx:GridItem>
+            <mx:GridItem width="30%">
+                <mx:Label text="" />
+            </mx:GridItem>                   
+        </mx:GridRow>
+        
+        <mx:GridRow width="100%">
+            <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.entitlement.label.eventType')}" styleName="FormLabelHeading" />
+            </mx:GridItem>
+            <mx:GridItem width="30%">
+                <mx:Label id ="subEventTypeDescription" selectable="true"/>
+            </mx:GridItem>            
+            <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.entitlement.label.eventStatus')}" styleName="FormLabelHeading" />
+            </mx:GridItem>
+            <mx:GridItem width="30%">
+                <mx:Label id ="conditionStatus" selectable="true"/>
+            </mx:GridItem>
+        </mx:GridRow>
+                
+        <mx:GridRow width="100%">
+            <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.entitlement.label.allottedSecurityCode')}" styleName="FormLabelHeading" />
+            </mx:GridItem>
+            <mx:GridItem width="30%">
+            <mx:HBox>         	
+                <mx:Label id ="allottedInstrument" selectable="true"/>               
+            </mx:HBox>    
+            </mx:GridItem>            
+            <mx:GridItem width="20%" styleName="LabelBgColor">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.entitlement.label.allottedSecurityName')}" styleName="FormLabelHeading" />
+            </mx:GridItem>
+            <mx:GridItem width="30%">
+				<mx:TextArea id="allottedInstrumentName" wordWrap="true" text="" width="100%" borderStyle="none" backgroundAlpha="0" editable="false" selectable="true"/>				            
+            </mx:GridItem>
+        </mx:GridRow>
+       
+    </mx:Grid>
+    	
+    	<mx:Repeater id="stockMergerInfoRptr" dataProvider="{stockMergerInfoList}" > 
+    		<mx:Spacer width="100%" minHeight="8" height="8" />
+	    	<mx:VBox width="100%">
+	           	<mx:HBox width="100%" styleName="ButtonBackPanel" >
+	           		<mx:Label text="{stockmergerinfoLabel}{(stockMergerInfoRptr.currentIndex+1)}" fontWeight="bold" /> 
+	           	</mx:HBox>
+	           	
+		  <mx:Grid id="rightsDetailStockPart" verticalGap="0" horizontalGap="0" width="100%">
+		  	
+		  	 <mx:GridRow id="detailReferenceNo" width="100%" includeInLayout="{detailReferenceNoVisibleFlag}" visible="{detailReferenceNoVisibleFlag}">
+	            <mx:GridItem width="20%" styleName="LabelBgColor">
+	                <mx:Label text="{detailReferenceNoLabel}" styleName="FormLabelHeading" />
+	            </mx:GridItem>
+	            <mx:GridItem width="30%">
+	                <mx:Label text="{stockMergerInfoRptr.currentItem.detailReferenceNo}" selectable="true"/>
+	            </mx:GridItem>	            
+	            <mx:GridItem width="20%" styleName="LabelBgColor">
+	                <mx:Label text="" styleName="FormLabelHeading" />
+	            </mx:GridItem>
+	            <mx:GridItem width="30%">
+					 <mx:Label text=""  />            
+	            </mx:GridItem>
+	        </mx:GridRow>	     
+		  	
+	        <mx:GridRow width="100%">
+	            <mx:GridItem width="20%" styleName="LabelBgColor">
+	                <mx:Label text="{eventRefNoLabel}" styleName="FormLabelHeading" />
+	            </mx:GridItem>
+	            <mx:GridItem width="30%">
+	                <mx:Label selectable="true" text="{stockMergerInfoRptr.currentItem.conditionReferenceNo}"/>
+	            </mx:GridItem>  
+	            <mx:GridItem width="20%" styleName="LabelBgColor">
+	                <mx:Label id="ownershipAccountLbl" text="{fundAccountLabel}" styleName="{(screenMode=='ENTRY')?'ReqdLabel':'FormLabelHeading'}" />           
+	            </mx:GridItem>
+	            <mx:GridItem width="30%">
+	            <mx:HBox>
+					<xenospopup:AccountPopUpHbox id="inventoryAccountNo" retContextItem="{returnContextItem}" recContextItem="{populateInvActContext()}" includeInLayout="{screenMode=='ENTRY'}" visible="{screenMode=='ENTRY'}"/>
+					<mx:Image id ="dbImg" source="@Embed('../../assets/themes/default/skin/icon_dbcal.png')" buttonMode="true" horizontalAlign="right" click="preBalanceHandler(event.currentTarget.getRepeaterItem())" includeInLayout="{screenMode=='ENTRY'}" visible="{screenMode=='ENTRY'}"/>
+					<mx:Label id="uInventoryAccountNo" text="{stockMergerInfoRptr.currentItem.accountNo}" selectable="true" visible="{screenMode!='ENTRY'}" includeInLayout="{screenMode!='ENTRY'}" />
+				</mx:HBox>                
+	            </mx:GridItem>                    
+	        </mx:GridRow>
+	        
+	        <mx:GridRow width="100%">
+	            <mx:GridItem width="20%" styleName="LabelBgColor">
+	                <mx:Label text="{securityCodeLabel}" styleName="FormLabelHeading" />
+	            </mx:GridItem>
+	            <mx:GridItem width="30%">
+	                <mx:Label text="{stockMergerInfoRptr.currentItem.instrumentCode}" selectable="true"/>
+	            </mx:GridItem>	            
+	            <mx:GridItem width="20%" styleName="LabelBgColor">
+	                <mx:Label text="{securityNameLabel}" styleName="FormLabelHeading" />
+	            </mx:GridItem>
+	            <mx:GridItem width="30%">
+					<mx:TextArea wordWrap="true" text="{stockMergerInfoRptr.currentItem.instrumentName}" width="100%" borderStyle="none" backgroundAlpha="0" editable="false" selectable="true"/>            
+	            </mx:GridItem>
+	        </mx:GridRow>	        
+	       
+	        <mx:GridRow width="100%">
+	            <mx:GridItem width="20%" styleName="LabelBgColor">
+	                <mx:Label id="securityBalanceLabelId" text="{securityBalanceLabel}" styleName="{(screenMode=='ENTRY')?'ReqdLabel':'FormLabelHeading'}" />
+	            </mx:GridItem>
+	            <mx:GridItem width="30%">
+	                <mx:HBox>
+	                    <mx:TextInput id="securityBalanceStr" width="90" focusOut="numberHandler(event)" text="{stockMergerInfoRptr.currentItem.securityBalanceStr}" visible="{screenMode=='ENTRY'}" includeInLayout="{screenMode=='ENTRY'}"/>
+	                    <mx:Image id ="balanceCalImg" source="@Embed('../../assets/themes/default/skin/cal_icon.png')" buttonMode="true" horizontalAlign="right" click="preCalculateHandler(event.currentTarget.getRepeaterItem())" visible="{screenMode=='ENTRY'}" includeInLayout="{screenMode=='ENTRY'}"/>
+	                    <mx:Label id="uConfsecurityBalanceStr" text="{stockMergerInfoRptr.currentItem.securityBalanceStr}" selectable="true" visible="{screenMode!='ENTRY'}" includeInLayout="{screenMode!='ENTRY'}"/>
+	                </mx:HBox>
+	            </mx:GridItem> 
+	            <mx:GridItem width="20%" styleName="LabelBgColor">
+	                <mx:Label text="{finalizedFlagLabel}" styleName="FormLabelHeading" />
+	            </mx:GridItem>
+	            <mx:GridItem width="30%">		            
+		           	 <mx:ComboBox id="finalizedflag" editable="false" dataProvider="{finalizedFlagValues}" visible="{screenMode=='ENTRY'}" includeInLayout="{screenMode=='ENTRY'}"/>		        	
+					 <mx:Label text="{stockMergerInfoRptr.currentItem.finalizedFlagDisp}" visible="{screenMode!='ENTRY'}" includeInLayout="{screenMode!='ENTRY'}" />            
+	            </mx:GridItem> 
+            </mx:GridRow>
+	    	
+	    	 <mx:GridRow width="100%">
+	         	<mx:GridItem width="20%" styleName="LabelBgColor">
+	                <mx:Label text="{allottedQuantityLabel}" styleName="FormLabelHeading" />
+	            </mx:GridItem>
+	            <mx:GridItem width="30%">
+	               <mx:TextInput id="allottedQuantityStr" text="{stockMergerInfoRptr.currentItem.allottedQuantityStr}" focusOut="this.numberHandler(event)" visible="{screenMode=='ENTRY'}" includeInLayout="{screenMode=='ENTRY'}"/>
+	               <mx:Label id="allottedQuantityStrconf" text="{stockMergerInfoRptr.currentItem.allottedQuantityStr}" selectable="true" visible="{screenMode!='ENTRY'}" includeInLayout="{screenMode!='ENTRY'}"/>
+	            </mx:GridItem>
+	            <mx:GridItem width="20%" styleName="LabelBgColor">
+	                <mx:Label text="{allottedAmountLabel}" styleName="FormLabelHeading" />
+	            </mx:GridItem>
+	            <mx:GridItem width="30%">
+	                <mx:TextInput id="allottedAmountStr" focusOut="this.numberHandler(event)" text="{stockMergerInfoRptr.currentItem.allottedAmountStr}" visible="{screenMode=='ENTRY'}" includeInLayout="{screenMode=='ENTRY'}" />
+	                <mx:Label id="allottedAmountStrConf" text="{stockMergerInfoRptr.currentItem.allottedAmountStr}" selectable="true" visible="{screenMode!='ENTRY'}" includeInLayout="{screenMode!='ENTRY'}" />
+	            </mx:GridItem>  
+	         </mx:GridRow>    
+	        	    
+	    	<mx:GridRow width="100%" id ="fractionalShrCashInlieuRow">
+	            <mx:GridItem width="20%" styleName="LabelBgColor">
+	                <mx:Label text="{fractionalShareLabel}" styleName="FormLabelHeading" />
+	            </mx:GridItem>
+	            <mx:GridItem width="30%">
+	               <mx:TextInput id="fractionalShareStr" focusOut="this.numberHandler(event)" text="{stockMergerInfoRptr.currentItem.fractionalShareStr}"  visible="{screenMode=='ENTRY'}" includeInLayout="{screenMode=='ENTRY'}" />
+	               <mx:Label id="fractionalShareStrConf" text="{stockMergerInfoRptr.currentItem.fractionalShareStr}"  selectable="true" visible="{screenMode!='ENTRY'}" includeInLayout="{screenMode!='ENTRY'}" />
+	            </mx:GridItem>
+	            <mx:GridItem width="20%" styleName="LabelBgColor">
+	                <mx:Label text="{cashInLieuFlagLabel}" styleName="FormLabelHeading" visible="{screenMode=='ENTRY'}" includeInLayout="{screenMode=='ENTRY'}"/>
+	            </mx:GridItem>
+	            <mx:GridItem width="30%">
+	            	<mx:CheckBox id ="cashInLieuFlagExp" selected="{(stockMergerInfoRptr.currentItem.cashInLieuFlag=='true')}" enabled="false" visible="{screenMode=='ENTRY'}" includeInLayout="{screenMode=='ENTRY'}" />              
+	            </mx:GridItem> 
+	         </mx:GridRow>   
+	         
+	          <mx:GridRow width="100%" >
+	          		<mx:GridItem width="20%" styleName="LabelBgColor">
+		                <mx:Label id="paymentDateLbl" text="{paymentDateLabel}" styleName="{(screenMode=='ENTRY')?'ReqdLabel':'FormLabelHeading'}" />
+		            </mx:GridItem>
+		            <mx:GridItem width="30%">
+		               <mx:HBox>
+		                <mx:DateField id="paymentDate"  text="" formatString="YYYYMMDD" editable="true" visible="{screenMode=='ENTRY'}" includeInLayout="{screenMode=='ENTRY'}"/>
+		                <mx:Label id="uPaymentDateConf" text ="{stockMergerInfoRptr.currentItem.paymentDate}" visible="{screenMode!='ENTRY'}" includeInLayout="{screenMode!='ENTRY'}"/>
+		               </mx:HBox> 	
+		            </mx:GridItem>           
+	           	 	<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{availableDateLabel}" styleName="FormLabelHeading" />	                
+		          	</mx:GridItem>
+		        	<mx:GridItem width="30%" >
+		            	<mx:DateField id="availableDate"  text="" formatString="YYYYMMDD" editable="true" visible="{screenMode=='ENTRY'}" includeInLayout="{screenMode=='ENTRY'}"/>	
+		            	<mx:Label text="{stockMergerInfoRptr.currentItem.availableDate}" visible="{screenMode!='ENTRY'}" includeInLayout="{screenMode!='ENTRY'}"/>
+		        	</mx:GridItem>  			        	        	       	     	        
+			   </mx:GridRow>  
+			   
+			  <mx:GridRow width="100%">         	
+	            <mx:GridItem width="20%" styleName="LabelBgColor">
+	                <mx:Label text="{remarksLabel}" styleName="FormLabelHeading" />
+	            </mx:GridItem>
+	            <mx:GridItem width="26%" colSpan="3">
+	                 <mx:TextInput id="remarks" width="100%" maxChars="300" text="{stockMergerInfoRptr.currentItem.remarks}" visible="{screenMode=='ENTRY'}" includeInLayout="{screenMode=='ENTRY'}"/>          
+	                 <mx:TextArea id="remarksConf" width="100%" borderStyle="none" backgroundAlpha="0" editable="false" selectable="true" wordWrap="true" text="{stockMergerInfoRptr.currentItem.remarks}" visible="{screenMode!='ENTRY'}" includeInLayout="{screenMode!='ENTRY'}"/>
+	             </mx:GridItem>	
+	         </mx:GridRow>             
+	       
+	    </mx:Grid>
+	           	
+	           	
+	        </mx:VBox>
+        </mx:Repeater>    	    	
+    
+    
+ </mx:VBox>
+
+   
+   <mx:HBox width="100%" styleName="ButtonBackPanel">
+   <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submitBtn" styleName="BtnStyle" includeInLayout="true" visible="true" click= "doSubmit();"/>
+      <!--<cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="backBtn" styleName="BtnStyle" click= "doBackAmend('AMEND')"/>-->
+      <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="confBackBtn" styleName="BtnStyle" click= "doBack('CONFIRM')" includeInLayout="false" visible="false" />
+      <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" id="resetBtn" styleName="BtnStyle" visible="true" click= "{this.dispatchEvent(new Event('entryReset'))}" />        
+      <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="confBtn" styleName="BtnStyle" includeInLayout="false" visible="false" click= "{this.dispatchEvent(new Event('entryConf'))}" />  
+      <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.sysconfirm')}" id="sysConfBtn" styleName="BtnStyle" includeInLayout="false" visible="false" click= "{this.dispatchEvent(new Event('entrySysConf'))}"/>               
+   </mx:HBox>
+   
+   </mx:VBox>
+   
+  </mx:Canvas>
+  
+</containers:XenosEntryModule>

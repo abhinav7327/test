@@ -1,0 +1,194 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:xenos="http://www.nri.co.jp/xenos"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:jsp="http://java.sun.com/JSP/Page">
+     
+<div class="formItemArea">
+        
+     <jsp:directive.page contentType="text/html;charset=UTF-8" />
+     <jsp:output    omit-xml-declaration="yes" />
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+       
+        xenos$onReady$Array.push(function() {
+            xenos.loadScript([{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false}]);
+            xenos.loadLocalizedScript([{path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false}]);
+        });
+       
+       
+        var batchId="<c:out value="${commandForm.batchId}"/>";
+        if(batchId == "BORROW_RETURN_BATCH")
+        {
+            var slrBaseDate="<c:out value="${commandForm.slrBaseDate}"/>";
+            var slrValueDate="<c:out value="${commandForm.slrValueDate}"/>";
+           
+            var slrBaseDateOldData = $("input[name='optionValuesMap['SLR.BorrowReturnBatch-d']']").val();
+            var slrValueDateOldData = $("input[name='optionValuesMap['SLR.BorrowReturnBatch-v']']").val();
+           
+            if(!VALIDATOR.isNullValue(slrBaseDate) <![CDATA[&&]]> VALIDATOR.isNullValue(slrBaseDateOldData))
+            {
+                $("input[name='optionValuesMap['SLR.BorrowReturnBatch-d']']").val(slrBaseDate);
+            }
+            if(!VALIDATOR.isNullValue(slrValueDate) <![CDATA[&&]]> VALIDATOR.isNullValue(slrValueDateOldData))
+            {
+                $("input[name='optionValuesMap['SLR.BorrowReturnBatch-v']']").val(slrValueDate);
+            }
+        }
+        else if(batchId == "BWRTMTCH_BATCH")
+        {
+            $("input[name='optionValuesMap['SLR.BorrowReturnMatchingBatch-u']']").parent().parent().remove();
+        }
+        else if(batchId == "BRRTREFNOMTCH_BATCH")
+        {
+            $("input[name='optionValuesMap['SLR.BorrowReturnRefNoMatchingBatch-u']']").parent().parent().remove();
+        }
+        else if(batchId == "DRVAUTOCLOSEOUT_BT")
+        {
+            $("input[name='optionValuesMap['DRV.AutoCloseout-u']']").parent().parent().remove();
+        }
+        function submitValidateHookBatchExecutionUI()
+        {
+            if(batchId == "BORROW_RETURN_BATCH")
+            {
+                var slrBaseDate=$("input[name='optionValuesMap['SLR.BorrowReturnBatch-d']']").val();
+                var slrValueDate=$("input[name='optionValuesMap['SLR.BorrowReturnBatch-v']']").val();
+                var alertStr = [];
+                var dateFormatValidationFails = false;
+               
+                if(slrBaseDate.length>0 <![CDATA[&&]]> isDateCustom(slrBaseDate)==false) {
+                    dateFormatValidationFails = true;
+                    alertStr.push(xenos$REF$i18n.batch.execution.dateformat);
+                }
+               
+                if(slrValueDate.length>0 <![CDATA[&&]]> isDateCustom(slrValueDate)==false) {
+                    dateFormatValidationFails = true;
+                    if(alertStr.length==0)
+                    {
+                        alertStr.push(xenos$REF$i18n.batch.execution.dateformat);
+                    }
+                }
+
+                if(slrBaseDate.length>0 <![CDATA[&&]]> slrValueDate.length>0 <![CDATA[&&]]> dateFormatValidationFails==false) {
+                    // Base Date should not be greater than Value Date
+                    if(!isValidDateRange(slrBaseDate, slrValueDate)){
+                        alertStr.push(xenos$REF$i18n.batch.execution.dateproblem);
+                    }
+                }
+                //Show the error message
+                if(alertStr.length > 0){
+                    $('.formHeader').find('.formTabErrorIco').css('display', 'block');
+                    $('.formHeader').find('.formTabErrorIco').off('click');
+                    $('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, alertStr, true));
+                    return false;
+                }else{
+                    $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                }
+                return true;
+            }
+            else
+            {
+                return true;
+            }
+        }
+       
+        </jsp:body>
+    </jsp:element>
+    <div class="entryBlkArea">
+    <div class="formItemBlock dottedBg">
+        <div class="formItem twoCols">
+            <form:label path="batchId" class="required"><spring:message code="ref.batchreport.label.batchid" htmlEscape="false"/></form:label>
+            <span>${commandForm.batchId}</span>
+        </div>
+        <div class="formItem">
+            <form:label path="office" class="required"><spring:message code="ref.batchreport.label.officeid" htmlEscape="false"/></form:label>
+            <span id="office">${commandForm.office}</span>
+        </div>
+        <div class="formItem">
+            <form:label path="lmImFlag" class="required"><spring:message code="ref.batchreport.label.lmim" htmlEscape="false"/></form:label>
+            <span id="lmImFlag">${commandForm.lmImFlagLabel}</span>
+        </div>
+       
+        <c:if test ='${commandForm.displayStr != ""}'>
+            <xenos:out escapeXml="false">
+                ${commandForm.displayStr}
+            </xenos:out>
+        </c:if>
+        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+        <c:if test="${(commandForm.minHeapSizeString != '') || (commandForm.maxHeapSizeString != '')}">
+            <!-- <c:if test="${commandForm.minHeapSizeString != ''}">         -->
+                <div class="formItem">
+                    <label><spring:message code="ref.batchui.execution.label.minheapsize" htmlEscape="false"/></label>
+                    <span>${commandForm.minHeapSizeString}</span>
+                </div>
+            <!-- </c:if>
+            <c:if test="${commandForm.maxHeapSizeString != ''}"> -->
+                <div class="formItem">
+                    <label><spring:message code="ref.batchui.execution.label.maxheapsize" htmlEscape="false"/></label>
+                    <span>${commandForm.maxHeapSizeString}</span>
+                </div>
+            <!-- </c:if> -->
+                    <!-- <c:if test="${(commandForm.minHeapSizeString == '') || (commandForm.maxHeapSizeString == '')}">
+                        <td width="20%" class="lblNormalWt"></td>
+                        <td width="30%" class="dataWt"></td>
+                    </c:if> -->
+        </c:if>
+    </div>
+    </div>
+   
+    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+    <div class="formBrdHide"><spring:message text="" htmlEscape="false"/></div>
+
+    <jsp:element name="script">
+    <jsp:attribute name="type">text/javascript</jsp:attribute>
+    <jsp:attribute name="src">
+      <c:url value="/scripts/inf/datevalidation.js"/>
+    </jsp:attribute>
+    <jsp:body></jsp:body>
+  </jsp:element>
+  <jsp:element name="script">
+    <jsp:attribute name="type">text/javascript</jsp:attribute>
+    <jsp:attribute name="src">
+      <c:url value="/scripts/xenos-treeview.js"/>
+    </jsp:attribute>
+    <jsp:body></jsp:body>
+  </jsp:element>
+ 
+  <jsp:element name="script">
+    <jsp:attribute name="type">text/javascript</jsp:attribute> 
+    <jsp:attribute name="src">
+      <c:url value="/scripts/ref/xenos-counterparty-code.js"/>
+    </jsp:attribute>
+    <jsp:body></jsp:body>
+  </jsp:element>
+   <spring:eval expression="T(java.lang.System).currentTimeMillis()" var="myId"/>
+    <input type="hidden" id="${myId}"/>
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            jQuery('#' + '${myId}').parent().xenosform({
+                afterRendering : function($context){
+                    $("form").submit(function(e){
+                        e.preventDefault();
+                    });
+                    $context.find('.backBtn').show();
+                    $context.find('.resetBtn').hide();
+                    $context.find('.submitBtn').show();
+                    $context.find('.dropdowninputMulti').parents('.formItem').addClass('twoCols');
+                    $context.find('.dropdowninputMulti').xenos$multiSelect();
+                },
+                beforeSubmit : function(context){
+                    var submitFlag = submitValidateHookBatchExecutionUI();
+                    return submitFlag;
+                }
+            });
+        </jsp:body>
+    </jsp:element>
+</div>
+</jsp:root>

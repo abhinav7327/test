@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" xmlns:controls="*" creationComplete="init()" width="100%" height="100%" xmlns:src="ref.src.*" xmlns:cntrls="com.nri.rui.core.controls.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.utils.PrintUtils;
+			import mx.core.IFlexDisplayObject;
+            import com.nri.rui.core.controls.XenosAlert;    
+            import com.nri.rui.core.Globals;
+            import mx.rpc.events.ResultEvent;
+            import mx.core.UIComponent;
+            import mx.collections.XMLListCollection;
+            import com.nri.rui.core.utils.XenosPopupUtils;
+            import mx.core.Application;
+			[Bindable]
+            private var instrumentNo:String;    
+            [Bindable]       
+            public var xmlSource:XML;
+			
+            public var o:Object = {};
+            
+            public function parseUrlString():void {
+                try {
+                    var myPattern:RegExp = /.*\?/; 
+                    var s : String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split("&"); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if (tempA[0] == Globals.INSTRUMENT_PK) {
+                            instrumentNo = tempA[1] as String;
+                            break;
+                        } 
+                    }      
+        
+                } catch (e:Error) {
+                    trace(e);
+                }
+               
+            }
+			
+			private function init():void
+			{
+				parseUrlString();
+				
+				var req : Object = new Object();
+				req.instrumentPk=instrumentNo;
+				RefInstrumentRequest.request=req;
+				
+				RefInstrumentRequest.send();
+				currentState = "Detail";
+			}
+			
+			private function initPage(event:ResultEvent):void 
+			{
+				xmlSource = event.result as XML;
+                if(xmlSource == null)
+                    XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('ref.instrument.msg.error.load.instrument', new Array(instrumentNo)));
+			}
+			/**
+             * This click Handler method alters the states on the basis of which is currently in display.
+             */
+            /* public function stateChangeHandler(event:MouseEvent):void {
+            	
+				if(currentState=="Summary")
+            		currentState = "Detail";
+            	else
+            		currentState = "Summary";
+            } */
+		]]>
+	</mx:Script>
+	
+	<cntrls:XenosHTTPService id="RefInstrumentRequest" url="ref/instrumentQueryResultDispatch.action?method=instrumentQueryExecute"
+        result="initPage(event)" showBusyCursor="true" method="POST" useProxy="false"
+        fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)));" resultFormat="e4x">
+        <!-- <mx:request>
+        	<instrumentPk>{instrumentNo}</instrumentPk>
+        </mx:request>  -->
+    </cntrls:XenosHTTPService>
+    
+    
+    <mx:states>
+    	<!--<mx:State name="Summary">
+    		<mx:AddChild relativeTo="{instrumentMain}" position="lastChild">
+                <mx:target>
+		    		<mx:VBox id="SummaryBox" width="100%" height="100%" verticalGap="0" horizontalGap="0" >
+				        <controls:InstrumentSummaryView dataProvider="{this.xmlSource}" width="100%" height="100%"/>
+				        <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+				            <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.title.view')}" click="stateChangeHandler(event)" styleName="BtnStyle"/>
+				        </mx:HBox>				            
+				    </mx:VBox> 
+                </mx:target>
+            </mx:AddChild>			
+    	</mx:State> -->
+    	<mx:State name="Detail"> 		
+    		<mx:SetProperty target="{this.parentDocument}" name="title" value="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.securitydetails')}"/>
+    		<mx:SetProperty target="{this.parentDocument}" name="width" value="{this.parentApplication.width - 100}"/>
+            <mx:SetProperty target="{this.parentDocument}" name="height" value="{this.parentApplication.height - 100}"/>
+            <mx:AddChild relativeTo="{instrumentMain}" position="lastChild">
+                <mx:target>
+                	<mx:VBox id="detailBox" width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+                		<mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+				        	<mx:Button id="print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetailTab(this.tabs.tabModules.selectedChild)"/>
+				        	<!--<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.title.summary.view')}" click="stateChangeHandler(event)" styleName="BtnStyle"/>-->
+				    	</mx:HBox>
+				    	<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">	                	
+	                    	<controls:instrumentTabs id="tabs" width="100%" height="100%" dataProvider="{this.xmlSource}" />
+						</mx:Canvas>				
+					</mx:VBox>
+                </mx:target>
+            </mx:AddChild> 
+            <mx:SetProperty target="{this.parentDocument}" name="x" value="{(this.parentApplication.width - this.parentDocument.width)/2}"/>
+            <mx:SetProperty target="{this.parentDocument}" name="y" value="{(this.parentApplication.height - this.parentDocument.height)/2}"/>                		           
+    	</mx:State>
+    </mx:states>
+    <!-- Define Transition array with one Transition object.-->
+  <!--  <mx:transitions>
+        <mx:Transition id="accountTransition" fromState="*" toState="*">
+            <mx:Parallel id="t1" targets="{[this.parentDocument]}">
+                <mx:Move  duration="800"/>
+                <mx:Resize  duration="800"/>
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions> -->
+    
+    <mx:Canvas id="instrumentMain" width="100%" height="100%">
+    	
+    </mx:Canvas>
+	
+	
+</mx:Module>

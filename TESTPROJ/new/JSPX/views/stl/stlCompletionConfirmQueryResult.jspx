@@ -1,0 +1,128 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div>
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+		  
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var grid_result_data = [];
+						
+            var grid_result_columns = [
+				{name:"<spring:message code="stl.label.completiontype" htmlEscape="false"/>", field:"completionTp", id:"completionTp", width: 130, sortable:true},
+				{name:"<spring:message code="stl.label.settlementdate" htmlEscape="false"/>", field:"settlementDateStr", id:"settlementDateStr", width:110, sortable:true},
+                {name:"<spring:message code="stl.label.settlementreferenceno" htmlEscape="false"/>", field:"settlementReferenceNo", id:"settlementReferenceNo", width: 170, sortable:true},
+                {name:"<spring:message code="stl.label.valuedate" htmlEscape="false"/>", field:"valueDateStr",  id:"valueDateStr", width: 80, sortable:true},
+				{name:"<spring:message code="stl.label.settleac" htmlEscape="false"/>", field:"displayAccountNo", id:"displayAccountNo", width:90, sortable:true},
+				{name:"<spring:message code="stl.label.securitycode" htmlEscape="false"/>", field:"instrumentCode", id:"instrumentCode", width: 100, sortable:true},
+				{name:"<spring:message code="stl.label.securityname" htmlEscape="false"/>", field:"securityName", id:"securityName", width: 100, sortable:true},
+				{name:"<spring:message code="stl.label.alternatesecurityid" htmlEscape="false"/>", field:"displayAlternativeSecId",  id:"displayAlternativeSecId", width: 140, sortable:true},
+				{name:"<spring:message code="stl.label.ccy" htmlEscape="false"/>", field:"ccyCode",  id:"ccyCode", width: 40, sortable:true},
+				{name:"<spring:message code="stl.label.settlementbank" htmlEscape="false"/>", field:"finInstRoleCode", id:"finInstRoleCode", width:100, sortable:true},
+				{name:"<spring:message code="stl.label.cpaccountno" htmlEscape="false"/>", field:"cpAccountNo", id:"cpAccountNo", width: 90, sortable:true},
+				{name:"<spring:message code="stl.label.cpbank" htmlEscape="false"/>", field:"cpBank", id:"cpBank", width: 140, sortable:true},
+				{name:"<spring:message code="stl.label.accountname" htmlEscape="false"/>",field:"accName",id:"accName", width:120,	sortable:true},
+				{name:"<spring:message code="stl.label.settlementquantity" htmlEscape="false"/>", field:"quantityStr", id:"quantityStr", width: 140,cssClass:'xenos-grid-number',sortable:true},
+				{name:"<spring:message code="stl.label.settlementamount" htmlEscape="false"/>", field:"amountStr", id:"amountStr", width: 135,cssClass:'xenos-grid-number',sortable:true},
+				{name:"<spring:message code="stl.label.outstandingamount" htmlEscape="false"/>", field:"outstandingAmountStr", id:"outstandingAmountStr", width: 130,cssClass:'xenos-grid-number',sortable:true},
+				{name:"<spring:message code="stl.label.outstandingquantity" htmlEscape="false"/>", field:"outstandingQuantityStr", id:"outstandingQuantityStr", width: 125,cssClass:'xenos-grid-number',sortable:true},
+				{name:"<spring:message code="stl.label.instructionreferenceno" htmlEscape="false"/>", field:"instructionRefno", id:"instructionRefno", width: 125,cssClass:'xenos-grid-number',sortable:true}
+            ];
+			var check = ${commandForm.positionCheckFailed};
+            var grid_result_settings = {
+				enableToolbar:false,
+				consolidateActionFlag:false,
+				buttons: {
+					print:false,	
+					xls:false,	
+					pdf:false,	
+					columnPicker:false,	
+					save:false	
+				},
+				pagingInfo:{
+					isNext : false
+				},
+				yOffset: check?200:0,
+				urls:{
+				},
+				events:{
+					onDataUpdate : function(data,callback){
+					
+						for(i in data.value){
+							data.value[i].fundAccountPk = data.value[i].inventoryAccountPk;
+							data.value[i].settlementReferenceNo = data.value[i].settlementReferenceNo+"-"+data.value[i].versionNo;
+							data.value[i].finInstRolePk = data.value[i].ourBankPk;
+							data.value[i].ourSettleAccountPk = data.value[i].ourSettleAcPk;
+						}
+						callback(data);
+					}
+				}
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${commandForm.candidates}" var="dl" varStatus="loop">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				rec.completionTp = "<c:out value="${commandForm.candidateCompletionTypes[loop.index]}" />";
+				rec.settlementDateStr = "<c:out value="${commandForm.candidateStlDates[loop.index]}" />";
+                rec.settlementReferenceNo = "<c:out value="${dl.settlementReferenceNo}" />";
+                rec.valueDateStr = "<c:out value="${dl.valueDateStr}" />";
+				rec.displayAccountNo = "<c:out value="${dl.displayAccountNo}" />";
+				rec.accountPk = "<c:out value="${dl.clientAccountPk}" />";
+				rec.securityName = "<c:out value="${dl.securityName}" />";
+				rec.instrumentCode = "<c:out value="${dl.instrumentCode}" />";
+				rec.displayAlternativeSecId = "<c:out value="${dl.displayAlternativeSecId}" />";
+				rec.ccyCode = "<c:out value="${dl.ccyCode}" />";
+				rec.cpssiinfo = "<c:choose>
+							<c:when test="${dl.dtcParticipantId != null}">
+								<c:out value="${dl.dtcParticipantId}"/>
+							</c:when>
+							<c:when test="${dl.contraId != null}">
+								<c:out value="${dl.contraId}"/>
+							</c:when>
+							<c:otherwise>
+							    <c:out value="${dl.cpSsiInternational}"/>
+							</c:otherwise>
+						</c:choose>";
+				rec.finInstRoleCode = "<c:out value="${dl.finInstRoleCode}" />";
+				rec.displayAccountNo = "<c:out value="${dl.displayAccountNo}" />";
+				rec.outstAmt = "<c:choose>
+							<c:when test="${commandForm.candidateCompletionTypes[loop.index] == 'COMPLETE'}">
+								<c:out value="${0}"/>
+							</c:when>
+							<c:when test="${commandForm.candidateCompletionTypes[loop.index] == 'QUASI_COMPLETE'}">
+								<c:out value="${0}"/>
+							</c:when>
+							<c:otherwise>
+							    <c:out value="${dl.outstandingAmountStr}"/>
+							</c:otherwise>
+						</c:choose>";
+				rec.cpAccountNo = "<c:out value="${dl.cpAccountNo}" />";
+				rec.cpBank = "<c:out value="${dl.cpBank}" />";
+				rec.accName = "<c:out value="${dl.accName}" />";
+				rec.quantityStr = "<c:out value="${dl.quantityStr}" />";
+				rec.cpAccountNo = "<c:out value="${dl.cpAccountNo}" />";
+				rec.outstandingAmountStr = "<c:out value="${dl.outstandingAmountStr}" />";
+				rec.outstandingQuantityStr = "<c:out value="${dl.outstandingQuantityStr}" />";
+				rec.instructionRefno = "<c:out value="${dl.instructionRefno}" />";
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+</div>
+</jsp:root>

@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Cam Portfolio Balance Query Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" 
+    xmlns:containers="com.nri.rui.core.containers.*" 
+    xmlns:flexlib="http://code.google.com/p/flexlib/" 
+    xmlns:cntrls="com.nri.rui.core.controls.*" 
+    xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+    percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" 
+    verticalScrollPolicy="off">
+    
+    
+    <mx:Script>
+        <![CDATA[
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.containers.TitleWindow;
+            import mx.collections.ArrayCollection;
+            import mx.events.CloseEvent;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import mx.controls.CheckBox;
+            import mx.managers.PopUpManager;
+            import mx.events.DataGridEvent;
+            
+            import com.nri.rui.core.controls.XenosAlert;
+            
+            /**
+            * 
+            */
+            private function changeCurrentState():void{
+                currentState = "result";
+                app.submitButtonInstance = null ;
+            }
+            /**
+             * Retrieve and return the Account Name for dataTip.
+             */
+            private function getAccountName(item:Object):String {
+                return item.accountName;
+            }
+            /**
+            * Retrieve and return the Instrument Name for dataTip.
+            */
+            private function getSecurityName(item:Object):String {
+                return item.instrumentName;
+            }
+            /**
+             * Extract the value of the column cell removing the prefix added at '0'th index.
+             */ 
+            private function extractPrecisionedValue(item:Object, column:DataGridColumn):String{
+                var strData:String = item[column.dataField];
+                if(!XenosStringUtils.isBlank(strData) && strData.charAt(0)=="F"){
+                    if(strData.length == 1)
+                        return XenosStringUtils.EMPTY_STR;
+                    else
+                        return strData.substring(1);
+                }else{
+                    return item[column.dataField];                    
+                }
+            }
+            /**
+ 			*  datagrid header release event handler to handle datagridcolumn sorting
+ 			*/
+			public function dataGrid_headerRelease(evt:DataGridEvent):void {				
+				var dg:CustomDataGrid = CustomDataGrid(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];			
+			}
+                        
+        ]]>
+    </mx:Script>
+    <mx:Script source="actionscripts/CamPortfolioBalanceQuery.as"/>
+    
+    <mx:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+        	<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </mx:states>
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+    
+      <cntrls:XenosHTTPService id="initializePortfolioBalanceQuery" fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)" 
+             method="POST" useProxy="false" result="initPage(event)" showBusyCursor="true"/>    
+
+    <cntrls:XenosHTTPService id="portfolioBalanceQueryRequest" 
+         url="cam/camPortfolioBalanceQueryDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         result="loadSummaryPage(event)" showBusyCursor="true" resultFormat="xml">
+        <!--mx:request>
+            <method>submitQuery</method>
+            <baseDate>{baseDate.text}</baseDate>
+            <balanceBasis>{balanceBasis.selectedItem.value}</balanceBasis>
+            <currency>{ccyBox.ccyText.text}</currency>
+            <accountNo>{actPopUp.accountNo.text}</accountNo>
+            <instrumentType>{instrumentType.itemCombo.text}</instrumentType>
+            <securityCode>{instPopUp.instrumentId.text}</securityCode>
+            <longShortCategory>{longShortCategory.selectedItem.value}</longShortCategory>
+            <balancePl>{balancePl.selectedItem.value}</balancePl>
+            <inventoryAccountType>{inventoryAccountType.selectedItem.value}</inventoryAccountType>
+            <fundCode>{fundPopUp.fundCode.text}</fundCode>
+            <issueCurrency>{issueCcyBox.ccyText.text}</issueCurrency>
+            <sortField1>{sortField1.selectedItem.value}</sortField1>
+            <sortField2>{sortField2.selectedItem.value}</sortField2>
+            <sortField3>{sortField3.selectedItem.value}</sortField3>
+            <sortField4>{sortField4.selectedItem.value}</sortField4>                                    
+        </mx:request-->
+    </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="portfolioResetQueryRequest" url="cam/camPortfolioBalanceQueryDispatch.action?method=resetQuery"
+        result="initPage(event)" showBusyCursor="true">
+    </cntrls:XenosHTTPService>
+    
+    <mx:Validator source="{balanceBasis}" required="true" property="value" />
+    <mx:Validator source="{baseDate}" required="true" property="text" />
+    
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance =submit;" />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>    	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    
+    <mx:VBox width="100%" height="100%">  
+    <mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="initPageStart()"  >
+    <mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    <!--<containers:CollapsibleHDividedBox id="hdbox1" width="100%" height="100%" liveDragging="true" paddingBottom="6" paddingLeft="6" paddingRight="6" paddingTop="6" creationComplete="initPageStart()">-->
+        <mx:VBox label="Query Criteria" width="100%" height="100%"  styleName="HDivideStyle" >
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+            <mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+            <!--flexlib:WindowShade id="ws1" tabChildren="{ws1.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.important.fields')}" width="100%" -->
+                <mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.query.label.date')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:DateField id="baseDate"  formatString="YYYYMMDD" editable="true" width="90"/>                            
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.query.label.balancebasis')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="balanceBasis" labelField="label"/>
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:FundPopUpHbox id="fundPopUp"/>
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.query.label.fundaccountno')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:AccountPopUpHbox id="actPopUp" retContextItem="{returnContextItem}" recContextItem="{populateContext()}"/>
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                </mx:Grid>                
+            <!--/flexlib:WindowShade-->
+            
+            <!--flexlib:WindowShade id="ws2" tabChildren="{ws2.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.lessimportant.fields')}" opened="false" width="100%"-->
+            <flexlib:WindowShade id="ws2" tabChildren="{ws2.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.lessimportant.fields')}" opened="false" width="100%">
+                <mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                    	<mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.query.label.securitycode')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:InstrumentPopUpHbox id="instPopUp"/>
+                        </mx:GridItem> 
+                        
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.query.label.securitytype')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <cntrls:TreeCombo id="instrumentType" dataSource="{new XML((app.cachedItems.instrumentTree).toString())}" editMode="true" width="150"  displayClearIcon="true"  labelField="label" treeHeight="200"  x="10" y="10"/>
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.query.label.currency')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <cntrls:CurrencyHBox id="ccyBox"/>
+                        </mx:GridItem> 
+                        
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.query.label.issuecurrency')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <cntrls:CurrencyHBox id="issueCcyBox"/>
+                        </mx:GridItem> 
+                        
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.query.label.balancepl')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="balancePl" labelField="label"/>
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.query.label.longshortcategory')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="longShortCategory" prompt="Select" labelField="label"/>
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                </mx:Grid> 
+            </flexlib:WindowShade>
+            
+            <flexlib:WindowShade id="ws3" tabChildren="{ws3.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.sortorder.fields')}" opened="true" width="100%">
+                <mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="100%" borderThickness="0">
+                            <mx:HBox width="100%">
+                                <mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()"/>
+                                <mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()" />
+                                <mx:ComboBox id="sortField3" labelField="label"/>
+                            </mx:HBox> 
+                        </mx:GridItem>                         
+                    </mx:GridRow>
+                </mx:Grid>
+            </flexlib:WindowShade>
+            
+            <mx:HBox width="100%" styleName="ButtonBackPanel">    
+               <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="this.submitQuery();" />
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle"  click="this.resetQuery();"/>
+            </mx:HBox>
+                       
+        </mx:VBox>
+        </mx:Canvas> 
+        
+        <mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >                        
+                <cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" />
+                <mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text=""/>
+                <cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="true" headerRelease="dataGrid_headerRelease(event)" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()">
+                    <cntrls:columns> 
+                       <!--mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('inf.title.summary.view')}" dataField="fundCode" minWidth="100" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer"/-->           
+                       <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.summary.label.fundaccountno')}" dataField="accountNoDisp"  showDataTips="true" dataTipFunction="getAccountName" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRenderer" sortable="true" sortCompareFunction="sortUtil.sortString" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.summary.label.fundaccountname')}" dataField="accountName" visible="false" sortable="true" sortCompareFunction="sortUtil.sortString" />
+                       <mx:DataGridColumn textAlign="left" headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" dataField="fundCode" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer" sortable="true" sortCompareFunction="sortUtil.sortString" />
+                       <mx:DataGridColumn textAlign="left" headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundName')}" dataField="fundName" sortable="true" sortCompareFunction="sortUtil.sortString" />                       
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.summary.label.securitycodedefault')}" dataField="securityId" showDataTips="true" dataTipFunction="getSecurityName" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer" sortable="true" sortCompareFunction="sortUtil.sortString" />
+                       <!--mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.summary.label.securitycodesymbol')}" dataField="securityId1" visible="false"/-->
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.summary.label.securityname')}" dataField="instrumentName" sortable="true" sortCompareFunction="sortUtil.sortString" />
+                       <mx:DataGridColumn textAlign="left" headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.security.label.alternatesecurity')}" dataField="alternateSecurity"  sortCompareFunction="sortUtil.sortString"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.summary.label.basedate')}" dataField="baseDateDisp" sortable="true" sortCompareFunction="sortUtil.sortString" />
+                       <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.summary.label.position')}" dataField="formattedPosition" itemRenderer="com.nri.rui.core.renderers.PositionDetailsRenderer" sortCompareFunction="numaricCompareFunc"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.summary.label.ccy')}" dataField="ccy" visible="false" sortable="true" sortCompareFunction="sortUtil.sortString" />
+                       <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.summary.label.bookvalue')}" dataField="formattedBookValue" itemRenderer="com.nri.rui.cam.renderers.RowColorRenderer" labelFunction="extractPrecisionedValue" sortable="true" sortCompareFunction="sortUtil.sortNumeric"/>
+                       <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.summary.label.costpershare')}" dataField="formattedCost" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" labelFunction="extractPrecisionedValue" sortable="true" sortCompareFunction="sortUtil.sortNumeric"/>
+                       <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.summary.label.pl')}" dataField="formattedProfitLoss" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" labelFunction="extractPrecisionedValue" sortable="true" sortCompareFunction="sortUtil.sortNumeric"/>
+                       <!--mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.summary.label.paydownprofitloss')}" dataField="formattedPaydownProfitLoss" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer"/-->
+                       <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.summary.label.mtdprofitloss')}" dataField="formattedMtdProfitLoss" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" labelFunction="extractPrecisionedValue" sortable="true" sortCompareFunction="sortUtil.sortNumeric"/>
+                       <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.summary.label.ytdprofitloss')}" dataField="formattedYtdProfitLoss" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" labelFunction="extractPrecisionedValue" sortable="true" sortCompareFunction="sortUtil.sortNumeric"/>
+                       <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.portfoliobalance.summary.label.ltdprofitloss')}" dataField="formattedLtdProfitLoss" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" labelFunction="extractPrecisionedValue" sortable="true" sortCompareFunction="sortUtil.sortNumeric"/> 
+                    </cntrls:columns>
+                 </cntrls:CustomDataGrid>
+        </mx:VBox>
+        
+    </mx:HDividedBox>
+    </mx:VBox>
+    
+   </mx:Canvas> 
+</mx:Module>

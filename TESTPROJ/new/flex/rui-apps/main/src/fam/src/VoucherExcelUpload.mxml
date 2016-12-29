@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+<!--
+	MXML file for FAM Voucher Excel Upload Screen.
+-->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml"
+		   xmlns:cntrls="com.nri.rui.core.controls.*"
+		   xmlns:containers="com.nri.rui.core.containers.*"
+		   xmlns:flexlib="http://code.google.com/p/flexlib/"
+		   xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"
+		   xmlns:utils="com.nri.rui.core.utils.*"
+		   layout="vertical"
+		   percentWidth="100"
+		   percentHeight="100"
+		   horizontalScrollPolicy="off"
+		   verticalScrollPolicy="off"
+		   creationComplete="initPage()">
+
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.Globals;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.rpc.events.ResultEvent;
+			import mx.containers.FormItem;
+			import mx.containers.Form;
+			import mx.controls.Alert;
+			import mx.collections.ArrayCollection;
+
+			import com.nri.rui.core.controls.XenosAlert;
+			import flash.events.*;
+
+			private function initPage():void
+			{
+				initOnPageLoad();
+				fc.btnUpload.addEventListener(MouseEvent.CLICK, openPopup);
+			}
+
+			private function getLabelFromBody(item:Object, column:DataGridColumn):String
+			{
+				return item.Body[column.dataField];
+			}
+
+			public var documentTypesFilters:FileFilter=new FileFilter("Documents (*.xls)", ("*.xls"));
+			public var documentTypeFilterXlsx:FileFilter=new FileFilter("Documents (*.xlsx)", ("*.xlsx"));
+			public var filter:Array=new Array(documentTypesFilters, documentTypeFilterXlsx);
+		]]>
+	</mx:Script>
+
+	<mx:Script source="actionscripts/VoucherExcelUpload.as"/>
+
+	<cntrls:XenosHTTPServiceForSpring id="initializeVoucherUpload"
+									  commandFormId="{commandFormId}"
+									  fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)"
+									  method="POST"
+									  useProxy="false"
+									  result="initCommandForm(event)"
+									  showBusyCursor="true"/>
+
+	<cntrls:XenosHTTPServiceForSpring id="voucherFileLoad"
+									  url="fam/voucherUpload.spring?method=submitPage"
+									  commandFormId="{commandFormId}"
+									  fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+									  result="preset(event)"
+									  showBusyCursor="true"
+									  method="POST"
+									  resultFormat="xml" />
+
+	<cntrls:XenosHTTPServiceForSpring id="voucherFileLoadConfirm"
+									  url="fam/voucherUpload.spring?method=confirmPage"
+									  commandFormId="{commandFormId}"
+									  fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+									  result="submitConfirmResult(event)"
+									  showBusyCursor="true"
+									  method="POST" />
+
+	<mx:Canvas width="100%"
+			   height="100%"
+			   horizontalScrollPolicy="auto"
+			   verticalScrollPolicy="auto">
+
+		<mx:VBox width="100%"
+				 height="100%">
+				 
+     <!--XGA-3063: ViewStack is used as a parent of all children for brower stuck issue on loading 6 records   -->			 
+      <mx:ViewStack id="vstack" width="100%" height="100%" creationPolicy="all" creationComplete="loadAll()">
+      
+			<mx:VBox id="mt"
+					 label="File Upload"
+					 width="100%"
+					 height="100%">
+				<mx:HRule strokeColor="#d2d9dc"
+						  strokeWidth="1"
+						  width="100%"/>
+
+				<cntrls:XenosErrors id="errPage"
+									width="100%"
+									height="100%"
+									color="#FF0000"
+									backgroundAlpha="0"
+									borderStyle="none"/>
+
+				<mx:HBox id="hfbox"
+						 width="100%">
+				</mx:HBox>
+
+
+				<cntrls:FileUploadControl id="fc"
+										  uploadUrl="{url}"
+										  uploadToFiled="fileName"
+										  httpProcess="{voucherFileLoad}"
+										  maxNumOfFiles="1"
+										  _filter="{filter}"
+										  checkMaxSize="false"
+										  uploadComplete="Alert.show('File(s) have been uploaded.', 'Upload successful')"
+										  uploadIOError="Alert.show('IO Error in uploading file.', 'Error')"
+										  uploadSecurityError="Alert.show('Security Error in uploading file.', 'Error')"/>
+
+
+				<mx:HBox width="100%"
+						 styleName="ButtonBackPanel">
+					<mx:Button label="Reset"
+							   styleName="BtnStyle"
+							   click="this.unselectFile()"/>
+				</mx:HBox>
+			</mx:VBox>
+
+			<mx:VBox width="100%"
+					 height="100%"
+					 id="cnf"
+					 horizontalScrollPolicy="off"
+					 verticalScrollPolicy="off"
+					 styleName="HDivideStyle">
+				<cntrls:QueryResultHeader id="qh"
+										  pdfFunction="generatePdf"
+										  xlsFunction="generateXls"
+										  printFunction="doPrint"
+										  width="100%"/>
+
+				<utils:FXCPager id="fxcPager"
+								pageIndex="{currentPage}"
+								pageSize="{pageSize}"
+								dataProvider="{summaryResult}"/>
+				<mx:DataGrid width="100%"
+							 height="100%"
+							 id="confirmResultSummary"
+							 sortableColumns="false"
+							 dataProvider="{fxcPager.pageData}"
+							 variableRowHeight="true"
+							 horizontalScrollPolicy="auto"
+							 creationComplete="bindAll()">
+					<mx:columns>
+						<!-- User Confirmation -->
+						<cntrls:CustomDataGridColumn headerText=""
+													 width="40"
+													 draggable="false"
+													 resizable="false"
+													 itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.vouchertype')}"
+													 dataField="VoucherType"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.status')}"
+													 dataField="Status"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.fundcode')}"
+													 dataField="FormattedFundCode"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.bookdate')}"
+													 dataField="BookDate"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.securitycode')}"
+													 dataField="FormattedSecurityCode"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.localccy')}"
+													 dataField="FormattedLocalCcy"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.allotmentamount')}"
+													 dataField="FormattedAllotmentAmount"
+													 labelFunction="getLabelFromBody"
+													 textAlign="right"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.share')}"
+													 dataField="FormattedShare"
+													 labelFunction="getLabelFromBody"
+													 textAlign="right"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.exdate')}"
+													 dataField="ExDate"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.paymentdate')}"
+													 dataField="PaymentDate"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.amountlc')}"
+													 dataField="FormattedAmountLc"
+													 labelFunction="getLabelFromBody"
+													 textAlign="right"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.amountbc')}"
+													 dataField="FormattedAmountBc"
+													 labelFunction="getLabelFromBody"
+													 textAlign="right"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.originalrefno')}"
+													 dataField="ReferenceNoOriginal"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.conversiontype')}"
+													 dataField="ConversionType"
+													 labelFunction="getLabelFromBody"/>
+					</mx:columns>
+				</mx:DataGrid>
+				<mx:HBox width="60%"
+						 horizontalAlign="right">
+					<cntrls:FXCPagerBar id="fxc_pageNav2"
+										pager="{fxcPager}"
+										totalPages="{Math.ceil(summaryResult.length/pageSize)}"
+										maxVisiblePages="{navSize}"
+										buttonMode="true"/>
+					<mx:NumericStepper value="{this.pageSize}"
+									   change="this.pageSize = event.target.value"
+									   maximum="50000"/>
+				</mx:HBox>
+				<mx:HBox width="100%"
+						 styleName="ButtonBackPanel">
+					<mx:Button id="confirmSubmitFileButton"
+							   label="Submit"
+							   styleName="BtnStyle"
+							   click="this.confirmSubmitFile()"/>
+					<mx:Button label="Cancel"
+							   styleName="BtnStyle"
+							   click="this.unselectFile()"/>
+				</mx:HBox>
+			</mx:VBox>
+
+			<mx:VBox width="100%"
+					 height="100%"
+					 id="submitCnf"
+					 horizontalScrollPolicy="off"
+					 verticalScrollPolicy="off"
+					 styleName="HDivideStyle">
+				<mx:HBox styleName="ButtonBackPanel"
+						 verticalGap="0"
+						 horizontalGap="0"
+						 width="100%"
+						 height="32"
+						 verticalAlign="middle">
+					<mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')"
+							  width="28"
+							  height="28"
+							  verticalAlign="middle"/>
+					<mx:Label text="{noOfMsgCreatedStr}"
+							  fontWeight="bold"
+							  selectable="true"/>
+				</mx:HBox>
+				<mx:DataGrid width="100%"
+							 height="100%"
+							 sortableColumns="false"
+							 dataProvider="{summaryResult}"
+							 variableRowHeight="true"
+							 horizontalScrollPolicy="auto">
+					<mx:columns>
+						<!-- System Confirmation -->
+						<cntrls:CustomDataGridColumn headerText=""
+													 width="40"
+													 draggable="false"
+													 resizable="false"
+													 itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.vouchertype')}"
+													 dataField="VoucherType"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.status')}"
+													 dataField="Status"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.fundcode')}"
+													 dataField="FormattedFundCode"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.bookdate')}"
+													 dataField="BookDate"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.securitycode')}"
+													 dataField="FormattedSecurityCode"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.localccy')}"
+													 dataField="FormattedLocalCcy"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.allotmentamount')}"
+													 dataField="FormattedAllotmentAmount"
+													 labelFunction="getLabelFromBody"
+													 textAlign="right"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.share')}"
+													 dataField="FormattedShare"
+													 labelFunction="getLabelFromBody"
+													 textAlign="right"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.exdate')}"
+													 dataField="ExDate"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.paymentdate')}"
+													 dataField="PaymentDate"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.amountlc')}"
+													 dataField="FormattedAmountLc"
+													 labelFunction="getLabelFromBody"
+													 textAlign="right"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.amountbc')}"
+													 dataField="FormattedAmountBc"
+													 labelFunction="getLabelFromBody"
+													 textAlign="right"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.originalrefno')}"
+													 dataField="ReferenceNoOriginal"
+													 labelFunction="getLabelFromBody"/>
+						<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.excel.upload.voucher.label.conversiontype')}"
+													 dataField="ConversionType"
+													 labelFunction="getLabelFromBody"/>
+					</mx:columns>
+				</mx:DataGrid>
+
+				<mx:HBox width="100%"
+						 styleName="ButtonBackPanel">
+					<mx:Button label="Ok"
+							   styleName="BtnStyle"
+							   click="this.goToInitialPage()"/>
+				</mx:HBox>
+			</mx:VBox>
+          </mx:ViewStack>
+		</mx:VBox>
+
+	</mx:Canvas>
+</mx:Module>

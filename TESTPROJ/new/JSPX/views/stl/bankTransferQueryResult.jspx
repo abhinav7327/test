@@ -1,0 +1,120 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+    xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+    xmlns:spring="http://www.springframework.org/tags" 
+    xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"	
+    xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+		
+<div class="formItemArea">
+    
+    <jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+    <jsp:output omit-xml-declaration="yes" /> 
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+           
+			var isNext =<c:out value="${isNext}" />;
+            var grid_result_data = [];
+                      
+				var grid_result_columns = [
+				{name:"<spring:message code="stl.stlqry.label.settlementrefno" htmlEscape="false"/>", field:"settlementReferenceNo",id:"settlementReferenceNo", width:205,sortable:true,formatter:Slick.Formatters.SettlementDetailViewInstructionFormater},
+                {name:"<spring:message code="stl.stlqry.label.securitycode" htmlEscape="false"/>", field:"securityCode",id:"securityCode", width:200,sortable:true,formatter:Slick.Formatters.InstrumentDetailViewFormater},
+                {name:"<spring:message code="stl.stlqry.label.securityname" htmlEscape="false"/>", field:"securityShortName",id:"securityShortName", width:300,sortable:true},
+                {name:"<spring:message code="stl.stlqry.label.altSecurityId" htmlEscape="false"/>", field:"alternateSecurityId",id:"alternateSecurityId", width:205,sortable:true},
+                {name:"<spring:message code="stl.label.quantity" htmlEscape="false"/>",    field:"quantityDispStr",id:"quantityDispStr",   width:300,       sortable:true,   cssClass:'xenos-grid-number'},
+                {name:"<spring:message code="stl.stlqry.label.valuedate" htmlEscape="false"/>",     field:"valueDateStr",           id:"valueDateStr",              width:175,      sortable:true},
+				{name:"<spring:message code="stl.label.frombanksettleaccount" htmlEscape="false"/>", field:"ourBankSettleAcc",id:"ourBankSettleAcc", width:220, sortable:true, formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'ourSettleAcPk'}},
+				{name:"<spring:message code="stl.label.tobanksettleaccount" htmlEscape="false"/>", field:"cpBankSettleAcc",id:"cpBankSettleAcc", width:220, sortable:true, formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'cpIntSettleAcPk'}}
+                ];
+			  
+            var grid_result_settings = {
+                enableToolbar:true,
+				forceFitColumns:false,
+                consolidateActionFlag:true,
+				pagingInfo:{
+					isNext : isNext,
+					url: 'secure/stl/settlement/bankTransfer/query/count.json'
+					
+				},
+                buttons:{
+                    columnPicker:true,  
+                    save:true   
+                },
+                urls:{
+                    nextPage : '/secure/stl/settlement/bankTransfer/query/result.json?fetch=next',
+					prevPage : '/secure/stl/settlement/bankTransfer/query/result.json?fetch=previous'
+                }
+            };
+			
+            var row_id = 0;         
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.commandFormId="${requestScope['commandFormId']}";
+				
+                rec.id                      =   "xenos_" + row_id;
+                rec.itemIndex =row_id;
+				rec.clientSettlementInfoPk  =   "<c:out value="${dl.clientSettlementInfoPk}" />";
+				rec.settlementInfoPk        =   "<c:out value="${dl.settlementInfoPk}" />";
+				rec.settlementReferenceNo   =   "<c:out value="${dl.settlementReferenceNo}" />";
+				
+				rec.instrumentPk            =   "<c:out value="${dl.instrumentPk}" />";	
+				rec.securityCode            =   "<c:out value="${dl.securityCode}" />";
+				
+				rec.securityShortName       =   "<c:out value="${dl.securityShortName}" />";
+				rec.alternateSecurityId     =   "<c:out value="${dl.alternateSecurityId}" />";
+				rec.quantityDispStr         =   "<c:out value="${dl.quantityDispStr}" />";
+				rec.valueDateStr            =   "<c:out value="${dl.valueDateStr}" />";
+				
+				rec.ourSettleAcPk           =   "<c:out value="${dl.ourSettleAcPk}" />";
+				rec.ourBankSettleAcc        =   "<c:out value="${dl.ourBankSettleAcc}" />";
+                
+				rec.cpIntSettleAcPk         =   "<c:out value="${dl.cpIntSettleAcPk}" />";	
+				rec.cpBankSettleAcc         =   "<c:out value="${dl.cpBankSettleAcc}" />";
+					                                             				
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+    
+	<div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			  <a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'STLBTCX')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}"  id="cancel" status="ready" alt="Cancel" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			  </a>
+		</c:forEach>	  
+	</div>	
+    
+   <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/stl/bankTransferQueryResult.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+	 <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            jQuery('.rightDockMenu').show();
+        </jsp:body>
+    </jsp:element>  
+	   
+</div>
+</jsp:root>

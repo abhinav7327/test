@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<cntrls:ResizeWindow xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:cntrls="com.nri.rui.core.controls.*" styleName="PopupTitleWindow"
+    title="Choose Currency" close="removeMe();" width="280" creationComplete="init()">
+    
+	<mx:Script>
+	
+        <![CDATA[
+        	import mx.collections.Sort;
+        	import mx.collections.SortField;
+        	import mx.collections.XMLListCollection;
+        	import mx.events.ListEvent;
+        	import mx.events.DataGridEvent;
+        	import mx.collections.ArrayCollection;
+        	import mx.rpc.events.ResultEvent;       
+        	import mx.managers.PopUpManager;
+            import mx.controls.TextInput;
+            import mx.controls.Alert;
+	    	
+	    	import com.nri.rui.core.startup.XenosApplication; 
+	    	
+	    	[Bindable]
+	        public var selectedItem:Object;
+	        [Bindable]
+	     	private var sortA:Sort;
+	     	[Bindable]
+			private var sortByCurrency:SortField;
+		    [Bindable]
+	        private var app:XenosApplication = XenosApplication.getInstance("NSI");
+			[Bindable]
+	        private var ccyXml:XML;
+		    [Bindable]
+            private var ccylist:XMLList = app.cachedItems.ccyList as XMLList;
+            // A reference to the TextInput control in which to put the result.
+            public var ccyCode:TextInput;
+            
+            // Event handler for the OK button/when an item is selected.
+            private function returnCcyCode(event:ListEvent):void {
+            	
+            	ccyCode.text = String(event.currentTarget.selectedItem.ccyCode);
+            	PopUpManager.removePopUp(this); 
+            	
+            }
+            // Cancel button click event listener.
+            private function removeMe():void {
+                PopUpManager.removePopUp(this);
+            }
+            
+            // Initialize the data provider
+            private function init():void{
+            	ccyXml = new XML(ccylist.toString());
+            	sortA = new Sort();
+				sortByCurrency = new SortField("ccyCode", true);
+				sortA.fields=[sortByCurrency];
+				ccy.sort = sortA;
+				ccy.refresh();
+				dgCcyList.setFocus();
+            }
+            
+            
+        ]]>
+    </mx:Script>
+
+	<mx:XMLListCollection id="ccy" source="{ccyXml.ccyItem}"/>
+    <mx:VBox width="100%" height="100%">            
+            <mx:DataGrid id="dgCcyList" dataProvider="{ccy}" backgroundColor="0xCCCCCC" width="100%" height="100%" itemClick="returnCcyCode(event)" >
+            	<mx:columns>
+            		<mx:DataGridColumn headerText="Currency" dataField="ccyCode" sortable="true"/>
+            		<mx:DataGridColumn headerText="Short Name" dataField="ccyName" sortable="true"/>
+            	</mx:columns>
+            </mx:DataGrid>
+    </mx:VBox>
+
+    
+</cntrls:ResizeWindow>

@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" 
+	     xmlns:containers="com.nri.rui.core.containers.*" 
+	     xmlns:flexlib="http://code.google.com/p/flexlib/" 
+	     xmlns:cntrls="com.nri.rui.core.controls.*" 
+	     xmlns:frmtrs="com.nri.rui.core.formatters.*" 
+	     xmlns:valdtrs="com.nri.rui.core.validators.*" 
+	     xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+	     xmlns:com="*"
+	     width="100%" height="100%">
+	
+	<mx:Metadata>
+        [Event(name="alter", type="flash.events.Event")]
+    </mx:Metadata>
+	     
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.controls.XenosErrors;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import com.nri.rui.core.controls.XenosAlert;
+			import mx.collections.ArrayCollection;
+			import mx.rpc.events.ResultEvent;
+			import mx.core.Application;
+			
+		
+			[Bindable]
+			private var forexInstrInfoSummaryResult:ArrayCollection = new ArrayCollection();
+			
+			[Bindable]
+			private var editMode:Boolean = false;
+			
+			[Bindable]
+			private var errPage:XenosErrors = null;
+			
+			[Bindable]
+			private var urlModeBind:String = null;
+			
+			/**
+			 * Set Error Controller 
+			 */
+			public function set setErrorController(value:XenosErrors):void
+			{
+				this.errPage = value;
+				
+			}
+			
+			/**
+			 * Set URL mode 
+			 */
+			public function set setUrlMode(value:String):void
+			{
+				this.urlModeBind = value;
+				
+			}
+			
+			/**
+			 * To add Forex Instruction Information
+			 */
+			private function addForexInstrInfo():void{
+				
+				var errorStr:String = validate();
+				if(!XenosStringUtils.isBlank(errorStr)){
+					XenosAlert.error(errorStr);
+					return;
+				}
+				
+				addForexInstrInfoService.request = populateForexInstructionInfo();
+				addForexInstrInfoService.send();
+			}
+			
+			/**
+			 * To edit Forex Instruction Information
+			 */        
+			public function editForexInstrInfo(data:Object):void{
+				var reqObj : Object = new Object();
+				reqObj.editIndexForexInstructionRule = forexInstrInfoSummaryResult.getItemIndex(data);
+				data.isVisible=false;
+				forexInstrInfoSummaryResult.refresh();
+				editForexInstrInfoService.request = reqObj;
+				editForexInstrInfoService.send();
+			}
+			
+			/**
+			 * To delete Forex Instruction Information
+			 */         
+			public function deleteForexInstrInfo(data:Object):void{
+				var reqObj : Object = new Object();
+				reqObj.editIndexForexInstructionRule = forexInstrInfoSummaryResult.getItemIndex(data);
+				deleteForexInstrInfoService.request = reqObj;
+				deleteForexInstrInfoService.send();
+			}      
+			
+			/**
+			 * To save Forex Instruction Information
+			 */         
+			public function saveForexInstrInfo():void{
+				
+				var errorStr:String = validate();
+				if(!XenosStringUtils.isBlank(errorStr)){
+					XenosAlert.error(errorStr);
+					return;
+				}
+				//var reqObj : Object = new Object();
+				saveForexInstrInfoService.request = populateForexInstructionInfo();
+				saveForexInstrInfoService.send();
+			}
+			
+			/**
+			 * Initialize the list
+			 */
+			public function init(xml:XML):void {
+				forexInstrInfoSummaryResult= new ArrayCollection();
+				for each(var xmlObj:Object in xml.forexInstrRulesWrapper.forexInstructionRules){
+					forexInstrInfoSummaryResult.addItem(xmlObj);
+				}
+				forexInstrInfoSummaryResult.refresh();
+				
+				//this.enabled = !isListEmpty();
+				 
+				//dispatchAlteredEvent();
+			}
+			
+			/**
+			 * Validate mandatory fields
+			 */
+			private function validate():String {
+				var errorStr:String = "";
+				if(XenosStringUtils.isBlank(settlementCurrency.ccyText.text)){
+					errorStr += "Settlement Currency can not be empty";
+				}
+			    if(XenosStringUtils.isBlank(forexCurrency.ccyText.text)){
+					errorStr += "\nForex Currency can not be empty";
+				}
+				return errorStr;
+			}
+			
+			/**
+			 * To cancel the Forex Instruction Information
+			 */         
+			private function cancelEditForexInstrInfo():void{
+				cancelForexInstrInfoService.send();
+			}
+			/**
+			 * Populates forex instruction information
+			 */
+			private function populateForexInstructionInfo():Object{
+				var reqObj : Object = new Object();
+				reqObj['forexInstructionRule.settlementCcy'] = settlementCurrency.ccyText.text;
+				
+				reqObj['forexInstructionRule.forexCcy'] = forexCurrency.ccyText.text;
+				
+				return reqObj;
+			}
+			
+			/**
+			* This method works as the result handler of the Submit Query Http Services.
+			* 
+			*/
+			public function addForexInfoResult(event:ResultEvent):void {
+			    var rs:XML = XML(event.result);
+				if (null != event) {
+					 if(rs.child("forexInstrRulesWrapper").length()>0) {
+						errPage.clearError(event);
+			            	forexInstrInfoSummaryResult.removeAll(); 
+						try {
+						
+							for each ( var rec:XML in rs.forexInstrRulesWrapper.forexInstructionRules) {
+								forexInstrInfoSummaryResult.addItem(rec);
+							}
+						
+						    settlementCurrency.ccyText.text = "";
+						    forexCurrency.ccyText.text = "";
+						    editMode = false;
+						   	forexInstrInfoSummaryResult.refresh();
+			               	forexInstrInfoSummary.visible = true;
+			            	forexInstrInfoSummary.includeInLayout = true;
+			            }catch(e:Error){
+						//    XenosAlert.error("Error Occurred 1 :" + e.toString() + e.message);
+						    XenosAlert.error("Error Occurred:" + e.message);
+					    }
+					 } 
+					 else if(rs.child("Errors").length()>0) {
+			            //some error found
+					 	//countryCodeSummaryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	var errorInfoList : ArrayCollection = new ArrayCollection();
+			            //populate the error info list 			 	
+					 	for each ( var error:XML in rs.Errors.error ) {
+			 			   errorInfoList.addItem(error.toString());
+						}
+					 	errPage.showError(errorInfoList);//Display the error
+					 } 
+					 else {
+					 	//XenosAlert.error("Error Occurred 2");
+					 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					 	forexInstrInfoSummaryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	errPage.removeError(); //clears the errors if any
+					 }
+			    }
+			    
+			    dispatchAlteredEvent();
+			}
+			
+			/**
+			 * Fire an event denoting that the list has been altered
+			 */
+			private function dispatchAlteredEvent():void {
+				this.dispatchEvent(new Event("alter"));
+			}
+			
+			/**
+			 * returns true if the forex instruction info list is empty. false otherwise.
+			 */
+			public function isListEmpty():Boolean {
+				return forexInstrInfoSummaryResult.length == 0? true:false;
+			}   
+
+			/**
+			* This method works as the result handler of the Submit Query Http Services.
+			* 
+			*/
+			public function editForexInfoResult(event:ResultEvent):void {
+			    var rs:XML = XML(event.result);
+			
+				if (null != event) {
+					if(rs.child("forexInstrRulesWrapper").length()>0){
+						editMode = true;
+						settlementCurrency.ccyText.text = rs.forexInstructionRule.settlementCcy;
+						forexCurrency.ccyText.text = rs.forexInstructionRule.forexCcy;
+					} 
+					else if(rs.child("Errors").length()>0) {
+			            //some error found
+					 	forexInstrInfoSummaryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	var errorInfoList : ArrayCollection = new ArrayCollection();
+			            //populate the error info list 			 	
+					 	for each ( var error:XML in rs.Errors.error ) {
+			 			   errorInfoList.addItem(error.toString());
+						}
+					 	errPage.showError(errorInfoList);//Display the error
+					 } 
+					 else {
+					 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					 	forexInstrInfoSummaryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	errPage.removeError(); //clears the errors if any
+					 }
+			    } 
+			}
+
+		]]>
+	</mx:Script>
+	<cntrls:XenosHTTPService id="addForexInstrInfoService"
+         showBusyCursor="true"
+         method="POST" url="ref/account{urlModeBind}Dispatch.action?method=addForexInstrInfo"
+         result="addForexInfoResult(event)"
+         fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         useProxy="false" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="editForexInstrInfoService"
+         showBusyCursor="true"
+         method="POST" url="ref/account{urlModeBind}Dispatch.action?method=editForexInstrInfo"
+         result="editForexInfoResult(event)"
+         fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         useProxy="false" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="saveForexInstrInfoService"
+         showBusyCursor="true"
+         method="POST" url="ref/account{urlModeBind}Dispatch.action?method=updateForexInstrInfo"
+         result="addForexInfoResult(event)"
+         fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         useProxy="false" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="cancelForexInstrInfoService"
+         showBusyCursor="true"
+         method="POST" url="ref/account{urlModeBind}Dispatch.action?method=cancelForexInstrInfo"
+         result="addForexInfoResult(event)"
+         fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         useProxy="false" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="deleteForexInstrInfoService"
+         showBusyCursor="true"
+         method="POST" url="ref/account{urlModeBind}Dispatch.action?method=deleteForexInstrInfo"
+         result="addForexInfoResult(event)"
+         fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         useProxy="false" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+	<mx:Grid width="100%" borderThickness="0">
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="11%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.settlementccy')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="22%" borderThickness="0">
+                        <cntrls:CurrencyHBox id="settlementCurrency"/> 
+                    </mx:GridItem> 
+                    <mx:GridItem width="11%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.forexccy')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="22%" borderThickness="0">
+                        <cntrls:CurrencyHBox id="forexCurrency"/>
+                    </mx:GridItem> 
+                    <mx:GridItem width="11%" borderThickness="0">
+                        <mx:Label text="" styleName="ReqdLabel"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="22%" borderThickness="0">
+                        <cntrls:XenosButton id="forexInstrInfoAddBtn" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.add')}" styleName="BtnStyle" click="addForexInstrInfo()" visible="{!editMode}" includeInLayout="{!editMode}"/>
+                        <cntrls:XenosButton id="forexInstrInfoCancelBtn" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.cancel')}" styleName="BtnStyle" click="cancelEditForexInstrInfo()" visible="{editMode}" includeInLayout="{editMode}"/>
+                        <cntrls:XenosButton id="forexInstrInfoSaveBtn" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.save')}" styleName="BtnStyle" click="saveForexInstrInfo()" visible="{editMode}" includeInLayout="{editMode}"/>
+                    </mx:GridItem>                       
+                </mx:GridRow>
+            </mx:Grid>
+            <mx:VBox width="100%" height="30%">
+                <cntrls:CustomDataGrid id="forexInstrInfoSummary" dataProvider="{forexInstrInfoSummaryResult}" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="on" visible="true" includeInLayout="true" rowCount="4"> 
+                    <cntrls:columns>
+                        <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.settlementccy')}" width="250" dataField="settlementCcy" />
+                        <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.forexccy')}" width="250" dataField="forexCcy" />
+                        <mx:DataGridColumn headerText="" width="150" textAlign="center">
+                            <mx:itemRenderer>
+                                <mx:Component>
+                                    <mx:HBox>
+                                        <cntrls:XenosButton id="forexEditCode"  styleName="BtnEdit" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.edit')}" click="outerDocument.editForexInstrInfo(data)" width="18" height="18"/>
+                                        <cntrls:XenosButton id="forexDeleteCode" styleName="BtnDelete" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.delete')}" click="outerDocument.deleteForexInstrInfo(data)" width="18" height="18"/>
+                                    </mx:HBox>
+                                </mx:Component>
+                                
+                            </mx:itemRenderer>
+                        </mx:DataGridColumn>
+                   </cntrls:columns>
+                </cntrls:CustomDataGrid>
+            </mx:VBox>
+</mx:VBox>

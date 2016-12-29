@@ -1,0 +1,1018 @@
+<!--$Id$-->
+<!--$Author: shivams $-->
+<!--$Date: 2016-12-23 14:59:37 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+<div id="formContainer" class="entryContainer paddingFour">
+    
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		      var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+				var context = $xenos$Wizard.$context;
+			    var baseUrl = xenos.context.path + context.find('form').attr('action');
+				var nameXRefResult = [],
+					codeXRefResult=[],					
+					rowId = 0,		
+					item = {},
+					codeXRefGrid = null,
+					nameXRefGrid = null,
+					finInstRoleCodeList = [];
+					
+				/**
+				* A common request handler to be used server communication.
+				*/
+				var xenos$Handler$RequestHandler = xenos$Handler$function({
+					get: {
+						contentType: 'json',
+						requestType: xenos$Handler$default.requestType.asynchronous
+					},	
+					settings: {
+						beforeSend: function(request) {
+							request.setRequestHeader('Accept', 'application/json');
+						},
+						type: 'POST'
+					}
+				});
+				
+				/***************** For Local Addition of Global Fin Inst *****************/
+				var actionType = "<c:out value="${commandForm.options.actionType}" />";
+				var amendLocalAttributeFlag = "<c:out value="${commandForm.amendLocalAttributeFlag}" />";
+				var isGlobalFinInst = "<c:out value="${commandForm.global}" />";				
+				var defaultFinInstCodeType = "<c:out value="${commandForm.defaultFinInstRoleCodeType}" />";
+				
+				
+				$('#financialInstitutionNameDetails').slideToggle("fast");
+				/**
+		         * A function to check whether edit or delete is possible or not.
+		         */
+				function isAmendable(){
+					if($.trim(amendLocalAttributeFlag) == "true"){
+						return false;
+					}
+					return true;
+				}
+				function preEditModeEnableFunc(columnName,dataContext){
+					if($.trim(actionType) == 'ENTRY'){
+						return true;
+					}
+					if(dataContext["finInstRoleCodeType"] == defaultFinInstCodeType){
+							return false;
+					}
+					else {
+							return true;
+					}							
+			    }
+			
+				
+				var nameXRefColumns = [		
+					{name:"<spring:message code="ref.fininst.label.languagecode" htmlEscape="false"/>", 	field:"charsetCode",	id:"charsetCode", 	sortable:false},
+					{name:"<spring:message code="ref.fininst.label.shortname" htmlEscape="false"/>", 		field:"shortName",		id:"shortName",		sortable:false},
+					{name:"<spring:message code="ref.fininst.label.officialname1" htmlEscape="false"/>", 	field:"officialName1",	id:"officialName1", sortable:false},
+					{name:"<spring:message code="ref.fininst.label.officialname2" htmlEscape="false"/>", 	field:"officialName2",	id:"officialName2", sortable:false},
+					{name:"<spring:message code="ref.fininst.label.officialname3" htmlEscape="false"/>", 	field:"officialName3",  id:"officialName3", sortable:false},
+					{name:"<spring:message code="ref.fininst.label.officialname4" htmlEscape="false"/>", 	field:"officialName4",	id:"officialName4", sortable:false}
+				];
+				var codeXRefColumns = [		
+					{name:"<spring:message code="ref.fininst.label.codetype" htmlEscape="false"/>", field:"finInstRoleCodeType",id:"finInstRoleCodeType", sortable:false},
+					{name:"<spring:message code="ref.fininst.label.code" htmlEscape="false"/>", field:"finInstRoleCode",id:"finInstRoleCode",sortable:false}
+				];
+				
+				var nameXRefGridConf = {
+					editMode 					: 	'both',																
+					editCallback 				: 	editFinInstNameHandler,
+					deleteCallback				:	deleteFinInstNameHandler,
+					editEnableCallback 			: 	isAmendable,
+					forceFitColumns				:	true
+				};
+				
+				var codeXRefGridConf = {
+					editMode 					: 	'both',																
+					editCallback 				: 	editFinInstCodeHandler,
+					deleteCallback				:	deleteFinInstCodeHandler,
+					editEnableCallback			:	preEditModeEnableFunc,
+					forceFitColumns				:	true
+				};
+				
+				<xenos:out escapeXml="false">
+				<c:forEach items="${commandForm.finInstNameCrossRefs}" var="dl">
+					item = {};
+					rowId+=1;
+					item.id 			= "xenos_" + rowId;
+					item.charsetCode 	= "<c:out value="${dl.charsetCode}" />";
+					item.shortName 		= "<c:out value="${xenosfn:escapeJS(dl.shortName)}" />";
+					item.officialName1 	= "<c:out value="${xenosfn:escapeJS(dl.officialName1)}" />";
+					item.officialName2 	= "<c:out value="${xenosfn:escapeJS(dl.officialName2)}" />";
+					item.officialName3 	= "<c:out value="${xenosfn:escapeJS(dl.officialName3)}" />";
+					item.officialName4 	= "<c:out value="${xenosfn:escapeJS(dl.officialName4)}" />";
+					nameXRefResult.push(item);
+				</c:forEach>
+				rowId=0;
+				<c:forEach items="${commandForm.finInstCrossRefs}" var="dl">
+					item = {};
+					rowId+=1;
+					item.id 			     = "xenos_" + rowId;
+					item.finInstRoleCodeType =  "<c:out value="${dl.finInstRoleCodeType}" />";
+					item.finInstRoleCode 	 = "<c:out value="${xenosfn:escapeJS(dl.finInstRoleCode)}" />";
+					codeXRefResult.push(item);
+				</c:forEach>
+				</xenos:out>
+				
+				codeXRefGrid = $('#finInstCodeGrid').xenoseditablegrid(codeXRefResult, codeXRefColumns, codeXRefGridConf);
+				nameXRefGrid = $('#nameDetailsGrid').xenoseditablegrid(nameXRefResult, nameXRefColumns, nameXRefGridConf);
+				
+				<c:forEach items="${commandForm.finInstRolePage.refListValueArray}" var="dl">
+					finInstRoleCodeList.push("<c:out value="${dl}" />");
+				</c:forEach>
+			
+				 /* 
+				  * Validates the Financial Code Info before addition.
+				  */
+				 function validateFinInstCode() {
+					var validationMessages = [];
+					var _CODE_TYPE_ABA = "ABA";
+					var _CODE_TYPE_BIC = "BIC";
+					var finInstCodeTypeVal = $.trim($('#finInstCodeType').val());
+					var finInstCodeVal = $.trim($('#finInstCode').val());
+					if(VALIDATOR.isNullValue(finInstCodeVal)){
+						  validationMessages.push(xenos$REF$i18n.fininst.general.finInstCode_empty);		
+					}
+					if (validationMessages.length > 0){
+						$('.formHeader').find('.formTabErrorIco').css('display', 'block');
+						$('.formHeader').find('.formTabErrorIco').off('click');
+						$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+						return false;
+					}else {
+						$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+					}	
+						if (finInstCodeTypeVal.toUpperCase() == _CODE_TYPE_ABA) {
+							if (!$.isNumeric(finInstCodeVal.toUpperCase())) {
+							validationMessages.push(xenos$REF$i18n.fininst.general.finInstCode_numeric);	
+						}
+						if (finInstCodeVal.length != 9) {
+							validationMessages.push(xenos$REF$i18n.fininst.general.finInstCode_9_length);
+						}
+					}
+						 
+					if (finInstCodeTypeVal.toUpperCase() == _CODE_TYPE_BIC) {
+						if (isNonAlphanumeric(finInstCodeVal.toUpperCase())) {
+							validationMessages.push(xenos$REF$i18n.fininst.general.finInstCode_alphanumeric);	
+						}
+						if (finInstCodeVal.length != 11) {
+							validationMessages.push(xenos$REF$i18n.fininst.general.finInstCode_11_length);
+						}
+					}
+						if (validationMessages.length > 0){
+							  $('.formHeader').find('.formTabErrorIco').css('display', 'block');
+							  $('.formHeader').find('.formTabErrorIco').off('click');
+							  $('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+
+							 return false;
+						}else {
+							  $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+						}
+						
+						return true;
+				 }
+				 
+				 /**
+				 * This method helps to determine whether the alphane is non alphanumeric or not.
+				 * return true if the alphane is non alphanumeric
+				 * return false other wise false
+				 */
+				function isNonAlphanumeric(alphane){
+					var patt   = /[^0-9a-z]/i;
+					return patt.test(alphane)
+				}
+				 
+				 /* Validates the Financial Name Details Info before addition.
+				  * 
+				  */
+				 function validateExtraFinInstName() {
+					var validationMessages = [];
+					
+					if(VALIDATOR.isNullValue($.trim($('#charsetCode').val()))){
+						  validationMessages.push(xenos$REF$i18n.fininst.general.charsetcode_empty);	
+					}
+					
+					if(VALIDATOR.isNullValue($.trim($('#shortName').val()))){
+						  validationMessages.push(xenos$REF$i18n.fininst.general.shortname_empty);		
+					}
+					
+					if(VALIDATOR.isNullValue($.trim($('#officialName1').val()))){
+						validationMessages.push(xenos$REF$i18n.fininst.general.officialname_empty);	
+					}
+					
+					if (validationMessages.length > 0){
+						 $('.formHeader').find('.formTabErrorIco').css('display', 'block');
+						 $('.formHeader').find('.formTabErrorIco').off('click');
+	                     $('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+							 
+						 return false;
+                    }else {
+                       $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+					}
+					return true;
+				}
+				
+				
+				
+				/**
+				* Validate other Fin Inst attributes.
+				*/
+				function validateOtherAttributes(){
+					var validationMessages = [];
+					var institutionRole = $.trim($('#institutionRoles').val());
+					var countryCode = $.trim($('#countryCode').val());
+					//var parentRole = $.trim($('#parentRole').val());
+					var defaultOfficialName1 = $.trim($('#defaultOfficialName1').val());
+					var defaultShortName = $.trim($('#defaultShortName').val());
+					
+					var validationMessages = [];
+					
+					if(VALIDATOR.isNullValue(countryCode)){
+						validationMessages.push(xenos$REF$i18n.fininst.general.country_code_empty);
+					}
+					
+					if(VALIDATOR.isNullValue(defaultOfficialName1)){
+						validationMessages.push(xenos$REF$i18n.fininst.general.default_official_name_1_empty);
+					}
+					
+					if(VALIDATOR.isNullValue(defaultShortName)){
+						validationMessages.push(xenos$REF$i18n.fininst.general.default_short_name_empty);
+					}
+										
+					if(VALIDATOR.isNullValue(institutionRole)){
+						validationMessages.push(xenos$REF$i18n.fininst.general.institution_role_empty);
+					}
+					
+					/*if($.inArray("Stock Exchange",finInstRoleCodeList) != -1){
+						if(VALIDATOR.isNullValue(parentRole)){
+							validationMessages.push(xenos$REF$i18n.fininst.general.parent_role_code_empty);
+						}
+					}*/
+					if ( validationMessages.length >0){
+						 $('.formHeader').find('.formTabErrorIco').css('display', 'block');
+						 $('.formHeader').find('.formTabErrorIco').off('click');
+                         $('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+
+						 return false;
+                     }else {
+						 $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+					}
+					return true;
+				}
+				
+				
+				
+				
+				/*
+				 * This function enables 'E-Address' button conditionally.
+				 */
+
+				function detailsEAddress(){
+					var value = $('#ourAccountPresent').val();
+					if(value != 'Y' ) {
+						xenos.postNotice(xenos.notice.type.error, xenos$REF$i18n.fininst.common.eaddress_eligible);
+						return false;
+					}
+					return true;
+				}
+				
+			/**
+			* Populate Name X Ref request parameters.
+			*/
+			function populateFinInstNameRequestParam(){
+				var reqObj = {"charsetCode"	:	$.trim($('#charsetCode').val()),
+							"shortName"		:	$.trim($('#shortName').val()),
+							"officialName1"	:	$.trim($('#officialName1').val()),
+							"officialName2"	:	$.trim($('#officialName2').val()),
+							"officialName3"	:	$.trim($('#officialName3').val()),
+							"officialName4"	:	$.trim($('#officialName4').val())
+						   };
+				return reqObj;
+			}
+			
+			/**
+			* Populate Code X Ref request parameters.
+			*/
+			function populateFinInstCodeRequestParam(){
+				var reqObj = {	"finInstCodeType"	:	$.trim($('#finInstCodeType').val()),
+								"finInstCode"		:	$.trim($('#finInstCode').val())
+						   };
+				return reqObj;
+			}
+			
+			/**
+			* Populate Name X Ref form.
+			*/
+			function populateNameXRefForm(result){
+				if(result){
+					$('#charsetCode').val(result.charsetCode);
+					$('#shortName').val(result.shortName);
+					$('#officialName1').val(result.officialName1);
+					$('#officialName2').val(result.officialName2);
+					$('#officialName3').val(result.officialName3);
+					$('#officialName4').val(result.officialName4);
+					$('#charsetCode').focus();
+				}
+			}
+			
+			/**
+			* Populate Code X Ref form.
+			*/
+			function populateCodeXRefForm(result){
+				if(result){
+					$('#finInstCodeType').val(result.finInstCodeType);
+					$('#finInstCode').val(result.finInstCode);
+					$('#finInstCodeType').focus();
+				}
+			}
+				
+			/**
+			* New Name X Ref add handler.
+			*/
+			function addFinInstNameHandler(e){
+				var valid = validateExtraFinInstName();
+				if(valid){
+					var requestUrl = baseUrl + "/addName.json?commandFormId=" + $('[name=commandFormId]').val();
+							   
+					xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+															settings: {data : populateFinInstNameRequestParam()},
+															onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertFinInstName( content.value[0]);
+																	$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+																} else {
+																	$('.formHeader').find('.formTabErrorIco').css('display', 'block');
+									                                $('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, content.value[0], true));
+																}
+															}
+														 }
+											);
+				}
+			}
+			
+			/**
+			* New Code X Ref add handler.
+			*/
+			function addFinInstCode(e){
+				var valid = validateFinInstCode();
+				if(valid){
+					var requestUrl = baseUrl + "/addCode.json?commandFormId=" + $('[name=commandFormId]').val();
+							   
+					xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+															settings: {data : populateFinInstCodeRequestParam()},
+															onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertFinInstCode( content.value[0]);
+																	$('#finInstCodeType').val(content.value[0].defaultFinInstRoleCodeType);
+																	$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+																} else {
+																	$('.formHeader').find('.formTabErrorIco').css('display', 'block');
+																	 $('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, content.value, true));
+																}
+															}
+														 }
+											);
+				}
+			}
+			
+			/**
+			* Name X Ref Edit handler
+			*/
+			function editFinInstNameHandler(rowIndex, dataContext){
+				var requestUrl = baseUrl + "/editName.json?commandFormId=" + $('[name=commandFormId]').val();
+				xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+														settings: {data : {"editIndexFinInstName" : rowIndex}},
+														onJsonContent :  function(e, options, $target, content) {
+															if(content.success == true){
+																populateNameXRefForm(content.value[0]);
+																$('.editBtnNameXRef').css('display','block'); 
+																$('.addBtnNameXRef').css('display','none');
+															} else {
+																xenos.postNotice(xenos.notice.type.error, content.value);
+															}
+															return true;
+														}
+													 }
+										);
+			}
+			
+			/**
+			* Code X Ref Edit handler
+			*/
+			function editFinInstCodeHandler(rowIndex, dataContext){
+				var requestUrl = baseUrl + "/editCode.json?commandFormId=" + $('[name=commandFormId]').val();
+				xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+														settings: {data : {"editIndexFinInstCode" : rowIndex}},
+														onJsonContent :  function(e, options, $target, content) {
+															if(content.success == true){
+																populateCodeXRefForm(content.value[0]);
+																$('.editBtnCodeXRef').css('display','block'); 
+																$('.addCodeXRef').css('display','none');
+															} else {
+																xenos.postNotice(xenos.notice.type.error, content.value);
+															}
+															return true;
+														}
+													 }
+										);
+			}
+			
+			/**
+			* Name X Ref Delete handler
+			*/
+			function deleteFinInstNameHandler(rowIndex, dataContext){
+				var requestUrl = baseUrl + "/deleteName/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+					xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+															onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertFinInstName(content.value[0]);
+																	$('.editBtnNameXRef').hide();
+																	$('.addBtnNameXRef').show();
+																} else {
+																	xenos.postNotice(xenos.notice.type.error, content.value);
+																}
+															}
+														 }
+											);
+			}
+			
+			/**
+			* Code X Ref Delete handler
+			*/
+			function deleteFinInstCodeHandler(rowIndex, dataContext){
+				var requestUrl = baseUrl + "/deleteCode/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+					xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+															onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertFinInstCode(content.value[0]);
+																	$('#finInstCodeType').val(content.value[0].defaultFinInstRoleCodeType);
+																	$('.editBtnCodeXRef').hide(); 
+																	$('.addCodeXRef').show();
+																} else {
+																	xenos.postNotice(xenos.notice.type.error, content.value);
+																}
+															}
+														 }
+											);
+			}
+			
+			/**
+			* Name X Ref update handler.
+			*/
+			function updateFinInstNameHandler(e){
+				var valid = validateExtraFinInstName();
+				if(valid){
+					var requestUrl = baseUrl + "/updateName.json?commandFormId=" + $('[name=commandFormId]').val();
+					
+					xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+															settings: {data : populateFinInstNameRequestParam()},
+															onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertFinInstName(content.value[0]);
+																	$('.editBtnNameXRef').css('display','none'); 
+																	$('.addBtnNameXRef').css('display','block'); 
+																} else {
+																	xenos.postNotice(xenos.notice.type.error, content.value);
+																}
+															}
+														 }
+											);
+				}
+			}
+			
+			/**
+			* Code X Ref update handler.
+			*/
+			function updateFinInstCode(e){
+				var valid = validateFinInstCode();
+				if(valid){
+					var requestUrl = baseUrl + "/updateCode.json?commandFormId=" + $('[name=commandFormId]').val();
+					
+					xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+															settings: {data : populateFinInstCodeRequestParam()},
+															onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertFinInstCode(content.value[0]);
+																	$('.editBtnCodeXRef').css('display','none'); 
+																	$('.addCodeXRef').css('display','block'); 
+																} else {
+																	xenos.postNotice(xenos.notice.type.error, content.value);
+																}
+															}
+														 }
+											);
+				}
+			}
+			
+			/**
+			* Name X Ref cancel handler.
+			*/
+			function cancelFinInstNameHandler(e){
+				var requestUrl = baseUrl + "/cancelName.json?commandFormId=" + $('[name=commandFormId]').val();
+
+				xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+														onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertFinInstName(content.value[0]);
+																	$('.editBtnNameXRef').css('display','none'); 
+																	$('.addBtnNameXRef').css('display','block'); 
+																} else {
+																	xenos.postNotice(xenos.notice.type.error, content.value);
+																}
+																return true;
+															}
+														 }
+											);
+			}
+			
+			/**
+			* Name X Ref cancel handler.
+			*/
+			function cancelFinInstCode(e){
+				var requestUrl = baseUrl + "/cancelCode.json?commandFormId=" + $('[name=commandFormId]').val();
+
+				xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+														onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertFinInstCode(content.value[0]);
+																	$('.editBtnCodeXRef').css('display','none'); 
+																	$('.addCodeXRef').css('display','block'); 
+																} else {
+																	xenos.postNotice(xenos.notice.type.error, content.value);
+																}
+																return true;
+															}
+														 }
+											);
+			}
+			
+			/**
+			* Insert/ Update Name X Ref(s).
+			*/
+			function upsertFinInstName(data){
+				var result = data.finInstNameCrossRefs;
+				if(result){
+					nameXRefGrid.clearData();
+					for(var i in result){
+						item = {};
+						rowId+=1;
+						item.id 				= 	"xenos_" + rowId;
+						item.charsetCode 	= $.trim(result[i].charsetCode);
+						item.shortName 		= $.trim(result[i].shortName);
+						item.officialName1 	= $.trim(result[i].officialName1);
+						item.officialName2 	= $.trim(result[i].officialName2);
+						item.officialName3 	= $.trim(result[i].officialName3);
+						item.officialName4 	= $.trim(result[i].officialName4);
+						nameXRefGrid.addOrUpdateRow(item,{});
+					}
+					populateNameXRefForm(data);
+				}
+			}
+			
+			/**
+			* Insert/ Update Code X Ref(s).
+			*/
+			function upsertFinInstCode(data){
+				var result = data.finInstCrossRefs;
+				if(result){
+					codeXRefGrid.clearData();
+					for(var i in result){
+						item = {};
+						rowId+=1;
+						item.id 				    = "xenos_" + rowId;
+						item.finInstRoleCodeType 	= $.trim(result[i].finInstRoleCodeType);
+						item.finInstRoleCode 		= $.trim(result[i].finInstRoleCode);
+						codeXRefGrid.addOrUpdateRow(item,{});
+					}
+					populateCodeXRefForm(data);
+				}
+			}
+			
+			function ourAccountChangeHandler(){
+				var value= $(this).val();
+				if(value == "Y"){
+					$('.ourAccountItem').show();
+				} else {
+					$('.ourAccountItem').hide();
+				}
+			}
+			
+			/**
+			 * Hides or shows the Parent Role depnding on the Role Definition.
+			 */
+			function hideShowParentRole(){
+				if($.inArray("Stock Exchange",finInstRoleCodeList) != -1){
+					$('.parentRoleItem').show();
+				} else {
+					$('.parentRoleItem').hide();
+				}
+			}
+			
+			/**
+			* Update the local fin inst role code list to decide to hide or show the parent role.
+			*/
+			function updateFinInstRoleCode(value, type){
+				if(type == 'select'){
+					finInstRoleCodeList.push(value);
+				} else {
+					finInstRoleCodeList = $.grep(finInstRoleCodeList, function(v) {
+						return value != v;
+					}); 
+				}
+				hideShowParentRole();
+			}
+			
+			function selectFinInstType() {
+				updateFinInstRoleCode($(this).val(),'select');
+			}
+			
+			function deselectFinInstType() {
+				updateFinInstRoleCode($(this).val(),'deselect');
+			}
+			
+			$('#institutionRoles').xenos$multiSelect({select:selectFinInstType,deselect:deselectFinInstType});
+			
+			if ($.trim(amendLocalAttributeFlag) == "true") {
+				$('.ui-multiselect-input, .ui-button, .ui-icon-close', context).unbind('click');				
+			}
+			
+			$('#addNameDetailsBtn').unbind('click',addFinInstNameHandler);
+			$('#updateNameDetailsBtn').unbind('click',updateFinInstNameHandler);
+			$('#cancelNameDetailsBtn').unbind('click',cancelFinInstNameHandler);
+			$('#addFinInstCodeBtn').unbind('click',addFinInstCode);
+			$('#updateFinInstCodeBtn').unbind('click',updateFinInstCode);
+			$('#cancelFinInstCodeBtn').unbind('click',cancelFinInstCode);
+			$('#ourAccountPresent').unbind('change',ourAccountChangeHandler);
+			
+			$('#addNameDetailsBtn').bind('click',addFinInstNameHandler);
+			$('#updateNameDetailsBtn').bind('click',updateFinInstNameHandler);
+			$('#cancelNameDetailsBtn').bind('click',cancelFinInstNameHandler);
+			$('#addFinInstCodeBtn').bind('click',addFinInstCode);			
+			$('#updateFinInstCodeBtn').bind('click',updateFinInstCode);			
+			$('#cancelFinInstCodeBtn').bind('click',cancelFinInstCode);
+			$('#ourAccountPresent').bind('change',ourAccountChangeHandler);
+			hideShowParentRole();
+			$('#ourAccountPresent').trigger('change');
+			
+			var submitValidateHook = function() {
+				var isValid = validateOtherAttributes();
+				return isValid;
+			};
+			
+			var nextValidateHook = function() {
+				var isValid = submitValidateHook();
+				/*if(isValid){
+					isValid = detailsEAddress();
+				}*/
+				return isValid;
+			};
+			
+			var unloadHook = function(){
+				$xenos$Wizard.deregister('submit',submitValidateHook);
+				$xenos$Wizard.deregister('next',nextValidateHook);
+				$xenos$Wizard.deregister('unload',unloadHook);
+				codeXRefGrid.destroy();
+				nameXRefGrid.destroy();
+				delete codeXRefGrid;
+				delete nameXRefGrid;
+			}
+
+			
+			$xenos$Wizard.register('next',nextValidateHook);
+			$xenos$Wizard.register('submit',submitValidateHook);
+			$xenos$Wizard.register('unload',unloadHook);
+
+			};
+			
+		</jsp:body>
+    </jsp:element>
+	
+	
+	<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+	<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+	<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+	<div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.fininst.label.finentrysubheader1" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="finInstInstitutionCodeMore"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	</div>
+	
+	<div class="entryBlkArea">
+		<div class="formItemBlock dottedBg">
+			<!-- Code Type -->
+			<div class="formItem">
+				<form:label path="commandForm.finInstCodeType" class="required"><spring:message code="ref.fininst.label.codetype" htmlEscape="false"/></form:label>
+				<form:select id="finInstCodeType" path="commandForm.finInstCodeType" class="dropdowninput">
+						<form:options items="${commandForm.finInstCodeTypes}" itemLabel="label" itemValue="value"/>
+				</form:select>	
+			</div>
+			<!-- Code -->
+			<div class="formItem">
+				<form:label path="commandForm.finInstCode" class="required"><spring:message code="ref.fininst.label.code" htmlEscape="false"/></form:label>
+				<span><form:input id="finInstCode" value="" path="commandForm.finInstCode"  class="textBox" maxlength="15"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div id="formActionArea" class="gridBtnMargin">
+				<div class="right">
+					<div class="btnWrapStyle submitBtn gridAddBtn">
+					<span class="addCodeXRef" style="display:block"><input id="addFinInstCodeBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+					</div>
+					<span class="editBtnCodeXRef" style="display:none">	
+					<div class="btnWrapStyle submitBtn"><input id="updateFinInstCodeBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+					<div class="btnWrapStyle resetBtn"><input id="cancelFinInstCodeBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+					</span>
+				</div>
+			</div>
+			<div class="entryGrid">
+				<div id="finInstCodeGrid" class="xenos-grid" style="width:100%;height:125px;"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+	</div>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	<div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.fininst.label.finentrysubheader2" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="finInstInstitutionNameMore"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	</div>
+	<div class="entryBlkArea">
+		<div class="formItemBlock dottedBg">
+			<!-- Default Language Code -->
+			<div class="formItem">
+				<form:label path="commandForm.defaultCharsetCode" class="required"><spring:message code="ref.fininst.label.languagecode" htmlEscape="false"/></form:label>
+				<span><form:input id="defaultCarsetCode" value="" path="commandForm.defaultCharsetCode" class="textBox" disabled="true"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Default Short Name -->
+			<div class="formItem">
+				<form:label path="commandForm.defaultShortName" class="required"><spring:message code="ref.fininst.label.shortname" htmlEscape="false"/></form:label>
+				<span><form:input id="defaultShortName" value="" path="commandForm.defaultShortName"  class="textBox" maxlength="35"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Default official Name 1st Line -->
+			<div class="formItem">
+				<form:label path="commandForm.defaultOfficialName1" class="required"><spring:message code="ref.fininst.label.officialname1" htmlEscape="false"/></form:label>
+				<span><form:input id="defaultOfficialName1" value="" path="commandForm.defaultOfficialName1"  class="textBox" maxlength="70"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Default 2nd Line -->
+			<div class="formItem">
+				<form:label path="commandForm.defaultOfficialName2"><spring:message code="ref.fininst.label.officialname2" htmlEscape="false"/></form:label>
+				<span><form:input id="defaultOfficialName2" value="" path="commandForm.defaultOfficialName2"  class="textBox" maxlength="70"/></span>			
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- 3rd Line -->
+			<div class="formItem">
+				<form:label path="commandForm.defaultOfficialName3"><spring:message code="ref.fininst.label.officialname3" htmlEscape="false"/></form:label>
+				<span><form:input id="defaultOfficialName3" value="" path="commandForm.defaultOfficialName3"  class="textBox" maxlength="70"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- 4th Line -->
+			<div class="formItem">
+				<form:label path="commandForm.defaultOfficialName4"><spring:message code="ref.fininst.label.officialname4" htmlEscape="false"/></form:label>
+				<span><form:input id="defaultOfficialName4" value="" path="commandForm.defaultOfficialName4"  class="textBox" maxlength="70"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<spring:message code="ref.account.label.button.details" htmlEscape="false" var="detail_label"/>
+			<input type="button" style="float:right;" onclick="showDetailsFinancialInstitution()" value="${detail_label}" />
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		<div class="formItemBlock" id="financialInstitutionNameDetails">
+			<!-- Language Code -->
+			<div class="formItem">
+				<form:label path="commandForm.charsetCode" class="required"><spring:message code="ref.fininst.label.languagecode" htmlEscape="false"/></form:label>
+				<form:select id="charsetCode" path="commandForm.charsetCode" class="dropdowninput">
+						<form:option value=""/>
+						<form:options items="${commandForm.charsetCodeValues}"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Short Name -->
+			<div class="formItem">
+				<form:label path="commandForm.shortName" class="required"><spring:message code="ref.fininst.label.shortname" htmlEscape="false"/></form:label>
+				<span><form:input id="shortName" value="" path="commandForm.shortName"  class="textBox" maxlength="27"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Official Name 1st Line -->
+			<div class="formItem">
+				<form:label path="commandForm.officialName1" class="required"><spring:message code="ref.fininst.label.officialname1" htmlEscape="false"/></form:label>
+				<span><form:input id="officialName1" value="" path="commandForm.officialName1"  class="textBox" maxlength="70"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- 2nd Line -->
+			<div class="formItem">
+				<form:label path="commandForm.officialName2"><spring:message code="ref.fininst.label.officialname2" htmlEscape="false"/></form:label>
+				<span><form:input id="officialName2" value="" path="commandForm.officialName2"  class="textBox" maxlength="70"/></span>			
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- 3rd Line -->
+			<div class="formItem">
+				<form:label path="commandForm.officialName3"><spring:message code="ref.fininst.label.officialname3" htmlEscape="false"/></form:label>
+				<span><form:input id="officialName3" value="" path="commandForm.officialName3"  class="textBox" maxlength="70"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- 4th Line -->
+			<div class="formItem">
+				<form:label path="commandForm.officialName4"><spring:message code="ref.fininst.label.officialname4" htmlEscape="false"/></form:label>
+				<span><form:input id="officialName4" value="" path="commandForm.officialName4"  class="textBox" maxlength="70"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+					
+			<div id="formActionArea" class="gridBtnMargin">
+				<div class="right">
+					<div class="btnWrapStyle submitBtn gridAddBtn">
+						<span class="addBtnNameXRef" style="display:block"><input id="addNameDetailsBtn" type="button" value="${formadd_label}" class="inputBtnStyle amendReadOnlyItem"/></span>
+					</div>
+					<span class="editBtnNameXRef" style="display:none">	
+						<div class="btnWrapStyle submitBtn"><input id="updateNameDetailsBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+						<div class="btnWrapStyle resetBtn"><input id="cancelNameDetailsBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+					</span>
+				</div>
+			</div>
+			<div class="entryGrid">
+				<div id="nameDetailsGrid" class="xenos-grid" style="width:100%;height:100px;"><spring:message text="" htmlEscape="false"/></div>
+			</div>	
+		</div>
+	</div>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	<div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.fininst.label.finentrysubheader3" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="attributesMore"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	</div>
+	<div class="entryBlkArea">
+		<div class="formItemBlock dottedBg">
+			<!-- Country Code -->
+			<div class="formItem">
+				<form:label path="commandForm.finInstRolePage.countryCode" class="required"><spring:message code="ref.fininst.label.countrycode" htmlEscape="false"/></form:label>
+				<span><form:input id="countryCode" value="" path="commandForm.finInstRolePage.countryCode"  class="textBox"/></span>
+				<div class="popupBtn">
+					<input type="button" class="popupBtnIco" tgt="countryCode" popType="nationality" value="" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>	
+			<!-- Firm maintains account -->
+			<div class="formItem">
+				<form:label path="commandForm.finInstRolePage.ourAccountPresent"><spring:message code="ref.fininst.label.firmaccount" htmlEscape="false" /></form:label>
+				<form:select id="ourAccountPresent" path="commandForm.finInstRolePage.ourAccountPresent" class="dropdowninput">
+						<form:options items="${commandForm.finInstRolePage.ourAccountPresentList}" itemLabel="label" itemValue="value"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Institution Role -->
+			<div class="formItem">
+				<form:label path="commandForm.finInstRolePage.refListValueArray" class="required"><spring:message code="ref.fininst.label.roledef" htmlEscape="false"/></form:label>
+				<span>
+					<form:select id="institutionRoles" path="commandForm.finInstRolePage.refListValueArray" class="dropdowninput dropdowninputMulti" multiple="true">
+						<form:options items="${commandForm.finInstRolePage.roles}"/>
+					</form:select>
+				</span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Parent Role Code -->
+			<div class="formItem parentRoleItem">
+				<form:label path="commandForm.finInstRolePage.parentRole"><spring:message code="ref.fininst.label.parentrolecode" htmlEscape="false"/></form:label>
+				<span><form:input id="parentRole" value="" path="commandForm.finInstRolePage.parentRole"  class="textBox amendReadOnlyItem"/></span>
+				<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="parentRole" popType="fininst" value=""/></div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Our Bank Group -->
+			<div class="formItem">
+				<form:label path="commandForm.finInstRolePage.bankGroupId"><spring:message code="ref.fininst.label.bankgroup" htmlEscape="false"/></form:label>
+				<form:select path="commandForm.finInstRolePage.bankGroupId" class="dropdowninput">
+						<form:option value=""/>
+						<form:options items="${commandForm.finInstRolePage.ourBankGroupList}" itemLabel="label" itemValue="value"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Calendar  -->
+			<div class="formItem">
+				<form:label path="commandForm.finInstRolePage.calendar"><spring:message code="ref.fininst.label.calendar" htmlEscape="false"/></form:label>
+				<xenos:select path="commandForm.finInstRolePage.calendar" class="dropdowninput">
+						<form:option value=""/>
+						<form:options items="${commandForm.finInstRolePage.calendars}" itemLabel="label" itemValue="value"/>
+				</xenos:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Remarks  -->
+			<div class="formItem">
+				<form:label path="commandForm.finInstRolePage.remarks"><spring:message code="ref.fininst.label.remarks" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.finInstRolePage.remarks"  class="textBox amendReadOnlyItem" maxlength="35"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</div>
+	</div>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	<div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.fininst.label.finentrysubheader4" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="finInstPrefAttrMore"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	</div>
+	<div class="entryBlkArea">
+		<div class="formItemBlock dottedBg">
+			<div class="formItem twoCols">
+				<form:label path="commandForm.finInstRolePage.preferredCodeType"><spring:message code="ref.fininst.label.preferredfinancialinstitutioncodetype" htmlEscape="false"/></form:label>
+				<form:select path="commandForm.finInstRolePage.preferredCodeType" class="dropdowninput">
+					<form:option value=""/>
+					<form:options items="${commandForm.finInstRolePage.preferredCodeTypeList}"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="formItem">
+				<form:label path="commandForm.finInstRolePage.preferredInstrumentCodeType"><spring:message code="ref.fininst.label.preferredsecuritycodetype" htmlEscape="false" /></form:label>
+				<form:select id="" path="commandForm.finInstRolePage.preferredInstrumentCodeType" class="dropdowninput">
+					<form:option value=""/>
+					<form:options items="${commandForm.finInstRolePage.preferredInstrumentCodeTypeList}"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="formItem">
+				<form:label path="commandForm.finInstRolePage.preferredAccountType"><spring:message code="ref.fininst.label.preferredaccountnotype" htmlEscape="false" /></form:label>
+				<form:select id="" path="commandForm.finInstRolePage.preferredAccountType" class="dropdowninput">
+					<form:option value=""/>
+					<form:options items="${commandForm.finInstRolePage.preferredAccountTypeList}" itemLabel="label" itemValue="value"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</div>
+	</div>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			$('.dropdowninputMulti').xenos$multiSelect();
+			function showDetailsFinancialInstitution()
+				{
+					var validationMessages = [];
+					var defaultOfficialName1 = $.trim($('#defaultOfficialName1').val());
+					var defaultShortName = $.trim($('#defaultShortName').val());
+					
+					var validationMessages = [];
+					
+					if(VALIDATOR.isNullValue(defaultOfficialName1)){
+						validationMessages.push(xenos$REF$i18n.fininst.general.default_official_name_1_empty);
+					}
+					
+					if(VALIDATOR.isNullValue(defaultShortName)){
+						validationMessages.push(xenos$REF$i18n.fininst.general.default_short_name_empty);
+					}
+					if ( validationMessages.length >0)
+					{
+						 $('.formHeader').find('.formTabErrorIco').css('display', 'block');
+						 $('.formHeader').find('.formTabErrorIco').off('click');
+						 $('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+						 return false;
+					 }
+					 else 
+					 {
+						 $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+						 jQuery('#financialInstitutionNameDetails').slideToggle("slow");
+						 return true;
+					}
+				}
+			
+			$('#ourAccountPresent').change(function() {
+					var ourAccountPresent = $('#ourAccountPresent').val();
+					if(ourAccountPresent == 'N') {
+						$('.wizNext .inputBtnStyle').hide();
+					}
+					else if(ourAccountPresent == 'Y') {
+						$('.wizNext .inputBtnStyle').show();
+					}
+			});
+			
+		</jsp:body>
+	</jsp:element>
+</div>	 	 
+</jsp:root>		

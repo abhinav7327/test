@@ -1,0 +1,196 @@
+<!--$Id$-->
+<!--$Author: shalinis $-->
+<!--$Date: 2016-12-27 11:13:15 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:xenos="http://www.nri.co.jp/xenos"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+    
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+    
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+          xenos.loadLocalizedScript([
+                  {path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+                  {path: xenos.context.path + '/scripts/cax/xenos-cax-i18n', async: false}
+				 
+              ]);
+			//Loading Required scripts before validator is called.
+              xenos.loadScript([
+                  {path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},                  
+                  {path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				  {path: xenos.context.path + '/scripts/cax/xenos/caxEventEntry.js', async: false}
+              ]);  
+
+		$('#processingFrequency').unbind('change',xenos$cax$event$entry$rcRedemption$processingFrequencyHandler)
+						                             .bind('change',xenos$cax$event$entry$rcRedemption$processingFrequencyHandler)
+													 .trigger('change'); 
+
+		function xenos$cax$event$entry$rcRedemption$processingFrequencyHandler(e){
+					
+					var value = $(e.target).val();
+					if(value == "" || value == "MANUAL"){
+						$context.find('#processStartDateValue').val("");
+						$context.find('#processEndDateValue').val("");
+						$context.find('#processStartDateLable').hide();
+						$context.find('#processEndDateLable').hide();
+					}
+					if(value == "DAILY"){
+						$context.find('#processStartDateLable').show();
+						$context.find('#processEndDateLable').show();
+					}
+					if(value == "TRIGGER"){
+						$context.find('#processStartDateLable').show();
+						$context.find('#processEndDateValue').val("");
+						$context.find('#processEndDateLable').hide();
+					}
+				}	    
+			
+			
+        </jsp:body>
+    </jsp:element>
+			
+	<!-- Security Code and Record Date-->
+		<c:choose>
+			<c:when test="${commandForm.pageName == 'GeneralDetailAmend'}">
+			<!-- Security Code For AMEND operation -->
+			<div class="formItem">
+				<form:label path="commandForm.instrumentCode" class="required"><spring:message code="cax.rightscondition.label.instrumentcode" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.instrumentCode" class="textBox" id="instrumentCode"/></span>
+				<div class="popupBtn">
+					<input type="button" class="popupBtnIco" tgt="instrumentCode" popType="security" value="" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Record Date For AMEND operation -->
+			<div class="formItem">
+				<form:label path="commandForm.recordDateStr" class="required"><spring:message code="cax.rightscondition.label.recorddate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.recordDateStr" class="dateinput" id="recordDate" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			</c:when>
+			<c:otherwise>
+			<!-- Security Code For ENTRY operation -->
+			<div class="formItem twoCols">
+				<form:label path="commandForm.instrumentCode" class="required"><spring:message code="cax.rightscondition.label.instrumentcode" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.instrumentCode" class="textBox" id="instrumentCode"/></span>
+				<div class="popupBtn">
+					<input type="button" class="popupBtnIco" tgt="instrumentCode" popType="security" value="" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			</c:otherwise>
+		</c:choose>
+			
+	<!-- Redemption Rate Nominal -->		
+			<div class="formItem">
+				<form:label path="commandForm.rateOfNominalStr" class="required"><spring:message code="cax.rightscondition.label.redemptionrateofnominal" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.rateOfNominalStr" id="rateOfNominalStr" class="txtNormal" onchange="return formatRate($('#rateOfNominalStr'),3,5,null,$('#rateOfNominalStr').parent().parent().find('label').text())"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+	
+	<!-- Redemption Currency -->	
+			<div class="formItem">
+				<form:label path="commandForm.redemptionCurrency" class="required"><spring:message code="cax.rightscondition.label.redemptioncurrency" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.redemptionCurrency" class="textBox" id="redemptionCurrency"/></span>
+				<div class="popupBtn">
+					<input type="button" class="popupBtnIco" tgt="redemptionCurrency" popType="currency" value="" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+	<!-- Redemption Price -->
+			<div class="formItem">
+				<form:label path="commandForm.redemptionPriceStr" class="required"><spring:message code="cax.rightscondition.label.redemptionprice" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.redemptionPriceStr" id="redemptionPriceStr" class="txtNormal" onchange="return formatPrice($('#redemptionPriceStr'),11,7,null,$('#redemptionPriceStr').parent().parent().find('label').text())"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			
+	<!-- Redemption Date -->
+			<div class="formItem">
+				<form:label path="commandForm.redemptionDateStr"><spring:message code="cax.rightscondition.label.redemptiondate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.redemptionDateStr" class="dateinput" id="redemptionDateStr" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		
+		
+	<!-- Payment Date -->		
+			<div class="formItem">
+				<form:label path="commandForm.paymentDateStr"><spring:message code="cax.rightscondition.label.paymentdate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.paymentDateStr" class="dateinput" id="paymentDateValue" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			
+	<!-- Credit Date -->		
+			<div class="formItem">
+				<form:label path="commandForm.creditDateStr"><spring:message code="cax.rightscondition.label.creditdate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.creditDateStr" class="dateinput" id ="creditDateStr" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	
+	<!-- Common Footer -->
+	
+		<!-- Processing Frequency -->	
+		<div class="formItem" id="processFreq">
+			    <form:label path="commandForm.processingFrequency" class="required"><spring:message code="cax.rightscondition.label.processingfrequency" htmlEscape="false"/></form:label> 
+				<span>
+					<xenos:select id="processingFrequency" path="commandForm.processingFrequency" class="dropdowninput" >
+					  <form:options items="${commandForm.processingFrequencyDropdownList}" itemLabel="label" itemValue="value"/>
+					</xenos:select>
+				</span>           
+			    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>	
+	
+	<!-- Process Start Date -->
+		<div class="formItem" id="processStartDateLable" style="display: none" >
+				<form:label path="commandForm.processStartDateStr" class="required"><spring:message code="cax.rightscondition.label.processstartdate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.processStartDateStr" class="dateinput" id="processStartDateValue" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	 <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	
+	<!-- Process End Date -->
+	<div class="formItem twoCols" id="processEndDateLable" style="display: none">
+				<form:label path="commandForm.processEndDateStr" class="required hiddenOnManual"><spring:message code="cax.rightscondition.label.processenddate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.processEndDateStr" class="dateinput" id="processEndDateValue" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	 
+	<!-- External Reference No --> 
+	 <div class="formItem" id="extRef">
+				<form:label path="commandForm.externalReferenceNo"><spring:message code="cax.rightscondition.label.extrefno" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.externalReferenceNo" class="textBox" maxlength="20" id="extRefNo"/></span>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	
+	<!-- Corporate Action ID Description -->
+	<div class="formItem" id="corpIdDesc" >
+				<form:label path="commandForm.description"><spring:message code="cax.rightscondition.label.corporateActionDescription" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.description" class="txtNormal" maxlength="100"/></span>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	<!-- Remarks -->
+	<div class="formItem" id="remarks" >
+				<form:label path="commandForm.remarks"><spring:message code="cax.rightscondition.label.remarks" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.remarks" class="txtNormal" maxlength="100"/></span>
+		  <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	
+	
+
+</jsp:root>

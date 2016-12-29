@@ -1,0 +1,229 @@
+<!--$Id$-->
+<!--$Author: ganapriyaa $-->
+<!--$Date: 2016-12-25 07:54:48 $-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+	<c:choose>
+		
+		
+		<c:when test = "${commandForm.modeOfOperation == null}">
+		<c:set value = "${commandForm.modeOfOperation}" var = "mode" scope = "session"/>
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+			
+            var isNext = <c:out value="${isNext}" />;
+			var isPrevious = <c:out value="${isPrevious}" />;
+            var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [
+				{name:"<spring:message code="frx.label.referenceno" htmlEscape="false"/>", field:"tradeReferenceNo", id:"tradeReferenceNo", sortable: true, width:200, formatter:Slick.Formatters.FrxTradeDetailViewFormatter},
+                {name:"<spring:message code="frx.label.basedate" htmlEscape="false"/>", field:"baseDateDisp", id:"baseDateDisp", sortable: true, width:100},
+				{name:"<spring:message code="frx.label.revaluationccy" htmlEscape="false"/>", field:"revaluationCcy", id:"revaluationCcy", sortable: true, width:150},
+                {name:"<spring:message code="frx.label.calculationtype" htmlEscape="false"/>", field:"calculationTypeDisp", id:"calculationTypeDisp", width:150, sortable: true },
+				{name:"<spring:message code="frx.label.exchangerate" htmlEscape="false"/>", field:"exchangeRate", id:"exchangeRate", cssClass:'xenos-grid-number', width:200, sortable: true },
+				{name:"<spring:message code="frx.label.status" htmlEscape="false"/>", field:"status", id:"status", width:70, formatter:Slick.Formatters.CancelRecordFormatter, sortable: true }
+			];
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:true,
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,
+					xlsPref:true,	
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					url: '/secure/frx/ndf/exchangerate/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/frx/ndf/exchangerate/query/result.json?fetch=next',
+					prevPage : '/secure/frx/ndf/exchangerate/query/result.json?fetch=previous',
+					pdfReport: '/secure/frx/ndf/exchangerate/query/report.json?outputType=pdf',
+					xlsReport: '/secure/frx/ndf/exchangerate/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/frx/ndf/exchangerate/query/reportPref.json?outputType=xls'
+				},
+				events:{
+					onDataUpdate : function(data,callback){
+						for(i in data.value){							
+							data.value[i].frxTrdPk= data.value[i].frxTradePk;
+						}
+						callback(data);
+					}
+				}
+				
+			};
+            var row_id = 0;
+            var rec = {};
+			var currentScreen = "<c:out value="${mode}"/>";
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				
+				rec.tradeReferenceNo = "<c:out value="${dl.tradeReferenceNo}" />";
+				rec.baseDateDisp = "<c:out value="${dl.baseDateDisp}" />";
+				rec.baseDate = "<c:out value="${dl.baseDate}" />";
+				rec.revaluationCcy = "<c:out value="${dl.revaluationCcy}" />";
+				rec.calculationTypeDisp = "<c:out value="${dl.calculationTypeDisp}" />";
+				rec.calculationType = "<c:out value="${dl.calculationType}" />";
+				rec.exchangeRate = "<c:out value="${dl.exchangeRate}" />";
+				rec.status = "<c:out value="${dl.status}" />";
+				rec.frxTrdPk = "<c:out value="${dl.frxTradePk}" />";
+				rec.ndfRevalExchangeRatePk = "<c:out value="${dl.ndfRevalExchangeRatePk}" />";
+				grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+	
+	<div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			  <a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'FRXNERC')}">
+								<img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}"  id="cancel" status="ready" alt="Cancel" />
+					</c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			  </a>
+		</c:forEach>	  
+	</div>
+		
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/frx/xenos/ndfExchangeRateQueryResult.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+	</c:when >
+	
+	<c:when test="${commandForm.modeOfOperation == 'amend'}">
+	<c:set value = "${commandForm.modeOfOperation}" var = "mode" scope = "session"/>
+			<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+			var isPrevious = <c:out value="${isPrevious}" />;
+            var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+			var fieldEditorCallback = function(args){
+                return true;
+            };
+            var grid_result_columns = [
+				{name:"<spring:message code="frx.label.referenceno"
+				htmlEscape="false" />", field:"tradeReferenceNo", id:"tradeReferenceNo", sortable: true, width:200, formatter:Slick.Formatters.FrxTradeDetailViewFormatter},  
+				{name:"<spring:message code="frx.label.revaluationccy"
+				htmlEscape="false" />", field:"revaluationCcy", id:"revaluationCcy", sortable: true, width:150},
+                {name:"<spring:message code="frx.label.calculationtype"
+				htmlEscape="false" />", field:"calculationTypeDisp", id:"calculationTypeDisp", width:150, sortable: true },
+				{name:"<spring:message code="frx.label.exchangerate"
+				htmlEscape="false" />", field:"exchangeRate", id:"exchangeRate",width:170, cssClass: 'editablGridInputNoPadding', sortable: true, options:{
+                                            editableFunction: fieldEditorCallback ,
+											styleClass : 'text',
+											rateFormatReqrd : true
+										},
+										 formatter:Slick.Formatters.ExchangeRateFormatter , editor:Slick.Editors.exchangeRateEditor },
+				{name:"<spring:message code="frx.label.basedate" htmlEscape="false" />", field:"baseDateDisp", id:"baseDateDisp",  sortable: true, width:120,  cssClass:"editablGridInputNoPadding dateIco", 
+					formatter:Slick.Formatters.NdfAmendDateFormatter, editor:Slick.Editors.ndfExchangeRateDateEditor}
+			
+			];
+			
+			function ndfAmendPersist(value,args)
+			{
+					var grid = $('.xenos-grid').data("gridInstance");
+					args.item.exchangeRate = value;
+					grid.updateCell(grid.getActiveCell().row,grid.getActiveCell().row);
+					grid.render();
+			}
+			
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:true,
+				consolidateAttribute:{type:'check'},
+				editable: true,
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,
+					xlsPref:true,	
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					url: '/secure/frx/ndf/exchangerate/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/frx/ndf/exchangerate/query/result.json?fetch=next',
+					prevPage : '/secure/frx/ndf/exchangerate/query/result.json?fetch=previous',
+					pdfReport: '/secure/frx/ndf/exchangerate/query/report.json?outputType=pdf',
+					xlsReport: '/secure/frx/ndf/exchangerate/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/frx/ndf/exchangerate/query/reportPref.json?outputType=xls'
+				},
+				events:{
+					onDataUpdate : function(data,callback){
+						for(i in data.value){			
+							data.value[i].frxTrdPk= data.value[i].frxTradePk;
+							data.value[i].ndfRevalExchangeRatePk= data.value[i].ndfRevalExchangeRatePk;
+							data.value[i].rowID= i;
+						}
+						callback(data);
+					}
+				}
+				
+			};
+            var row_id = 0;
+            var rec = {};
+			var currentScreen = "<c:out value="${mode}"/>";
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.rowID = row_id-1;
+				rec.id = "xenos_" + row_id;	
+				rec.tradeReferenceNo = "<c:out value="${dl.tradeReferenceNo}" />";
+				rec.revaluationCcy = "<c:out value="${dl.revaluationCcy}" />";
+				rec.calculationTypeDisp = "<c:out value="${dl.calculationTypeDisp}" />";
+				rec.exchangeRate = "<c:out value="${dl.exchangeRate}" />";
+				rec.baseDateDisp = "<c:out value="${dl.baseDateDisp}" />";
+				rec.status = "<c:out value="${dl.status}" />";
+				rec.frxTrdPk = "<c:out value="${dl.frxTradePk}" />";
+				rec.ndfRevalExchangeRatePk = "<c:out
+						value="${dl.ndfRevalExchangeRatePk}" />";
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+			
+        </jsp:body>
+    </jsp:element>
+
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src">
+			<c:url value="/scripts/xenos.editors.js" />
+		</jsp:attribute>
+        <jsp:body>
+		</jsp:body>
+    </jsp:element>
+	
+	
+	</c:when>
+	</c:choose>
+</jsp:root>

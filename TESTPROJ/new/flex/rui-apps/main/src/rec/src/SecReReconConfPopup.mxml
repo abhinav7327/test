@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Trade Cnf Match Popup Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="init()">
+
+    
+
+	<mx:Script>
+		<![CDATA[
+			import mx.containers.TitleWindow;
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.controls.CheckBox;
+			import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+			
+			import com.nri.rui.core.controls.XenosAlert;
+						
+			[Embed(source="../../assets/img/inf/addcolunm.png")]		    
+			[Bindable]
+			private var icoColumns:Class;
+			[Bindable]
+		    private var queryResult:ArrayCollection= new ArrayCollection();
+            public static var popupColumns:TitleWindow = null;
+            public var superObj:Object = null;
+            [Bindable]
+			private var rs:XML = new XML();
+            
+            public var gridColumns:ArrayCollection = new ArrayCollection();
+			private function init():void{
+				var obj:Object=new Object();
+				obj.unique= new Date().getTime() + "";
+				obj.iSscreenkey = 1;
+				cashReconConfirmQueryRequest.request=obj;
+				cashReconConfirmQueryRequest.send();
+			}
+			 private function changeCurrentState():void{
+                currentState = "conf";
+            }
+			
+          /* public function LoadMatchOueryPage(event:ResultEvent):void {
+     	
+			if (null != event) {            
+	            if(null == event.result.rows){
+	                queryResult.removeAll(); // clear previous data if any as there is no result now.
+	            	if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+	            	   // errPage.clearError(event); //clears the errors if any
+	            		XenosAlert.info("No Result Found!");
+	            	} else { // Must be error
+	            		//errPage.displayError(event);	
+	            	}            	
+	            }else {
+	            	//errPage.clearError(event);   
+		            if(event.result.rows.row is ArrayCollection) {
+		                    queryResult = event.result.rows.row as ArrayCollection;
+		            } else {
+		                    queryResult.removeAll();
+		                    queryResult.addItem(event.result.rows.row);
+		             }
+		            
+	            } 
+	        }else {
+	            queryResult.removeAll();
+	            XenosAlert.info("No Results Found");
+	        }
+	        
+       } */
+        public function LoadMatchOueryPage(event:ResultEvent):void {
+	         	
+				rs = XML(event.result);
+				if (null != event) {
+					if(rs.child("row").length()>0) {
+						errPage.clearError(event);
+			            queryResult.removeAll();
+						try {
+						    for each ( var rec:XML in rs.row ) {
+			 				    queryResult.addItem(rec);
+						    }
+						}catch(e:Error){
+						    XenosAlert.error("No result found");
+					    }
+					} else if(rs.child("Errors").length()>0) {
+		                //some error found
+					 	//queryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	var errorInfoList : ArrayCollection = new ArrayCollection();
+		                //populate the error info list 			 	
+					 	for each ( var error:XML in rs.Errors.error ) {
+			 			   errorInfoList.addItem(error.toString());
+						}
+					 	errPage.showError(errorInfoList);//Display the error
+					} else {
+					 	XenosAlert.info("No Result Found!");
+					 	queryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	errPage.removeError(); //clears the errors if any
+					}
+		        }
+	         }
+       /* public function LoadSystemOueryPage(event:ResultEvent):void {
+     	
+			if (null != event) {            
+	            if(null == event.result.rows){
+	                queryResult.removeAll(); // clear previous data if any as there is no result now.
+	            	if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+	            	   // errPage.clearError(event); //clears the errors if any
+	            		XenosAlert.info("No Result Found!");
+	            	} else { // Must be error
+	            		//errPage.displayError(event);	
+	            	}            	
+	            }else {
+	            	//errPage.clearError(event);   
+		            if(event.result.rows.row is ArrayCollection) {
+		                    queryResult = event.result.rows.row as ArrayCollection;
+		            } else {
+		                    queryResult.removeAll();
+		                    queryResult.addItem(event.result.rows.row);
+		             }
+		            
+	            } 
+	        }else {
+	            queryResult.removeAll();
+	            XenosAlert.info("No Results Found");
+	        }
+	        t1.visible=false;
+			t1.includeInLayout=false;
+    		t2.visible=true;
+    		t2.includeInLayout=true;
+	        
+       } */
+       public function LoadSystemOueryPage(event:ResultEvent):void {
+	         	usrCnf.enabled=true;
+				rs = XML(event.result);
+				if (null != event) {
+					if(rs.child("row").length()>0) {
+						errPage.clearError(event);
+			            queryResult.removeAll();
+						try {
+						    for each ( var rec:XML in rs.row ) {
+			 				    queryResult.addItem(rec);
+						    }
+						    t1.visible=false;
+				            t1.includeInLayout=false;
+			    			t2.visible=true;
+			    			t2.includeInLayout=true;
+			    			hb.visible=true;
+			    			hb.includeInLayout=true;
+			    			this.parentDocument.title="System Confirmation";
+						}catch(e:Error){
+						    XenosAlert.error("No result found");
+					    }
+					} else if(rs.child("Errors").length()>0) {
+		                //some error found
+					 	//queryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	var errorInfoList : ArrayCollection = new ArrayCollection();
+		                //populate the error info list 			 	
+					 	for each ( var error:XML in rs.Errors.error ) {
+			 			   errorInfoList.addItem(error.toString());
+						}
+					 	errPage.showError(errorInfoList);//Display the error
+					} else {
+					 	XenosAlert.info("No Result Found!");
+					 	queryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	errPage.removeError(); //clears the errors if any
+					}
+		        }
+		        
+	         }
+       public function submitSysConfirm():void {
+       		this.queryResult.removeAll();
+       		var obj:Object=new Object();
+			obj.unique= new Date().getTime() + "";
+			//obj.SCREEN_KEY = 10033;
+			//cashReconConfirmQueryRequest.request=obj;
+			//cashReconConfirmQueryRequest.send();
+			closeHandeler();
+     	
+     }  
+        public function submitConfirm(event:Event):void {
+        		usrCnf.enabled=false;
+		     	var i:Number;
+		        var obj:Object=new Object();
+				obj.method="submitConfirm";
+				obj.unique= new Date().getTime() + "";
+				obj.SCREEN_KEY = 10033;
+			    cashReconSysConfirmQueryRequest.request=obj;
+				cashReconSysConfirmQueryRequest.send();
+				
+     }  
+      
+       
+	   public function closeHandeler():void{
+	   		this.parentDocument.dispatchEvent(new Event("RefreshChanges"));
+	        this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+        }
+       public function resetDataGrid():void{
+       	     parentDocument.owner.resetQuery();
+       }
+       
+		]]>
+	</mx:Script>
+	
+	
+	<cntrls:XenosHTTPService id="cashReconConfirmQueryRequest" 
+         url="rec/recXenosReReconcile.action?method=showResult" fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString)" 
+             method="POST" useProxy="false" result="LoadMatchOueryPage(event)" showBusyCursor="true" resultFormat="xml"/>	
+    <cntrls:XenosHTTPService id="cashReconSysConfirmQueryRequest" 
+         url="rec/recXenosReReconcile.action?method=submitConfirm" fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString);usrCnf.enabled=true;" 
+             method="POST" useProxy="false" result="LoadSystemOueryPage(event)" showBusyCursor="true" resultFormat="xml"/>	
+    	
+    
+		<mx:VBox width="100%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" visible="true">
+			 <mx:HBox id="hb" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" visible="false" verticalAlign="middle" includeInLayout="false">
+	    		<mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+	    		<mx:Label text=" Transaction Completed Successfully." fontWeight="bold" selectable="true"/>	
+	    	 </mx:HBox>	
+	    	 <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+			<mx:DataGrid id="tradeQueryResult" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto">
+				<mx:columns> 
+	                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.cash.re.query.label.date')}" dataField="asOfDateDisp" width="100"/>
+	                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" dataField="fundCode" width="200" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.cash.re.query.label.bank')}" dataField="bank" width="100"  itemRenderer="com.nri.rui.core.renderers.FinancialInstitutionDetailsRenderer" />
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.cash.re.query.label.bankname')}" dataField="bankShortName" width="100"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.cash.re.query.label.accountno')}" dataField="accountNo" width="100" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRenderer"/>
+
+	            </mx:columns>
+	     	</mx:DataGrid>	
+	     	<mx:HBox id="t1" width="100%" styleName="ButtonBackPanel" includeInLayout="true" visible="true">            
+                <mx:Button id="usrCnf" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="this.submitConfirm(event);"/>            
+            </mx:HBox>
+            <mx:VBox id="t2" width="100%" styleName="ButtonBackPanel" includeInLayout="false" visible="false">
+                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" click="this.submitSysConfirm();"/>            
+            </mx:VBox>   
+		</mx:VBox>
+		
+</mx:Module>

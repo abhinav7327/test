@@ -1,0 +1,1286 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- MXML module for displaying the Transaction Detail for a specific reference Number.  -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" 
+    xmlns:cntrls="com.nri.rui.core.controls.*" 
+    xmlns:famCntrls="com.nri.rui.fam.controls.*"
+    xmlns:flexlib="http://code.google.com/p/flexlib/"  
+    width="100%" height="100%" creationComplete="init()">
+    <mx:Script>
+        <![CDATA[
+        	import mx.collections.XMLListCollection;
+            import mx.binding.utils.BindingUtils;
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.controls.XenosAlert;
+            import mx.managers.FocusManager;
+            import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+            import mx.rpc.events.FaultEvent;
+            import mx.controls.Alert;
+            import com.nri.rui.core.Globals;
+            import com.nri.rui.core.utils.PrintUtils;
+			import com.nri.rui.core.utils.XenosStringUtils;
+            import com.nri.rui.core.controls.XenosHTTPServiceForSpring;
+            
+            import mx.core.UIComponent;
+            import com.nri.rui.core.utils.XenosPopupUtils;
+            import com.nri.rui.fam.FamConstants;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import mx.utils.ObjectUtil;
+           
+            [Bindable]private var summaryResult:ArrayCollection = new ArrayCollection;
+            
+            [Bindable]private var transactionPk : String = Globals.EMPTY_STRING;
+           
+            [Bindable]private var commandFormId : String = Globals.EMPTY_STRING;
+            
+            [Bindable]
+            private var objAudit:Object = null;
+          
+            [Bindable]
+            private var objTxn:Object = null;
+        
+            [Bindable]
+            private var txnDetailsForm:Object = null;
+            
+            [Bindable]
+            private var txnInfoLc:Object = null;
+             
+            [Bindable]
+            private var txnInfoBc:Object = null;
+             
+            [Bindable]
+            private var txnTaxFeeListLc:Object = null;
+               
+            [Bindable]
+            private var txnTaxFeeListBc:Object = null;
+            
+            [Bindable]
+            private var movementData:ArrayCollection = new ArrayCollection();
+                        
+            [Bindable]
+            private var lcJournalData:ArrayCollection = new ArrayCollection();
+            
+            [Bindable]
+            private var bcJournalData:ArrayCollection = new ArrayCollection();
+            
+            [Bindable]
+            private var lcTaxFeeData:ArrayCollection = new ArrayCollection();
+            
+            [Bindable]
+            private var bcTaxFeeData:ArrayCollection = new ArrayCollection();
+           
+            /**
+             * Extracts the parameters and set them to some variables for query criteria from the Module Loader Info.
+             * 
+             */ 
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if (tempA[0] == FamConstants.TRANSACTION_PK) {
+                            transactionPk = tempA[1];
+                        }
+                        if(tempA[0] == Globals.COMMAND_FORM_ID){
+                        	commandFormId = tempA[1];
+                        } 
+                    }
+                } catch (e:Error) {
+                    trace(e);
+                }
+               
+            }
+            /**
+             * Initializes the module and send the submit request.
+             * 
+             */     
+            private function init():void{
+                parseUrlString();
+                var rndNo:Number = Math.random();
+                httpService.url= "fam/transactionQuery.spring?rnd=" + rndNo;
+                
+                var req : Object = new Object();
+                req.method="viewTransactionDetails";
+                req[FamConstants.TRANSACTION_PK]=this.transactionPk; 
+                httpService.request=req;
+                    
+                httpService.send();
+                PopUpManager.centerPopUp(this);
+            }
+            
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function httpService_fault(evt:FaultEvent):void {
+                XenosAlert.error(evt.fault.faultDetail);
+            }
+            /**
+             * Result handler for the submit Request. 
+             * 
+             */ 
+            private function httpService_result(event:ResultEvent):void { 
+            	  var result:XML = XML(event.result);
+	 		      errPage.clearError(event);
+               
+                	if (result.child("Errors").length() > 0) {
+		                  var errorInfoList : ArrayCollection = new ArrayCollection();
+		                  //populate the error info list              
+		                  for each (var error:XML in result.Errors.error) {
+		                     errorInfoList.addItem(error.toString());
+		                  }
+		                  errPage.showError(errorInfoList);//Display the error
+			    	  
+		            } else {
+		            	
+                        //txnDetailsForm = event.result.transactionQueryCommandForm;
+                        txnDetailsForm = result ;
+                        txnInfoLc = txnDetailsForm.transaction;
+                        txnTaxFeeListLc = txnDetailsForm.transactionTaxFeeList;
+                        txnInfoBc = txnDetailsForm.bcTransaction;
+                        txnTaxFeeListBc = txnDetailsForm.bcTransactionTaxFeeList;
+                        
+                        populate(event);
+                        
+                        // setting row count of data grids
+                        journalBcSummaryResult.rowCount = bcJournalData.length <=1? 1 : bcJournalData.length+1;
+                        journalLcSummaryResult.rowCount = lcJournalData.length <=1? 1 : lcJournalData.length+1;
+                        movementSummaryResult.rowCount = movementData.length <=1? 1 : movementData.length+1;
+                        txnInfoLcTaxFeeResult.rowCount = lcTaxFeeData.length <= 1? 1: lcTaxFeeData.length+1;
+                        txnInfoBcTaxFeeResult.rowCount = bcTaxFeeData.length <= 1? 1: bcTaxFeeData.length+1;
+                        var taxFeeColl:ArrayCollection = new ArrayCollection();
+                        if(this.txnTaxFeeListBc!=null && this.txnTaxFeeListBc.bcTransactionTaxFee!=null && this.txnTaxFeeListBc.bcTransactionTaxFee is ArrayCollection){
+                        	taxFeeColl = this.txnTaxFeeListBc.bcTransactionTaxFee as ArrayCollection; 
+                        }                      
+                        //txnInfoBcTaxFeeResult.rowCount = taxFeeColl.length <=1? 1 : taxFeeColl.length+1;
+                        
+                        taxFeeColl.removeAll();
+                        if(this.txnTaxFeeListLc!=null && this.txnTaxFeeListLc.transactionTaxFee!=null && this.txnTaxFeeListLc.transactionTaxFee is ArrayCollection){
+                        	taxFeeColl = this.txnTaxFeeListLc.transactionTaxFee as ArrayCollection; 
+                        }                        
+                        //txnInfoLcTaxFeeResult.rowCount = taxFeeColl.length <=1? 1 : taxFeeColl.length+1;
+                      
+                    } 
+                 
+                
+                if(XenosStringUtils.equals(this.txnInfoLc.sourceComponent,"FAM") || this.txnInfoLc.hasOwnProperty("parentPk")) {
+                	this.refno.styleName="";
+                	this.refno.useHandCursor=false;
+                	this.refno.buttonMode=true;
+                	this.refno.mouseChildren=false;
+                	this.refno.selectable=true;
+                } else {
+	   			    this.refno.styleName="TextLink"; 
+                	this.refno.useHandCursor=true;
+                	this.refno.buttonMode=true;
+                	this.refno.mouseChildren=false;
+                	this.refno.selectable=true;
+                	this.refno.addEventListener(MouseEvent.CLICK, showSourceComponentDetails);    	
+                }
+							
+				 if(XenosStringUtils.isBlank(this.txnInfoLc.securityCode) || !(this.txnInfoLc.hasOwnProperty("securityCode"))){ 
+				 	this.securityCodeLink.styleName="";
+                	this.securityCodeLink.useHandCursor=false;
+                	this.securityCodeLink.buttonMode=true;
+                	this.securityCodeLink.mouseChildren=false;
+                	this.securityCodeLink.selectable=true;
+                } else {
+	   			    this.securityCodeLink.styleName="TextLink"; 
+                	this.securityCodeLink.useHandCursor=true;
+                	this.securityCodeLink.buttonMode=true;
+                	this.securityCodeLink.mouseChildren=false;
+                	this.securityCodeLink.selectable=true;
+                	this.securityCodeLink.addEventListener(MouseEvent.CLICK, handleSecurityCode);    	
+                }		
+
+                 if(XenosStringUtils.isBlank(this.txnInfoLc.allottedSecurityCode) || !(this.txnInfoLc.hasOwnProperty("allottedSecurityCode"))) { 
+				 	this.allotedSecurityCodeLink.styleName="";
+                	this.allotedSecurityCodeLink.useHandCursor=false;
+                	this.allotedSecurityCodeLink.buttonMode=true;
+                	this.allotedSecurityCodeLink.mouseChildren=false;
+                	this.allotedSecurityCodeLink.selectable=true;
+                } else {
+	   			    this.allotedSecurityCodeLink.styleName="TextLink"; 
+                	this.allotedSecurityCodeLink.useHandCursor=true;
+                	this.allotedSecurityCodeLink.buttonMode=true;
+                	this.allotedSecurityCodeLink.mouseChildren=false;
+                	this.allotedSecurityCodeLink.selectable=true;
+                	this.allotedSecurityCodeLink.addEventListener(MouseEvent.CLICK, handleAllottedSecurityCode);    	
+                }		
+
+                 if(XenosStringUtils.isBlank(this.txnInfoLc.underlyingInstrumentStr) || !(this.txnInfoLc.hasOwnProperty("underlyingInstrumentStr"))) { 
+				 	this.underlyingSecurityCodeLink.styleName="";
+                	this.underlyingSecurityCodeLink.useHandCursor=false;
+                	this.underlyingSecurityCodeLink.buttonMode=true;
+                	this.underlyingSecurityCodeLink.mouseChildren=false;
+                	this.underlyingSecurityCodeLink.selectable=true;
+                } else {
+	   			    this.underlyingSecurityCodeLink.styleName="TextLink"; 
+                	this.underlyingSecurityCodeLink.useHandCursor=true;
+                	this.underlyingSecurityCodeLink.buttonMode=true;
+                	this.underlyingSecurityCodeLink.mouseChildren=false;
+                	this.underlyingSecurityCodeLink.selectable=true;
+                	this.underlyingSecurityCodeLink.addEventListener(MouseEvent.CLICK, handleUnderlyingInstrument);    	
+                }						
+            }
+	   
+      /**
+	   * This method is used for loading Instrument Details popup module
+	   * 
+	   */  
+	   private function showInstrumentDetails(insPk:String):void{
+					var parentApp :UIComponent = UIComponent(this.parentApplication);
+					XenosPopupUtils.showInstrumentDetails(insPk, parentApp);
+				
+	   }
+	  
+	   // This method is used for loading Fund Details popup module
+	   private function showFundDetails(fundPk:String):void{	   			
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showFundCodeDetails(fundPk, parentApp);
+	   }
+	   
+	   // Displays Transaction Result window
+	   private function showTxnDetails(txnPk:String):void{
+	   	    var parentApp :UIComponent = UIComponent(this.parentApplication);
+	   	    XenosPopupUtils.showTransactionDetails(txnPk,commandFormId, parentApp, this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.label.result')); 
+	   }
+	   // Displays Account Details window
+	   private function showAccountDetails(accPk:String):void{
+	   	    var parentApp :UIComponent = UIComponent(this.parentApplication);
+	   	    XenosPopupUtils.showAccountSummary(accPk,parentApp, this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.label.result')); 
+	   }
+	   
+	   private function populate(event:ResultEvent):void {
+	   	  movementData.removeAll();
+	   	  lcJournalData.removeAll();
+	   	  bcJournalData.removeAll();
+	   	  lcTaxFeeData.removeAll();
+	   	  bcTaxFeeData.removeAll();
+	   	  
+	   	  if(this.txnDetailsForm.transactionTaxFeeList!=null ){    
+	   	  	 fillCollection(lcTaxFeeData, this.txnDetailsForm.transactionTaxFeeList.transactionTaxFee); 
+	   	  }	   	 
+	   	  if(this.txnDetailsForm.bcTransactionTaxFeeList!=null){
+	   	  	 fillCollection(bcTaxFeeData, this.txnDetailsForm.bcTransactionTaxFeeList.bcTransactionTaxFee);
+	   	  }
+	   	  if(this.txnDetailsForm.movementInfoList!=null){
+	   	  	 fillCollection(movementData, this.txnDetailsForm.movementInfoList.movementInfo); 
+	   	  }	   	 
+	   	  if(this.txnDetailsForm.cashMovementInfoList!=null){
+	   	  	 fillCollection(movementData, this.txnDetailsForm.cashMovementInfoList.cashMovementInfo);
+	   	  }
+	      if(this.txnDetailsForm.drvMovementInfoList!=null){
+	      	 fillCollection(movementData, this.txnDetailsForm.drvMovementInfoList.drvMovementInfo); 
+	      }  	 
+		  if(this.txnDetailsForm.rcvIncomeBalanceList!=null){
+	      	 fillCollection(movementData, this.txnDetailsForm.rcvIncomeBalanceList.rcvIncomeBalance); 
+	      }
+		  if(this.txnDetailsForm.adjustmentIncomeList!=null){
+	      	 fillCollection(movementData, this.txnDetailsForm.adjustmentIncomeList.adjustmentIncome); 
+	      }
+		
+		  
+	   	  if(this.txnDetailsForm.lcJournalList!=null){
+	   	  	 fillCollection(lcJournalData, this.txnDetailsForm.lcJournalList.lcJournal); 
+	   	  }	   	  
+	   	  if(this.txnDetailsForm.bcJournalList!=null){
+	   	  	 fillCollection(bcJournalData, this.txnDetailsForm.bcJournalList.bcJournal); 
+	   	  }
+	   	 }
+	   
+	   
+	   // Fills 'collection' from 'object'
+	   private function fillCollection(collection:ArrayCollection, object:Object):void{
+	   	   if(object != null && object is XMLList){        
+             	 var tempList:XMLList = object as XMLList;
+             	   for each (var itemXml : XML in tempList) {
+             	   	   addCommandFormId(itemXml);//Adds the property 'commandFormId'
+	   	 	           collection.addItem(itemXml);
+	   	           }
+             } 
+	   } 
+	   
+	   // Adds the property 'commandFormId' to the object 'obj'
+	   private function addCommandFormId(parent:XML):void{
+	   	     var child:XML =
+             <commandFormId>{commandFormId}</commandFormId>
+             parent.appendChild(child);    
+	   }
+	    /**
+	   * This method is used for showing instrument detail from security code
+	   * 
+	   */  
+	   	private function handleSecurityCode(event: MouseEvent):void {
+		   	var instrumentPk:String = this.txnInfoLc.instrumentPk; 
+	   		showInstrumentDetails(this.txnInfoLc.instrumentPk);
+			}
+			
+		/**
+	   * This method is used for showing instrument detail from allotted security code
+	   * 
+	   */  
+	   	private function handleAllottedSecurityCode(event: MouseEvent):void {
+		   	var instrumentPk:String = this.txnInfoLc.allottedInstrumentPk; 
+	   		showInstrumentDetails(instrumentPk);
+			}
+			
+		/**
+	   * This method is used for showing instrument detail from underlying instrument
+	   * 
+	   */  
+	   	private function handleUnderlyingInstrument(event: MouseEvent):void {
+		   	var instrumentPk:String = this.txnInfoLc.underlyingInstrumentPk; 
+	   		showInstrumentDetails(instrumentPk);
+			}	
+	   
+	   /**
+	   * This method is used for loading original component Details popup module
+	   * 
+	   */  
+	   	private function showSourceComponentDetails(event: MouseEvent):void {
+	   		var sourceComponent:String = this.txnInfoLc.sourceComponent;
+	   		var trgTransactionPk:String = this.txnInfoLc.trgTransactionPk; 
+	   		var transactionType:String = this.txnInfoLc.transactionType; 
+	   		var parentPk:String = this.txnInfoLc.parentPk;
+	   		/* XenosAlert.info("transactionType :: "+transactionType); */
+	   		var sPopup : SummaryPopup;
+			if(XenosStringUtils.equals(sourceComponent,"TRD")) {
+				
+				sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+				
+				sPopup.title = this.parentApplication.xResourceManager.getKeyValue('trd.summaryquery.label.tradedetailsummary');
+				sPopup.width = 650;
+	    		sPopup.height = 420;
+				PopUpManager.centerPopUp(sPopup);		
+				/* var tradePkStr : String = xmlSource.detailView.summary.tradePk; */
+				//XenosAlert.info("tradePk :: "+tradePkStr);
+				sPopup.moduleUrl = Globals.TRADE_DETAILS_SWF+Globals.QS_SIGN+Globals.TRADE_PK+Globals.EQUALS_SIGN+trgTransactionPk;
+			} else if(XenosStringUtils.equals(sourceComponent,"DRV" )) {
+			
+			     if(XenosStringUtils.equals(transactionType,"FUTURE_CLOSEOUT" )|| XenosStringUtils.equals(transactionType,"OPTION_CLOSEOUT" ) ){
+				
+					sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+					
+					sPopup.title = this.parentApplication.xResourceManager.getKeyValue('drv.label.closeouttradedetails');
+					//set the width and height of the popup
+					sPopup.width = 975;
+					sPopup.height = 550;
+		 
+					sPopup.horizontalScrollPolicy="auto";
+					sPopup.verticalScrollPolicy="auto";
+					PopUpManager.centerPopUp(sPopup);			
+					
+							
+					//Setting the Module path with some parameters which will be needed in the module for internal processing.
+					sPopup.moduleUrl = Globals.CLOSE_OUT_DETAILS_SWF + Globals.QS_SIGN + "closeOutTradePk" + Globals.EQUALS_SIGN + trgTransactionPk;
+				}else {
+				
+					sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+					
+					sPopup.title = this.parentApplication.xResourceManager.getKeyValue('drv.derivativetrade.title') + " " + this.parentApplication.xResourceManager.getKeyValue('inf.title.view');
+					//set the width and height of the popup
+					sPopup.width = 975;
+					sPopup.height = 550;
+		 
+					sPopup.horizontalScrollPolicy="auto";
+					sPopup.verticalScrollPolicy="auto";
+					PopUpManager.centerPopUp(sPopup);
+			
+					var actionMode : String = "query";            
+					
+					//Setting the Module path with some parameters which will be needed in the module for internal processing.    		
+					sPopup.moduleUrl = Globals.DRV_TRADE_DETAILS_SWF + Globals.QS_SIGN + Globals.DRV_TRADE_PK + Globals.EQUALS_SIGN + trgTransactionPk + Globals.AND_SIGN + Globals.DRV_ACTION_MODE + Globals.EQUALS_SIGN + actionMode;
+				}
+			}
+			
+			
+			else if(XenosStringUtils.equals(sourceComponent,"FRX")) {
+			
+	    		sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+	    		
+	    		sPopup.title = this.parentApplication.xResourceManager.getKeyValue('frx.label.forextradedetails');
+	            //set the width and height of the popup
+	            sPopup.width = 975;
+	    		sPopup.height = 350;
+	 
+	    		sPopup.horizontalScrollPolicy="auto";
+	    		sPopup.verticalScrollPolicy="auto";
+	    		PopUpManager.centerPopUp(sPopup);
+	    		
+	    		//Setting the Module path with some parameters which will be needed in the module for internal processing.
+	    		sPopup.moduleUrl = Globals.FRX_TRADE_DETAILS_SWF + Globals.QS_SIGN + "frxTradePk" + Globals.EQUALS_SIGN + trgTransactionPk;
+			} else if(XenosStringUtils.equals(sourceComponent,"CAX")) {
+			   
+			    if(XenosStringUtils.equals(transactionType,'CAX_RIGHTS_EXERCISE')) {
+				
+					XenosPopupUtils.showCaxExerciseDetails(trgTransactionPk,UIComponent(this.parentApplication));
+				
+                	//sPopup.moduleUrl = Globals.CAX_RIGHTS_EXERCISE_SWF + Globals.QS_SIGN + Globals.RIGHTS_EXERCISE_PK + Globals.EQUALS_SIGN + trgTransactionPk;
+                } else {
+					sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+					
+					sPopup.title = this.parentApplication.xResourceManager.getKeyValue('cax.label.entitlement.detail.view');
+					//set the width and height of the popup
+					sPopup.width = 800;
+					sPopup.height = 500;
+		 
+					sPopup.horizontalScrollPolicy="auto";
+					sPopup.verticalScrollPolicy="auto";
+					PopUpManager.centerPopUp(sPopup);
+				   
+					
+						//Setting the Module path with some parameters which will be needed in the module for internal processing.
+					sPopup.moduleUrl = Globals.CAX_RIGHTS_DETAILS_SWF + Globals.QS_SIGN + Globals.RIGHTS_DETAIL_PK + Globals.EQUALS_SIGN + trgTransactionPk;
+                }
+            } else if(XenosStringUtils.equals(sourceComponent,"STL")) {  
+                			
+            	if (XenosStringUtils.equals(transactionType,'COMP_STL_CAX_CAPITAL_REPAYMENT') || 
+					XenosStringUtils.equals(transactionType,'COMP_STL_CAX_DIV_REINVESTMENT') || 
+					XenosStringUtils.equals(transactionType,'COMP_STL_CAX_OPTIONAL_STOCK_DIV') || 
+					XenosStringUtils.equals(transactionType,'COMP_STL_CAX_REDEMPTION_BOND') || 
+					XenosStringUtils.equals(transactionType,'COMP_STL_CAX_RIGHTS_EXERCISE' )|| 
+					XenosStringUtils.equals(transactionType,'COMP_STL_CAX_CASH_DIVIDEND') || 
+					XenosStringUtils.equals(transactionType,'COMP_STL_CAX_COUPON_PAYMENT')) {
+					
+					
+					
+            		XenosPopupUtils.showSettlementHistoryDetails(trgTransactionPk,
+			    									  UIComponent(this.parentApplication),
+			    									  this.parentApplication.xResourceManager.getKeyValue('fam.label.settlement.history.detail.header'));       
+            	}  else {
+				
+				    
+            		
+				      var viewMode:String ="Instruction"
+			          XenosPopupUtils.showSettlementDetails(trgTransactionPk,
+			    									  UIComponent(this.parentApplication),
+			    									  this.parentApplication.xResourceManager.getKeyValue('fam.label.settlement.detail.header'),
+			    									  viewMode);
+			
+													  
+													  
+            	}     	
+				
+				
+                            
+            } else if(XenosStringUtils.equals(sourceComponent,"BKG")) {
+			
+	            sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+	            
+	            sPopup.title = "BKG Trade Detail View";
+	            sPopup.width = 830;
+	            sPopup.height = 550;
+	            PopUpManager.centerPopUp(sPopup);
+	            
+	            sPopup.moduleUrl = FamConstants.BKG_DETAILS_SWF+Globals.QS_SIGN+    
+                                FamConstants.BKG_TRADE_PK+Globals.EQUALS_SIGN+trgTransactionPk;
+            } else if(XenosStringUtils.equals(sourceComponent,"CAM")) {
+			
+			
+	            sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+	            
+	            sPopup.title = this.parentApplication.xResourceManager.getKeyValue('cam.security.query.detail.header');
+	            sPopup.width = 780;
+	            sPopup.height = 430;
+	            PopUpManager.centerPopUp(sPopup);
+	            
+	            sPopup.moduleUrl = Globals.CAM_SECURITY_DETAILS_SWF+Globals.QS_SIGN+Globals.CAM_ENTRY_PK+Globals.EQUALS_SIGN+trgTransactionPk;
+            } else if(XenosStringUtils.equals(sourceComponent,"NCM")) {
+			
+			
+	            sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+	            
+	            sPopup.title = this.parentApplication.xResourceManager.getKeyValue('ncm.depository.detail.header');
+	            sPopup.width = 720;
+	            sPopup.height = 340;
+	            PopUpManager.centerPopUp(sPopup);       
+	            sPopup.moduleUrl = Globals.ADJUSTMENET_QRY_DETAILS_SWF+Globals.QS_SIGN+Globals.NCM_ENTRY_PK+Globals.EQUALS_SIGN+trgTransactionPk;
+            }
+	   }
+        ]]>
+    </mx:Script>
+   
+    <cntrls:XenosHTTPServiceForSpring id="httpService" commandFormId="{commandFormId}"
+            useProxy="false" resultFormat="xml" 
+            fault="httpService_fault(event);"           
+            result="httpService_result(event)" showBusyCursor="true" >
+     </cntrls:XenosHTTPServiceForSpring>
+     
+     <mx:VBox width="100%" height="0%">
+	    <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+	        <mx:Button id="Print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetail(this.detail)"/>
+	    </mx:HBox>
+    </mx:VBox>
+     
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="off">
+    	<mx:VBox width="100%" height="100%" id="detail">
+		
+        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>
+        
+        <flexlib:WindowShade id="txnInfoLcWs" tabChildren="{txnInfoLcWs.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.transaction.info.lc')}" width="100%">
+            <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+                
+                <!-- Fund Code & Fund Name -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.fundcode')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{txnInfoLc.fundCode==null? '' : txnInfoLc.fundCode}" click="showFundDetails(txnInfoLc.fundPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.fundname')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.fundName==null? '' : this.txnInfoLc.fundName}" selectable="true"/>
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Security Code & Security Name -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.securitycode')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label id="securityCodeLink" text="{this.txnInfoLc.securityCode==null? '' : this.txnInfoLc.securityCode}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.securityname')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.securityName==null? '' : this.txnInfoLc.securityName}" selectable="true"/>
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Transaction Type & Trade Type -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.label.transaction.type')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.transactionTypeStr==null? '' : this.txnInfoLc.transactionTypeStr}" selectable="true"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.tradetype')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.tradeTypeStr==null? '' : this.txnInfoLc.tradeTypeStr}" selectable="true"/>
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Trade Type Remarks & Wire Type -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.trade.type.remarks')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.tradeRemarks==null? '' : this.txnInfoLc.tradeRemarks}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.wiretype')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.wireTypeStr==null? '' : this.txnInfoLc.wireTypeStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+               
+                <!-- Reference No  & Version No -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.refno')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label id="refno" text="{this.txnInfoLc.referenceNoWithVersion==null? '' : this.txnInfoLc.referenceNoWithVersion}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="" />
+                    </mx:GridItem>
+                </mx:GridRow>                
+                
+                <!--Parent Txn Ref No  &  Voucher Type -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.parenttxnrefno')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.txnReferenceNoParentStr==null? '' : this.txnInfoLc.txnReferenceNoParentStr}" click="showTxnDetails(txnInfoLc.parentPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.voucherType')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.voucherTypeStr==null? '' : this.txnInfoLc.voucherTypeStr}" selectable="true"  />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Event Type &  -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.eventtype')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.subEventTypeStr==null? '' : this.txnInfoLc.subEventTypeStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Buy/Sell & L/S -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.buysell')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.buySellStr==null? '' : this.txnInfoLc.buySellStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.ls')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.longShortStr==null? '' : this.txnInfoLc.longShortStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Trade Date & Value Date -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.tradedate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.tradeDateStr==null? '' : this.txnInfoLc.tradeDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.valuedate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.valueDateStr==null? '' : this.txnInfoLc.valueDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Settlement Date & Local Ccy -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.settlementdate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.settlementDateStr==null? '' : this.txnInfoLc.settlementDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.localccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.localCcy==null? '' : this.txnInfoLc.localCcy}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Settlement Ccy & Quantity -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.settlement.ccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.settlementCcy==null? '' : this.txnInfoLc.settlementCcy}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.quantity')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{this.txnInfoLc.quantityStr==null? '' : this.txnInfoLc.quantityStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow> 
+                
+                <!--Price & Accrued Interest Paid -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.price')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.priceStr==null? '' : this.txnInfoLc.priceStr}"  selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.accrued.interest.paid')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.accruedInterestPaidStr==null? '' : this.txnInfoLc.accruedInterestPaidStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Principal Amount (SC) & Net Amount (SC) -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.principal.amount.sc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{this.txnInfoLc.principalAmountStr==null? '' : this.txnInfoLc.principalAmountStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.net.amount.sc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{this.txnInfoLc.netAmountScStr==null? '' : this.txnInfoLc.netAmountScStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Exchange Rate LC to SC & Profit /Loss -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.exchange.rate.lc.to.sc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.exchangeRateLcScStr==null? '' : this.txnInfoLc.exchangeRateLcScStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.profit.loss')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{this.txnInfoLc.profitLossStr==null? '' : this.txnInfoLc.profitLossStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Net Amount (LC) &   -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.net.amount.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{this.txnInfoLc.netAmountLcStr==null? '' : this.txnInfoLc.netAmountLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.adjustment.reason')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                         <mx:Label text="{this.txnInfoLc.adjustmentReason==null? '' : this.txnInfoLc.adjustmentReason}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow> 
+                
+                <!--Allotted Security Code & Sub Wire Type -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.allotted.security.code')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+					<mx:Label id="allotedSecurityCodeLink" text="{this.txnInfoLc.allottedSecurityCode==null? '' : this.txnInfoLc.allottedSecurityCode}" />
+					</mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.sub.wire.type')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.subWireTypeStr==null? '' : this.txnInfoLc.subWireTypeStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Hedge Ccy & Negative Accrual Flag -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.hedge.ccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.hedgeCcy==null? '' : this.txnInfoLc.hedgeCcy}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.negative.accrual.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.negativeAccrualFlagStr==null? '' : this.txnInfoLc.negativeAccrualFlagStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Underlying Asset Type &  -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.underlying.asset.type')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.underlyingAssetType==null? '' : this.txnInfoLc.underlyingAssetType}"  selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.pl.suppress.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.plSuppressFlag==null? '' : this.txnInfoLc.plSuppressFlag}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Next Payment Date & Principal Flag -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.next.payment.date')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.nextPayDateStr==null? '' : this.txnInfoLc.nextPayDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.principal.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.principalFlagStr==null? '' : this.txnInfoLc.principalFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Ledger Code & Status -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.ledgercode')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.ledgerCode==null? '' : this.txnInfoLc.ledgerCode}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.status')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.statusStr==null? '' : this.txnInfoLc.statusStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Eligible Qty  & Transaction Approved By -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.eligible.qty')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{this.txnInfoLc.eligibleQuantityStr==null? '' : this.txnInfoLc.eligibleQuantityStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.transaction.approvedby')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.transactionApprovedBy==null? '' : this.txnInfoLc.transactionApprovedBy}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Calc Mechanism (LC SC)  & Inventory At Cost -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.original.book.date')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.originalBookDateStr==null? '' : this.txnInfoLc.originalBookDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.inventory.at.cost')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{this.txnInfoLc.inventoryAtCostStr==null? '' : this.txnInfoLc.inventoryAtCostStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Derivative STL AC Type & Processing Order -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.derivative.stl.ac.type')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.derivativeStlAcTypeStr==null? '' : this.txnInfoLc.derivativeStlAcTypeStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.margin.inout.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.marginInOutFlag==null? '' : this.txnInfoLc.marginInOutFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Open Reference No & Security I/O -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.open.reference.no')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.openReferenceNo==null? '' : this.txnInfoLc.openReferenceNo}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.security.io')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.securityInOutFlagStr==null? '' : this.txnInfoLc.securityInOutFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Cash I/O & Book Date -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.cash.io')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.cashInOutFlagStr==null? '' : this.txnInfoLc.cashInOutFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.book.date')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.bookDateStr==null? '' : this.txnInfoLc.bookDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Source Component & Tax Amount -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.source.component')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.sourceComponent==null? '' : this.txnInfoLc.sourceComponent}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.tax.amount')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.taxAmountStr==null? '' : this.txnInfoLc.taxAmountStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Directed Broker Flag & Recalculation Suppress Flag -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.directed.broker.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.directedBrokerFlagStr==null? '' : this.txnInfoLc.directedBrokerFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.recalculation.suppress.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.recalculationSuppressFlagStr==null? '' : this.txnInfoLc.recalculationSuppressFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Group ID & P/L -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.groupid')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.groupId==null? '' : this.txnInfoLc.groupId}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.pl')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.plIndicatorStr==null? '' : this.txnInfoLc.plIndicatorStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Data Source & Processed Flag -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.data.source')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.dataSource==null? '' : this.txnInfoLc.dataSource}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.processed.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.processedFlagStr==null? '' : this.txnInfoLc.processedFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Fund Account No & Underlying Instrument -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.fund.account.no')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.fundAccountNo==null? '' : this.txnInfoLc.fundAccountNo}" click="showAccountDetails(txnInfoLc.fundAccountPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.underlying.instrument')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label  id="underlyingSecurityCodeLink" text="{this.txnInfoLc.underlyingInstrumentStr==null? '' : this.txnInfoLc.underlyingInstrumentStr}"  />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--  Broker Account No &  -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.broker.account.no')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%"> 
+                        <mx:Label text="{this.txnInfoLc.brokerAccountNo==null? '' : this.txnInfoLc.brokerAccountNo}" click="showAccountDetails(txnInfoLc.brokerAccountPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Entry Date & Last Entry Date-->
+                <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.appRegiDateStr==null? '' : this.txnInfoLc.appRegiDateStr}"  selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate.last')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.appUpdDateStr==null? '' : this.txnInfoLc.appUpdDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Entry Date (Time) & Last Entry Date (Time)-->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.creationDateStr==null? '' : this.txnInfoLc.creationDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time.last')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.updateDateStr==null? '' : this.txnInfoLc.updateDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Entry By & Last Entry By-->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entryby')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.createdBy==null? '' : this.txnInfoLc.createdBy}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.lastentryby')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoLc.updatedBy==null? '' : this.txnInfoLc.updatedBy}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>                                                               
+               </mx:Grid> 
+               <!-- Tax Fee -->
+               <flexlib:WindowShade id="txnInfoLcTaxFeeWs" tabChildren="{txnInfoLcTaxFeeWs.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.heading.tax.fee')}" width="100%" opened="true">
+                  <mx:DataGrid id="txnInfoLcTaxFeeResult" width="100%" height="100%"  sortableColumns="false" variableRowHeight="true" dataProvider="{lcTaxFeeData}">
+                   <mx:columns>  
+                      <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.heading.tax.fee.id')}" textAlign="left" dataField="taxFeeIdStr" />
+                      <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.amount')}" textAlign="left" dataField="amountStr" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" visible="true"/>
+                   </mx:columns>                
+                 </mx:DataGrid>
+              </flexlib:WindowShade> 
+                            
+        </flexlib:WindowShade>       
+        
+        <flexlib:WindowShade id="txnInfoBcWs" tabChildren="{txnInfoBcWs.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.transaction.info.bc')}" width="100%">
+            <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+                
+                <!-- Base Ccy & Accrued Interest Paid (BC) -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.baseccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoBc.baseCcy==null? '' : this.txnInfoBc.baseCcy}"  selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.accrued.interest.paid.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{this.txnInfoBc.accruedInterestPaidBcStr==null? '' : this.txnInfoBc.accruedInterestPaidBcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Exchange Rate SC to BC & Exchange Rate LC to BC -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.exchange.rate.sc.to.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoBc.exchangeRateScBcStr==null? '' : this.txnInfoBc.exchangeRateScBcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.exchange.rate.lc.to.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoBc.exchangeRateLcBcStr==null? '' : this.txnInfoBc.exchangeRateLcBcStr}" selectable="true"  />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Principal Amount (BC) & Net Amount (BC) -->
+                <mx:GridRow width="100%" >
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.principal.amount.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{this.txnInfoBc.principalAmountBcStr==null? '' : this.txnInfoBc.principalAmountBcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.net.amount.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{this.txnInfoBc.netAmountBcStr==null? '' : this.txnInfoBc.netAmountBcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Profit /Loss & Status -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.profit.loss')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoBc.profitLossStr==null? '' : this.txnInfoBc.profitLossStr}"  selectable="true" />
+                    </mx:GridItem>
+                     <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.status')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                        <mx:Label text="{this.txnInfoBc.statusStr==null? '' : this.txnInfoBc.statusStr}" selectable="true" />
+                    </mx:GridItem>                    
+                </mx:GridRow>
+                
+                <!-- Inventory at Cost & Tax Amount (BC) -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.inventory.at.cost')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{this.txnInfoBc.inventoryAtCostStr==null? '' : this.txnInfoBc.inventoryAtCostStr}"  selectable="true" />
+                    </mx:GridItem>
+                     <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.taxamount.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                        <mx:Label text="{this.txnInfoBc.taxAmountBcStr==null? '' : this.txnInfoBc.taxAmountBcStr}" selectable="true" />
+                    </mx:GridItem>                    
+                </mx:GridRow>
+                
+                <!-- Processed Flag &  -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.processed.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoBc.processedFlagStr==null? '' : this.txnInfoBc.processedFlagStr}"  selectable="true" />
+                    </mx:GridItem>
+                     <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                        <mx:Label text="" selectable="true" />
+                    </mx:GridItem>                    
+                </mx:GridRow>
+                
+                
+                <!-- Entry Date & Last Entry Date-->
+                <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoBc.appRegiDateStr==null? '' : this.txnInfoBc.appRegiDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate.last')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoBc.appUpdDateStr==null? '' : this.txnInfoBc.appUpdDateStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Entry Date (Time) & Last Entry Date (Time)-->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoBc.creationDateStr==null? '' : this.txnInfoBc.creationDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time.last')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoBc.updateDateStr==null? '' : this.txnInfoBc.updateDateStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Entry By & Last Entry By-->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entryby')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoBc.createdBy==null? '' : this.txnInfoBc.createdBy}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.lastentryby')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{this.txnInfoBc.updatedBy==null? '' : this.txnInfoBc.updatedBy}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>           
+            </mx:Grid>  
+            
+            <!-- Tax Fee -->
+            <flexlib:WindowShade id="txnInfoBcTaxFeeWs" tabChildren="{txnInfoBcTaxFeeWs.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.heading.tax.fee')}" width="100%" opened="true" >
+            	<mx:DataGrid id="txnInfoBcTaxFeeResult" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" dataProvider="{bcTaxFeeData}">
+                	<mx:columns>  
+                   		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.heading.tax.fee.id')}" textAlign="left" dataField="taxFeeIdStr"/>
+                   		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.amount')}" textAlign="left" dataField="amountStr" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" visible="true"/>
+                	</mx:columns>                
+             	</mx:DataGrid>
+        	</flexlib:WindowShade>          
+        </flexlib:WindowShade>
+        
+        <flexlib:WindowShade id="movementListWs" tabChildren="{movementListWs.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.movement.list')}" width="100%" opened="true">
+            <mx:DataGrid id="movementSummaryResult" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" dataProvider="{movementData}">
+                <mx:columns>  
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.base.date')}" textAlign="left" dataField="baseDateStr"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.security.ccy')}" textAlign="left" dataField="securityIdStr"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.balancetype')}" textAlign="left" dataField="balanceTypeStr"/>
+                   <mx:DataGridColumn headerText="" textAlign="center" dataField="movementPk" itemRenderer="com.nri.rui.fam.renderers.MovementDetailsRenderer"/>                                                 
+                </mx:columns>                
+             </mx:DataGrid>
+        </flexlib:WindowShade>
+        
+        <flexlib:WindowShade id="journalListLcWs" tabChildren="{journalListLcWs.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.journal.list.lc')}" width="100%" opened="true">
+            <mx:DataGrid id="journalLcSummaryResult" width="100%" height="100%" sortableColumns="false" variableRowHeight="true"  dataProvider="{lcJournalData}" >
+                <mx:columns>  
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.base.date')}" textAlign="left" dataField="baseDateStr"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.postingtype')}" textAlign="left" dataField="postingTypeStr"/>
+                   <mx:DataGridColumn headerText="" textAlign="center" dataField="journalPk" itemRenderer="com.nri.rui.fam.renderers.JournalDetailsRenderer"/>
+                </mx:columns>                
+             </mx:DataGrid>
+        </flexlib:WindowShade>
+        
+        <flexlib:WindowShade id="journalListBcWs" tabChildren="{journalListBcWs.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.details.label.journal.list.bc')}" width="100%" opened="true">
+            <mx:DataGrid id="journalBcSummaryResult" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" dataProvider="{bcJournalData}">
+                <mx:columns>  
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.base.date')}" textAlign="left" dataField="baseDateStr"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.postingtype')}" textAlign="left" dataField="postingTypeStr"/>
+                   <mx:DataGridColumn headerText="" textAlign="center" dataField="journalPk" itemRenderer="com.nri.rui.fam.renderers.JournalDetailsRenderer"/>
+                </mx:columns>                
+             </mx:DataGrid>
+        </flexlib:WindowShade>
+      
+     </mx:VBox>
+   </mx:Canvas>
+</mx:Module>

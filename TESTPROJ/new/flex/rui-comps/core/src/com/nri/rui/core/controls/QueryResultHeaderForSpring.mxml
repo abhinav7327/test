@@ -1,0 +1,793 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" verticalCenter="0" horizontalGap="0" >
+
+<mx:Script>
+	<![CDATA[
+	    import mx.rpc.events.FaultEvent;
+		import mx.rpc.http.HTTPService;
+		import mx.rpc.events.ResultEvent;
+		import com.nri.rui.core.utils.XenosStringUtils;
+		import mx.containers.Canvas;
+		import mx.containers.VBox;
+		import mx.controls.Alert;
+		import mx.collections.ArrayCollection;
+		import mx.containers.TitleWindow;
+		import mx.events.CloseEvent;
+		import mx.managers.PopUpManager;
+		import mx.controls.CheckBox;
+		import mx.controls.dataGridClasses.DataGridColumn;
+		import mx.controls.DataGrid;
+		import mx.controls.AdvancedDataGrid;
+		import com.nri.rui.core.startup.XenosApplication;
+		import com.nri.rui.core.Globals;
+		import mx.utils.StringUtil;
+		import mx.core.UIComponent;
+		import mx.collections.XMLListCollection;
+		
+		[Bindable]
+		private var app:XenosApplication = XenosApplication.getInstance(Globals.DEFAULT_ENTERPRISE);
+		
+		[Embed(source="../../../../../assets/xenosdg_addcolunm.png")]
+		[Bindable]
+		private var icoColumns:Class;
+		[Bindable]
+		public var dgrid:DataGrid;
+		public var adgrid:AdvancedDataGrid;
+		public static var popupColumns:TitleWindow = null;
+        public var gridColumns:ArrayCollection = new ArrayCollection();
+		public var visibleGridColumns:ArrayCollection = new ArrayCollection();
+		private var currentVisibleColumns:Number=0;
+		[Bindable]private var _showRecordCount:Boolean = false;
+		[Bindable]private var _showResultStatistics:Boolean = false;
+		[Bindable]private var _showHelp:Boolean = false;
+		
+		// This will set the function to call for saving preferences
+		private var _savePrefFunction : Function = savePreference;
+		
+		// This will set the function to call for PDF generation
+		private var _pdfFunction : Function;
+		
+		// This will set the function to call for XLS generation
+		private var _xlsFunction : Function;
+		
+		// This will set the function to print the datagrid data
+		private var _printFunction : Function;
+		
+		// This will set the function to open the Help pop-up
+		private var _helpFunction : Function;
+		
+		//Function to call for the server side pagination for previous
+		// set of results
+		private var _previousFunction : Function;
+		
+		//Function to call for the server side pagination for next
+		// set of results
+		private var _nextFunction : Function;
+		
+		private var _startIndex : int = -1;
+		
+		private var _endIndex : int = -1;
+		
+		private var _skipColumnArray : Array = new Array();
+		
+		[Bindable]
+		private var _pageNo :int = 1;
+		
+	//	private var _screenId:String;
+		
+		//~***************************************************************************
+		[Bindable]private var prefResult:XMLList = null;
+        [Bindable]private var prefColumnList:XMLListCollection = null;
+        [Bindable]private var prefColumnArray:Array = new Array();
+        [Bindable]private var _enablePreference:String = 'false';
+		private var _moduleId:String = XenosStringUtils.EMPTY_STR;
+		private var _screenId:String = XenosStringUtils.EMPTY_STR;		
+		private var _defaultPrefFile:String = XenosStringUtils.EMPTY_STR;
+		
+		 
+		
+		public function get enablePreference():String
+		{
+		    return _enablePreference;
+		}
+		
+		public function set enablePreference(enablePreference:String):void
+		{
+		    _enablePreference = enablePreference;
+		}
+		
+		public function get moduleId():String
+		{
+		    return _moduleId;
+		}
+		
+		public function set moduleId(moduleId:String):void
+		{
+		    _moduleId = moduleId;
+		}
+		
+		/*public function get screenId():String
+		{
+			return _screenId;		
+		}
+		
+		public function set screenId(screenId:String):void
+		{
+			_screenId = screenId;
+		}*/
+		
+		public function get defaultPrefFile():String
+		{
+		    return _defaultPrefFile;
+		}
+		
+		public function set defaultPrefFile(defaultPrefFile:String):void
+		{
+		    _defaultPrefFile = defaultPrefFile;
+		}
+		//~***************************************************************************
+		
+		
+		public function get skipColumnArray():Array
+	    {
+	        return _skipColumnArray;
+	    }
+		
+		public function set skipColumnArray(columnArray:Array):void
+	    {
+	        _skipColumnArray = columnArray;
+	    }
+		
+		public function get pageNo():int
+	    {
+	        return _pageNo;
+	    }
+		
+		public function set pageNo(pNo:int):void
+	    {
+	        _pageNo = pNo;
+	    }
+	    
+		public function get startIndex():int
+	    {
+	        return _startIndex;
+	    }
+		
+		public function set startIndex(index:int):void
+	    {
+	        _startIndex = index;
+	    }
+		
+		public function get endIndex():int
+	    {
+	        return _endIndex;
+	    }
+		
+		public function set endIndex(index:int):void
+	    {
+	        _endIndex = index;
+	    }
+	    
+		public function get pdfFunction():Function
+	    {
+	        return _pdfFunction;
+	    }
+		public function set pdfFunction(f:Function):void
+	    {
+	        _pdfFunction = f;
+	    }
+	    
+	    
+	    
+	    public function get savePrefFunction():Function
+	    {
+	        return _savePrefFunction;
+	    }
+		public function set savePrefFunction(f:Function):void
+	    {
+	        _savePrefFunction = f;
+	    }
+	    
+	    public function get xlsFunction():Function
+	    {
+	        return _xlsFunction;
+	    }
+		public function set xlsFunction(f:Function):void
+	    {
+	        _xlsFunction = f;
+	    }
+	    
+	    public function get printFunction():Function
+	    {
+	        return _printFunction;
+	    }
+		public function set printFunction(f:Function):void
+	    {
+	        _printFunction = f;
+	    }
+	    
+	    public function get helpFunction():Function
+	    {
+	        return _helpFunction;
+	    }
+		public function set helpFunction(f:Function):void
+	    {
+	        _helpFunction = f;
+	    }
+	    
+	    public function get previousFunction():Function
+	    {
+	    	pageNo--;
+	    	page.text = pageNo+"";
+	        return _previousFunction;
+	    }
+		public function set previousFunction(f:Function):void
+	    {
+	        _previousFunction = f;
+	    }
+	    
+	    public function get nextFunction():Function
+	    {
+	        pageNo++;
+	        page.text = pageNo+"";
+	        return _nextFunction;
+	    }
+		public function set nextFunction(f:Function):void
+	    {
+	        _nextFunction = f;
+	    }
+	    
+	    public function get showRecordCount():Boolean
+	    {
+	        return _showRecordCount;
+	    }
+		
+		public function set showRecordCount(showRecordCountFlag:Boolean):void
+	    {
+	        _showRecordCount = showRecordCountFlag;
+	    }
+	    
+	    public function get showResultStatistics():Boolean {
+	        return _showResultStatistics;
+	    }
+		
+		public function set showResultStatistics(showResultStatisticsFlag:Boolean):void {
+	        _showResultStatistics = showResultStatisticsFlag;
+	    }
+	    
+	    public function get showHelp():Boolean
+	    {
+	        return _showHelp;
+	    }
+		
+		public function set showHelp(showHelpFlag:Boolean):void
+	    {
+	        _showHelp = showHelpFlag;
+	    }
+		
+        public function set screenId(screenId:String):void
+        {
+            this._screenId = screenId;
+        }
+        
+        public function get screenId():String
+        {
+            return this._screenId;
+        }		
+	    
+	    public function setOnResultVisibility():void{
+	    	this.pdf.enabled = true;
+	    	this.xls.enabled = true;
+	    	//this.print.enabled = true;
+	    	/* this.sep1.visible = true;
+	    	this.sep2.visible = true;
+	    	this.columnsButton.visible = true; */
+	    	if(this._enablePreference == 'true'){
+    	        this.screenPref.enabled = true;
+    	        this.clearScreenPref.enabled = true;
+    	        this.excelPref.enabled = true;
+    	        this.clearExcelPref.enabled = true;
+    	    	checkReportPreference();
+	    	}
+	    }
+	    /**
+	    * It sets the enable property of the Next and Previous button
+	    * depending on the result set, whether available or not
+	    */
+	    public function setPrevNextVisibility(prev:Boolean, next:Boolean):void{
+	    	
+	    	this.btnPrev.enabled = prev;
+	    	this.btnNext.enabled = next;
+	    	if(prev){
+	    		btnPrev.toolTip ="Previous/"+(pageNo-1);
+	    	}else{
+	    		btnPrev.toolTip = "Previous";
+	    	}
+	    	if(next){
+	    		btnNext.toolTip ="Next/"+(pageNo+1);
+	    	}else{
+	    		btnNext.toolTip = "Next";
+	    	}
+	    	
+	    }
+	    /**
+	    * Resets the pageNo
+	    */
+	    public function resetPageNo():void{
+	    	pageNo = 1;
+	    	page.text = pageNo+"";
+	    	
+	    }
+	    /**
+	    * This function will create the Column List from the datagrid
+	    * and create check boxes with the header Text and set then in the
+	    * TitleWindow.
+	    */
+		private function columnList():void{
+    		
+    		var start:int;
+			var end:int;
+			
+			if(popupColumns == null){
+				showWindow();
+			}else{
+				popupColumns.removeAllChildren();
+				popupColumns.visible = true;
+			}
+			var canvas:Canvas = new Canvas();			
+				canvas.percentWidth = 100;
+				canvas.percentHeight = 100;
+				canvas.horizontalScrollPolicy ="off";
+			var vbox:VBox = new VBox();
+				vbox.percentWidth = 100;
+				vbox.percentHeight = 100;
+				vbox.horizontalScrollPolicy = "off";
+			gridColumns.source = dgrid.columns;
+			
+			// Check whether startIndex/endIndex is provided by user or not 
+			if(startIndex != -1)
+				start = startIndex;
+			else 
+				start = 1;
+			if(endIndex != -1)
+				end = endIndex;
+			else
+				end = gridColumns.length;
+			//for(var i:int = 1; i<gridColumns.length ;i++){
+			for(var i:int = start; i<end ;i++){
+				if(isSkipped(i))
+					continue;
+				var dgc : DataGridColumn = DataGridColumn(dgrid.columns[i]); 
+				var chkb:CheckBox = new CheckBox(); 
+				chkb.id = i.toString();
+				chkb.selected=dgc.visible;
+				chkb.label = dgc.headerText;
+				chkb.addEventListener(Event.CHANGE,showhideCol);
+				vbox.addChild(chkb);
+			}
+			canvas.addChild(vbox);
+			popupColumns.addChild(canvas);
+			PopUpManager.bringToFront(popupColumns);
+			}
+			
+		private function isSkipped(index:int):Boolean{
+			for(var i:int=0; i<skipColumnArray.length; i++){
+				if(index == skipColumnArray[i]){
+					//XenosAlert.info("skipped :: " + index);
+					return true;
+				}
+			}
+			return false;
+		}
+		/**
+		 * This function will populate the default set of visible columns in an array
+		 */ 	
+		public function PopulateDefaultVisibleColumns():void{
+			gridColumns.source = dgrid.columns;
+			currentVisibleColumns = 0;
+			for(var i:int = 1; i<gridColumns.length ;i++){
+				var dgc : DataGridColumn = DataGridColumn(dgrid.columns[i]); 
+				if(dgc.visible){
+					visibleGridColumns.addItem(dgc);
+					currentVisibleColumns+=1;
+				}
+			}
+			setDraggableStatus();
+			switch(app.visibleColumnsFrom)
+			{
+			  case Globals.COLS_VISIBLE_FROM_FIRST:break;
+			  case Globals.COLS_VISIBLE_FROM_FIRST:break;
+			  case Globals.COLS_VISIBLE_FROM_ANY:break;
+			  case "":
+			  	app.visibleColumnsFrom=Globals.COLS_VISIBLE_FROM_ANY;
+			  	app.minimumVisibleColumns=1;
+			  	break;
+			}
+		}
+		
+		/**
+		 * This function sets the draggable property of the DataGrid columns to false
+		 * when the minimum number of columns to be displayed are specified to be
+		 * either from the first or from the last. In case "any" is chosen, then the
+		 * columns will have their default draggable property.
+		 */ 	
+		private function setDraggableStatus():void{
+			if(app.visibleColumnsFrom==Globals.COLS_VISIBLE_FROM_FIRST)
+				for(var i:Number=0;i<app.minimumVisibleColumns;i++)
+					DataGridColumn(visibleGridColumns[i]).draggable=false;
+				
+			if(app.visibleColumnsFrom==Globals.COLS_VISIBLE_FROM_LAST)
+				for(var i:Number=1;i<=app.minimumVisibleColumns;i++)
+					DataGridColumn(visibleGridColumns[visibleGridColumns.length-i]).draggable=false;
+		}	
+			
+		/**
+		 * It will create a TitleWindow which will allow the user to check 
+		 * which column he would like to see in the dataGrid.
+		 */		
+		private function showWindow():void{
+			var SPACING_X : int = 0;
+			var SPACING_Y : int = 0;			
+			popupColumns = new TitleWindow();
+			popupColumns.id = "cvsColumnList";
+			popupColumns.name = "cvsColumnList";
+			popupColumns.title = "Select Columns";
+			popupColumns.showCloseButton = true;
+			popupColumns.addEventListener("close",closePopup);
+			popupColumns.height = 410;
+			popupColumns.width = 220;
+			popupColumns.styleName = "PopupTitleWindow";
+			popupColumns.setStyle("horizontalGap",1);
+
+			var rect:Rectangle = columnsButton.getRect(columnsButton);
+			var pt:Point = columnsButton.localToGlobal(rect.bottomRight);			
+
+			if((pt.x + SPACING_X + popupColumns.minWidth) > root.width){
+				// show side
+				popupColumns.x = pt.x - SPACING_X-popupColumns.width;
+				popupColumns.y = pt.y - SPACING_Y;
+			}
+			else { 
+				// show below
+				popupColumns.x = pt.x - popupColumns.width;
+				popupColumns.y = pt.y + SPACING_Y;	
+			}
+			PopUpManager.addPopUp(popupColumns, columnsButton, true);
+		}	
+		/**
+		* Called on click of checkboxes. Hides or Shows columns
+		* based on checked status.
+		*/			
+		private function showhideCol(event:Event):void{
+			var dgc:DataGridColumn;
+			var bVisible:Boolean=  event.target.selected;
+			var cbk:CheckBox=CheckBox(event.currentTarget);
+			dgc = dgrid.columns[event.target.id];
+			if(app.visibleColumnsFrom==Globals.COLS_VISIBLE_FROM_FIRST){
+				for(var i:int=0;i<app.minimumVisibleColumns;i++){
+					if(i <= visibleGridColumns.length ){
+						var d:DataGridColumn=DataGridColumn(visibleGridColumns[i]);
+						if(d.headerText == dgc.headerText){
+							XenosAlert.info("Cannot remove any of the first "+app.minimumVisibleColumns.toString() + " visible columns.");
+							cbk.selected=true;
+							return;
+						}
+					}
+				}
+				dgc.visible=bVisible;
+			}
+			
+			if(app.visibleColumnsFrom == Globals.COLS_VISIBLE_FROM_LAST){
+				for(var i:int=1;i<=app.minimumVisibleColumns;i++){
+					var d:DataGridColumn=DataGridColumn(visibleGridColumns[visibleGridColumns.length-i]);
+					if(d.headerText==dgc.headerText){
+						XenosAlert.info("Cannot remove any of the last "+ app.minimumVisibleColumns.toString() + " visible columns.");
+						cbk.selected=true;
+						return;
+					}
+				}
+				dgc.visible=bVisible;
+			}
+			
+			if(app.visibleColumnsFrom == Globals.COLS_VISIBLE_FROM_ANY){
+				if(dgrid.columnCount > 1){
+					if(bVisible){
+						dgc.visible=true;
+						currentVisibleColumns+=1;
+					}else if(!bVisible) {
+						if(currentVisibleColumns > app.minimumVisibleColumns){
+							dgc.visible = false;
+							currentVisibleColumns-=1;
+						}
+						else {
+							XenosAlert.info("Cannot remove column.A minimum of "+ app.minimumVisibleColumns.toString() + " column/s must be present.");
+							cbk.selected=true;
+						}
+					}	
+				}
+			}
+		}
+		private function closePopup(event:CloseEvent):void{
+			popupColumns.visible = false;
+		}
+		
+		//~******************************** REPORT PERSONALIZATION - START *********************************
+		
+		// Added for New My Xenos Implementation Using Spring MVC
+		private var _preferenceServiceName : String = "ref/preference.spring" ;
+		
+		public function set preferenceServiceName (psn : String) : void {
+			_preferenceServiceName = psn ;
+		}
+		
+		[Bindable]
+		private var _commandFormId : String = XenosStringUtils.EMPTY_STR;
+		
+		public function set commandFormIdForPreference(commandFormId : String) : void {			
+			_commandFormId = commandFormId;
+		}
+		//
+		
+		/**
+		 * Show the report fields for personalizations in a popup
+		 * */
+		private function personalizeReports(reportType:String):void{
+			var rptPrefPopup:ReportPersonalizeControlForSpring = ReportPersonalizeControlForSpring(PopUpManager.createPopUp( UIComponent(this.parentApplication), ReportPersonalizeControlForSpring , true));
+			rptPrefPopup.setReportType(reportType);
+			rptPrefPopup.setModuleId(this._moduleId);
+			rptPrefPopup.setScreenId(this._screenId);			
+			rptPrefPopup.setDefaultPrefFile(this._defaultPrefFile);
+			rptPrefPopup.setPreferenceServiceName(_preferenceServiceName);
+            rptPrefPopup.showCloseButton = true;
+            rptPrefPopup.setCommandFormIdForPreference(this._commandFormId);
+            PopUpManager.centerPopUp(rptPrefPopup); 
+		}
+		
+		/**
+		 * Save the report personalization data and close the window
+		 * */
+		private function saveReportPersonalization(event:ResultEvent):void{
+			XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.excelreportprefs.saved'));
+		}
+		
+		/**
+		 * Call the report personalization clear service
+		 * */
+		private function clearReportPreference():void{
+			var reqObj:Object = new Object();                        
+            reqObj['moduleId'] = this._moduleId;
+            reqObj['screenId'] = this._screenId;            
+            reqObj['defaultPrefFile'] = this._defaultPrefFile;
+            reqObj['method'] = "clearReportPreference";
+            
+            //var p_service:HTTPService = new HTTPService();
+            var p_service:XenosHTTPServiceForSpring = new XenosHTTPServiceForSpring();
+            var rnd:Number = Math.random();
+            p_service.url = _preferenceServiceName ;
+            p_service.resultFormat = "xml";
+            p_service.method = "POST";
+            p_service.request = reqObj;
+            p_service.commandFormId = _commandFormId;
+            p_service.addEventListener(ResultEvent.RESULT, clearReportPersonalizeResult);
+            p_service.addEventListener(FaultEvent.FAULT, clearReportPersonalizeFaultHandler);
+            p_service.send();
+            disableBtns();
+		}
+		
+		/**
+		 * Clear all report personalizations
+		 * */
+		private function clearReportPersonalizeResult(event:ResultEvent):void{
+			var res:XML = XML(event.result);
+			enableBtns();
+            XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.excelreportprefs.cleared'));
+		}
+		
+		/**
+		 * Fault handler for clearing report personalization service
+		 * */
+		private function clearReportPersonalizeFaultHandler(event:FaultEvent):void{
+			enableBtns();
+		    XenosAlert.info(event.message.toString());		    
+		}
+		
+		/**
+		 * Check if any report preference exists or not
+		 * */
+		private function checkReportPreference():void{
+		    var reqObj:Object = new Object();
+                
+            reqObj['moduleId'] = this._moduleId;
+            reqObj['screenId'] = this._screenId;                                
+            reqObj['defaultPrefFile'] = this._defaultPrefFile;
+            reqObj['method'] = "getReportPreference";
+            
+            var rnd:Number = Math.random();
+            //var p_service:HTTPService = new HTTPService();
+            var p_service:XenosHTTPServiceForSpring = new XenosHTTPServiceForSpring();
+            p_service.url = _preferenceServiceName ;
+            p_service.resultFormat = "xml";
+            p_service.method = "POST";
+            p_service.request = reqObj;
+            p_service.commandFormId = _commandFormId;
+            //XenosAlert.error(_commandFormId);
+            p_service.addEventListener(ResultEvent.RESULT, getPreferenceServiceResult);
+            p_service.addEventListener(FaultEvent.FAULT, getPreferenceFaultHandler);
+            p_service.send();
+            disableBtns();
+		}
+		
+	   /**
+        * Handler for get preference service call on successful result
+        * */
+        private function getPreferenceServiceResult(event:ResultEvent):void{                                         
+            enableBtns();
+        }         
+         
+         /**
+         * Show the fault message
+         * */
+         private function getPreferenceFaultHandler(event:FaultEvent):void{
+             XenosAlert.info(event.message.toString());
+             enableBtns();
+         }
+		
+		//~******************************** REPORT PERSONALIZATION - END *********************************
+		
+		/**
+		 * Save the Query Result grid preference.
+		 * This method send a POST call to the server with three column attributes(field,hidden and width)
+		 */ 
+		private function savePreference():void{
+			var prefArray:Array = new Array();
+			var index:int = 0;
+			for each(var col:DataGridColumn in dgrid.columns){
+				var colArr:Array = new Array();
+				colArr.push(col.dataField);
+				colArr.push(index);
+				colArr.push(col.visible);
+				colArr.push(col.width);
+				prefArray.push(colArr);
+				index++;
+			}
+			var reqObj:Object = new Object();
+			reqObj['pref'] = prefArray;
+			reqObj['screenId'] = screenId;
+			reqObj['method'] = "savePreference";
+			
+			var p_service:XenosHTTPServiceForSpring = new XenosHTTPServiceForSpring();
+			var rnd:Number = Math.random();
+         	p_service.url = _preferenceServiceName ;
+         	p_service.resultFormat = "xml";
+         	p_service.method = "POST";
+         	p_service.request = reqObj;
+         	p_service.commandFormId = _commandFormId;
+         	p_service.addEventListener(ResultEvent.RESULT, savePersonalizeResult);
+         	//p_service.addEventListener(FaultEvent.FAULT, faultHandler);
+         	p_service.send();
+         	disableBtns();
+		}
+		
+		private function savePersonalizeResult(event:ResultEvent):void{			
+			enableBtns();
+			XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.screenprefs.saved'));
+		}
+		
+		//send the request for clearing the preference to the server
+		private function clearPreference():void{
+		
+			var reqObj:Object = new Object();
+			reqObj['screenId'] = screenId;
+			reqObj['method'] = "clearPreference";
+			
+			var p_service:XenosHTTPServiceForSpring = new XenosHTTPServiceForSpring();
+			var rnd:Number = Math.random();
+         	
+         	p_service.url = _preferenceServiceName;
+         	p_service.resultFormat = "xml";
+         	p_service.method = "POST";
+			p_service.request = reqObj;
+			p_service.commandFormId = _commandFormId;			
+         	p_service.addEventListener(ResultEvent.RESULT, clearPersonalizeResult);
+         	//p_service.addEventListener(FaultEvent.FAULT, faultHandler);
+         	p_service.send();
+         	disableBtns();
+		}
+		
+		// clear the query result grid preference data
+		private function clearPersonalizeResult(event:ResultEvent):void{
+			var columnArray:Array = dgrid.columns;
+			var changedArray:Array = new Array();
+	      	var originalConfig:Array = CustomDataGridForSpring(dgrid).nonPersonalizedColumnsArray;
+	      	dgrid.horizontalScrollPolicy = "on";
+	      	DataGridColumn(columnArray[0]).width = 40;
+	      	changedArray.push(columnArray[0]);
+	      	
+	      	for(var i:int=1; i<originalConfig.length; i++){
+	      		var currentIndex : int = 0 ;
+	      		for(var indx:int=0; indx<columnArray.length; indx++){
+	      			if(DataGridColumn(columnArray[indx]).dataField == String(originalConfig[i].field)){
+	      				currentIndex = indx;
+	      				break;
+	      			}
+	      		}
+	      		
+	      		var visibleFlag : Boolean = !Boolean(originalConfig[i].hidden);
+	      		if(visibleFlag){
+	      			DataGridColumn(columnArray[currentIndex]).width = originalConfig[i].width;
+	      			currentVisibleColumns++; // Increment the visible column count (WARNING: will include all columns)
+	      		}	
+	      		DataGridColumn(columnArray[currentIndex]).visible = visibleFlag;
+	      		changedArray.push(columnArray[currentIndex]);	      		
+	      	}	      	 
+	      	currentVisibleColumns--; // Decrease by 1 column so that the single column check validation remains
+	      	dgrid.columns = changedArray;			
+			dgrid.invalidateDisplayList();
+			enableBtns();
+			XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.screenprefs.cleared'));
+			
+		}
+		
+		/**
+		 * Enable the screen and excel preference buttons
+		 * */
+		private function enableBtns():void{
+			screenPref.enabled = true;
+			clearScreenPref.enabled = true;
+			
+			excelPref.enabled = true;
+			clearExcelPref.enabled = true;
+			xls.enabled = true;
+		}
+		
+		/**
+		 * Disable the screen and excel preference buttons
+		 * */
+		private function disableBtns():void{
+			screenPref.enabled = false;
+			clearScreenPref.enabled = false;
+			
+			excelPref.enabled = false;
+			clearExcelPref.enabled = false;
+			xls.enabled = false;
+		}
+		
+	]]>
+</mx:Script>
+	<mx:HBox id="queryResultHeader" width="100%" styleName="ButtonBackPanel" verticalCenter="0" verticalAlign="middle" horizontalAlign="right" paddingLeft="0" paddingRight="0">
+		<mx:HBox height="100%" verticalCenter="0" verticalAlign="middle" horizontalAlign="left">
+			<mx:Label id="resultHeader" text="Query Result" fontWeight="bold" verticalCenter="0" />
+			<mx:Label id="recordCount" text="" fontWeight="bold" verticalCenter="0" visible="{showRecordCount}" includeInLayout="{showRecordCount}" height="40"/>
+			<mx:TextArea id="resultStatistics" verticalCenter="0" visible="{showResultStatistics}" includeInLayout="{showResultStatistics}" text="" minWidth="600" editable="false" fontWeight="bold"/>
+		</mx:HBox>
+		
+		<mx:HBox width="100%" height="100%" horizontalAlign="right" verticalCenter="0" verticalAlign="middle">			
+		   	
+		   <!--	<mx:Image id="pdf" width="28" height="28" source="@Embed('../../../../../assets/xenosdg_pdf.png')" click="{this.pdfFunction()}" toolTip="Export to PDF" visible="false" buttonMode="true"/>
+		   	<mx:Image id="xls" width="28" height="28" source="@Embed('../../../../../assets/xenosdg_excel.png')" click="{this.xlsFunction()}" toolTip="Export to XLS"  visible="false" buttonMode="true"/>
+		   	<mx:Image id="print" width="28" height="28" source="@Embed('../../../../../assets/xenosdg_print.png')" toolTip="Print" click="{this.printFunction()}" visible="false" buttonMode="true" enabled="false"/> -->
+		   	<mx:Image id="help" click="{this.helpFunction()}" toolTip="Help" source="@Embed('../../../../../assets/helpIcon.png')" visible="{showHelp}" includeInLayout="{showHelp}"/>
+            
+            <mx:Button id="screenPref" styleName="PrefScreenBtnStyle" width="28" height="28" click="{this.savePreference()}" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.label.screenprefs.save.tooltip')}" visible="{_enablePreference == 'true'? true : false}" enabled="false"/>
+            <mx:Button id="clearScreenPref" styleName="PrefResetBtnStyle" width="28" height="28" click="{this.clearPreference()}" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.label.screenprefs.clear.tooltip')}" visible="{_enablePreference == 'true'? true : false}" enabled="false"/>
+            <mx:Image id="sep3" width="2" height="30" source="@Embed('../../../../../assets/xenosdg_separator.png')" visible="{_enablePreference == 'true'? true : false}"/> 
+            
+            <mx:Button id="excelPref" styleName="PrefXlsBtnStyle" width="28" height="28" click="{this.personalizeReports('excel')}" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.label.excelreportprefs.save.tooltip')}" visible="{_enablePreference == 'true'? true : false}" enabled="false"/>
+            <mx:Button id="clearExcelPref" styleName="PrefResetBtnStyle" width="28" height="28" click="{this.clearReportPreference()}" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.label.excelreportprefs.clear.tooltip')}" visible="{_enablePreference == 'true' ? true : false}" enabled="false"/>
+            <mx:Image id="sep4" width="2" height="30" source="@Embed('../../../../../assets/xenosdg_separator.png')" visible="{_enablePreference == 'true' ? true : false}" />             		   	
+		   	
+		   	<mx:Button id="pdf" width="28" height="28" styleName="PdfBtnStyle" click="{this.pdfFunction()}" toolTip="Export to PDF" enabled="false" />
+		   	<mx:Button id="xls" width="28" height="28" styleName="XslBtnStyle" click="{this.xlsFunction()}" toolTip="Export to XLS" enabled="false"  />
+		   	<!--<mx:Button id="print" width="28" height="28" styleName="PrintBtnStyle" click="{this.printFunction()}" toolTip="Print" enabled="false"  />-->
+		   	
+		   	<mx:Image id="sep1" width="2" height="30" source="@Embed('../../../../../assets/xenosdg_separator.png')" /> 
+		   	<mx:Button id="btnPrev" width="28" height="28" styleName="BtnDatagridPrev" click="{this.previousFunction()}" toolTip="Previous" enabled="false" />
+		   	<mx:Button id="btnNext" width="28" height="28" styleName="BtnDatagridNext" click="{this.nextFunction()}" toolTip="Next" enabled="false" />
+		   	<mx:Label id="page" color="red" fontWeight="bold" text="{pageNo}" toolTip="Page No"/>
+			<mx:Image id="sep2" width="2" height="30" source="@Embed('../../../../../assets/xenosdg_separator.png')" /> 
+			<mx:Image id="columnsButton" click="columnList()" width="28" height="28" source="{icoColumns}" toolTip="Show/Hide Columns" />
+		</mx:HBox>
+		
+	</mx:HBox>
+</mx:HBox>

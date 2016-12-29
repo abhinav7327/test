@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<containers:XenosEntryModule xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+    <mx:Script>
+        <![CDATA[
+            import mx.controls.DateField;
+            import mx.resources.ResourceBundle;
+            private function datelabelFunc(item:Object, column:DataGridColumn):String{
+            return DateField.dateToString(item.holidayDate,"YYYYMMDD");
+        }
+        ]]>
+    </mx:Script>
+    
+    <mx:Script source="actionscripts/HolidayEntry.as"/>
+     
+    <containers:states>
+        <mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="entryState">
+            <mx:SetProperty target="{qry}" name="width" value="100%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="0%"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions>    
+    
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+    <mx:VBox width="100%" height="100%">
+    <mx:ViewStack id="vstack" width="100%" height="100%" creationComplete="loadAll()" creationPolicy="all" >
+        
+        <mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        <mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('ref.btn.label.entrycriteria')}" width="100%" height="100%" >
+            <mx:Label id="initLabel" text="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.holidayentry')}" fontWeight="bold"/>
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+                <cntrls:XenosEntryDataGrid id="entryGrid" dataProvider="{entryList}" width="100%" height="100%" visible="true" includeInLayout="true" editable="true" sortableColumns="false" validatorName="com.nri.rui.ref.validators.HolidayEntryValidator"
+                        addServiceURL="{addServiceUrl}" editServiceURL="{editServiceUrl}" deleteServiceURL="{deleteServiceUrl}" editedIndexPropertyName="editIndexHoliday" errorPage="{errPage}">
+                    <cntrls:columns>
+                        <mx:DataGridColumn id="calId" headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.calendarid')}" dataField="calendar.calendarId" itemEditor="com.nri.rui.ref.renderers.HolidayPopupRenderer" editable="true" minWidth="200"/>
+                        <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.holidayname')}" dataField="calendar.holidayName" editable="true" minWidth="200">
+                            <mx:itemEditor>
+                                <mx:Component>
+                                    <mx:TextInput editable="true" restrict="^a-z"/>
+                                </mx:Component>
+                            </mx:itemEditor>                            
+                        </mx:DataGridColumn>                        
+                        <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.holidaydate')}" dataField="calendar.holidayDate" editable="true" editorDataField="text" minWidth="200">
+                        <mx:itemEditor>
+                            <mx:Component>
+                                <cntrls:XenosDateField editable="true" />
+                            </mx:Component>
+                        </mx:itemEditor>
+                        </mx:DataGridColumn>                        
+                    </cntrls:columns>                   
+                </cntrls:XenosEntryDataGrid>
+            
+            
+            <mx:HBox width="100%" styleName="ButtonBackPanel">
+               <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="doSubmit();" />
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click ="{this.mode == 'entry' ?  this.dispatchEvent(new Event('entryReset')) : this.dispatchEvent(new Event('amendEntryReset'))}"/>
+            </mx:HBox>
+
+        </mx:VBox>
+        
+        </mx:Canvas>
+                
+        <mx:VBox width="100%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >
+         <mx:Label id ="sConfLabel"  text="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.systemconfirm')}{tempMode}" fontWeight="bold" selectable="true" visible="false" includeInLayout="false"/>
+         <mx:Label id ="uConfLabel"  text="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.userconfirm')}{tempMode}" fontWeight="bold" selectable="true" visible="true" includeInLayout="true"/>
+         <mx:HBox id="sysConfMessage"  styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" visible="false" verticalAlign="middle" includeInLayout="false">           
+            <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.txncomplete')}" fontWeight="bold" selectable="true"/>  
+        </mx:HBox>
+        <cntrls:XenosErrors id="errPage1" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+          
+          <mx:DataGrid id="resultGrid" dataProvider="{result}" width="100%" height="100%" visible="true" includeInLayout="true" editable="false" sortableColumns="false">
+            <mx:columns>
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.calendarid')}" dataField="calendarId" />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.holidayname')}" dataField="holidayName" />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.holidaydate')}" dataField="holidayDate" />              
+            </mx:columns>
+          </mx:DataGrid>               
+
+            <mx:HBox width="100%" styleName="ButtonBackPanel">
+               <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="back" styleName="BtnStyle" click="doBack()"/>
+               <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uConfSubmit" styleName="BtnStyle" click="doUserConfSubmit();" /> 
+               <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="cancelSubmit" styleName="BtnStyle" click=" {this.dispatchEvent(new Event('cancelEntrySave'))}" includeInLayout="false" visible="false"/> 
+               <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uCancelConfSubmit" styleName="BtnStyle" click="{uCancelConfSubmit.enabled=false; this.dispatchEvent(new Event('cancelEntryConf'))}" includeInLayout="false" visible="false"/>  
+               <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.sysconfirm')}" id="sConfSubmit" styleName="BtnStyle" click="{this.mode == 'entry' ?  this.dispatchEvent(new Event('entrySysConf')) : ( mode == 'amend' ? this.dispatchEvent(new Event('amendEntrySysConf')): this.dispatchEvent(new Event('cancelEntrySysConf')))}" includeInLayout="false" visible="false"/>               
+            </mx:HBox>
+        </mx:VBox>
+        
+        <!-- For holiday cancel -->
+        <mx:VBox width="100%" height="100%" id="cancel" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >       
+        <cntrls:XenosErrors id="errPage2" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+          
+          <mx:DataGrid id="cancelResultGrid" dataProvider="{cancelResult}" width="100%" height="100%" visible="true" includeInLayout="true" editable="false" sortableColumns="false">
+            <mx:columns>
+                <mx:DataGridColumn headerText=""  draggable="false" resizable="false" id="deleteRenderer" itemRenderer="com.nri.rui.ref.renderers.HolidayDeleteRenderer" />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.calendarid')}" dataField="calendarId" />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.holidayname')}" dataField="holidayName" />
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.holidaydate')}" dataField="holidayDate" />              
+            </mx:columns>
+          </mx:DataGrid>               
+
+            <mx:HBox width="100%" styleName="ButtonBackPanel">                              
+               <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="deleteSubmit" styleName="BtnStyle" click="{this.dispatchEvent(new Event('cancelEntrySave'))}" />
+            </mx:HBox>
+        </mx:VBox>
+    </mx:ViewStack>
+    </mx:VBox>
+    
+    </mx:Canvas>
+</containers:XenosEntryModule>

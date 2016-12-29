@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Stl Completion Summary Implementation -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="loadAll()">
+	
+    <mx:Script>
+    	<![CDATA[
+    		import mx.events.AdvancedDataGridEvent;
+    		private function changeCurrentState():void{
+                currentState = "result";
+                app.submitButtonInstance = null;
+            }
+            
+            /**
+ 			*  datagrid header release event handler to handle datagridcolumn sorting
+ 			*/
+			public function dataGrid_headerRelease(evt:AdvancedDataGridEvent):void {				
+				var dg:AdvancedDataGrid = AdvancedDataGrid(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];		
+			}
+			
+    	]]>
+    </mx:Script>
+    	
+    <mx:Script source="actionscripts/StlCompletionSummary.as"/>
+    <mx:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <!--<mx:SetProperty target="{qh}" name="visible" value="true"/>-->
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+            <!--<mx:SetProperty target="{qh}" name="visible" value="true"/>-->
+        </mx:State>
+    </mx:states>
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+    
+    <cntrls:XenosHTTPService id="initializeCompletionQuery" fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultDetail)" 
+             method="POST" useProxy="false" result="initPage(event)" showBusyCursor="true"/> 
+    
+    <cntrls:XenosHTTPService id="completionQueryRequest" 
+         url="stl/stlCompletionSummaryDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         result="loadSummaryPage(event)" showBusyCursor="true" resultFormat="xml"/>
+    
+                     
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState=''; app.submitButtonInstance = submit;"  />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>    	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    
+    <mx:Validator source="{ccyBox.ccyText}" required="true" property="text" />
+    <mx:Validator source="{ourActPopUp.accountNo}" required="true" property="text" />	
+    
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+	    <mx:VBox width="100%" height="100%">
+	    	<mx:HDividedBox id="hdbox1" styleName="Padding4" width="100%" height="100%" liveDragging="true" creationComplete="initPageStart()">
+	       	<mx:VBox label="Query Criteria" width="100%" height="100%" id="qry" styleName="HDivideStyle" >
+	            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+	            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+	            <mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+	        	<mx:Grid width="100%" borderThickness="0">
+	        		<mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.compl.summary.oursettleac')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:AccountPopUpHbox id="ourActPopUp" retContextItem="{returnOurContextItem}" recContextItem="{populateOurContext()}" />
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.securityid')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:InstrumentPopUpHbox id="instPopUp"/>
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.ccy')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <cntrls:CurrencyHBox id="ccyBox"/>
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.compl.summary.cpac')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:AccountPopUpHbox id="cpActPopUp" retContextItem="{returnCpContextItem}" recContextItem="{populateCpContext()}" />
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                </mx:Grid>
+
+                <mx:HBox width="100%" styleName="ButtonBackPanel">            
+                	<cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="this.submitQuery();" />
+                	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle"  click="this.resetQuery();"/>                    
+            	</mx:HBox>
+
+	        </mx:VBox>
+	         <mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >     
+	         	<!--<cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" width="100%" />-->
+	         	<mx:HBox width="100%" horizontalAlign="right" verticalCenter="0" verticalAlign="middle">			
+		   			<mx:Label width="100%" text="{firmBankCode} : {firmBankAccount} ({brokerCode})" fontWeight="bold"/>
+		  			<mx:Button id="pdf" width="28" height="28" styleName="PdfBtnStyle" click="pdfFunction()" toolTip="Export to PDF" enabled="false" />
+		   			<mx:Button id="xls" width="28" height="28" styleName="XslBtnStyle" click="xlsFunction()" toolTip="Export to XLS" enabled="false"  />
+		   		<!--	<mx:Button id="print" width="28" height="28" styleName="PrintBtnStyle" click="{this.printFunction()}" toolTip="Print" enabled="false"  />
+		   	
+		   			<mx:Image id="sep1" width="2" height="30" source="@Embed('../../../../../assets/xenosdg_separator.png')" /> 
+		   			<mx:Button id="btnPrev" width="28" height="28" styleName="BtnDatagridPrev" click="{this.previousFunction()}" toolTip="Previous" enabled="false" />
+		   			<mx:Button id="btnNext" width="28" height="28" styleName="BtnDatagridNext" click="{this.nextFunction()}" toolTip="Next" enabled="false" />
+					<mx:Image id="sep2" width="2" height="30" source="@Embed('../../../../../assets/xenosdg_separator.png')" /> -->
+					
+				</mx:HBox>
+				<mx:Label width="100%" text="Date : {appDate} " fontWeight="bold"/>
+	         	<mx:AdvancedDataGrid id="adg" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="true" headerRelease="dataGrid_headerRelease(event)" variableRowHeight="true" horizontalScrollPolicy="auto">
+	         		<mx:groupedColumns>
+	         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.securityid')}" itemRenderer="com.nri.rui.stl.renderers.ImageInstrumentRenderer" sortCompareFunction="sortUtil.sortString" width="120"/>
+	         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.securityname')}" dataField="securityShortName" width="200"/>
+	         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.common.label.alternatesecurityid')}" dataField="displayAlternateSecId" width="180"/>
+	         			<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.compl.summary.completedsummary')}">
+	         				<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.quantity')}"  >
+	         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.delivery')}" dataField="completeDeliveryQuantity" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+	         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.receipt')}" dataField="completeReceiptQuantity" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+	         				</mx:AdvancedDataGridColumnGroup>
+	         				<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.amount')}" >
+	         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.payment')}" dataField="completePaymentAmount" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+	         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.receipt')}" dataField="completeReceiptAmount" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+	         				</mx:AdvancedDataGridColumnGroup>
+	         				<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.nettotal')}">
+	         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.quantity')}" dataField="quantity" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+	         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.amount')}" dataField="amount" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+	         				</mx:AdvancedDataGridColumnGroup>
+	         			</mx:AdvancedDataGridColumnGroup>
+	         			<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.compl.summary.failedsummary')}">
+	         				<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.quantity')}">
+	         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.delivery')}" dataField="failDeliveryQuantity" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+	         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.receipt')}" dataField="failReceiptQuantity" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+	         				</mx:AdvancedDataGridColumnGroup>
+	         				<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.amount')}">
+	         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.payment')}" dataField="failPaymentAmount" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+	         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.receipt')}" dataField="failReceiptAmount" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+	         				</mx:AdvancedDataGridColumnGroup>
+	         				<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.nettotal')}">
+	         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.quantity')}" dataField="failQuantity" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+	         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.amount')}" dataField="failAmount" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric" />
+	         				</mx:AdvancedDataGridColumnGroup>
+	         			</mx:AdvancedDataGridColumnGroup>
+					</mx:groupedColumns>
+	         	</mx:AdvancedDataGrid>
+	         </mx:VBox>   
+	    	</mx:HDividedBox>
+    
+    	</mx:VBox>
+    </mx:Canvas>         
+</mx:Module>

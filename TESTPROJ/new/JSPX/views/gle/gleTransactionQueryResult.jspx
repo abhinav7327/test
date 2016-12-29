@@ -1,0 +1,107 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [
+				{name:"<spring:message code="gle.transaction.query.label.referenceno" htmlEscape="false"/>", field:"referenceNoWithVersion",id:"referenceNoWithVersion", width:104,sortable:true,formatter:Slick.Formatters.GleTransactionFormater},
+				{name:"<spring:message code="gle.transaction.query.label.trantype" htmlEscape="false"/>", field:"transactionDescription",id:"transactionDescription", width:104,sortable:true},
+				{name:"<spring:message code="gle.transaction.query.label.trialbalanceid" htmlEscape="false"/>", field:"trialBalanceId",id:"trialBalanceId", width:104,sortable:true},
+				{name:"<spring:message code="gle.transaction.query.label.processtype" htmlEscape="false"/>", field:"processDescription",id:"processDescription", width:104,sortable:true},
+				{name:"<spring:message code="gle.transaction.query.label.fundcode" htmlEscape="false"/>", field:"fundCode",id:"fundCode", width:104,sortable:true, formatter:Slick.Formatters.FundDetailViewFormatter},
+				{name:"<spring:message code="gle.transaction.query.label.fundname" htmlEscape="false"/>", field:"fundName",id:"fundName", width:104,sortable:true},
+				{name:"<spring:message code="gle.transaction.query.label.cancelreferenceno" htmlEscape="false"/>", field:"cxlReferenceNo",id:"cxlReferenceNo", width:104,sortable:true},
+				{name:"<spring:message code="gle.transaction.query.label.tranDate" htmlEscape="false"/>", field:"tranDateStr",id:"tranDateStr", width:104,sortable:true},
+				{name:"<spring:message code="gle.transaction.query.label.tradeDate" htmlEscape="false"/>", field:"tradeDateStr",id:"tradeDateStr", width:104,sortable:true},
+				{name:"<spring:message code="gle.transaction.query.label.valueDate" htmlEscape="false"/>", field:"valueDateStr",id:"valueDateStr", width:104,sortable:true},
+				{name:"<spring:message code="gle.transaction.query.label.stldate" htmlEscape="false"/>", field:"stlDateStr",id:"stlDateStr", width:104,sortable:true},
+				{name:"<spring:message code="gle.transaction.query.label.currencycode" htmlEscape="false"/>", field:"securityId",id:"securityId", width:104,sortable:true},
+				{name:"<spring:message code="gle.transaction.query.label.securitycode" htmlEscape="false"/>", field:"instrumentId",id:"instrumentId", width:104,sortable:true,formatter:Slick.Formatters.InstrumentDetailViewFormater},
+				{name:"<spring:message code="gle.transaction.query.label.securityname" htmlEscape="false"/>", field:"instShortName",id:"instShortName", width:104,sortable:true},
+				{name:"<spring:message code="gle.transaction.query.label.bankaccountno" htmlEscape="false"/>", field:"bankAccount",id:"bankAccount", width:104,sortable:true,formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'bankaccPk'}},
+				{name:"<spring:message code="gle.transaction.query.label.bankAccountName" htmlEscape="false"/>", field:"bankAccountName",id:"bankAccountName", width:104,sortable:true},
+				{name:"<spring:message code="gle.transaction.query.label.fundaccountno" htmlEscape="false"/>", field:"inventoryAccount",id:"inventoryAccount", width:104,sortable:true,formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'invaccPk'}},
+				{name:"<spring:message code="gle.transaction.query.label.inventoryAccountName" htmlEscape="false"/>", field:"inventoryAccountName",id:"inventoryAccountName", width:104,sortable:true},
+				{name:"<spring:message code="gle.transaction.query.label.status" htmlEscape="false"/>", field:"status",id:"status", width:104,sortable:true,formatter:Slick.Formatters.CancelRecordFormatter}
+				];
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				forceFitColumns:false,
+				emptyColumnCheck: false,
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,
+					xlsPref:true,
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+					url: '/secure/gle/transaction/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/gle/transaction/query/result.json?fetch=next',
+					prevPage : '/secure/gle/transaction/query/result.json?fetch=previous',
+					pdfReport: '/secure/gle/transaction/query/report.json?outputType=pdf',
+					xlsReport: '/secure/gle/transaction/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/gle/transaction/query/reportPref.json?outputType=xls'
+				},
+				defaultInvisibleColumns: ["cxlReferenceNo","tranDateStr","tradeDateStr","valueDateStr","bankAccountName","inventoryAccountName"]	
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				rec.fundCode= "<c:out value="${dl.fundCode}" />";
+				rec.fundName= "<c:out value="${dl.fundName}" />";
+				rec.transactionPk= "<c:out value="${dl.transactionPk}" />";
+				rec.transactionDescription= "<c:out value="${dl.transactionDescription}" />";
+				rec.trialBalanceId = "<c:out value="${dl.trialBalanceId}" />";
+				rec.processDescription= "<c:out value="${dl.processDescription}" />";
+				rec.referenceNoWithVersion = "<c:out value="${dl.referenceNoWithVersion}" />";
+				rec.cxlReferenceNo = "<c:out value="${dl.cxlReferenceNo}" />";
+				rec.tranDateStr = "<c:out value="${dl.tranDateStr}" />";
+				rec.tradeDateStr = "<c:out value="${dl.tradeDateStr}" />";
+				rec.valueDateStr = "<c:out value="${dl.valueDateStr}" />";
+				rec.stlDateStr = "<c:out value="${dl.stlDateStr}" />";
+				rec.securityId = "<c:out value="${dl.securityId}" />";
+				rec.instrumentId = "<c:out value="${dl.instrumentId}" />";
+				rec.instShortName = "<c:out value="${dl.instShortName}" />";
+				rec.bankaccPk = "<c:out value="${dl.bankaccPk}" />";
+				rec.bankAccount = "<c:out value="${dl.bankAccount}" />";
+				rec.invaccPk = "<c:out value="${dl.invaccPk}" />";
+				rec.bankAccountName = "<c:out value="${dl.bankAccountName}" />";
+				rec.inventoryAccountName = "<c:out value="${dl.inventoryAccountName}" />";
+				rec.status = "<c:out value="${dl.status}" />";
+				rec.inventoryAccount = "<c:out value="${dl.inventoryAccount}" />";
+				rec.fundPk = "<c:out value="${dl.fundPk}" />";
+				rec.instrumentPk = "<c:out value="${dl.instrumentPk}" />";
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+</jsp:root>

@@ -1,0 +1,141 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+    xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+    xmlns:spring="http://www.springframework.org/tags" 
+    xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"	
+    xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+		
+<div class="formItemArea">
+    
+    <jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+    <jsp:output omit-xml-declaration="yes" /> 
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+	
+	
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+           
+        var isNext =<c:out value="${isNext}" />;
+        //var isPrevious = <c:out value="${isPrevious}" />;
+        //var pageNo = <c:out value="${pageNo}" />;
+        var grid_result_data = [];
+                      
+		var grid_result_columns = [
+          {name:"<spring:message code="stl.stlqry.label.settlementrefno" htmlEscape="false"/>", field:"settlementReferenceNo",id:"settlementReferenceNo", width:299,sortable:true,formatter:Slick.Formatters.SettlementDetailViewInstructionCashTransferFormater},
+          {name:"<spring:message code="stl.stlqry.label.wiretype" htmlEscape="false"/>", field:"wireType", id:"wireType", width:150, sortable:true},
+          {name:"<spring:message code="stl.label.counterpartyaccountno" htmlEscape="false"/>", field:"displayAccountNo", id:"displayAccountNo", width:200, sortable:true,formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'accountPk'}},
+          {name:"<spring:message code="stl.label.currency" htmlEscape="false"/>", field:"currency", id:"currency", width:105, sortable:true},
+          {name:"<spring:message code="stl.label.wireamount" htmlEscape="false"/>", field:"amountStr", id:"amountStr", width:299, sortable:true, cssClass:'xenos-grid-number'},
+          {name:"<spring:message code="stl.stlqry.label.valuedate" htmlEscape="false"/>", field:"valueDateStr", id:"valueDateStr", width:150, sortable:true},
+          {name:"<spring:message code="stl.stlqry.label.status" htmlEscape="false"/>", field:"status", id:"status", width:95, sortable:true,formatter:Slick.Formatters.CancelRecordFormatter},
+          {name:"<spring:message code="stl.label.settlementstatus" htmlEscape="false"/>", field:"settlementStatus", id:"settlementStatus", width:150, sortable:true },
+		  {name:"<spring:message code="stl.stlqry.label.Authstatus" htmlEscape="false"/>", field:"authorizationStatus", id:"authorizationStatus", width:250, sortable:true }
+        ];
+			  
+        var grid_result_settings = {
+          enableToolbar:true,
+          forceFitColumns:true,
+          consolidateActionFlag:true,
+          pagingInfo:{
+            isNext : isNext,
+            //isPrevious : isPrevious,
+            //pageNo : pageNo,
+            url: 'secure/stl/settlement/cashTransfer/query/count.json'              
+          },
+          buttons:{
+               
+			  print:true,	
+			  xls:true,	
+		      pdf:true,
+			  xlsPref:true,	
+			  columnPicker:true,	
+			  save:true
+          },                
+          urls:{
+              nextPage : '/secure/stl/settlement/cashTransfer/query/result.json?fetch=next',
+              prevPage : '/secure/stl/settlement/cashTransfer/query/result.json?fetch=previous',
+              pdfReport: '/secure/stl/settlement/cashTransfer/query/report.json?outputType=pdf',
+              xlsReport: '/secure/stl/settlement/cashTransfer/query/report.json?outputType=xls',
+			  xlsCurrent: '/secure/stl/settlement/cashTransfer/query/reportPref.json?outputType=xls'
+          }
+        };
+			
+        var row_id = 0;         
+        var rec = {};
+        <xenos:out escapeXml="false">
+          <c:forEach items="${value}" var="dl">
+            rec = {};
+            row_id+=1;
+            rec.commandFormId="${requestScope['commandFormId']}";
+    
+            rec.id                      =   "xenos_" + row_id;
+            rec.itemIndex =row_id;
+            rec.accountPk               =   "<c:out value="${dl.clientAccountPk}" />";
+			rec.tradePk					=  	"<c:out value="${dl.tradePk}" />";
+            rec.settlementReferenceNo   =   "<c:out value="${dl.settlementReferenceNo}" />";
+            rec.cashEntryPk             =   "<c:out value="${dl.cashEntryPk}" />";
+            rec.wireType                =   "<c:out value="${dl.wireType}" />";
+            rec.displayAccountNo        =   "<c:out value="${dl.displayAccountNo}" />";
+            rec.currency                =   "<c:out value="${dl.currency}" />";
+            rec.amountStr               =   "<c:out value="${dl.amountStr}" />";
+            rec.valueDateStr            =   "<c:out value="${dl.valueDateStr}" />";
+            rec.status                  =   "<c:out value="${dl.status}" />";
+            rec.clientSettlementInfoPk  =   "<c:out value="${dl.clientSettlementInfoPk}" />";	
+            rec.settlementInfoPk        =   "<c:out value="${dl.settlementInfoPk}" />";
+            rec.settlementStatus        =   "<c:out value="${dl.settlementStatus}" />"; 
+			rec.authorizationStatus        =   "<c:out value="${dl.authorizationStatus}" />"; 
+            grid_result_data.push(rec);
+          </c:forEach>
+        </xenos:out>
+        </jsp:body>
+    </jsp:element>
+    
+    <!--<div id="consolidateAct" class="consolidateActionArea" style="display:none;">
+    <c:forEach items="${navAction}" var="record">
+        <a class="consolidateActLink" href="${record.actionUrl}">
+            <c:choose>              
+                <c:when test="${fn:containsIgnoreCase(record.actionId, 'STLWICX')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}" id="cancel" status="ready" alt="Cancel" /></c:when>
+                <c:when test="${fn:containsIgnoreCase(record.actionId, 'STLWICR')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-reopenIco.png" title="${record.actionName}" alt="Enable" status="ready" id='return' /></c:when>
+				<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+            </c:choose>
+        </a>    
+    </c:forEach>
+    </div>-->
+	<div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			  <a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'STLCTCX')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}"  id="cancel" status="ready" alt="Cancel" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			  </a>
+		</c:forEach>	  
+	</div>	
+    
+   <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/stl/cashTransferQueryResult.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+	 <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            jQuery('.rightDockMenu').show();
+        </jsp:body>
+    </jsp:element>  
+	   
+</div>
+</jsp:root>

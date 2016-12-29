@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for GLE Journal Query Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" 
+    xmlns:containers="com.nri.rui.core.containers.*" 
+    xmlns:flexlib="http://code.google.com/p/flexlib/" 
+    xmlns:cntrls="com.nri.rui.core.controls.*" 
+    xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+    xmlns:glePopUp="com.nri.rui.gle.popupImpl.*"
+    percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" 
+    verticalScrollPolicy="off" creationComplete="loadAll()">
+    
+    <mx:Script>
+        <![CDATA[
+            import mx.utils.ObjectUtil;
+            import mx.utils.StringUtil;
+			import mx.containers.TitleWindow;
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.controls.CheckBox;
+			import mx.managers.PopUpManager;
+			
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.Globals;
+			
+            /**
+            * 
+            */
+			private function changeCurrentState():void{
+				currentState = "result";
+				app.submitButtonInstance = null;
+			}
+			/**
+			 * Retrieve and return the type description for dataTip.
+			 */
+			private function getDescription(item:Object):String {
+			   // XenosAlert.info("Item = " + item.toString());
+			    var typeDtl:String = item.type;
+			    
+			    if(typeDtl != null){
+			        if(typeDtl == "JOURNAL"){
+			            return item.description;
+			        }else if(typeDtl == "FORWARD" || typeDtl == "CLOSING"){
+			            return item.shortName + " [" + item.type + "]";
+			        }			            
+			    }
+			    return "";                
+            } 
+            
+            private function getLedgerCodeNameStr(item:Object,column : DataGridColumn):String{
+            	if(item.type == "JOURNAL")
+            		return item.ledgerCode + ":" + item.description;
+            	else if(item.type == "FORWARD" || item.type == "CLOSING")
+            		return item.ledgerCode + ":" + item.shortName + " [" + item.type + "]";
+            	
+            	return "";
+            	
+            }  
+            
+            private function getBalance(item:Object,column : DataGridColumn):String{
+            	var balanceStr:String;
+            	if(item.type == "JOURNAL"){
+                    if(item.aggrDrCrFlag == "DR"){                    
+                        balanceStr = item.aggrStr;
+                        if(item.aggrStr != 0)
+                            balanceStr = balanceStr + "[DR]"; 
+                    }else{                    
+                        balanceStr = item.aggrStr;
+                        if(item.aggrStr != 0)
+                            balanceStr = balanceStr + "[CR]";
+                    }
+                }else if(item.type == "FORWARD" || item.type == "CLOSING"){
+                    if(item.debitCreditFlag == "D"){
+                        balanceStr = item.debitAmountStr;
+                        if(item.debitAmountStr != "0")
+                            balanceStr = balanceStr + "[DR]";
+                    }else if(item.debitCreditFlag == "C"){
+                        balanceStr = item.creditAmountStr;
+                        if(item.creditAmountStr != "0")
+                            balanceStr = balanceStr + "[CR]";
+                    }
+                }
+                return balanceStr;
+            }      
+            /**
+            * Retrieve and return the Instrument Name for dataTip.
+            */
+            private function getSecurityName(item:Object):String {
+                return item.securityName;
+            }      
+            /**
+            * Retrieve and return the Security Code for dataTip.
+            */
+            private function getSecurityCode(item:Object):String {
+                return item.securityId;
+            }            
+                                 
+        ]]>
+    </mx:Script>
+    <mx:Script source="actionscripts/GleJournalQuery.as"/>
+    
+    <mx:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+        	<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </mx:states>
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+    
+  	<cntrls:XenosHTTPService id="initializeGleMovementQuery" fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)" 
+             method="POST" useProxy="false" result="initPage(event)" showBusyCursor="true"/>	
+
+    <cntrls:XenosHTTPService id="gleMovemenQueryRequest" 
+         url="gle/gleMovementQueryDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         result="loadSummaryPage(event)" showBusyCursor="true" resultFormat="xml">
+<!--        <mx:request>
+            <method>submitQuery</method>
+            <ledgerCodeFrom>{ledgerCodeFrom.text}</ledgerCodeFrom>
+            <ledgerCodeTo>{ledgerCodeTo.text}</ledgerCodeTo>
+            <currency>{ccyBox.ccyText.text}</currency>
+            <subLedgerCode>{subLedgerCode.accountNo.text}</subLedgerCode>
+            <balanceEntryDate>{balanceEntryDate.text}</balanceEntryDate>
+            <balanceEntryDateTo>{balanceEntryDateTo.text}</balanceEntryDateTo>
+            <trialBalanceId>{trialBalanceId.selectedItem.value}</trialBalanceId>
+        </mx:request>-->
+    </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="gleMovementResetQueryRequest" url="gle/gleMovementQueryDispatch.action?method=initialExecute"
+        result="initPage(event)" showBusyCursor="true">
+    </cntrls:XenosHTTPService>
+    
+    <mx:Validator source="{ledgerCodeFrom}" required="true" property="text" />
+    <mx:Validator source="{ledgerCodeTo}" required="true" property="text" />
+    <mx:Validator source="{ccyBox.ccyText}" required="true" property="text" />
+    <mx:Validator source="{balanceEntryDate}" required="true" property="text" />
+    
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;" />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>    	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    	<mx:VBox width="100%" height="100%"> 
+    	<!--containers:CollapsibleHDividedBox id="hdbox1" width="100%" height="100%" liveDragging="true" paddingBottom="6" paddingLeft="6" paddingRight="6" paddingTop="6" creationComplete="initPageStart()" horizontalScrollPolicy="off" verticalScrollPolicy="off"-->
+			<mx:HDividedBox id="hdbox1" styleName="Padding4" width="100%" height="100%" liveDragging="true" creationComplete="initPageStart()">
+					<mx:VBox label="Query Criteria" width="100%" height="100%" id="qry" styleName="HDivideStyle" >
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+						<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+						<mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+						<!--flexlib:WindowShade id="ws1" tabChildren="{ws1.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.mandatory.fields')}" width="100%"-->
+						<mx:Grid width="100%" borderThickness="0">
+                    		<mx:GridRow width="100%">
+                        		<mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.trialbalanceid')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<xenospopup:TrialBalanceIdHBox id="trialBalancePopUp"/>
+		                            <!--<mx:ComboBox id="trialBalanceId" labelField="label"/>-->
+		                        </mx:GridItem>
+				                <mx:GridItem width="20%" borderThickness="0">
+                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.date')}" styleName="ReqdLabel" />
+                        		</mx:GridItem>	
+							    <mx:GridItem width="30%" borderThickness="0">
+                        			<mx:HBox width="100%">
+	                                   	<mx:DateField id="balanceEntryDate"  formatString="YYYYMMDD" editable="true" width="90" restrict="{Globals.INPUT_PATTERN}"/>
+    					   				<mx:DateField id="balanceEntryDateTo"  formatString="YYYYMMDD" editable="true" width="90" restrict="{Globals.INPUT_PATTERN}"/> 
+                            		</mx:HBox>
+                        		</mx:GridItem>
+                        	</mx:GridRow>
+                    		<mx:GridRow width="100%">
+                        		<mx:GridItem width="20%" borderThickness="0">
+                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.ledgercodefrom')}" styleName="ReqdLabel" />
+                        		</mx:GridItem>	
+							    <mx:GridItem width="30%" borderThickness="0">
+                        			<glePopUp:GleLedgerQueryPopUpHBox id="ledgerCodeFrom" />
+                        		</mx:GridItem>
+				                <mx:GridItem width="20%" borderThickness="0">
+                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.ledgercodeto')}" styleName="ReqdLabel" />
+                        		</mx:GridItem>	
+							    <mx:GridItem width="30%" borderThickness="0">
+                        			<glePopUp:GleLedgerQueryPopUpHBox id="ledgerCodeTo" />
+                        		</mx:GridItem>
+                        	</mx:GridRow>
+                        	<mx:GridRow width="100%">
+                        		<mx:GridItem width="20%" borderThickness="0">
+                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.ccy')}" styleName="ReqdLabel" />
+                        		</mx:GridItem>	
+							    <mx:GridItem width="30%" borderThickness="0">
+                        			<cntrls:CurrencyHBox id="ccyBox"/>
+                        		</mx:GridItem>
+                        		<mx:GridItem width="20%" borderThickness="0"/>
+							    <mx:GridItem width="30%" borderThickness="0"/>
+                        	</mx:GridRow>
+                        
+                        </mx:Grid>		
+			<!--/flexlib:WindowShade-->			
+			<!--flexlib:WindowShade id="ws2" tabChildren="{ws2.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.optional.fields')}" opened="false" width="100%"-->
+			<flexlib:WindowShade id="ws2" tabChildren="{ws2.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.lessimportant.fields')}" opened="false" width="100%">
+				<mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.subledgercode')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:AccountPopUpHbox id="subLedgerCode" 
+                                retContextItem="{returnContextItem}" 
+                                recContextItem="{populateContext()}" />
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <!--<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.trialbalanceid')}" />-->
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <!--<mx:ComboBox id="trialBalanceId" labelField="label"/>-->
+                        </mx:GridItem>
+                   </mx:GridRow>
+                </mx:Grid> 
+			</flexlib:WindowShade>
+						
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+           		<cntrls:XenosButton id="submit" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="this.submitQuery();" />
+	           	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle"  click="this.resetQuery();"/>
+	        </mx:HBox>
+	        
+		</mx:VBox>
+		<mx:VBox width="0%" height="100%" id="rslt" styleName="HDivideStyle" horizontalScrollPolicy="off" verticalScrollPolicy="off" paddingLeft="6">		        		
+		    <cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" />
+		    <cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" verticalScrollPolicy="auto" creationComplete="bindDataGrid()">
+		        <cntrls:columns> 
+                   <!--mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('inf.title.summary.view')}" dataField="fundCode" minWidth="100" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer"/-->           
+                   <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.ledger_code_name')}" dataField="ledgerCode" showDataTips="true" dataTipFunction="getDescription" labelFunction="getLedgerCodeNameStr"/>
+
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.journalquery.label.securityid')}" dataField="securityId" visible="false" showDataTips="true" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer" dataTipFunction="getSecurityCode"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.journalquery.label.securityname')}" dataField="securityName" visible="false" showDataTips="true" dataTipFunction="getSecurityName"/>
+
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.date')}" dataField="entryDateStr" textAlign="left"/>	                   
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.sub_ledger_code')}" width="130" dataField="subLedgerCode"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.movementresult.label.refno')}" width="150" dataField="referenceNoWithVersion" itemRenderer="com.nri.rui.gle.renderers.TransactionDetailsRenderer"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.Debit') + ' ' + this.parentApplication.xResourceManager.getKeyValue('gle.journalqueryresultaction.label.amount')}" dataField="debitAmountStr" textAlign="right"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.Credit') + ' ' + this.parentApplication.xResourceManager.getKeyValue('gle.journalqueryresultaction.label.amount')}" dataField="creditAmountStr" textAlign="right"/>	                   
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.movementresult.label.balance')}" textAlign="right" labelFunction="getBalance"/>	                   	                   
+                </cntrls:columns>
+		    </cntrls:CustomDataGrid>
+		    
+			<!--mx:AdvancedDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()">                
+                <mx:groupedColumns>
+                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('inf.title.summary.view')}" dataField="fundCode" minWidth="100"  resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer"/>           
+                   <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.ledger_code_name')}" dataField="ledgerCode"  showDataTips="true" dataTipFunction="getDescription"/>
+                   <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.journalquery.label.securityid')}" dataField="securityId" visible="true" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer"/>
+                   <mx:AdvancedDataGridColumn textAlign="left" headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.date')}" dataField="entryDateStr" />	                   
+                   <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.sub_ledger_code')}" dataField="subLedgerCode" showDataTips="true"/>
+                   <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.movementresult.label.refno')}" dataField="referenceNoWithVersion"/>
+                   
+                    <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.journalqueryresultaction.label.amount')}">
+                        <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.Debit') + ' ' + this.parentApplication.xResourceManager.getKeyValue('gle.journalqueryresultaction.label.amount')}" dataField="debitAmountStr" />
+                        <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.Credit') + ' ' + this.parentApplication.xResourceManager.getKeyValue('gle.journalqueryresultaction.label.amount')}" dataField="creditAmountStr"/>	                        
+                    </mx:AdvancedDataGridColumnGroup>
+                    
+                    <mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.movementresult.label.balance')}" dataField="aggrStr"/>	                    
+                </mx:groupedColumns>	                
+         	</mx:AdvancedDataGrid-->
+		</mx:VBox> 
+	</mx:HDividedBox>    
+   </mx:VBox>
+ </mx:Canvas> 
+</mx:Module>

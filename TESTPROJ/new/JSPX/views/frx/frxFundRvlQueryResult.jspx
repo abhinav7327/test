@@ -1,0 +1,106 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+			var isPrevious = <c:out value="${isPrevious}" />;
+            var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [
+				{name:"<spring:message code="frx.fundreval.label.fundcode" htmlEscape="false"/>", field:"fundCode", id:"fundCode", sortable: true, width:100},
+				{name:"<spring:message code="frx.fundreval.label.fundaccno" htmlEscape="false"/>", field:"inventoryAccountNo", id:"inventoryAccountNo", width:130, sortable: true },
+				{name:"<spring:message code="frx.fundreval.label.tradetype" htmlEscape="false"/>", field:"tradeType", id:"tradeType", width:125, sortable: true },
+				{name:"<spring:message code="frx.fundreval.label.trdreferenceno" htmlEscape="false"/>", field:"trdReferenceNo", id:"trdReferenceNo", sortable: true, width:120, formatter:Slick.Formatters.FrxTradeDetailViewFormatter},
+                {name:"<spring:message code="frx.fundreval.label.revalreferenceno" htmlEscape="false"/>", field:"revalReferenceNo", id:"revalReferenceNo", width:120, sortable: true },
+				{name:"<spring:message code="frx.fundreval.label.basedate" htmlEscape="false"/>", field:"bookingDateStr", id:"bookingDateStr", width:80, sortable: true },
+              	{name:"<spring:message code="frx.fundreval.label.valuedate" htmlEscape="false"/>", field:"valueDateStr", id:"valueDateStr", width:80, sortable: true },
+                {name:"<spring:message code="frx.fundreval.label.baseccyexchangerate" htmlEscape="false"/>", field:"baseCcyExchangeRateStr", id:"baseCcyExchangeRateStr", cssClass: 'xenos-grid-number', width:150, sortable: true },
+                {name:"<spring:message code="frx.fundreval.label.againstccyexchangerate" htmlEscape="false"/>", field:"againstCcyExchangeRateStr", id:"againstCcyExchangeRateStr", cssClass: 'xenos-grid-number', width:150, sortable: true },
+                {name:"<spring:message code="frx.fundreval.label.revalccy" htmlEscape="false"/>", field:"revaluationCcy", id:"revaluationCcy", width:100, sortable: true },
+                {name:"<spring:message code="frx.fundreval.label.buyccy" htmlEscape="false"/>", field:"buyCcy", id:"buyCcy", width:80, sortable: true },
+                {name:"<spring:message code="frx.fundreval.label.sellccy" htmlEscape="false"/>", field:"sellCcy", id:"sellCcy", width:80, sortable: true },
+                {name:"<spring:message code="frx.fundreval.label.buyccyamt" htmlEscape="false"/>", field:"buyCcyAmtStr", id:"buyCcyAmtStr", cssClass: 'xenos-grid-number', width:90, sortable: true },
+                {name:"<spring:message code="frx.fundreval.label.sellccyamt" htmlEscape="false"/>", field:"sellCcyAmtStr", id:"sellCcyAmt", cssClass: 'xenos-grid-number', width:90, sortable: true },
+				{name:"<spring:message code="frx.fundreval.label.revalpl" htmlEscape="false"/>", field:"revaluationPlStr", id:"revaluationPlStr", cssClass: 'xenos-grid-number', width:90, sortable: true },
+				{name:"<spring:message code="frx.fundreval.label.status" htmlEscape="false"/>", field:"status", id:"status", formatter:Slick.Formatters.CancelRecordFormatter, width:80, sortable: true }
+
+           	];
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,
+					xlsPref:true,	
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					url: '/secure/frx/fundBaseReval/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/frx/fundBaseReval/query/result.json?fetch=next',
+					prevPage : '/secure/frx/fundBaseReval/query/result.json?fetch=previous',
+					pdfReport: '/secure/frx/fundBaseReval/query/report.json?outputType=pdf',
+					xlsReport: '/secure/frx/fundBaseReval/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/frx/fundBaseReval/query/reportPref.json?outputType=xls'
+				},
+				events:{
+					onDataUpdate : function(data,callback){
+						for(i in data.value){							
+							data.value[i].frxTrdPk= data.value[i].frxTrdPk;
+						}
+						callback(data);
+					}
+				},
+     			defaultInvisibleColumns: ["inventoryAccountNo", "tradeType"]
+
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				rec.fundCode = "<c:out value="${dl.fundCode}" />";
+				rec.inventoryAccountNo = "<c:out value="${dl.inventoryAccountNo}" />";
+				rec.tradeType = "<c:out value="${dl.tradeType}" />";
+				rec.trdReferenceNo = "<c:out value="${dl.trdReferenceNo}" />";
+				rec.revalReferenceNo = "<c:out value="${dl.revalReferenceNo}" />";
+				rec.bookingDateStr = "<c:out value="${dl.bookingDateStr}" />";
+				rec.valueDateStr = "<c:out value="${dl.valueDateStr}" />";
+				rec.baseCcyExchangeRateStr = "<c:out value="${dl.baseCcyExchangeRateStr}" />";
+				rec.againstCcyExchangeRateStr = "<c:out value="${dl.againstCcyExchangeRateStr}" />";
+				rec.revaluationCcy = "<c:out value="${dl.revaluationCcy}" />";
+				rec.buyCcy = "<c:out value="${dl.buyCcy}" />";
+				rec.sellCcy = "<c:out value="${dl.sellCcy}" />";
+				rec.buyCcyAmtStr = "<c:out value="${dl.buyCcyAmtStr}" />";
+				rec.sellCcyAmtStr = "<c:out value="${dl.sellCcyAmtStr}" />";
+				rec.revaluationPlStr = "<c:out value="${dl.revaluationPlStr}" />";
+				rec.status = "<c:out value="${dl.status}" />";
+				rec.frxTrdPk = "<c:out value="${dl.frxTrdPk}" />";
+				grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+
+</jsp:root>

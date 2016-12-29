@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:containers="com.nri.rui.core.containers.*" xmlns:local="com.nri.rui.exm.controls.*" xmlns="*" xmlns:utils="com.nri.rui.exm.utils.*" layout="absolute" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="loadInit()">
+    
+     <mx:Script>
+        <![CDATA[
+            import com.nri.rui.core.utils.PrintUtils;
+                
+            import com.nri.rui.core.Globals;
+            import com.nri.rui.exm.ExmConstraints;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.startup.XenosApplication;
+            import com.nri.rui.core.utils.XenosPopupUtils;
+            
+            import mx.collections.ArrayCollection;
+            import mx.collections.XMLListCollection;
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+    
+    
+            [Bindable]
+            public var messageIdStr:String;    
+            [Bindable]
+            public var messageTypeStr:String;
+            [Bindable]
+            public var qIdStr:String;    
+            [Bindable]
+            public var modeStr:String;    
+            public var o:Object = {};
+            [Bindable]
+             private var queryResult:ArrayCollection= new ArrayCollection();
+             public var conformMessageIds : Array;
+             
+             
+            private function loadInit():void{
+                //XenosAlert.info("loadInit");
+                parseUrlString();
+                var reqObj:Object=new Object();
+                
+                reqObj.method = "viewRawData";
+                reqObj.messagePk=messageIdStr;
+                reqObj.mode=modeStr;
+                reqObj.rui="RUI";
+                viewXmlRequest.request=reqObj;
+                viewXmlRequest.send();
+            }
+            
+                          
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split("&"); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if (tempA[0] == "messageId") {
+                            o.messageId = tempA[1];
+                        } 
+                        messageIdStr = o.messageId; 
+                        //XenosAlert.info(messageIdStr);                       
+                        if (tempA[0] == "mode") {
+                            o.mode = tempA[1];
+                        } 
+                        modeStr = o.mode;
+                         
+                        
+                    } 
+                    
+                } catch (e:Error) {
+                    trace(e);
+                }
+               
+            }
+            
+                    
+            /**
+            * This method works as the result handler of the Initialization/Reset Http Services.
+            * 
+            */   
+            private function initPage(event: ResultEvent) : void {
+                var i:int = 0;
+                var resultObj:XML = XML(event.result);
+                if(resultObj.rawDataStr != null) {
+                    if(modeStr=="xml"){                        
+                      viewXml.text = resultObj.rawDataStr;
+                    }else{
+                        viewXml.text = resultObj.rawDataStr;
+                    }
+                    resize(this.viewXml); 
+                }else {
+                    XenosAlert.info("Unable to get message result.");
+                }                               
+                
+            }
+            //resize the textarea to fit the content for printing
+            private function resize(field:TextArea):void {
+                var height:uint = 10;
+                field.validateNow();
+                for(var i:int=0; i < field.mx_internal::getTextField().numLines; i++) {
+                    height += field.mx_internal::getTextField().getLineMetrics(i).height;
+                }
+                field.height = height;
+            }
+            
+        ]]>
+    </mx:Script>
+    
+         <cntrls:XenosHTTPService id="viewXmlRequest" url="exm/browseExm.action?" fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString + ' message :: '+event.fault.message + ' faultDetail :: '+event.fault.faultDetail + ' faultString :: '+event.fault.faultString)" 
+                method="POST" useProxy="false" result="initPage(event)" showBusyCursor="true" resultFormat="xml"/>    
+
+         <mx:VBox width="100%" height="100%"  horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+            <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+                <mx:Button id="print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetail(this.v1)"/>
+            </mx:HBox>  
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+            <mx:Canvas width="100%" height="100%">
+                 <mx:VBox width="100%" height="100%" id="v1" styleName="Padding">
+                    <mx:TextArea id="viewXml" width="100%" text="" horizontalScrollPolicy="off" verticalScrollPolicy="off" wordWrap="true" editable="false"/>
+                </mx:VBox>
+            </mx:Canvas>            
+         </mx:VBox>
+</mx:Module>

@@ -1,0 +1,270 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles"
+     xmlns:util="urn:jsptagdir:/WEB-INF/tags/util">
+
+ <div id="menu">
+
+	<jsp:directive.page contentType="text/html;charset=UTF-8"/>
+	<jsp:output omit-xml-declaration="yes"/>
+
+  <div class="toggleMenuArea img" title="Collapse Menu Bar">Collapse</div>
+
+  <!-- Menu area -->
+  <div class="menuArea">
+    <!-- App Menu -->
+    <div id="app-menu" class="left">
+      <div id="xenosMenuContainer">
+        <ul class="sf-menu">
+          <spring:url var="notWrk" value="#"/>
+		  <xenos:out escapeXml="false">
+			${USER_MENU_STREAM }
+		  </xenos:out>
+        </ul>
+      </div>
+    </div>
+    <!-- /App Menu -->
+
+    <div id="menuSearchArea" class="left">
+		<div class="left"><input type="text" id="menuSearchInput" value="Search Menu" title=""/></div>
+    </div>
+
+    <!-- User Menu-->
+    <div id="user-menu" class="right">
+		<div id="enterprise" class="left">
+			<div id="enterpriseName" class="left enterpriseblock" >
+				<span class="enterprise-ico"></span> ${enterpriseId}
+			</div>
+			<div id="appDate" class="left enterpriseblock">
+				<span class="date-ico"></span>${applicationDate}
+			</div>
+		</div>
+
+		<div id="personalise" class="right">
+			<ul class="sf-menu">
+				<li>
+					<a href="#"><span class="userNameVal"> <div class="userName right"> <span class="user-ico"></span>${userId}</div></span></a>
+					<ul class="right persItems">
+						<spring:url value="/" var="dashboard_url"/>
+						<li style='display:none'><a class="dashboardIcon" href="${dashboard_url}?versionNo=1.2"><span class="personalizeText"><spring:message code="pref_dashboard" htmlEscape="false"/></span></a></li>
+						<spring:url value="/secure/ref/personalized/user/globalconfig/load" var="preferences_url"/>
+						<li><a id="settings" class="preferencesIcon" href="${preferences_url}"><span class="personalizeText"><spring:message code="pref_preferences" htmlEscape="false"/></span></a></li>
+						<c:set var="userKey" value="xenos.user.customprincipal" />
+					  	<spring:url value="/changePassword/initPopup" var="changePassword_url"/>
+						<li><a id="pwdChngPopup" href="${changePassword_url}" class="logoutIcon"><span class="personalizeText"><spring:message code="changepassword_title" htmlEscape="false"/></span></a></li>
+
+						<!-- Logout is configurable, in case of CA integration removed then it should work -->
+						<!-- Logout only available when CA service is OFF, otherwise it's ON always -->
+						<c:if test="${sessionScope.CAServiceOn == null}">
+							<c:if test="${sessionScope[userKey] != null}">
+							  <!--in case of GVLogoutUri is available (CA service is ON) then use it otherwise spring security logout, normal flow-->
+							  <spring:url value="/resources/j_spring_security_logout" var="logout_url" />
+							  <li><a class="logoutIcon" href="${logout_url}"><span class="personalizeText"><spring:message code="logout_text" htmlEscape="false"/></span></a></li>
+							</c:if>
+						</c:if>
+					</ul>
+				</li>
+			</ul>
+		</div>
+
+    </div>
+    <!-- /User Menu -->
+
+    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+	</div>
+	<div class="rightDockMenu">
+		<spring:url value="/" var="dashboard_url"/>
+		<!-- <a href="${dashboard_url}?versionNo=1.2"><span class="rightDocIco">T</span><span class="rightDocTxt"><spring:message code="pref_dashboard" htmlEscape="false"/></span></a> -->
+	</div>
+  <!-- Menu area -->
+
+  <jsp:element name="script">
+    <jsp:attribute name="type">text/javascript</jsp:attribute>
+    <jsp:body>
+      xenos$onReady$Array.push(function() {
+        loadAppCache(); // Load tree data
+        
+        var scripts = [
+          {path: xenos.context.path + '/scripts/xenos-utils.js'},
+          {path: xenos.context.path + '/scripts/xenos-hotkeys.js'},
+          {path: xenos.context.path + '/scripts/xenos-windowmanager.js'},
+          {path: xenos.context.path + '/scripts/xenos-detail-dialog.js'},
+          {path: xenos.context.path + '/scripts/ref/xenos-menu.js'},
+          {path: xenos.context.path + '/scripts/ref/xenos-preferences.js'},
+          {path: xenos.context.path + '/scripts/highlighttypeahead.js'},
+          {path: xenos.context.path + '/scripts/xenos-autocomplete.js'},
+          {path: xenos.context.path + '/scripts/xenos.toggle.js'},
+		  {path: xenos.context.path + '/scripts/xenos-changePasswordPopup.js'}
+        ];
+		  xenos.loadScript(scripts, {
+          ordered: true,
+          success: function() {  
+          
+            var _function = function() {
+              /**/
+              /**/
+
+              // menu search operations
+
+				$('#menuSearchInput').focus(function(){
+				  if($(this).val() == 'Search Menu'){
+					  $(this).val('');
+				  }
+				}).blur(function(){
+					if($(this).val() == ''){
+						$(this).val('Search Menu');
+					}
+				});
+
+				if($('#menuSearchArea').data('menuSearchObj')) {
+					initAutoComplete();
+				} else {
+					$.getJSON(xenos.context.path+'/secure/ref/menuTypeAhead.json', function(data){
+						var mObj = $.parseJSON(data.menuTypeAheadJson.data);
+						$('#menuSearchArea').data('menuSearchObj' , mObj);
+						initAutoComplete();
+					});
+				}
+
+
+                function initAutoComplete(){
+                    $( '#menuSearchInput' ).autocomplete({
+								appendTo:'#autocompletecontainer',
+                                source: $('#menuSearchArea').data('menuSearchObj'),
+                                delay: 1000,
+                                minLength: 3,
+                                position: { my : "right top", at: "right bottom" },
+                                select: function( event, ui ) {
+
+                                    if(String(ui.item.menuUrl).match(/\.action/)){
+
+                      // legacy should open in ie only
+                                        //$.fn.colorbox({href:ui.item.menuUrl, open:true, iframe:true, width:"98%", height:"98%", title:"<spring:message code="xenos.legacy.title" htmlEscape="false"/>"});
+                                          if ($.browser.msie) {
+                                            $.fn.colorbox({href:ui.item.menuUrl, open:true, iframe:true, title:xenos.i18n.title.legacy, width:"98%", height:"98%"});
+                                          } else {
+                                            // inform
+                                            alert(xenos.i18n.message.window_not_supported);
+                                          }
+                      // end
+
+
+                                    } /*else {
+                                        window.location.href = ui.item.menuUrl;
+                                    }*/
+
+                                    if(ui.item.version >=1.2){
+                                        var screenId = ui.item.label.split("/")[0];
+
+										var urlSep = '?';
+
+										if(ui.item.menuUrl.indexOf(urlSep) != -1){
+											urlSep = '&amp;';
+										}
+
+                                       var reqUri = ui.item.menuUrl + urlSep + 'screenId=' + screenId + '&amp;menuPk=' + ui.item.menuPk;
+
+
+										var componentId = ui.item.componentId;
+                                        var xenos$Handler$asynchronous$ms = xenos$Handler$function({
+                                            get: {
+                                              requestUri: reqUri,
+                                              requestType: xenos$Handler$default.requestType.asynchronous,
+                                              target: '#content',
+                                              contentType: 'html'
+                                            },
+                                            settings: {
+                                                beforeSend: function(request) {
+                                                    request.setRequestHeader('Accept', 'text/html;type=ajax');
+                                                },
+                                                data: {fragments: 'content',versionNo: ui.item.version}
+											},
+											callback: {
+												  success: function(event, options){
+														//Clean the Slick Grid
+														if(options){
+															$.each(options['gridInstance'] || [], function (ind, grid) {
+																grid.destroy();
+																delete grid;
+															});
+														}
+												   }
+											}
+                                        });
+										//Collecting Grids for clean up
+										var gridInstanceArray = [];
+										var grids = $("[class*=slickgrid_]", $(this).parents('div#menu').siblings('div#content').find('#queryResultForm,.entryContainer,.entryContainerConfirm'));
+										$.each(grids, function (ind, grid) {
+											gridInstanceArray.push($(grid).data("gridInstance"));
+										});
+                                        xenos$Handler$asynchronous$ms.generic(event, {'gridInstance' : gridInstanceArray});
+                                    }
+                                },
+                                close: function(event, ui) {
+                                    $('#menuSearchInput').attr('value','');
+                                    $('.ui-autocomplete').css('z-index',1);
+                                },
+                                open: function(event, ui){
+                                    var maxZ = xenos.utils.getMaxZ();
+                                    if (maxZ) {
+                                        $('.ui-autocomplete').css('zIndex', maxZ + 1);
+                                    }else{
+                                        $('.ui-autocomplete').css('z-index',999);
+                                    }
+
+                                }
+                    }).data( "autocomplete" )._renderItem = function( ul, item ) {
+                        var displayLabel = doHighlightTreeData($('#menuSearchInput').attr('value'),item.CompositeMenuNameDisplay);
+                                return $( "<li></li>" )
+                                .data( "item.autocomplete", item )
+                                .append( "<a>" + displayLabel + "</a>" )
+                                .appendTo( ul );
+                    };
+
+                }
+
+              /**/
+              /**/
+            };
+            setTimeout(_function, 0);
+            
+            var cached = false;
+            if(xenos$Cache.get('globalPrefs')){
+              cached = xenos$Cache.get('globalPrefs');
+            }
+            
+            // if(cached &amp;&amp; cached.openNewTab == 'Y'){
+            if($('form', '#content').length &gt; 0 &amp;&amp; $('form', '#content').first().find('input, select').length &gt; 0){
+                $('form', '#content').first().find('input, select').first().focus();
+            } else {
+                $('#menuSearchInput').val('').trigger('focus');
+            }
+			
+			/* added for round corner issue of personalise menu items */
+
+			$('.persItems').children('li').each(function(){
+				if($(this).css('display') == 'none'){
+					$(this).addClass('invisibleElm');
+				}else{
+					$(this).addClass('visiblElm');
+				}
+			});
+			
+			$('.visiblElm:first').addClass('persItemHover');
+          }
+        });
+      });
+    </jsp:body>
+  </jsp:element>
+</div>
+</jsp:root>

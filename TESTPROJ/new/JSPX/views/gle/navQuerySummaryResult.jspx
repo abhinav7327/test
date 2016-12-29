@@ -1,0 +1,84 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	 <style type="text/css">
+				.hideSelector {
+						display:none;
+				}
+	 </style>
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>	
+            var grid_result_data = [];
+            var grid_result_columns = [
+					{name:"",field:"header",id:"header",width:10,cssClass:'hideSelector'},
+				    {name:"<spring:message code="gle.navquery.label.fundcode" htmlEscape="false"/>", field:"fundCode", id:"fundCode", width:200, sortable:true},
+					{name:"<spring:message code="gle.navquery.label.fundname" htmlEscape="false"/>", field: "fundName", id: "fundName", width: 200, sortable: true},
+					{name:"<spring:message code="gle.navquery.label.valuationdate" htmlEscape="false"/>", field: "valuationDateDisplay", id: "valuationDateDisplay", width: 200, sortable: true,cssClass: 'xenos-grid-date'},
+					
+					{name:"<spring:message code="gle.navquery.label.dtl.batchnumber" htmlEscape="false"/>", field: "batchRunSequenceNo", id: "batchRunSequenceNo", width: 100, sortable: true},
+					{name:"<spring:message code="gle.navquery.label.dtl.batchrundate" htmlEscape="false"/>", field: "batchRunDateDisplay", id: "batchRunDateDisplay", width: 200, sortable: true,cssClass: 'xenos-grid-date'},
+					{name:"<spring:message code="gle.navquery.label.currency" htmlEscape="false"/>", field: "currency", id: "currency", width: 100, sortable: true},
+					{name:"<spring:message code="gle.navquery.label.navamount" htmlEscape="false"/>", field: "navAmountStr", id: "navAmountStr", width: 100, sortable: true,cssClass: 'xenos-grid-number'},
+					{name:"<spring:message code="gle.navquery.label.detail" htmlEscape="false"/>", field: "detail", id: "detail", width: 100, sortable: true,formatter:Slick.Formatters.DetailViewFormater,
+						option:{url:'/secure/gle/nav/query/details/summary/', 
+								dialogTitle:xenos.title.ccyWiseNavSummaryResult,
+								view:'ccyWiseNavSummaryResult',
+								width:1300,
+							    height:800,	
+								popupIcon:true,
+								methodType:'POST',
+								pkFieldName:'navCalcResultPk',
+								}}
+				];
+			var grid_result_settings = {
+					isPopUpQuery:true,
+					forceFitColumns:false,
+					emptyColumnCheck : false,
+					isMatchPopUp:true,
+					pagingInfo:{
+					},
+					urls:{}
+								
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">				
+			<c:forEach items="${value}" var="dl">
+				rec = {};
+				row_id+=1;
+				rec.id = "xenos_" + row_id;
+				rec.navCalcResultPk = "<c:out value="${dl.navCalcResultPk}" />";
+				rec.fundCode = "<c:out value="${dl.fundCode}" />";
+				rec.fundName = "<c:out value="${dl.fundName}"/>";
+				rec.valuationDateDisplay = "<c:out value="${dl.valuationDateDisplay}"/>";
+				rec.batchRunSequenceNo =  "<c:out value="${dl.batchRunSequenceNo}"/>";
+				rec.batchRunDateDisplay =  "<c:out value="${dl.batchRunDateDisplay}"/>";
+				rec.currency = "<c:out value="${dl.currency}"/>";
+				rec.navAmountStr = "<c:out value="${dl.navAmountStr}"/>";
+				grid_result_data.push(rec);
+			</c:forEach>
+			</xenos:out>
+			  $('.pop-xenos-grid').xenosgrid(grid_result_data,grid_result_columns,grid_result_settings);
+			  $('.select-pop-query').remove();
+				var grid = $('.pop-xenos-grid').eq(-1).data("gridInstance");
+				grid.onColumnsReordered.subscribe(function() {
+					$('.select-pop-query').remove();
+				});
+				grid.onSort.subscribe(function() {
+					$('.select-pop-query').remove();
+				});				
+        </jsp:body>
+    </jsp:element>
+</jsp:root>

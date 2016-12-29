@@ -1,0 +1,101 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:form="http://www.springframework.org/tags/form"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:jsp="http://java.sun.com/JSP/Page" version="2.0">
+     
+<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+    <jsp:output omit-xml-declaration="yes" /> 
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>   
+     
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+			  var grid_result_columns = [
+				{name:"<spring:message code="cam.accrued.coupon.query.label.referenceno" htmlEscape="false"/>", field:"referenceNo", id:"referenceNo", width:150,sortable:true, formatter:Slick.Formatters.CamAccruedCouponDetailFormater},
+				{name:"<spring:message code="cam.accrued.coupon.query.label.accountno" htmlEscape="false"/>", field:"accountDispValue", id:"accountDispValue", width:150, formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'fundAccountPk'},sortable:true},
+				{name:"<spring:message code="cam.accrued.coupon.query.label.accountname" htmlEscape="false"/>", field:"acctShortName", id:"acctShortName", width:200,sortable:true},
+				{name:"<spring:message code="cam.accrued.coupon.query.label.securitycode" htmlEscape="false"/>", field:"securityId", id:"securityId", width:150, formatter:Slick.Formatters.InstrumentDetailViewFormater, sortable:true},
+				{name:"<spring:message code="cam.accrued.coupon.query.label.securityname" htmlEscape="false"/>", field:"securityName", id:"securityName", width:270,sortable:true},				
+				{name:"<spring:message code="cam.security.label.alternatesecurity" htmlEscape="false"/>", field:"alternateSecurity", id:"alternateSecurity", width:200, sortable:true},
+				{name:"<spring:message code="cam.accrued.coupon.query.label.interestccy" htmlEscape="false"/>", field:"ccyCode", id:"ccyCode", width:100, sortable:true},
+				{name:"<spring:message code="cam.accrued.coupon.query.label.basedate" htmlEscape="false"/>", field:"baseDateStr", id:"baseDateStr", width:115, sortable:true},
+				{name:"<spring:message code="cam.accrued.coupon.query.label.ammount" htmlEscape="false"/>", field:"amountStr",id:"amountStr", width:250, sortable:true,cssClass:'xenos-grid-number'},
+				{name:"<spring:message code="cam.accrued.coupon.query.label.currentfacevalue" htmlEscape="false"/>", field:"formattedCurrentFaceValue",id:"formattedCurrentFaceValue", width:250, sortable:true, cssClass:'xenos-grid-number'}				
+              ];
+			var grid_result_settings = {
+                enableToolbar:true,                
+                buttons:{
+                    print:true, 
+                    xls:true,
+                    pdf:true,
+					xlsPref:true,
+                    columnPicker:true,  
+                    save:true   
+                },
+                pagingInfo:{
+                    isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+                    url: '/secure/cam/accrued/query/count.json'
+                },
+                urls:{
+                    nextPage : '/secure/cam/accrued/query/result.json?fetch=next',
+                    prevPage : '/secure/cam/accrued/query/result.json?fetch=previous',
+                    pdfReport: '/secure/cam/accrued/query/report.json?outputType=pdf',
+                    xlsReport: '/secure/cam/accrued/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/cam/accrued/query/reportPref.json?outputType=xls'
+                },
+				events:{
+					onDataUpdate: function(data,continueUpdate){
+						for(i in data.value){							
+							data.value[i].fundAccountPk = data.value[i].fundAccountPk;																			
+						}
+						continueUpdate(data);
+					}
+				}
+            };
+            var row_id = 0;         
+            var rec = {};
+			<xenos:out escapeXml="false">
+				<c:forEach items="${value}" var="dl">
+					rec = {};
+					row_id+=1;
+					rec.commandFormId="${requestScope['commandFormId']}";
+					rec.id = "xenos_" + row_id;					
+					rec.instrumentPk = "<c:out value="${dl.instrumentPk}"/>";					
+					rec.fundAccountPk = "<c:out value="${dl.accountPk}"/>";
+					rec.accountDispValue= "<c:out value="${dl.accountDispValue}" />";
+					rec.acctShortName= "<c:out value="${dl.acctShortName}" />";					
+					rec.securityId= "<c:out value="${dl.securityId}" />";					
+					rec.securityName= "<c:out value="${dl.securityName}" />";
+					rec.alternateSecurity= "<c:out value="${dl.alternateSecurity}" />";
+					rec.ccyCode= "<c:out value="${dl.ccyCode}" />";
+					rec.baseDateStr= "<c:out value="${dl.baseDateStr}" />";
+					rec.amountStr= "<c:out value="${dl.amountStr}" />";
+					rec.formattedCurrentFaceValue= "<c:out value="${dl.formattedCurrentFaceValue}"/>";																
+					rec.bondAccruedInterestPk= "<c:out value="${dl.bondAccruedInterestPk}" />";
+					rec.interestCcyPk= "<c:out value="${dl.interestCcyPk}" />";					
+					rec.minTradingUnit= "<c:out value="${dl.minTradingUnit}" />";
+					rec.accruedDays= "<c:out value="${dl.accruedDays}" />";
+					rec.referenceNo= "<c:out value="${dl.referenceNo}" />";					
+					grid_result_data.push(rec);
+				 </c:forEach>
+			 </xenos:out>
+        </jsp:body>
+    </jsp:element>	
+</jsp:root>

@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Trade Received Confirmation Detail Popup Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:containers="com.nri.rui.core.containers.*" 
+	xmlns:flexlib="http://code.google.com/p/flexlib/" 
+	xmlns:cntrls="com.nri.rui.core.controls.*" 
+	xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"
+	layout="vertical" percentWidth="100" percentHeight ="100"
+	 horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="init()">
+
+    
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.utils.XenosPopupUtils;
+			import mx.core.UIComponent;
+			import mx.controls.Alert;
+			import mx.containers.TitleWindow;
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.controls.CheckBox;
+			import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+			
+			import com.nri.rui.core.controls.XenosAlert;
+						
+			[Embed(source="../../assets/img/inf/addcolunm.png")]		    
+			[Bindable]
+			private var icoColumns:Class;
+			[Bindable]
+		    private var queryResult:XML= new XML();
+            public static var popupColumns:TitleWindow = null;
+            public var superObj:Object = null;
+            public var gridColumns:ArrayCollection = new ArrayCollection();	    
+			[Bindable]
+            public var rcvCnfPk:String="";
+            [Bindable]
+            public var rowNumber:String="";
+			private function init():void{
+				parseUrlString();
+				var reqObj:Object=new Object();
+				reqObj.rowNum=rowNumber;
+				initializeTradeRcvdConfDetail.request=reqObj;
+				initializeTradeRcvdConfDetail.send();
+			}
+			
+          public function LoadTradeRcvdDetailPage(event:ResultEvent):void {
+     	
+			if (null != event) {            
+	            if(null == event.result){
+	            	if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+	            	   // errPage.clearError(event); //clears the errors if any
+	            		XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+	            	} else { // Must be error
+	            		//errPage.displayError(event);	
+	            	}            	
+	            }else {
+	            	//errPage.clearError(event); 
+		                    queryResult = event.result as XML;
+	            } 
+	        }else {
+	            XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+	        }
+	        
+       }
+       
+    public function parseUrlString():void {
+        try {
+            // Remove everything before the question mark, including
+            // the question mark.
+            var myPattern:RegExp = /.*\?/; 
+            var s:String = this.loaderInfo.url.toString();
+            s = s.replace(myPattern, "");
+            // Create an Array of name=value Strings.
+            var params:Array = s.split("&"); 
+             // Print the params that are in the Array.
+            var keyStr:String;
+            var valueStr:String;
+            var paramObj:Object = params;
+          
+            // Set the values of the salutation.
+            for (var i:int = 0; i < params.length; i++) {
+                var tempA:Array = params[i].split("=");  
+                if (tempA[0] == "rowNum") {
+                    rowNumber = tempA[1];
+                } 
+            } 
+            
+        } catch (e:Error) {
+            trace(e);
+        }
+    }
+    
+    /**
+   * This method is used for loading Instrument Details popup module
+   * 
+   */  
+   public function showInstrumentDetail():void{   			
+			var InstPkStr : String = queryResult.tradeRcvdConfQueryView.instrumentPk;
+			var parentApp :UIComponent = UIComponent(this.parentApplication);
+			XenosPopupUtils.showInstrumentDetails(InstPkStr, parentApp);
+   }
+		]]>
+	</mx:Script>
+	
+	<!--<mx:Script source="actionscripts/TradeCnfQuery.as"/>-->
+	
+	<cntrls:XenosHTTPService id="initializeTradeRcvdConfDetail" 
+         url="trd/tradeRcvdConfQueryDispatch.action?method=viewDetails" fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)" 
+             method="POST" useProxy="false" result="LoadTradeRcvdDetailPage(event)" showBusyCursor="true" resultFormat="e4x"/>	
+    
+		<mx:VBox width="100%" height="100%" id="rslt" styleName="HDivideStyle">			
+			<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.participantid')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.participantId}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.rcvdconf.label.brokername')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.brokerName}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.rcvdconf.label.institutionid')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.institutionId}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.rcvdconf.label.brokerdealername')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.idUserName}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.rcvdconf.label.internalcpaccno')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.internalCpAccountNo}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.controlnumber')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.controlNo}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.securitycode')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.securityId}" click="showInstrumentDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.matchstatus')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.matchStatusDisp}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.tradedate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.tradeDateDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.accepted')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.acceptedDisp}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.price')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.price}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.securityname')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.securityName}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.quantity')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.quantityDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.valuedate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.valueDateDisp}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.rcvdconf.label.commission')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.commissionDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.currency')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.tradingCcy}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.rcvdconf.label.fee')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.feeDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.accruedinterestamount')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.accruedInterestAmountDisp}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.rcvdconf.label.dtceligibleflag')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.dtcEligibleFlagDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.rcvdconf.label.principalamount')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.principalAmountDisp}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.txnsequence')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.txnSequence}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.rcvdconf.label.netamount')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.netAmountDisp}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.rcvdconf.label.buysellorientation')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.buySellFlagDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.paymentmethod')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.paymentMethod}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.settleoption')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.settleOption}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.rcvdconf.label.cancelconfirmflag')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.tradeRcvdConfQueryView.cancelConfirmFlag}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+			</mx:Grid>
+		</mx:VBox>
+</mx:Module>

@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+		   xmlns:cntrls="com.nri.rui.core.controls.*"
+		   xmlns:containers="com.nri.rui.core.containers.*" 
+		   xmlns:flexlib="http://code.google.com/p/flexlib/" 
+		   xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+		   xmlns:utils="com.nri.rui.core.utils.*"
+		   layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="initPage()">
+	<mx:Metadata>
+	     	[ResourceBundle("omsResources")]
+	</mx:Metadata>
+	
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.core.controls.XenosAlert;
+			import mx.controls.Alert;
+			
+			[Bindable]public var reqObj:Object;
+			public var documentTypesFilters:FileFilter = new FileFilter("Documents (*.xls)",("*.xls"));
+			public var documentTypesFiltersXlsx:FileFilter = new FileFilter("Documents (*.xlsx)",("*.xlsx"));
+        	[Bindable]public var filter:Array = new Array(documentTypesFilters, documentTypesFiltersXlsx);
+            
+			public function buttonClickHandler(event:MouseEvent):void {
+				reqObj = new Object();
+				if (office.selectedItem != null) {
+					reqObj.officePk = office.selectedItem.value;
+					reqObj.officeId = office.selectedItem.label;
+				}
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Script source="actionscripts/OrderEntryExcelUpload.as"/>
+	
+	<cntrls:XenosHTTPService id="init" 
+		url="oms/orderUploadDispatch.action?method=init" 
+		fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"	
+		result="initResultHandler(event)" 
+		showBusyCursor="true" 
+		method="POST" >
+	</cntrls:XenosHTTPService>
+	
+	<cntrls:XenosHTTPService id="orderFileLoad" 
+		url="oms/orderUploadDispatch.action?method=doSubmit" 
+		fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"	
+		result="orderSubmitResultHandler(event)" 
+		showBusyCursor="true" 
+		method="POST" >
+	</cntrls:XenosHTTPService>
+	
+	<cntrls:XenosHTTPService id="orderFileLoadConfirm" 
+		url="oms/orderUploadDispatch.action?method=doSubmitConfirm" 
+		fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"	
+		result="submitConfirmResult(event)" 
+		showBusyCursor="true" 
+		method="POST" >
+	</cntrls:XenosHTTPService>
+	
+	<mx:Canvas  width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		<mx:VBox width="100%" height="100%">
+			<cntrls:XenosErrors id="errPage" width="100%" height="20%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+			<mx:VBox id="mt" label="{this.parentApplication.xResourceManager.getKeyValue('oms.order.file.upload.label')}" width="100%" height="100%">
+				
+				<mx:HBox id="hfbox" width="100%" styleName="ButtonBackPanel">
+					<mx:Grid width="100%" borderThickness="0">
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" borderThickness="0">
+			                	<mx:Label id="bondTypeLbl" text="{this.parentApplication.xResourceManager.getKeyValue('oms.order.officeid.label')}"/>
+			                </mx:GridItem>
+			                <mx:GridItem width="80%" borderThickness="0">
+			                	<mx:ComboBox id="office" labelField="label" dataProvider="{officeValues}" change="checkOffice()"/>
+			                </mx:GridItem>
+			            </mx:GridRow>
+		            </mx:Grid>
+				</mx:HBox>
+				
+				<cntrls:FileUploadControl id="fc" 
+										  uploadUrl="oms/orderUploadDispatch.action?method=initUpload"
+										  uploadToFiled="fileName" httpProcess="{orderFileLoad}"
+										  maxNumOfFiles="1" _filter = "{filter}"
+										  uploadComplete="Alert.show(this.parentApplication.xResourceManager.getKeyValue('oms.order.files.uploaded.success'), 'Upload successful')" 
+										  uploadIOError="Alert.show(this.parentApplication.xResourceManager.getKeyValue('oms.order.files.uploaded.failure.io'), 'Error')" 
+										  uploadSecurityError="Alert.show(this.parentApplication.xResourceManager.getKeyValue('oms.order.files.uploaded.failure.security'), 'Error')" 
+										  creationComplete="{fc.btnAdd.enabled=false}">
+								
+				</cntrls:FileUploadControl>
+			
+				<mx:HBox width="100%" styleName="ButtonBackPanel">
+			           <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle"  click="unselectFile()" />
+					   <mx:Button id="btnSaveAndPrint" label="{this.parentApplication.xResourceManager.getKeyValue('oms.order.popup.button.saveerror')}" styleName="BtnStyle" click="saveAndPrint()" visible="false" includeInLayout="false" />			           		           
+			    </mx:HBox>
+			</mx:VBox>
+			
+			<mx:VBox width="100%" height="100%" id="cnf" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" visible="false" includeInLayout="false">
+				
+				<mx:HBox id="sysConfirm" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" visible="false" includeInLayout="false">
+	        		<mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+		    		<mx:Label text="{noOfMessageProcessed}" fontWeight="bold" selectable="true"/>	
+		    	</mx:HBox>
+				
+				<utils:FXCPager id="fxcPager" pageIndex="{currentPage}" pageSize="{pageSize}" dataProvider="{summaryResult}" />
+				<mx:DataGrid width="100%" height="100%" id="confirmResultSummary" sortableColumns="false" dataProvider="{fxcPager.pageData}" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindAll()">
+					<mx:columns>
+						<mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.status.label')}" dataField="status" width="60" textAlign="center" itemRenderer="com.nri.rui.oms.renderers.OrderStatusRenderer"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.tradedate.label')}" dataField="tradeDateStr" width="80"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.valuedate.label')}" dataField="valueDateStr" width="80"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.buysellflag.label')}" dataField="buySellFlagScreen" width="40"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.officeid.label')}" dataField="officeId" width="40"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.fundcode.label')}" dataField="fundCode" width="70"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.fundname.label')}" dataField="fundName"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.instrumentcode.label')}" dataField="instrumentCode" width="70"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.instrumentname.label')}" dataField="instrumentName"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.currency.label')}" dataField="currency" width="40"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.orderedamount.label')}" dataField="orderAmountStr" width="110"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.noofunits.label')}" dataField="noOfUnitsStr" width="110"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.roundupdown.label')}" dataField="roundUpDown" width="30"/>
+						<!--<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.cancelflag.label')}" dataField="cancelFlag" width="30"/>-->
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.fmName.label')}" dataField="fmName"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.biccodeexecparty.label')}" dataField="bicCodeEP"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.biccodebank.label')}" dataField="bankBicCode"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.bankname.label')}" dataField="bankName"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.bankaccountno.label')}" dataField="bankAccountNo"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.bankaccountname.label')}" dataField="bankAccountName"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.originalsenderrefno.label')}" dataField="originalSenderRefNo" width="120"  itemRenderer="com.nri.rui.oms.renderers.OrderDetailsRenderer"/>
+					</mx:columns>
+				</mx:DataGrid>
+				
+				<mx:HBox width="60%" horizontalAlign="right">
+	            	<cntrls:FXCPagerBar id="fxc_pageNav2" pager="{fxcPager}" totalPages="{Math.ceil(summaryResult.length/pageSize)}" maxVisiblePages="{navSize}" buttonMode="true"/>
+	                <mx:NumericStepper value="{this.pageSize}" change="this.pageSize = event.target.value" maximum="50000"/>		                
+        		</mx:HBox>
+        		
+        		<mx:HBox id="subConfirmButtons" width="100%" styleName="ButtonBackPanel">
+		     		<mx:Button id="confirmSubmitFileButton" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="this.confirmSubmitFile()" />
+		           	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.cancel')}" styleName="BtnStyle"  click="this.unselectFile()" />
+		     	</mx:HBox>
+		     	
+		     	<mx:HBox id="sysConfirmButtons" width="100%" styleName="ButtonBackPanel" visible="false">
+		     		<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" click="this.goToInitialPage()" />
+		     	</mx:HBox>
+			</mx:VBox>
+		</mx:VBox>
+	</mx:Canvas>
+</mx:Module>

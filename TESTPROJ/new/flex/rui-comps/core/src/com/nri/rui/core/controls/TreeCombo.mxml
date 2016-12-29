@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" creationComplete="init()" width="160" horizontalGap="0" height="22">
+<mx:Script>
+    <![CDATA[
+        import com.nri.rui.core.utils.XenosStringUtils;
+        import mx.events.FlexEvent;
+        import mx.events.ListEvent;
+        import mx.events.DropdownEvent;
+        import mx.managers.PopUpManager;
+        import mx.utils.StringUtil;
+        import mx.controls.Alert;
+        import com.nri.rui.core.Globals;
+             
+        private var treePopUp:PopUpTree;
+        private var xmlDoc:XML;
+        private var comboLength:int=200; //Default value set
+        private var labelArray:Array=new Array();
+        private var bRemoved:Boolean=true; //Default value set
+        private var treeDropDownHeight:int=200; //Default value set
+        private var imgWidth:int=20; //Default value of image width set
+        private var imgSource:String="";
+        private var comboEdit:Boolean=false;
+        private var trashIconDisplay:Boolean=true;
+        private var labField:String="";         
+
+        //Public properties to get and set values
+      
+        /*
+        * Setting the name of the label field in the XML file.By default the value
+        * is set to @label.
+        */
+        public function set labelField(value:String):void{
+            this.labField=value;            
+        }
+        
+        /*
+        * Setting whether the clear text icon will be displayed or not.
+        * Default is true;
+        */
+        public function set displayClearIcon(value:Boolean):void{
+            this.trashIconDisplay=value;
+        } 
+        
+        /*
+        * Setting the edit mode of the combo box. Default value is set to
+        * false;
+        */
+        public function set editMode(value:Boolean):void{
+            this.comboEdit=value;
+        }
+          
+          
+        //Setting the image path for the clear text image;
+        public function set imageSource(value:String):void{
+            this.imgSource=value;
+        }
+         
+                       
+        public function set imageWidth(value:int):void{
+            this.imgWidth=value;
+        }
+         
+        public function set comboWidth(value:int):void{
+            this.comboLength=value;
+        }
+         
+        public function set treeHeight(value:int):void{
+            this.treeDropDownHeight=value;
+        }
+         
+        public function get text():String{
+            if(treePopUp != null)
+                return this.treePopUp.labelKeyData;
+            else
+                return "";                 
+        }
+         
+        public function set text(value:String):void{
+            this.itemCombo.text=value;
+            if(treePopUp != null)
+                this.treePopUp.labelKeyData="";
+            this.hideTree();    
+        }
+         
+         
+        public function set dataSource(value:XML):void{
+            this.xmlDoc=value;
+            if(this.xmlDoc != null)
+                this.createLabelValueArray();
+        }
+        //End of Getters and Setters 
+              
+        private function init():void{
+            this.setControlDisplayParameters();
+            this.itemCombo.addEventListener(DropdownEvent.OPEN,comboOpen_handler);
+            this.itemCombo.addEventListener(DropdownEvent.CLOSE,comboClose_handler);
+            this.itemCombo.addEventListener(KeyboardEvent.KEY_UP,comboKeyPress_handler);
+        }
+         
+        private function hidePopUp(event:FlexEvent):void{
+            hideTree();
+        }
+                
+        // Event handlers definitions     
+        
+        private function comboKeyPress_handler(evt:KeyboardEvent):void
+        {
+            if(evt.keyCode==Keyboard.TAB)
+                return;
+            if(evt.keyCode == Keyboard.ESCAPE){
+                this.itemCombo.close();
+                return;
+            }
+                 
+            if(evt.keyCode==Keyboard.ENTER )
+            {
+                if(treePopUp != null)
+                    this.treePopUp.SetComboTextWithSelectedNode();
+                this.itemCombo.close();
+            }    
+               
+            if(evt.keyCode!=Keyboard.ENTER)
+            {
+                this.showTree();
+                this.itemCombo.open();
+            }
+            if((evt.keyCode==Keyboard.DOWN) || (evt.keyCode==Keyboard.UP))
+            {
+                this.treePopUp.setTreeFocus();
+                this.itemCombo.open();
+            }
+             
+            if((evt.keyCode==Keyboard.BACKSPACE) || (evt.keyCode==Keyboard.DELETE) )
+            {
+                if(treePopUp!=null)
+                    treePopUp.labelKeyData="";
+            }
+        }
+         
+        private function comboOpen_handler(evt:DropdownEvent):void
+        {
+            if(bRemoved)
+            this.showTree();
+        }
+         
+        private function comboClose_handler(evt:DropdownEvent):void{
+                this.hideTree();    
+        }
+         
+        private function imgClick_handler():void
+        {
+            this.itemCombo.text="";
+            if(treePopUp!=null){
+                treePopUp.labelKeyData="";
+            }
+        }
+          
+        // End of Event Handlers
+            
+        //Setting ComboBox display parameters
+        private function setControlDisplayParameters():void
+        {
+            this.img.visible=this.trashIconDisplay;
+            if(!img.visible){
+                this.imgWidth=0;
+                this.img.height=0;//No need to add space for the image.Hence height,width set to 0;
+            }
+            this.itemCombo.editable=this.comboEdit;
+            if(this.imgSource != "")
+                this.img.source=this.imgSource;
+            this.img.width=this.imgWidth;            
+            this.itemCombo.width=this.width;
+            this.width+=(this.img.width+10);//10 pixels fixed for space between the combo box and image
+            this.img.x=this.itemCombo.x + this.itemCombo.width + 10;
+            this.img.y=this.itemCombo.y;
+            //setting the height of the canvas within which the combo is housed
+            this.height=this.itemCombo.height;
+        }
+        
+        //Create a new instance of tree popup.This will be invoked only once.
+        private function createTreeView():void
+        {
+            treePopUp=new PopUpTree();
+            treePopUp.TreeWidth=this.itemCombo.width;
+            treePopUp.labelField=this.labField;
+            treePopUp.ComboBoxReference=this.itemCombo;
+            treePopUp.dataSource=this.xmlDoc;
+            this.setDisplayPosition();
+        }
+         
+        //Controlling the popup display parameters; x,y and popup height
+        private function setDisplayPosition():void
+        {
+            if(treePopUp != null)
+            {
+               var SPACING_X : int = 0;
+               var SPACING_Y : int = 0;    
+               var rect:Rectangle = this.itemCombo.getRect(this.itemCombo);
+               var pt:Point = this.itemCombo.localToGlobal(rect.bottomRight);
+               treePopUp.x=pt.x - itemCombo.width;
+               treePopUp.y=pt.y;
+               treePopUp.TreeHeight=this.treeDropDownHeight;
+            }
+        }
+         
+        //For showing the popup tree after it has been created
+        private function showTree():void{
+            if(bRemoved){
+                if(treePopUp==null)
+                    this.createTreeView();
+                this.setDisplayPosition();     
+                PopUpManager.addPopUp(treePopUp,this,false);
+                treePopUp.addNeedfullEventListeners();
+            }
+            bRemoved=false;        
+            this.selectNode();
+        }
+        
+        //For removing the popup tree
+                  
+        private function hideTree():void{
+            if(treePopUp != null){
+                PopUpManager.removePopUp(treePopUp);
+                treePopUp.refreshTree();
+                bRemoved=true;
+            }
+        }
+        //Retrieving the label values from the XML object and storing them in an array.         
+        private function createLabelValueArray():void
+        {
+            parseXML(xmlDoc.children());
+        }         
+        private function parseXML(list:XMLList):void
+        {
+            for(var i:Number=0;i<list.length();i++)
+                labelArray.push(list[i].@label);
+              
+            for(var j:Number=0;j<list.length();j++)
+                if(list[j].length() > 0)
+                    parseXML(list[j].children());
+        }
+        
+        //Retrieving the label values from the XML object and storing them in an array.
+         /*
+         private function createLabelValueArray():void
+         {
+             var ar:Array;
+             var st:String=this.xmlDoc.toString();
+             ar=st.split("=");
+             var normalizedString:String="";
+             for(var i:int=0;i<ar.length;i++)
+             {
+                 normalizedString="";
+                 var bFirst:Boolean=false;
+                 var bSecond:Boolean=false;
+                 var tempString:String=ar[i].toString();
+                 var matchString:String=tempString.charAt(0);
+                 var str:String;
+                 for(var j:int=0;j<tempString.length;j++)
+                 {
+                     str=tempString.substr(j,1);
+                     if(tempString.substr(j,1)!= matchString && bFirst)
+                       normalizedString+=tempString.substr(j,1);
+                     else if(!bFirst)
+                        bFirst=true;
+                     else if(bFirst)
+                        bSecond=true;
+                 
+                    if(bFirst && bSecond)
+                      j=tempString.length;
+                 }
+                 bFirst=false;
+                 bSecond=false;
+                 this.labelArray.push(normalizedString);
+             }
+         }
+         */
+        //Selecting the words starting with characters typed in the combo box
+        private function selectNode():void
+        {
+            var searchString:String="";
+            searchString = findSimilar(this.itemCombo.text);
+            this.treePopUp.findNodeById(searchString);
+        }
+         
+        //Finding similar word from the array
+        private function findSimilar(str:String):String
+        {
+            var fString:String="";
+            for(var a:int=0;a<labelArray.length;a++)
+            {
+                if(this.findInString(labelArray[a].toString(),str))
+                {
+                    fString=labelArray[a].toString();
+                    a=labelArray.length;
+                }                         
+            }
+            return fString;
+        }
+         
+        //Matching the string character by character                           
+        private function findInString(strSource:String,strTarget:String):Boolean
+        {
+            var bFound:Boolean=false;
+            if(strTarget.length <= strSource.length)
+            {
+                for(var outer:int=0;outer<strTarget.length;outer++)
+                {
+                    if(strTarget.substr(outer,1).toUpperCase()== strSource.substr(outer,1).toUpperCase())
+                        bFound=true;
+                    else
+                    {
+                        outer=strTarget.length;    
+                        bFound=false;
+                    }      
+                }
+            }
+            return bFound;
+        }
+         
+    ]]>
+</mx:Script>
+    <mx:ComboBox restrict="{Globals.INPUT_PATTERN}" id="itemCombo"  editable="true" x="0" y="0" dropdownWidth="0" ></mx:ComboBox>
+    <mx:Image id="img" source="@Embed('../../../../../assets/icon_clear.png')" click="imgClick_handler()"/>
+</mx:HBox>

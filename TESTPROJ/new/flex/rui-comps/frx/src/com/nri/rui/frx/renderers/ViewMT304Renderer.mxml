@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<comp:XVBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:comp="com.nri.rui.core.renderers.*" width="100%" height="100%" verticalAlign="middle" horizontalAlign="right" updateComplete="populateInstructionRefNo()" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+<mx:Script>
+	<![CDATA[
+		import mx.controls.dataGridClasses.DataGridColumn;
+		import mx.controls.DataGrid;
+		import com.nri.rui.core.Globals;
+		import com.nri.rui.core.containers.SummaryPopup;
+		import mx.core.UIComponent;
+		import mx.managers.PopUpManager;
+		import com.nri.rui.core.controls.XenosAlert;
+		import com.nri.rui.core.utils.XenosStringUtils;
+		
+		[Embed(source="../../../../../../assets/icon_view.png")]
+		[Bindable]
+		private var icoView:Class;
+		[Bindable] private var instRefNo:String = null;
+		[Bindable] private var actualTrx:String = null;
+		[Bindable] private var instType:String = null;
+		
+		public function handleMouseClick(event:MouseEvent):void {
+			var sPopup : SummaryPopup;	
+			sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,false));
+			sPopup.title = this.parentApplication.xResourceManager.getKeyValue('frx.rawfile.title');
+			sPopup.width = parentApplication.width - 100;
+    		sPopup.height = parentApplication.height - 100;
+			PopUpManager.centerPopUp(sPopup);
+			if(data!=null){
+				var instructionType : String = data.instructionType;
+				if(!XenosStringUtils.isBlank(instructionType) && 
+				(XenosStringUtils.equals(instructionType,"MT202") || XenosStringUtils.equals(instructionType,"MT210"))){
+					sPopup.moduleUrl =  Globals.SWIFT_FILE_VIEW_FRX+
+								Globals.QS_SIGN+"referenceNo"+
+								Globals.EQUALS_SIGN+instRefNo+
+								Globals.AND_SIGN+Globals.MODE+
+								Globals.EQUALS_SIGN+"MT2xx";
+				}
+				else{
+			sPopup.moduleUrl =  Globals.SWIFT_FILE_VIEW_FRX+
+								Globals.QS_SIGN+"referenceNo"+
+								Globals.EQUALS_SIGN+instRefNo+
+								Globals.AND_SIGN+Globals.MODE+
+								Globals.EQUALS_SIGN+"MT304";
+		}
+			}
+		}
+		
+		public function populateInstructionRefNo():void {
+			if(data!=null) {
+				instType = data.instructionType;
+				instRefNo=data.instructionReferenceNo;
+				actualTrx=data.actualTrx;
+				
+				if(!XenosStringUtils.isBlank(instRefNo)) {
+					 
+					if(XenosStringUtils.equals(actualTrx,Globals.DATABASE_YES)){
+					this.instRefNoImg.includeInLayout = true;
+					this.instRefNoImg.visible = true;
+						this.swiftImage.includeInLayout = true;
+						this.swiftImage.visible = true;
+					}else{
+						this.instRefNoImg.includeInLayout = true;
+						this.instRefNoImg.visible = true;
+						this.swiftImage.includeInLayout = true;
+						this.swiftImage.visible = false;
+					}
+				} else {
+					this.instRefNoImg.includeInLayout = false;
+					this.instRefNoImg.visible = false;
+				}
+			}
+		}
+		override public function set data(value:Object):void{
+			super.data = value;
+		}
+	]]>
+</mx:Script>
+	<mx:HBox id="instRefNoImg" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+		<mx:Label id="instRef" text="{instRefNo}"/>
+		<mx:Image id="swiftImage" source="{icoView}" click="handleMouseClick(event)" buttonMode="true" verticalAlign="middle" toolTip=" View Raw File ({instType})"/>
+	</mx:HBox>
+</comp:XVBox>

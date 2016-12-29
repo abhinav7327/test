@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<!-- Item Renderer for CashTransfer.  -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%" xmlns:cntrls="com.nri.rui.core.controls.*">
+
+    <mx:Script>
+        <![CDATA[
+        	import mx.events.CloseEvent;            
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.Globals;
+            
+            import flash.events.MouseEvent;        
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+
+            private var sPopup : SummaryPopup;	
+            [Bindable]public var _mode = "cancel";
+                        
+            public function handleMouseClick():void {
+  					
+        		sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+        		if(_mode == "amend") {
+        		   sPopup.title = this.parentApplication.xResourceManager.getKeyValue('stl.label.cashtransfer.amend');
+        		} else {
+        			sPopup.title = this.parentApplication.xResourceManager.getKeyValue('stl.label.cashtransfer.cancel');
+        		}
+        		sPopup.owner = DisplayObjectContainer(parentDocument);
+        		sPopup.addEventListener(CloseEvent.CLOSE,closeHandler,false,0,true);
+        		//set the width and height of the popup
+                sPopup.width = 850;
+        		sPopup.height = 470;
+        		
+        		PopUpManager.centerPopUp(sPopup);
+                
+        		//Setting the Module path with some parameters which will be needed in the module for internal processing.                                                       
+        		sPopup.moduleUrl = "assets/appl/stl/CashTransferEntry.swf" + Globals.QS_SIGN + "mode" 
+        							+ Globals.EQUALS_SIGN + this._mode+ Globals.AND_SIGN + "csiPk"
+        							+ Globals.EQUALS_SIGN + data.clientSettlementInfoPk
+        							+Globals.AND_SIGN+"itemIndex"+Globals.EQUALS_SIGN+data.itemIndex
+        							+Globals.AND_SIGN+"wrType"+Globals.EQUALS_SIGN+data.wireType
+        							+Globals.AND_SIGN + "cePk"+ Globals.EQUALS_SIGN + data.cashEntryPk;
+        		//sPopup.moduleUrl = "assets/appl/stl/CashTransferEntry.swf" + Globals.QS_SIGN + "mode" + Globals.EQUALS_SIGN + this._mode+ Globals.AND_SIGN + "csiPk"+ Globals.EQUALS_SIGN + data.clientSettlementInfoPk;
+            }
+        	
+        	/**
+        	 * Event Handler for the custom event "OkSystemConfirm"
+        	 */
+        	public function closeHandler(event:Event):void {
+        		//this.parentDocument.currentState = "";
+                if(_mode == "amend")
+                  this.parentDocument.dispatchEvent(new Event("amendSubmit"));
+                else if(_mode == "cancel")
+                  this.parentDocument.dispatchEvent(new Event("cancelSubmit"));
+                //this.parentDocument.submitQuery();
+                sPopup.removeMe();
+            }
+        ]]>
+    </mx:Script>
+    
+    <mx:Button id="editRemarks" styleName="{_mode == 'amend' ? 'BtnEdit' : 'BtnDelete'}" width="18" height="18" label="{_mode == 'amend' ? 'Edit' : 'Cancel'}" click="handleMouseClick()"/>
+</mx:VBox>

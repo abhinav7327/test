@@ -1,0 +1,345 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core"
+    xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:display="http://displaytag.sf.net"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div class="formItemArea entryContainerConfirm paddingFour">
+
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" /> 
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+				var isAmend = <c:out value="${commandForm.forUpdate}"/>;
+				var isDelete = <c:out value="${commandForm.forDelete}"/>;
+				
+				if(isAmend || ${commandForm.modeOfOperation=='OKAY'} || isDelete){
+					$('.amendDisplay',$xenos$Wizard.$context).show();
+					$('.entryDisplay',$xenos$Wizard.$context).hide();
+				}else {
+					$('.entryDisplay',$xenos$Wizard.$context).show();
+					$('.amendDisplay',$xenos$Wizard.$context).hide();
+				}
+				
+				var mode = "<c:out value="${commandForm.options.mode}"/>";
+				var actionType = "<c:out value="${commandForm.actionType}"/>";
+				var warningMessage = "<c:out value="${commandForm.entry.warningMessage}"/>";				
+				if($.trim(mode) == 'CONFIRM' <![CDATA[&&]]> $.trim(actionType) == 'entry'){
+					if(!(VALIDATOR.isNullValue($.trim(warningMessage))) <![CDATA[&&]]> ${empty value}){						
+						xenos.utils.displayGrowlMessage(xenos.notice.type.warning, $.trim(warningMessage));
+					}
+				}
+			};
+			var xenos$Dialog$Detail$Hook = function (container, btnContainer) {
+                var details$View$print$Handler = function printHandler(e){
+					e.preventDefault();
+					container.printArea(xenos.utils.defaultPrintOption);
+				};
+				
+				var $btn1 = jQuery('.btn1', btnContainer);
+					$btn1.children().first().html(xenos.title.printInfo);
+					$btn1.show();
+					$btn1.click(details$View$print$Handler);
+            };
+		</jsp:body>
+    </jsp:element>
+
+	<c:if test="${success =='false'}">	
+		<!-- Error message Area -->
+		<ul class="xenosError">			
+			<c:forEach items="${value}" var="dl">			
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+	<c:choose>
+		<c:when test="${commandForm.options.mode =='NONINTERACTIVE'}">
+			<div class="detailBlock entrySingleCol">		
+				<table class="tableStyle sixCol entryDetail">
+						<tr>				
+							<td><label><spring:message code="cam.securityinentry.label.referenceno" htmlEscape="false"/></label></td>
+							<c:choose>
+								<c:when test="${commandForm.entry.referenceNo != 'null'}">
+									<td class="detailGridBorderLeftOverride detailGridBorderRightOverride"><span class="detailTxtVal">${commandForm.entry.referenceNo}</span></td>
+								</c:when>
+								<c:otherwise>
+									<td class="detailGridBorderLeftOverride detailGridBorderRightOverride"><span class="detailTxtVal"></span></td>
+								</c:otherwise>
+							</c:choose>
+							<td><label><spring:message code="cam.cashsecurity.label.cxlreferenceno" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.cxlRefNo}</span></td>
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.securityinentry.label.fundaccountno" htmlEscape="false"/></label></td>
+							<td>
+								<div class="hyperlink-relative-div">
+									<span class="detailTxtVal detail-view-hyperlink" view="accountDetailView;"	dialogTitle="[${commandForm.entry.formattedAccountNo}] Account Details"
+									href="/secure/ref/account/common/details/${commandForm.entry.accountPk}?popup=true"	style="outline: 0;">${commandForm.entry.formattedAccountNo}</span>
+								</div>
+							</td>
+							<td><label><spring:message code="cam.securityinentry.label.fundaccountname" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.accountShortName}</span></td>
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.securityinentry.label.securitycode" htmlEscape="false"/></label></td>
+							<td>
+								<div class="hyperlink-relative-div">
+									<span class="detailTxtVal detail-view-hyperlink" view="instrumentDetailView;"	dialogTitle="[${commandForm.entry.securityCode}] Security/CCY Details"
+									href="/secure/ref/instrument/details/${commandForm.entry.instrumentPk}?popup=true"	style="outline: 0;">${commandForm.entry.securityCode}</span>
+								</div>
+							</td>
+							<td><label><spring:message code="cam.securityinentry.label.securityname" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.securityName}</span></td>
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.security.label.alternatesecurity" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.alternateSecurity}</span></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>				
+							<c:if test="${commandForm.inOutType == 'I'}">
+								<td><label><spring:message code="cam.securityinentry.label.securityindate" htmlEscape="false"/></label></td>
+								<td><span class="detailTxtVal">${commandForm.entry.inOutDateStr}</span></td>
+							</c:if>
+							<c:if test="${commandForm.inOutType == 'O'}">
+								<td><label><spring:message code="cam.securityinentry.label.securityoutdate" htmlEscape="false"/></label></td>
+								<td><span class="detailTxtVal">${commandForm.entry.inOutDateStr}</span></td>
+							</c:if>
+							<c:if test="${commandForm.options.mode =='NONINTERACTIVE'}">
+								<td><label><spring:message code="cam.security.label.securityinoutdate" htmlEscape="false"/></label></td>
+								<td><span class="detailTxtVal">${commandForm.entry.inOutDateStr}</span></td>
+							</c:if>
+							<td><label><spring:message code="cam.securityinentry.label.form" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.form}</span></td>
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.securityinentry.label.quantity" htmlEscape="false"/></label></td>
+							<c:choose>					
+									<c:when test="${commandForm.entry.amountDisplayValue == 'null' || commandForm.entry.amountDisplayValue == ' ' || commandForm.entry.amountDisplayValue == ''}">
+										<td><span class="detailTxtVal">${commandForm.entry.amountStr}</span></td>
+									</c:when>
+									<c:otherwise>
+										<td><span class="detailTxtVal">${commandForm.entry.amountDisplayValue}</span></td>
+									</c:otherwise>
+							</c:choose>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.securityinentry.label.debitledger" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.debitLedgerId}</span></td>
+							<td><label><spring:message code="cam.securityinentry.label.creditledger" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.creditLedgerId}</span></td>
+						</tr>
+						<tr>
+							<td><label><spring:message code="cam.security.label.custodianbankcode" htmlEscape="false"/></label></td>
+							<td>
+								<div class="hyperlink-relative-div">
+									<span class="detailTxtVal detail-view-hyperlink" view="finInstDetailView;"	dialogTitle="[${commandForm.entry.custodianBank}] Financial Institution Details"
+									href="/secure/ref/fininst/details/${commandForm.entry.custodianBankPk}?popup=true"	style="outline: 0;">${commandForm.entry.custodianBank}</span>
+								</div>
+							</td>
+							<td><label><spring:message code="cam.securityinentry.label.custodianbankname" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.custodianBankName}</span></td>
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.securityinentry.label.oursettleac" htmlEscape="false"/></label></td>
+							<td>
+								<div class="hyperlink-relative-div">
+									<span class="detailTxtVal detail-view-hyperlink" view="accountDetailView;"	dialogTitle="[${commandForm.entry.ourSettleAccountNo}] Account Details"
+									href="/secure/ref/account/common/details/${commandForm.entry.ourSettleAccountPk}?popup=true"	style="outline: 0;">${commandForm.entry.ourSettleAccountNo}</span>
+								</div>
+							</td>
+							<td><label><spring:message code="cam.securityinentry.label.oursettleacname" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.ourSettleAccountName}</span></td>
+						</tr>
+						<tr>				
+							<c:if test="${commandForm.inOutType == 'I'}">
+								<td><label><spring:message code="cam.securityinentry.label.securityinreason" htmlEscape="false"/></label></td>
+								<td><span class="detailTxtVal">${commandForm.entry.reasonCodeForDisplay}</span></td>
+							</c:if>
+							<c:if test="${commandForm.inOutType == 'O'}">
+								<td><label><spring:message code="cam.securityinentry.label.securityoutreason" htmlEscape="false"/></label></td>
+								<td><span class="detailTxtVal">${commandForm.entry.reasonCodeForDisplay}</span></td>
+							</c:if>
+							<c:if test="${commandForm.options.mode =='NONINTERACTIVE'}">
+								<td><label><spring:message code="cam.security.label.securityreason" htmlEscape="false"/></label></td>
+								<td><span class="detailTxtVal">${commandForm.entry.reasonCodeForDisplay}</span></td>
+							</c:if>
+							<td><label><spring:message code="cam.cashsecurity.label.status" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.status}</span></td>
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.cashsecurity.label.issueccy" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.issueCcy}</span></td>
+							<td><label><spring:message code="cam.cashsecurity.label.baseccy" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.baseCcy}</span></td>
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.security.label.bookvaluelc" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.formatingBookValueStr}</span></td>
+							<td><label><spring:message code="cam.security.label.bookvaluebc" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.bookValueBC}</span></td>
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.securityinentry.label.acruedintpaidlc" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.acruedIntPaid}</span></td>
+							<td><label><spring:message code="cam.security.label.accruedinterestpaidbc" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.acruedIntPaidBC}</span></td>
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.cashsecurity.label.entryby" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.createdBy}</span></td>
+							<td><label><spring:message code="cam.cashsecurity.label.lastentryby" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.updatedBy}</span></td>
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.cashsecurity.label.entrydate" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.creationDate}</span></td>
+							<td><label><spring:message code="cam.cashsecurity.label.lastentrydate" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.updateDate}</span></td>
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.securityinentry.label.remarks" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.remarks}</span></td>
+							<td><label><spring:message code="cam.security.label.sptcalculationdate" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.spotCalcDate}</span></td>
+						</tr>
+						<tr>			
+							<td><label><spring:message code="cam.securityinentry.label.statement" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.statementDescription}</span></td>
+							<td><label><spring:message code="cam.security.label.calculatedspotrate" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.calcSpotRate}</span></td>
+						</tr>
+				</table> 		
+			</div>
+		</c:when>
+		<c:otherwise>
+			<div class="detailBlock entrySingleCol">		
+				<table class="tableStyle sixCol entryDetail">
+						<tr>				
+							<td><label><spring:message code="cam.securityinentry.label.referenceno" htmlEscape="false"/></label></td>
+							<c:choose>
+								<c:when test="${commandForm.entry.referenceNo != 'null'}">
+									<td class="detailGridBorderLeftOverride detailGridBorderRightOverride"><span class="detailTxtVal">${commandForm.entry.referenceNo}</span></td>
+									<td class="detailGridBorderLeftOverride detailGridBorderRightOverride"><span class="detailTxtVal"></span></td>
+									<td class="detailGridBorderLeftOverride"><span class="detailTxtVal"></span></td>
+								</c:when>
+								<c:otherwise>
+									<td class="detailGridBorderLeftOverride detailGridBorderRightOverride"><span class="detailTxtVal"></span></td>
+									<td class="detailGridBorderLeftOverride detailGridBorderRightOverride"><span class="detailTxtVal"></span></td>
+									<td class="detailGridBorderLeftOverride"><span class="detailTxtVal"></span></td>
+								</c:otherwise>
+							</c:choose>
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.securityinentry.label.fundaccountno" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.formattedAccountNo}</span></td>				
+							<td><label><spring:message code="cam.securityinentry.label.fundaccountname" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.accountShortName}</span></td>					
+						</tr>
+						<tr>
+							<td><label><spring:message code="cam.securityinentry.label.custodianbank" htmlEscape="false"/></label></td>		
+							<td><span class="detailTxtVal">${commandForm.entry.custodianBank}</span></td>				
+							<td><label><spring:message code="cam.securityinentry.label.custodianbankname" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.custodianBankName}</span></td>					
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.securityinentry.label.oursettleac" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.ourSettleAccountNo}</span></td>			
+							<td><label><spring:message code="cam.securityinentry.label.oursettleacname" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.ourSettleAccountName}</span></td>					
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.securityinentry.label.securitycode" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.securityCode}</span></td>			
+							<td><label><spring:message code="cam.securityinentry.label.securityname" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.securityName}</span></td>					
+						</tr>
+						<tr>				
+							<c:if test="${commandForm.inOutType == 'I' || commandForm.entry.inOut == 'I'}">
+								<td><label><spring:message code="cam.securityinentry.label.securityindate" htmlEscape="false"/></label></td>
+								<td><span class="detailTxtVal">${commandForm.entry.inOutDateStr}</span></td>
+							</c:if>
+							<c:if test="${commandForm.inOutType == 'O' || commandForm.entry.inOut == 'O'}">
+								<td><label><spring:message code="cam.securityinentry.label.securityoutdate" htmlEscape="false"/></label></td>
+								<td><span class="detailTxtVal">${commandForm.entry.inOutDateStr}</span></td>
+							</c:if>				
+							<td><label><spring:message code="cam.securityinentry.label.quantity" htmlEscape="false"/></label></td>
+							<c:choose>					
+									<c:when test="${commandForm.entry.amountDisplayValue == 'null' || commandForm.entry.amountDisplayValue == ' ' || commandForm.entry.amountDisplayValue == ''}">
+										<td width="30%"><span class="detailTxtVal">${commandForm.entry.amountStr}</span></td>
+									</c:when>
+									<c:otherwise>
+										<td width="30%"><span class="detailTxtVal">${commandForm.entry.amountDisplayValue}</span></td>
+									</c:otherwise>
+							</c:choose>					
+						</tr>
+						<tr>				
+							<c:if test="${commandForm.inOutType == 'I' || commandForm.entry.inOut == 'I'}">
+								<td><label><spring:message code="cam.securityinentry.label.securityinreason" htmlEscape="false"/></label></td>
+								<td colspan="3"><span class="detailTxtVal">${commandForm.entry.reasonCodeForDisplay}</span></td>
+							</c:if>
+							<c:if test="${commandForm.inOutType == 'O' || commandForm.entry.inOut == 'O'}">
+								<td><label><spring:message code="cam.securityinentry.label.securityoutreason" htmlEscape="false"/></label></td>
+								<td colspan="3"><span class="detailTxtVal">${commandForm.entry.reasonCodeForDisplay}</span></td>
+							</c:if>				
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.cashsecurity.label.issueccy" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.issueCcy}</span></td>					
+							<td><label><spring:message code="cam.cashsecurity.label.baseccy" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.baseCcy}</span></td>					
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.security.label.bookvaluelc" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.formatingBookValueStr}</span></td>					
+							<td><label><spring:message code="cam.security.label.bookvaluebc" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.bookValueBC}</span></td>					
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.securityinentry.label.acruedintpaidlc" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.acruedIntPaid}</span></td>					
+							<td><label><spring:message code="cam.security.label.accruedinterestpaidbc" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.acruedIntPaidBC}</span></td>					
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.securityinentry.label.debitledger" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.debitLedgerId}</span></td>					
+							<td><label><spring:message code="cam.securityinentry.label.creditledger" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.creditLedgerId}</span></td>					
+						</tr>
+						<tr>				
+							<td><label><spring:message code="cam.securityinentry.label.remarks" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.remarks}</span></td>					
+							<td><label><spring:message code="cam.security.label.sptcalculationdate" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.spotCalcDate}</span></td>					
+						</tr>
+						<tr>			
+							<td><label><spring:message code="cam.securityinentry.label.statement" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.statementDescription}</span></td>					
+							<td><label><spring:message code="cam.security.label.calculatedspotrate" htmlEscape="false"/></label></td>
+							<td><span class="detailTxtVal">${commandForm.entry.calcSpotRate}</span></td>					
+						</tr>			
+
+				</table> 		
+			</div>
+		</c:otherwise>						
+	</c:choose>
+	<div class="clear clear-block">
+		<spring:message text="" htmlEscape="false" />
+	</div>
+</div>
+</jsp:root>

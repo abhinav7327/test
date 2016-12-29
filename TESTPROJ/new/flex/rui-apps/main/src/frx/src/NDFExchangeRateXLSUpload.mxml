@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+
+
+-->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+		   xmlns:cntrls="com.nri.rui.core.controls.*"
+		   xmlns:containers="com.nri.rui.core.containers.*" 
+		   xmlns:flexlib="http://code.google.com/p/flexlib/" 
+		   xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+		   xmlns:utils="com.nri.rui.core.utils.*"
+		   layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="initPage()">
+	<mx:Metadata>
+	     	[ResourceBundle("frxResources")]
+	</mx:Metadata>
+	
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.core.controls.XenosAlert;
+			import mx.controls.Alert;			
+		]]>
+	</mx:Script>
+	
+	<mx:Script source="actionscripts/NDFExchangeRateXLSUpload.as"/>
+	
+	<cntrls:XenosHTTPService id="ndfExchageRateFileUpload" 
+		url="frx/ndfExchangeRateXLSLoadDispatch.action?method=doSubmit" 
+		fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"	
+		result="exchangeRateSubmitResultHaldler(event)" 
+		showBusyCursor="true" 
+		method="POST">
+	</cntrls:XenosHTTPService>
+	
+	<cntrls:XenosHTTPService id="ndfExchageRateFileLoadConfirm" 
+		url="frx/ndfExchangeRateXLSLoadDispatch.action?method=doSubmitConfirm" 
+		fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"	
+		result="submitConfirmResult(event)" 
+		showBusyCursor="true" 
+		method="POST" >
+	</cntrls:XenosHTTPService>
+	
+	<mx:Canvas  width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		<mx:VBox width="100%" height="100%">
+		<mx:VBox id="mt" label="File Upload" width="100%" height="100%">
+				<mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+				<cntrls:XenosErrors id="errPage" width="100%" height="20%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+				<mx:HBox id="hfbox" width="100%" styleName="ButtonBackPanel">
+				</mx:HBox>
+				
+				<cntrls:FileUploadControl id="fc" 
+										  uploadUrl="frx/ndfExchangeRateXLSLoadDispatch.action?method=init"
+										  uploadToFiled="fileName" httpProcess="{ndfExchageRateFileUpload}"
+										  maxNumOfFiles="1" _filter = "{filter}"
+										  uploadComplete="Alert.show(this.parentApplication.xResourceManager.getKeyValue('frx.ndfExchRate.files.uploaded.success'), 'Upload successful')" 
+										  uploadIOError="Alert.show(this.parentApplication.xResourceManager.getKeyValue('frx.ndfExchRate.files.uploaded.failure.io'), 'Error')" 
+										  uploadSecurityError="Alert.show(this.parentApplication.xResourceManager.getKeyValue('frx.order.files.uploaded.failure.security'), 'Error')"/>								
+			
+				<mx:HBox width="100%" styleName="ButtonBackPanel">
+			           <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle"  click="unselectFile()" />
+			    </mx:HBox>
+			</mx:VBox>
+			
+			<mx:VBox width="100%" height="100%" id="cnf" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" visible="false" includeInLayout="false">
+				<cntrls:XenosErrors id="errPage1" width="100%" height="20%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>				
+				<mx:HBox id="sysConfirm" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" visible="false" includeInLayout="false">
+	        		<mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+		    		<mx:Label text="{noOfMessageProcessed}" fontWeight="bold" selectable="true"/>	
+		    	</mx:HBox>
+				
+				<utils:FXCPager id="fxcPager" pageIndex="{currentPage}" pageSize="{pageSize}" dataProvider="{summaryResult}" />
+				<mx:DataGrid width="100%" height="100%" id="confirmResultSummary" sortableColumns="false" dataProvider="{fxcPager.pageData}" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindAll()">
+					<mx:columns>
+						<mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.referenceno')}" dataField="tradeReferenceNo" textAlign="center"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.basedate')}" dataField="baseDateStr" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.revaluationccy')}" dataField="revaluationCcy" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.calculationtype')}" dataField="calculationTypeStr" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.exchangerate')}" dataField="exchangeRateStr" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.status')}" dataField="status" />
+					</mx:columns>
+				</mx:DataGrid>
+				<mx:DataGrid width="100%" height="100%" id="sysConfirmResultSummary" sortableColumns="false" dataProvider="{fxcPager.pageData}" variableRowHeight="true" horizontalScrollPolicy="auto" includeInLayout="false" visible="false" creationComplete="bindAll()">
+					<mx:columns>
+						<mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.referenceno')}" dataField="tradeReferenceNo" textAlign="center" itemRenderer="com.nri.rui.frx.renderers.FrxTradeDetailRenderer"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.basedate')}" dataField="baseDateStr" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.revaluationccy')}" dataField="revaluationCcy" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.calculationtype')}" dataField="calculationTypeStr" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.exchangerate')}" dataField="exchangeRateStr" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.status')}" dataField="status" />
+					</mx:columns>
+				</mx:DataGrid>
+				
+				<mx:HBox width="60%" horizontalAlign="right">
+	            	<cntrls:FXCPagerBar id="fxc_pageNav2" pager="{fxcPager}" totalPages="{Math.ceil(summaryResult.length/pageSize)}" maxVisiblePages="{navSize}" buttonMode="true"/>
+	                <mx:NumericStepper value="{this.pageSize}" change="this.pageSize = event.target.value" maximum="50000"/>		                
+        		</mx:HBox>
+        		
+        		<mx:HBox id="subConfirmButtons" width="100%" styleName="ButtonBackPanel">
+		     		<cntrls:XenosButton id="confirmSubmitFileButton" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="this.confirmSubmitFile()" />
+		           	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.cancel')}" styleName="BtnStyle"  click="this.unselectFile()" />
+		     	</mx:HBox>
+		     	
+		     	<mx:HBox id="sysConfirmButtons" width="100%" styleName="ButtonBackPanel" visible="false">
+		     		<cntrls:XenosButton id="okSystemConfButton" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" click="this.goToInitialPage()" />
+		     	</mx:HBox>
+			</mx:VBox>
+		</mx:VBox>
+	</mx:Canvas>
+</mx:Module>

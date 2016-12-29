@@ -1,0 +1,2292 @@
+<!--$Id$-->
+<!--$Author: himanshum $-->
+<!--$Date: 2016-12-28 13:08:37 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+<div class="entryContainer paddingFour">
+          
+    <!-- Java script include -->
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		
+        var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+        	
+	        var context = $xenos$Wizard.$context;
+			var baseUrl = xenos.context.path + context.find('form').attr('action');
+			
+			xenos.loadScript([
+				{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				{path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false},
+				{path: xenos.context.path + '/scripts/ref/instrumentEntry.js', async: false}
+			]);
+			
+			if("${commandForm.options.actionType}" == "ENTRY"){
+				$("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','block');
+				$("#formActionArea > div > div > .wizPrev > .inputBtnStyle").css('display','block');
+			}
+			
+	        /**
+	         * A common request handler to be used server communication.
+	         */
+	         var xenos$Handler$RequestHandler = xenos$Handler$function({
+	             get: {
+	                 contentType: 'json',
+	                 requestType: xenos$Handler$default.requestType.asynchronous
+	             },  
+	             settings: {
+	                 beforeSend: function(request) {
+	                     request.setRequestHeader('Accept', 'application/json');
+	                 },
+	                 type: 'POST'
+	             }
+	         });
+          
+             /*************************** Grid result, config and columns ****************************/
+             var rowId = 0;
+             var accPeriodGridResult=[];
+             var accPeriodGrid;
+             var accPeriodGridConfig = {
+                         editMode                    :   'both',                                                             
+                         editCallback                :   accPeriodEditHandler,
+                         deleteCallback              :   accPeriodDeleteHandler,
+						forceFitColumns             :   true
+             };
+             var accPeriodGridColumns = [
+                        {name:"<spring:message code="ref.insturment.entry.label.othertab.month" htmlEscape="false"/>", field:"settlingMonthGrid",id:"settlingMonthGrid", sortable:false},
+                        {name:"<spring:message code="ref.insturment.entry.label.othertab.day" htmlEscape="false"/>", field:"settlingDayGrid",id:"settlingDayGrid",sortable:false}                    
+             ];
+             
+             
+             var listedMarketGridResult=[];
+             var listedMarketGrid;
+             var listedMarketGridConfig = {
+                         editMode                    :   'both',                                                             
+                         editCallback                :   listedMarketEditHandler,
+                         deleteCallback              :   listedMarketDeleteHandler, 
+						 forceFitColumns             :   true
+             };
+             
+             var listedMarketGridColumns = [
+                       {name:"<spring:message code="ref.insturment.entry.label.othertab.market" htmlEscape="false"/>", field:"finInstRoleCode",id:"finInstRoleCode", sortable:false},
+                       {name:"<spring:message code="ref.insturment.entry.label.othertab.type" htmlEscape="false"/>", field:"marketTypeDisp",id:"marketTypeDisp",sortable:false}
+             ];
+             
+             
+             var csdElgGridResult=[];
+             var csdElgGrid;
+             var csdElgGridConfig = {
+                         editMode                    :   'both',                                                             
+                         editCallback                :   csdElgEditHandler,
+                         deleteCallback              :   csdElgDeleteHandler,  
+						 forceFitColumns             :   true
+             };          
+             var csdElgGridColumns = [
+                       {name:"<spring:message code="ref.insturment.entry.label.othertab.csd" htmlEscape="false"/>", field:"finInstRoleCodeCSD",id:"finInstRoleCodeCSD", sortable:false}
+             ];
+             
+             
+             var stlPrDateGridResult=[];
+             var stlPrDateGrid;
+             var stlPrDateGridConfig = {
+                         editMode                    :   'both',                                                             
+                         editCallback                :   stlPrDateEditHandler,
+                         deleteCallback              :   stlPrDateDeleteHandler, 
+						 forceFitColumns             :   true
+             };
+             var stlPrDateGridColumns = [
+                       {name:"<spring:message code="ref.insturment.entry.label.othertab.prohibiteddate" htmlEscape="false"/>", field:"setlProhibitedDateGrid",id:"setlProhibitedDateGrid", sortable:false}
+             ];
+             
+             
+             var ratingGridResult=[];
+             var ratingGrid;
+             var ratingGridConfig = {
+                         editMode                    :   'both',                                                             
+                         editCallback                :   ratingEditHandler,
+                         deleteCallback              :   ratingDeleteHandler,   
+						 forceFitColumns             :   true
+             };
+             var ratingGridColumns = [
+                       {name:"<spring:message code="ref.insturment.entry.label.othertab.ratingagency" htmlEscape="false"/>", field:"ratingAgencyName",id:"ratingAgencyName", sortable:false},
+                       {name:"<spring:message code="ref.insturment.entry.label.othertab.rating" htmlEscape="false"/>", field:"ratingGrid",id:"ratingGrid",sortable:false}
+             ];
+			
+             var callableGridResult=[];
+             var callableGrid;
+             var callableGridConfig = {
+                         editMode                    :   'both',                                                             
+                         editCallback                :   callableEditHandler,
+                         deleteCallback              :   callableDeleteHandler,    
+						 forceFitColumns             :   false
+             };
+             var callableGridColumns = [
+                       {name:"<spring:message code="ref.insturment.entry.label.othertab.callstartdate" htmlEscape="false"/>", width:120 ,field:"callStartDateDisp",id:"callStartDateDisp", sortable:false},
+                       {name:"<spring:message code="ref.insturment.entry.label.othertab.callenddate" htmlEscape="false"/>", width:120 ,field:"callEndDateDisp",id:"callEndDateDisp",sortable:false},
+                       {name:"<spring:message code="ref.insturment.entry.label.othertab.callprice" htmlEscape="false"/>", width:120 ,field:"callPriceDisp",id:"callPriceDisp",sortable:false}
+             ];
+			 
+             
+             var complianceGridResult=[];
+             var complianceGrid;
+             var complianceGridConfig = {
+                         editMode                    :   'both',                                                             
+                         editCallback                :   complianceEditHandler,
+                         deleteCallback              :   complianceDeleteHandler,    
+						 forceFitColumns             :   true
+             };
+             var complianceGridColumns = [
+                       {name:"<spring:message code="ref.insturment.entry.label.othertab.compliance" htmlEscape="false"/>", field:"complianceGrid",id:"complianceGrid", sortable:false}
+             ];
+             
+             
+             var underwriterGridResult=[];
+             var underwriterGrid;
+             var underwriterGridConfig = {
+                         editMode                    :   'both',                                                             
+                         editCallback                :   underwriterEditHandler,
+                         deleteCallback              :   underwriterDeleteHandler,
+						 forceFitColumns             :   true
+             };
+             var underwriterGridColumns = [
+                       {name:"<spring:message code="ref.insturment.entry.label.othertab.underwriter" htmlEscape="false"/>", field:"underwriterGrid",id:"underwriterGrid", sortable:false}
+             ];
+             
+             /************************ Request Object Population ********************/
+             
+             function populateAccPeriodRequestParams(){
+                var reqObj = {
+                    "settlingMonth"  :    $.trim($('#settlingMonth').val()),
+					"settlingDay"    : 	  getDayForRequest()
+                };
+				
+                return reqObj;
+             }
+			 
+			 function getDayForRequest(){
+				if(VALIDATOR.isNullValue($.trim($('#settlingDay').val()))){
+					return xenos.ns.views.instrumentEntryAmend.getDayByMonth($.trim($('#settlingMonthHidden').val()));
+				}else{
+					return $.trim($('#settlingDay').val());
+				}
+			 }
+             
+             function populateListedMarketRequestParams(){
+                var reqObj = {
+                    "market"  :    $.trim($('#market').val()),
+                    "marketType"    :    $.trim($('#marketType').val())
+                };
+                return reqObj;
+             }
+             
+             function populateCsdElgRequestParams(){
+                var reqObj = {
+                    "csd"    :    $.trim($('#csd').val())
+                };
+                return reqObj;
+             }
+             
+             function populateStlPrDateRequestParams(){
+                var reqObj = {
+                    "setlProhibitedDate"    :    $.trim($('#setlProhibitedDate').val())
+                };
+                return reqObj;
+             }
+             
+             function populateRatingAgencyRequestParams(){
+                var reqObj = {
+                    "ratingAgency"    :    $.trim($('#ratingAgency').val()),
+                    "rating"    :    $.trim($('#rating').val()),
+                };
+                return reqObj;
+             }
+             
+             function populateCallableRequestParams(){
+                var reqObj = {
+                    "callStartDate"    :    $.trim($('#callStartDate').val()),
+                    "callEndDate"    :    $.trim($('#callEndDate').val()),
+                    "callPrice"    :    $.trim($('#callPrice').val())
+                };
+
+                return reqObj;
+             }
+             
+             function populateComplianceRequestParams(){
+                var reqObj = {
+                    "compliance"    :    $.trim($('#compliance').val())
+                };
+				
+                return reqObj;
+             }
+             
+             function populateUnderwriterRequestParams(){
+                var reqObj = {
+                    "underwriter"    :    $.trim($('#underwriter').val())
+                };
+				
+                return reqObj;
+             }
+             
+             function populateRatingRequestParams(){
+                var reqObj = {
+                    "ratingAgency"    :    $.trim($('#ratingAgency').val())
+                };
+                return reqObj;
+             }
+             
+             /*************************** Validation functions **********************/
+             
+             function validateAccPeriodAddUpdate(){
+                var validationMessages = [];
+                
+				if(VALIDATOR.isNullValue($.trim($('#settlingMonth').val()))){                
+                    validationMessages.push(xenos$REF$i18n.instrument.other.settlingmonth_empty);
+                }
+				
+				$("#settlingMonthHidden").val($.trim($("#settlingMonth").val()));
+				$("#settlingDayHidden").val($.trim($("#settlingDay").val()));
+				
+				if ( validationMessages.length >0){
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+                     return false;
+                } 
+				else{
+                    $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                }
+             
+                return true;
+             }
+             
+             function validateListedMarketAddUpdate(){
+                var validationMessages = [];
+                
+                if(VALIDATOR.isNullValue($.trim($('#market').val()))){                
+                    validationMessages.push(xenos$REF$i18n.instrument.other.market_empty);
+                }
+                
+                if(VALIDATOR.isNullValue($.trim($('#marketType').val()))){                
+                    validationMessages.push(xenos$REF$i18n.instrument.other.markettype_empty);
+                }
+                
+                if ( validationMessages.length >0){
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+                    return false;
+                } 
+				else{
+                    $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                }
+                return true;
+             }
+             
+             function validateCsdElgAddUpdate(){
+                var validationMessages = [];
+                
+                if(VALIDATOR.isNullValue($.trim($('#csd').val()))){                
+                    validationMessages.push(xenos$REF$i18n.instrument.other.csd_empty);
+                }
+                if ( validationMessages.length >0){
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+                    return false;
+                } 
+				else{
+                    $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                }
+                return true;
+             }
+             
+             function validateStlPrDateAddUpdate(){
+                var validationMessages = [];
+                
+                if(VALIDATOR.isNullValue($.trim($('#setlProhibitedDate').val()))){                
+                    validationMessages.push(xenos$REF$i18n.instrument.other.setlprohibiteddate_empty);
+                }
+				
+				if (($("#setlProhibitedDate").val() != "" <![CDATA[&&]]> $("#setlProhibitedDate").val() != null <![CDATA[&&]]> $("#setlProhibitedDate").val() != undefined) <![CDATA[&&]]> isDateCustom($("#setlProhibitedDate").val())==false){
+					validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.other.setlprohibiteddate_empty));
+				}
+				
+                if ( validationMessages.length >0){
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+                    return false;
+                } 
+				else{
+                    $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                }            
+                return true;
+             }
+             
+             function validateRatingAddUpdate(){
+                var validationMessages = [];
+                
+                if(VALIDATOR.isNullValue($.trim($('#ratingAgency').val()))){                
+                    validationMessages.push(xenos$REF$i18n.instrument.other.ratingagency_empty);
+                }
+                
+                if(VALIDATOR.isNullValue($.trim($('#rating').val()))){                
+                    validationMessages.push(xenos$REF$i18n.instrument.other.rating_empty);
+                }
+                 if ( validationMessages.length >0){
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+                    return false;
+                } 
+				else{
+                    $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                }             
+                return true;
+             }
+             
+             function validateCallableAddUpdate(){
+                var validationMessages = [];
+                
+                if(VALIDATOR.isNullValue($.trim($('#callStartDate').val()))){                
+                    validationMessages.push(xenos$REF$i18n.instrument.other.callstartdate_empty);
+                }
+				
+				if (($("#callStartDate").val() != "" <![CDATA[&&]]> $("#callStartDate").val() != null <![CDATA[&&]]> $("#callStartDate").val() != undefined) <![CDATA[&&]]> isDateCustom($("#callStartDate").val())==false){
+					validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.other.callstartdate_empty));
+				}
+				
+				if (($("#callEndDate").val() != "" <![CDATA[&&]]> $("#callEndDate").val() != null <![CDATA[&&]]> $("#callEndDate").val() != undefined) <![CDATA[&&]]> isDateCustom($("#callEndDate").val())==false){
+					validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.other.call_end_date));
+				}
+				
+				if(!VALIDATOR.isNullValue($.trim($('#callPrice').val()))){ 
+					formatPrice($('#callPrice'),15,3,validationMessages,$('#callPrice').parent().parent().find('label').text());
+				}
+				
+                if ( validationMessages.length >0){
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+                    return false;
+                } 
+				else{
+                    $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                }             
+                return true;
+             }
+             
+             function validateComplianceAddUpdate(){
+                var validationMessages = [];
+                
+                if(VALIDATOR.isNullValue($.trim($('#compliance').val()))){                
+                    validationMessages.push(xenos$REF$i18n.instrument.other.compliance_empty);
+                }
+                if ( validationMessages.length >0){
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+                    return false;
+                } 
+				else{
+                    $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                }
+                return true;
+             }
+             
+             function validateUnderwriterAddUpdate(){
+                var validationMessages = [];
+                
+                if(VALIDATOR.isNullValue($.trim($('#underwriter').val()))){                
+                    validationMessages.push(xenos$REF$i18n.instrument.other.underwriter_empty);
+                }
+                   if ( validationMessages.length >0){
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+                    return false;
+                } 
+				else{
+                    $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                }             
+                return true;
+             }
+             
+             /***************************** Handler callbacks **************************/
+                                /**** Account Period handler callbacks ****/
+             
+             function upsertAccPeriodInfo(data){
+                var result = data.settlingDates;
+                if(result){
+                    accPeriodGrid.clearData();
+                    for(var i in result){                    
+                        items = {};
+                        rowId+=1;
+                        items.id             =   "xenos_" + rowId;
+						
+                        items.settlingMonthGrid  =   result[i].settlingMonth;
+                        items.settlingDayGrid    =   result[i].settlingDay;
+                        accPeriodGrid.addOrUpdateRow(items,{});
+                    }
+                    populateAccPeriodInfoForm(data);
+                }
+				xenos.utils.clearGrowlMessage();
+             }
+             
+             
+             
+             function populateAccPeriodInfoForm(result){
+                if(result){
+                    $('#settlingMonth').val(result.settlingMonth);
+                    $('#settlingMonth').trigger('change');
+                    $('#settlingDay').val(result.settlingDay);
+                }
+             }
+                                
+                                /**** Listed market handler callbacks ****/
+                                
+             function upsertListedMarketInfo(data){
+                var result = data.listedMarkets;
+                if(result){
+                    listedMarketGrid.clearData();
+                    for(var i in result){                    
+                        items = {};
+                        rowId+=1;
+                        items.id             =   "xenos_" + rowId;                    
+                        items.finInstRoleCode  =   result[i].finInstRoleCode;
+                        items.marketTypeDisp    =   result[i].marketTypeDisp;
+                        listedMarketGrid.addOrUpdateRow(items,{});
+                    }
+                    populateListedMarketInfoForm(data);
+                }
+				xenos.utils.clearGrowlMessage();
+             }
+                          
+             function populateListedMarketInfoForm(result){
+                if(result){
+                    $('#market').val(result.market);
+                    $('#marketType').val(result.marketType)
+                }
+             }                   
+                                
+                                /**** CSD Eligibility handler callbacks ****/
+                                
+             function upsertCsdElgInfo(data){
+                var result = data.csdEligibles;
+                if(result){
+                    csdElgGrid.clearData();
+                    for(var i in result){                    
+                        items = {};
+                        rowId+=1;
+                        items.id             =   "xenos_" + rowId;                    
+                        items.finInstRoleCodeCSD  =   result[i].finInstRoleCode;                       
+                        csdElgGrid.addOrUpdateRow(items,{});
+                    }
+                    populateCsdElgInfoForm(data);
+                }
+				xenos.utils.clearGrowlMessage();
+             }
+             
+             function populateCsdElgInfoForm(result){
+                if(result){
+                    $('#csd').val(result.csd);
+                }
+             }
+                                
+            /**** Settlement Prohibited date handler callbacks ****/
+                                
+             function upsertStlPrDateInfo(data){
+                var result = data.setlProhibitedDates;
+                if(result){
+                    stlPrDateGrid.clearData();
+                    for(var i in result){                    
+                        items = {};
+                        rowId+=1;
+                        items.id             =   "xenos_" + rowId;                    
+						items.setlProhibitedDateGrid  =   result[i];
+						
+                        stlPrDateGrid.addOrUpdateRow(items,{});
+                    }
+                    populateStlPrDateInfoForm(data);
+                }
+				xenos.utils.clearGrowlMessage();
+             }
+             
+             function populateStlPrDateInfoForm(result){
+                if(result){
+                    $('#setlProhibitedDate').val(result.setlProhibitedDate);
+                }
+             }
+                                
+                                /**** Rating handler callbacks ****/
+                                
+             function upsertRatingInfo(data){
+                var result = data.ratingValues;
+                if(result){
+                    ratingGrid.clearData();
+                    for(var i in result){                    
+                        items = {};
+                        rowId+=1;
+                        items.id             =   "xenos_" + rowId;                    
+                        items.ratingAgencyName  =   result[i].ratingAgencyName;
+                        items.ratingGrid  =   result[i].rating;
+						ratingGrid.addOrUpdateRow(items,{});
+                    }
+                    populateRatingInfoForm(data);
+                }
+				xenos.utils.clearGrowlMessage();
+             }
+             
+             function populateRatingInfoForm(result){
+                if(result){
+                    $('#ratingAgency').val(result.ratingAgency);
+					$('#rating').val(result.rating);
+					$('#ratingAgency').trigger('change');
+                }
+             }
+                                
+                                /**** Callable handler callbacks ****/
+                                
+             function upsertCallableInfo(data){
+                var result = data.callables;
+                if(result){
+                    callableGrid.clearData();
+                    for(var i in result){                    
+                        items = {};
+                        rowId+=1;
+						
+                        items.id             =   "xenos_" + rowId; 
+						
+                        items.callStartDateDisp  =   result[i].callStartDateDisp;
+                        items.callEndDateDisp  =   result[i].callEndDateDisp;
+                        items.callPriceDisp  =   result[i].callPriceDisp;
+						
+                        callableGrid.addOrUpdateRow(items,{});
+                    }
+                    populateCallableInfoForm(data);
+                }
+				xenos.utils.clearGrowlMessage();
+             }
+             
+             function populateCallableInfoForm(result){
+                if(result){
+                    $('#callStartDate').val(result.callStartDate);
+                    $('#callEndDate').val(result.callEndDate);
+                    $('#callPrice').val(result.callPrice);
+                }
+             }
+                                
+                                /**** Compliance handler callbacks ****/
+                                
+             function upsertComplianceInfo(data){
+                var result = data.compliances;
+
+                if(result){
+                    complianceGrid.clearData();
+                    for(var i in result){                    
+                        items = {};
+                        rowId+=1;
+                        items.id             =   "xenos_" + rowId;                    
+                        items.complianceGrid  =   result[i];
+						
+						complianceGrid.addOrUpdateRow(items,{});
+                    }
+                    populateComplianceInfoForm(data);
+                }
+				xenos.utils.clearGrowlMessage();
+             }
+             
+             function populateComplianceInfoForm(result){
+                if(result){
+                    $('#compliance').val(result.compliance);
+                }
+             }
+                                
+                                /**** Underwriter handler callbacks ****/
+                                
+             function upsertUnderwriterInfo(data){
+			 
+                var result = data.underwriters;
+				
+				if(result){
+                    underwriterGrid.clearData();
+                    for(var i in result){                    
+                        items = {};
+                        rowId+=1;
+                        items.id             =   "xenos_" + rowId;                    
+                        items.underwriterGrid  =   result[i];
+                        underwriterGrid.addOrUpdateRow(items,{});
+                    }
+                    populateUnderwriterInfoForm(data);
+                }
+				xenos.utils.clearGrowlMessage();
+             }
+             
+             function populateUnderwriterInfoForm(result){
+                if(result){
+				 $('#underwriter').val(result.underwriter);
+                }
+             }
+                                /**** populate rating handler callbacks ****/
+                                                 
+             	function populateRating(data, ratingValue){
+				var $target = context.find('#rating');
+				var $option = $('<option/>');
+				$option.attr('value', "").text("");
+				$target.empty().append($option);
+				
+				$.each(data || [], function(index, item) {
+					$option = $('<option/>');
+					$option.attr('value', item).text(item);
+					if(ratingValue == item){
+							$option.attr('selected', "selected");
+						}
+					$target.append($option);
+				});
+			}	                   
+             
+             /***************************** Handler functions **************************/
+             
+                                /**** Account Period handler ****/
+                                
+             function accPeriodAddHandler(e){
+                var valid = validateAccPeriodAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/addSettlingDate.json?commandFormId=" + $('[name=commandFormId]').val();                                               
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                            settings: {data : populateAccPeriodRequestParams()},
+                                                            onJsonContent :  function(e, options, $target, content) {                                                            
+                                                                if(content.success == true){
+                                                                    upsertAccPeriodInfo(content.value[0]);
+																	var validationMessages = [];
+																	if(VALIDATOR.isNullValue($.trim($('#settlingDayHidden').val()))){
+																		var mntName = xenos.ns.views.instrumentEntryAmend.getMonth($.trim($('#settlingMonthHidden').val()));
+																		var mntDay = xenos.ns.views.instrumentEntryAmend.getDayByMonth($.trim($('#settlingMonthHidden').val()));
+																		validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.other.settlingday_empty,[mntName,$.trim($('#settlingMonthHidden').val()),mntDay]));
+																	}
+																	if(validationMessages.length >0){
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.warning, validationMessages);
+																		return false;
+																	}else{
+																		$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+																	}
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                            }
+                                                         }
+                                            );
+                }
+             }
+             
+             function accPeriodEditHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/editSettlingDate.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                populateAccPeriodInfoForm(content.value[0]);
+                                                                $('.editBtnAccPeriod').css('display','block'); 
+                                                                $('.addBtnAccPeriod').css('display','none');
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                            return true;
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function accPeriodDeleteHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/deleteSettlingDate.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                upsertAccPeriodInfo(content.value[0]);
+																$('.editBtnAccPeriod').hide();
+                                                                $('.addBtnAccPeriod').show();
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function accPeriodCancelHandler(e){
+                var requestUrl = baseUrl + "/cancelSettlingDate.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                                if(content.success == true){
+                                                                    upsertAccPeriodInfo(content.value[0]);
+                                                                    $('.editBtnAccPeriod').css('display','none'); 
+                                                                    $('.addBtnAccPeriod').css('display','block'); 
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                                return true;
+                                                            }
+                                                         }
+                                            );
+             }
+             
+             function accPeriodUpdateHandler(e){
+                var valid = validateAccPeriodAddUpdate();
+                if(valid){
+                      var requestUrl = baseUrl + "/updateSettlingDate.json?commandFormId=" + $('[name=commandFormId]').val();              
+                      xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                              settings: {data : populateAccPeriodRequestParams()},
+                                                              onJsonContent :  function(e, options, $target, content) {
+                                                                  if(content.success == true){
+                                                                      upsertAccPeriodInfo(content.value[0]);
+                                                                      $('.editBtnAccPeriod').css('display','none'); 
+                                                                      $('.addBtnAccPeriod').css('display','block'); 
+                                                                  } else {
+                                                                      xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                  }
+                                                              }
+                                                           }
+                                              );
+                }
+             }
+             
+                                /**** Listed market handler ****/
+                                
+             function listedMarketAddHandler(e){
+                var valid = validateListedMarketAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/addListedMarket.json?commandFormId=" + $('[name=commandFormId]').val();
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                            settings: {data : populateListedMarketRequestParams()},
+                                                            onJsonContent :  function(e, options, $target, content) {                                                            
+                                                                if(content.success == true){
+                                                                    upsertListedMarketInfo(content.value[0]);
+																	$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                                                                } else {
+																	xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                            }
+                                                         }
+                                            );
+                }
+             }
+             
+             function listedMarketEditHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/editListedMarket.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                populateListedMarketInfoForm(content.value[0]);
+                                                                $('.editBtnListedMarket').css('display','block'); 
+                                                                $('.addBtnListedMarket').css('display','none');
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                            return true;
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function listedMarketDeleteHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/deleteListedMarket.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                upsertListedMarketInfo(content.value[0]);
+																$('.editBtnListedMarket').hide();
+                                                                $('.addBtnListedMarket').show();
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function listedMarketCancelHandler(e){
+                var requestUrl = baseUrl + "/cancelListedMarket.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                                if(content.success == true){
+                                                                    upsertListedMarketInfo(content.value[0]);
+                                                                    $('.editBtnListedMarket').css('display','none'); 
+                                                                    $('.addBtnListedMarket').css('display','block'); 
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                                return true;
+                                                            }
+                                                         }
+                                            );
+             }
+             
+             function listedMarketUpdateHandler(e){
+                var valid = validateListedMarketAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/updateListedMarket.json?commandFormId=" + $('[name=commandFormId]').val();
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                              settings: {data : populateListedMarketRequestParams()},
+                                                              onJsonContent :  function(e, options, $target, content) {
+                                                                  if(content.success == true){
+                                                                      upsertListedMarketInfo(content.value[0]);
+                                                                      $('.editBtnListedMarket').css('display','none'); 
+                                                                      $('.addBtnListedMarket').css('display','block'); 
+                                                                  } else {
+                                                                      xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                  }
+                                                              }
+                                                           }
+                                              );
+                }
+             }
+             
+                                /**** CSD Eligibility handler ****/
+                            
+             function csdElgAddHandler(e){
+                 valid = validateCsdElgAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/addCsd.json?commandFormId=" + $('[name=commandFormId]').val();
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                            settings: {data : populateCsdElgRequestParams()},
+                                                            onJsonContent :  function(e, options, $target, content) {                                                            
+                                                                if(content.success == true){
+                                                                    upsertCsdElgInfo(content.value[0]);
+																	$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                                                                } else {
+																	xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                            }
+                                                         }
+                                            );
+                }
+             }
+             
+             function csdElgEditHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/editCsd.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                populateCsdElgInfoForm(content.value[0]);
+                                                                $('.editBtnCsdElg').css('display','block'); 
+                                                                $('.addBtnCsdElg').css('display','none');
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                            return true;
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function csdElgDeleteHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/deleteCsd.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                upsertCsdElgInfo(content.value[0]);
+																$('.editBtnCsdElg').hide();
+																$('.addBtnCsdElg').show();
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function csdElgCancelHandler(e){
+                var requestUrl = baseUrl + "/cancelCsd.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                                if(content.success == true){
+                                                                    upsertCsdElgInfo(content.value[0]);
+                                                                    $('.editBtnCsdElg').css('display','none'); 
+                                                                    $('.addBtnCsdElg').css('display','block'); 
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                                return true;
+                                                            }
+                                                         }
+                                            );
+             }
+             
+             function csdElgUpdateHandler(e){
+                var valid = validateCsdElgAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/updateCsd.json?commandFormId=" + $('[name=commandFormId]').val();
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                              settings: {data : populateCsdElgRequestParams()},
+                                                              onJsonContent :  function(e, options, $target, content) {
+                                                                  if(content.success == true){
+                                                                      upsertCsdElgInfo(content.value[0]);
+                                                                      $('.editBtnCsdElg').css('display','none'); 
+                                                                      $('.addBtnCsdElg').css('display','block'); 
+                                                                  } else {
+                                                                      xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                  }
+                                                              }
+                                                           }
+                                              );
+                }
+             }
+             
+                                /**** Settlement Prohibited date handler ****/
+             
+             function stlPrDateAddHandler(e){
+                var valid = validateStlPrDateAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/addSetlProhibitedDate.json?commandFormId=" + $('[name=commandFormId]').val();
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                            settings: {data : populateStlPrDateRequestParams()},
+                                                            onJsonContent :  function(e, options, $target, content) {                                                            
+                                                                if(content.success == true){
+                                                                    upsertStlPrDateInfo(content.value[0]);
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                            }
+                                                         }
+                                            );
+                }
+             }
+             
+             function stlPrDateEditHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/editSetlProhibitedDate.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                populateStlPrDateInfoForm(content.value[0]);
+                                                                $('.editBtnStlPrDate').css('display','block'); 
+                                                                $('.addBtnStlPrDate').css('display','none');
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                            return true;
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function stlPrDateDeleteHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/deleteSetlProhibitedDate.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                upsertStlPrDateInfo(content.value[0]);
+																$('.editBtnStlPrDate').hide();
+																$('.addBtnStlPrDate').show();
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function stlPrDateCancelHandler(e){
+                var requestUrl = baseUrl + "/cancelSetlProhibitedDate.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                                if(content.success == true){
+                                                                    upsertStlPrDateInfo(content.value[0]);
+                                                                    $('.editBtnStlPrDate').css('display','none'); 
+                                                                    $('.addBtnStlPrDate').css('display','block'); 
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                                return true;
+                                                            }
+                                                         }
+                                            );
+             }
+             
+             function stlPrDateUpdateHandler(e){
+                var valid = validateStlPrDateAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/updateSetlProhibitedDate.json?commandFormId=" + $('[name=commandFormId]').val();
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                              settings: {data : populateStlPrDateRequestParams()},
+                                                              onJsonContent :  function(e, options, $target, content) {
+                                                                  if(content.success == true){
+                                                                      upsertStlPrDateInfo(content.value[0]);
+                                                                      $('.editBtnStlPrDate').css('display','none'); 
+                                                                      $('.addBtnStlPrDate').css('display','block'); 
+                                                                  } else {
+                                                                      xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                  }
+                                                              }
+                                                           }
+                                              );
+                }
+             }
+             
+                               /**** Rating handler ****/
+             
+             function ratingAddHandler(e){
+                var valid = validateRatingAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/addRating.json?commandFormId=" + $('[name=commandFormId]').val();
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                            settings: {data : populateRatingAgencyRequestParams()},
+                                                            onJsonContent :  function(e, options, $target, content) {                                                            
+                                                                if(content.success == true){
+                                                                    upsertRatingInfo(content.value[0]);
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                            }
+                                                         }
+                                            );
+                }
+             }
+             
+             function ratingEditHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/editRating.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                populateRatingInfoForm(content.value[0]);
+                                                                $('.editBtnRating').css('display','block'); 
+                                                                $('.addBtnRating').css('display','none');
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                            return true;
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function ratingDeleteHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/deleteRating.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                upsertRatingInfo(content.value[0]);
+																$('.editBtnRating').hide();
+																$('.addBtnRating').show();
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function ratingCancelHandler(e){
+                var requestUrl = baseUrl + "/cancelRating.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                                if(content.success == true){
+                                                                    upsertRatingInfo(content.value[0]);
+                                                                    $('.editBtnRating').css('display','none'); 
+                                                                    $('.addBtnRating').css('display','block'); 
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                                return true;
+                                                            }
+                                                         }
+                                            );
+             }
+             
+             function ratingUpdateHandler(e){
+                var valid = validateRatingAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/updateRating.json?commandFormId=" + $('[name=commandFormId]').val();
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                              settings: {data : populateRatingAgencyRequestParams()},
+                                                              onJsonContent :  function(e, options, $target, content) {
+                                                                  if(content.success == true){
+                                                                      upsertRatingInfo(content.value[0]);
+                                                                      $('.editBtnRating').css('display','none'); 
+                                                                      $('.addBtnRating').css('display','block'); 
+                                                                  } else {
+                                                                      xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                  }
+                                                              }
+                                                           }
+                                              );
+                }
+             }
+             
+                                /**** Callable handler ****/
+             
+             function callableAddHandler(e){
+                var valid = validateCallableAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/addCallable.json?commandFormId=" + $('[name=commandFormId]').val();
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                            settings: {data : populateCallableRequestParams()},
+                                                            onJsonContent :  function(e, options, $target, content) {                                                            
+                                                                if(content.success == true){
+																	
+                                                                    upsertCallableInfo(content.value[0]);
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                            }
+                                                         }
+                                            );
+                }
+             }
+             
+             function callableEditHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/editCallable.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                populateCallableInfoForm(content.value[0]);
+                                                                $('.editBtnCallable').css('display','block'); 
+                                                                $('.addBtnCallable').css('display','none');
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                            return true;
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function callableDeleteHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/deleteCallable.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                upsertCallableInfo(content.value[0]);
+																$('.editBtnCallable').hide();
+																$('.addBtnCallable').show();
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function callableCancelHandler(e){
+                var requestUrl = baseUrl + "/cancelCallable.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                                if(content.success == true){
+                                                                    upsertCallableInfo(content.value[0]);
+                                                                    $('.editBtnCallable').css('display','none'); 
+                                                                    $('.addBtnCallable').css('display','block'); 
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                                return true;
+                                                            }
+                                                         }
+                                            );
+             }
+             
+             function callableUpdateHandler(e){
+                var valid = validateCallableAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/updateCallable.json?commandFormId=" + $('[name=commandFormId]').val();
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                              settings: {data : populateCallableRequestParams()},
+                                                              onJsonContent :  function(e, options, $target, content) {
+                                                                  if(content.success == true){
+																	  
+                                                                      upsertCallableInfo(content.value[0]);															  
+                                                                      $('.editBtnCallable').css('display','none'); 
+                                                                      $('.addBtnCallable').css('display','block'); 
+                                                                  } else {
+                                                                      xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                  }
+                                                              }
+                                                           }
+                                              );
+                }
+             }
+             
+                                /**** Compliance handler ****/
+             
+             function complianceAddHandler(e){
+                var valid = validateComplianceAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/addCompliance.json?commandFormId=" + $('[name=commandFormId]').val();
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                            settings: {data : populateComplianceRequestParams()},
+                                                            onJsonContent :  function(e, options, $target, content) {                                                            
+                                                                if(content.success == true){
+                                                                    upsertComplianceInfo(content.value[0]);
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                            }
+                                                         }
+                                            );
+                }
+             }
+             
+             function complianceEditHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/editCompliance.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                populateComplianceInfoForm(content.value[0]);
+                                                                $('.editBtnCompliance').css('display','block'); 
+                                                                $('.addBtnCompliance').css('display','none');
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                            return true;
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function complianceDeleteHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/deleteCompliance.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                upsertComplianceInfo(content.value[0]);
+																$('.editBtnCompliance').hide();
+																$('.addBtnCompliance').show();
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function complianceCancelHandler(e){
+                var requestUrl = baseUrl + "/cancelCompliance.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                                if(content.success == true){
+                                                                    upsertComplianceInfo(content.value[0]);
+                                                                    $('.editBtnCompliance').css('display','none'); 
+                                                                    $('.addBtnCompliance').css('display','block'); 
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                                return true;
+                                                            }
+                                                         }
+                                            );
+             }
+             
+             function complianceUpdateHandler(e){
+                var valid = validateComplianceAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/updateCompliance.json?commandFormId=" + $('[name=commandFormId]').val();
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                              settings: {data : populateComplianceRequestParams()},
+                                                              onJsonContent :  function(e, options, $target, content) {
+                                                                  if(content.success == true){
+                                                                      upsertComplianceInfo(content.value[0]);
+                                                                      $('.editBtnCompliance').css('display','none'); 
+                                                                      $('.addBtnCompliance').css('display','block'); 
+                                                                  } else {
+                                                                      xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                  }
+                                                              }
+                                                           }
+                                              );
+                }
+             }
+             
+                                /**** Underwriter handler ****/
+             
+             function underwriterAddHandler(e){
+                var valid = validateUnderwriterAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/addUnderwriter.json?commandFormId=" + $('[name=commandFormId]').val();
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                            settings: {data : populateUnderwriterRequestParams()},
+                                                            onJsonContent :  function(e, options, $target, content) { 
+																
+                                                                if(content.success == true){
+                                                                    upsertUnderwriterInfo(content.value[0]);
+																	$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                                                                } else {
+																	xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                            }
+                                                         }
+                                            );
+                }
+             }
+             
+             function underwriterEditHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/editUnderwriter.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                populateUnderwriterInfoForm(content.value[0]);
+                                                                $('.editBtnUnderwriter').css('display','block'); 
+                                                                $('.addBtnUnderwriter').css('display','none');
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                            return true;
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function underwriterDeleteHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/deleteUnderwriter.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                upsertUnderwriterInfo(content.value[0]);
+																$('.editBtnUnderwriter').hide();
+																$('.addBtnUnderwriter').show();
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+             }
+             
+             function underwriterCancelHandler(e){
+                var requestUrl = baseUrl + "/cancelUnderwriter.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                                if(content.success == true){
+                                                                    upsertUnderwriterInfo(content.value[0]);
+                                                                    $('.editBtnUnderwriter').css('display','none'); 
+                                                                    $('.addBtnUnderwriter').css('display','block'); 
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                                return true;
+                                                            }
+                                                         }
+                                            );
+             }
+             
+             function underwriterUpdateHandler(e){
+                var valid = validateUnderwriterAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/updateUnderwriter.json?commandFormId=" + $('[name=commandFormId]').val();
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                              settings: {data : populateUnderwriterRequestParams()},
+                                                              onJsonContent :  function(e, options, $target, content) {
+                                                                  if(content.success == true){
+                                                                      upsertUnderwriterInfo(content.value[0]);
+                                                                      $('.editBtnUnderwriter').css('display','none'); 
+                                                                      $('.addBtnUnderwriter').css('display','block'); 
+                                                                  } else {
+                                                                      xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                  }
+                                                              }
+                                                           }
+                                              );
+                }
+             }
+             
+                                    /**** populate rating handler ****/
+                                    
+             function populateRatingHandler(e){
+                var requestUrl = baseUrl + "/setRatings.json?commandFormId=" + $('[name=commandFormId]').val();                                               
+                xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                        settings: {data : populateRatingRequestParams()},
+                                                        onJsonContent :  function(e, options, $target, content) {                                                            
+                                                            if(content.success == true){
+                                                                populateRating(content.value[0].ratings, content.value[0].rating);
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+             }                       
+             
+             /************************** Grid initializations **********************************/
+             <xenos:out escapeXml="false">
+				 <c:forEach items="${commandForm.settlingDates}" var="dl">
+					items = {};
+					rowId+=1;
+					items.id             = "xenos_" + rowId;	            
+					items.settlingMonthGrid  =   '<c:out value="${dl.settlingMonth}" />';
+					items.settlingDayGrid    =   '<c:out value="${dl.settlingDay}" />';		            
+					accPeriodGridResult.push(items);
+				</c:forEach>
+				rowId = 0;
+					
+				 accPeriodGrid = $('#accPeriodGrid').xenoseditablegrid(accPeriodGridResult, accPeriodGridColumns, accPeriodGridConfig);
+				 
+				 <c:forEach items="${commandForm.listedMarkets}" var="dl">
+					items = {};
+					rowId+=1;
+					items.id             = "xenos_" + rowId;                
+					items.finInstRoleCode  =   '<c:out value="${dl.finInstRoleCode}" />';
+					items.marketTypeDisp    =   '<c:out value="${dl.marketTypeDisp}" />';                
+					listedMarketGridResult.push(items);
+				</c:forEach>
+				rowId = 0;
+				 
+				 listedMarketGrid = $('#listedMarketGrid').xenoseditablegrid(listedMarketGridResult, listedMarketGridColumns, listedMarketGridConfig);
+				 
+				 <c:forEach items="${commandForm.csdEligibles}" var="dl">
+					items = {};
+					rowId+=1;
+					items.id             = "xenos_" + rowId;                
+					items.finInstRoleCodeCSD  =   '<c:out value="${dl.finInstRoleCode}" />';
+					csdElgGridResult.push(items);
+				</c:forEach>
+				rowId = 0;
+				 
+				 csdElgGrid = $('#csdElgGrid').xenoseditablegrid(csdElgGridResult, csdElgGridColumns, csdElgGridConfig);
+				 
+				 <c:forEach items="${commandForm.setlProhibitedDates}" var="dl">
+					items = {};
+					rowId+=1;
+					items.id             = "xenos_" + rowId;                
+					items.setlProhibitedDateGrid  =   '<c:out value="${dl}" />';
+					
+					stlPrDateGridResult.push(items);
+				</c:forEach>
+				rowId = 0;
+				 
+				 stlPrDateGrid = $('#stlPrDateGrid').xenoseditablegrid(stlPrDateGridResult, stlPrDateGridColumns, stlPrDateGridConfig);
+				 
+				 <c:forEach items="${commandForm.ratingValues}" var="dl">
+					items = {};
+					rowId+=1;
+					items.id             = "xenos_" + rowId;                
+					items.ratingAgencyName  =   '<c:out value="${dl.ratingAgencyName}" />';
+					items.ratingGrid    =   '<c:out value="${dl.rating}" />';    
+					ratingGridResult.push(items);
+				</c:forEach>
+			</xenos:out>
+            rowId = 0;
+             
+             ratingGrid = $('#ratingGrid').xenoseditablegrid(ratingGridResult, ratingGridColumns, ratingGridConfig);
+             
+             <c:choose>
+                <c:when test="${commandForm.instrumentPage.callableFlag == 'Y'}">
+                    $('#callableItems').show(); 
+                    $('#callableGrid').show(); 
+                </c:when>
+             </c:choose>
+             
+             <c:forEach items="${commandForm.callables}" var="dl">
+                items = {};
+                rowId+=1;
+                items.id             = "xenos_" + rowId;                
+                items.callStartDateDisp  =   '<c:out value="${dl.callStartDateDisp}" />';
+                items.callEndDateDisp    =   '<c:out value="${dl.callEndDateDisp}" />';
+                items.callPriceDisp    =   '<c:out value="${dl.callPriceDisp}" />';                
+                callableGridResult.push(items);
+            </c:forEach>
+            rowId = 0;
+             
+             callableGrid = $('#callableGrid').xenoseditablegrid(callableGridResult, callableGridColumns, callableGridConfig);
+             
+             <c:forEach items="${commandForm.compliances}" var="dl">
+                items = {};
+                rowId+=1;
+                items.id             = "xenos_" + rowId;                
+                items.complianceGrid  =   '<c:out value="${dl}" />';                            
+                complianceGridResult.push(items);
+            </c:forEach>
+            rowId = 0;
+             
+             complianceGrid = $('#complianceGrid').xenoseditablegrid(complianceGridResult, complianceGridColumns, complianceGridConfig);
+             
+             <c:forEach items="${commandForm.underwriters}" var="dl">
+                items = {};
+                rowId+=1;
+                items.id             = "xenos_" + rowId;                
+				items.underwriterGrid  =   '<c:out value="${dl.finInstRoleCode}" />';                         
+                underwriterGridResult.push(items);
+            </c:forEach>
+            rowId = 0;
+             
+             underwriterGrid = $('#underwriterGrid').xenoseditablegrid(underwriterGridResult, underwriterGridColumns, underwriterGridConfig);
+             
+             /***************************** Other Utility functions *****************************/
+		
+populateSettlingDaysOnLoad(); 
+
+		
+             function toggleCallableGrid(e){
+               if($.trim($('#callableFlag').val()) == 'Y'){
+                   $('#callableItems').show(); 
+                   $('#callableGrid').show();                  
+               }else{
+                   $('#callableItems').hide(); 
+                   $('#callableGrid').hide();   
+               }
+             }
+             
+             function populateSettlingDays(e){ 
+				var selMonth = $.trim($('#settlingMonth').val());
+					 $target = context.find('#settlingDay');
+					 $option = null;
+					 
+				 $target.empty();
+				 
+				 if( $.trim(selMonth) === ''){
+                     return;
+                 }
+				 
+				 	$option = $('<option/>');
+					$option.attr('value', '').text('');
+					$target.append($option);
+				 
+                 for(var i=1; i &lt; 29; i++){   
+					$option = $('<option/>');
+					$option.attr('value', i).text(i);
+					$target.append($option);
+                 }
+                 
+                 if( selMonth==4 || selMonth==6 || selMonth==9 || selMonth==11){
+					$option = $('<option/>');
+					$option.attr('value', '29').text('29');
+					$target.append($option);
+					$option = $('<option/>');
+					$option.attr('value', '30').text('30');
+					$target.append($option);
+                 }else if(selMonth==1 || selMonth==3 || selMonth==5 || selMonth==7 || selMonth==8 || selMonth==10 || selMonth==12){
+					$option = $('<option/>');
+					$option.attr('value', '29').text('29');
+					$target.append($option);
+					$option = $('<option/>');
+					$option.attr('value', '30').text('30');
+					$target.append($option);
+					$option = $('<option/>');
+					$option.attr('value', '31').text('31');
+					$target.append($option);
+                 }
+             }
+			 
+
+             function populateSettlingDaysOnLoad(e){ 
+				
+				var selMonth = "${commandForm.settlingMonth}";
+				 var selDay = "${commandForm.settlingDay}";
+					 $target = context.find('#settlingDay');
+					 $option = null;
+					 
+				 $target.empty();
+				 
+				 if( $.trim(selMonth) === ''){
+                     return;
+                 }
+				 
+				 	$option = $('<option/>');
+					$option.attr('value', '').text('');
+					$target.append($option);
+				 
+                 for(var i=1; i &lt; 29; i++){   
+					$option = $('<option/>');
+					$option.attr('value', i).text(i);
+					$target.append($option);
+                 }
+                 
+                 if( selMonth==4 || selMonth==6 || selMonth==9 || selMonth==11){
+					$option = $('<option/>');
+					$option.attr('value', '29').text('29');
+					$target.append($option);
+					$option = $('<option/>');
+					$option.attr('value', '30').text('30');
+					$target.append($option);
+                 }else if(selMonth==1 || selMonth==3 || selMonth==5 || selMonth==7 || selMonth==8 || selMonth==10 || selMonth==12){
+					$option = $('<option/>');
+					$option.attr('value', '29').text('29');
+					$target.append($option);
+					$option = $('<option/>');
+					$option.attr('value', '30').text('30');
+					$target.append($option);
+					$option = $('<option/>');
+					$option.attr('value', '31').text('31');
+					$target.append($option);
+                 }
+				 
+				 var index = getIndexOfDropdownValue($('#settlingDay'),selDay);
+				 $("#settlingDay option").eq(index).prop('selected', true);
+				 
+             }
+
+			function getIndexOfDropdownValue(list,value){
+					var index = 0;
+					if(value == "" || value == null || value == undefined){
+						return index;
+					}
+					for(var i = 0; i <![CDATA[<]]> list.children('option').length; i++){
+						if(list.children('option').eq(i).val() == value){
+							index = i;
+							break;
+						}
+					}
+					return index;
+				}	
+			 
+             
+             /*************************** Handler bindings ***********************/
+             
+             $('#ratingAgency').unbind('change');
+             $('#ratingAgency').bind('change', populateRatingHandler);
+             
+             $('#callableFlag').unbind('change');
+             $('#callableFlag').bind('change', toggleCallableGrid);
+             
+             $('#settlingMonth').unbind('change');
+             $('#settlingMonth').bind('change', populateSettlingDays);
+                               
+             /**** Account Period handler bindings ****/
+                               
+             $('#addAccPeriodBtn').unbind('click');
+             $('#addAccPeriodBtn').bind('click', accPeriodAddHandler);
+             
+             $('#updateAccPeriodBtn').unbind('click');
+             $('#updateAccPeriodBtn').bind('click', accPeriodUpdateHandler);
+             
+             $('#cancelAccPeriodBtn').unbind('click');
+             $('#cancelAccPeriodBtn').bind('click', accPeriodCancelHandler);                  
+                               
+		     /**** Listed market handler bindings ****/
+                               
+             $('#addListedMarketBtn').unbind('click');
+             $('#addListedMarketBtn').bind('click', listedMarketAddHandler);
+             
+             $('#updateListedMarketBtn').unbind('click');
+             $('#updateListedMarketBtn').bind('click', listedMarketUpdateHandler);
+             
+             $('#cancelListedMarketBtn').unbind('click');
+             $('#cancelListedMarketBtn').bind('click', listedMarketCancelHandler);                  
+                               
+		    /**** CSD Eligibility handler bindings ****/
+                               
+             $('#addCsdElgBtn').unbind('click');
+             $('#addCsdElgBtn').bind('click', csdElgAddHandler);
+             
+             $('#updateCsdElgBtn').unbind('click');
+             $('#updateCsdElgBtn').bind('click', csdElgUpdateHandler);
+             
+             $('#cancelCsdElgBtn').unbind('click');
+             $('#cancelCsdElgBtn').bind('click', csdElgCancelHandler);
+                               
+             /**** Settlement Prohibited date handler bindings ****/
+                               
+             $('#addStlPrDateBtn').unbind('click');
+             $('#addStlPrDateBtn').bind('click', stlPrDateAddHandler);
+             
+             $('#updateStlPrDateBtn').unbind('click');
+             $('#updateStlPrDateBtn').bind('click', stlPrDateUpdateHandler);
+             
+             $('#cancelStlPrDateBtn').unbind('click');
+             $('#cancelStlPrDateBtn').bind('click', stlPrDateCancelHandler);
+                               
+             /**** Rating handler bindings ****/
+                               
+             $('#addRatingBtn').unbind('click');
+             $('#addRatingBtn').bind('click', ratingAddHandler);
+             
+             $('#updateRatingBtn').unbind('click');
+             $('#updateRatingBtn').bind('click', ratingUpdateHandler);
+             
+             $('#cancelRatingBtn').unbind('click');
+             $('#cancelRatingBtn').bind('click', ratingCancelHandler);
+                               
+             /**** Callable handler bindings ****/
+                               
+             $('#addCallableBtn').unbind('click');
+             $('#addCallableBtn').bind('click', callableAddHandler);
+             
+             $('#updateCallableBtn').unbind('click');
+             $('#updateCallableBtn').bind('click', callableUpdateHandler);
+             
+             $('#cancelCallableBtn').unbind('click');
+             $('#cancelCallableBtn').bind('click', callableCancelHandler);
+                               
+             /**** Compliance handler bindings ****/
+                               
+             $('#addComplianceBtn').unbind('click');
+             $('#addComplianceBtn').bind('click', complianceAddHandler);
+             
+             $('#updateComplianceBtn').unbind('click');
+             $('#updateComplianceBtn').bind('click', complianceUpdateHandler);
+             
+             $('#cancelComplianceBtn').unbind('click');
+             $('#cancelComplianceBtn').bind('click', complianceCancelHandler);
+                               
+            /**** Underwriter handler bindings ****/
+                               
+             $('#addUnderwriterBtn').unbind('click');
+             $('#addUnderwriterBtn').bind('click', underwriterAddHandler);
+             
+             $('#updateUnderwriterBtn').unbind('click');
+             $('#updateUnderwriterBtn').bind('click', underwriterUpdateHandler);
+             
+             $('#cancelUnderwriterBtn').unbind('click');
+             $('#cancelUnderwriterBtn').bind('click', underwriterCancelHandler);
+             
+             /************** page load hooks **************/
+        
+	        var validateHook = function() {
+	            var validationMessages = [];
+				
+				if (($("#reopenDateStr").val() != "" <![CDATA[&&]]> $("#reopenDateStr").val() != null <![CDATA[&&]]> $("#reopenDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#reopenDateStr").val())==false){
+					validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.other.reopen_date_error));
+				}
+				
+				if (($("#ipoPaymentDateStr").val() != "" <![CDATA[&&]]> $("#ipoPaymentDateStr").val() != null <![CDATA[&&]]> $("#ipoPaymentDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#ipoPaymentDateStr").val())==false){
+					validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.other.IPOpayment_date_error));
+				}
+				
+				if (($("#publicOfferStartDateStr").val() != "" <![CDATA[&&]]> $("#publicOfferStartDateStr").val() != null <![CDATA[&&]]> $("#publicOfferStartDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#publicOfferStartDateStr").val())==false){
+					validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.other.publicofficestart_date_error));
+				}
+				
+				if (($("#publicOfferEndDateStr").val() != "" <![CDATA[&&]]> $("#publicOfferEndDateStr").val() != null <![CDATA[&&]]> $("#publicOfferEndDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#publicOfferEndDateStr").val())==false){
+					validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.other.publicofficeend_date_error));
+				}
+				
+				if(!VALIDATOR.isNullValue($.trim($('#quantityPerUnitStr').val()))){
+					formatQuantity($('#quantityPerUnitStr'),15,3,validationMessages,$('#quantityPerUnitStr').parent().parent().find('label').text());
+				}
+				
+				if ( validationMessages.length >0){    
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+					return false;
+				} else {
+					$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+	            }  
+	            return true;
+	        };
+	        
+	        var unloadHook = function(){
+	            $xenos$Wizard.deregister('next',validateHook);
+				$xenos$Wizard.deregister('previous',validateHook);
+	            $xenos$Wizard.deregister('submit',validateHook);
+	            $xenos$Wizard.deregister('unload',unloadHook);
+	            
+	        };
+	        
+	        $xenos$Wizard.register('previous',validateHook);
+	        $xenos$Wizard.register('next',validateHook);
+	        $xenos$Wizard.register('submit',validateHook);
+	        $xenos$Wizard.register('unload',unloadHook);
+        
+        };
+        
+        </jsp:body>
+    </jsp:element>
+     
+     
+     <spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+     <spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+     <spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+     
+     <h1><spring:message code="ref.insturment.entry.label.titleWizard" htmlEscape="false"/> <spring:message code="ref.insturment.entry.label.otherWizard" htmlEscape="false"/></h1>
+     
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	<c:if test="${isSoftValidationExists =='true'}">
+	<!-- Warning message Area -->
+		<ul class="xenosWarn">
+			<c:forEach items="${softValidationList}" var="dl">		
+				<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	 
+     <div class="detailBlock paddingFour">
+         <table class="tableStyle sixCol moreTable">
+            <tr class="noBdr">
+                <td><form:label path="commandForm.defaultInstrumentCode"><spring:message code="ref.insturment.entry.label.othertab.securitycode" htmlEscape="false"/></form:label></td>
+                <td><span class="detailTxtVal">${commandForm.defaultInstrumentCode}</span></td>
+                <td><form:label path="commandForm.instrumentPage.instrumentType"><spring:message code="ref.insturment.entry.label.othertab.instrumenttype" htmlEscape="false"/></form:label></td>
+                <td><span class="detailTxtVal">${commandForm.instrumentPage.instrumentType}</span></td>
+                <td><form:label path="commandForm.defaultShortName"><spring:message code="ref.insturment.entry.label.othertab.shortname" htmlEscape="false"/></form:label></td>
+                <td><span class="detailTxtVal">${commandForm.defaultShortName}</span></td>
+            </tr>      
+         </table>
+     </div>
+     
+	  <div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.label.toggle.more" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="spanInstrumentMoreId"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	  </div>
+	  
+	 <div>
+     <table class="entry4Cols">
+        <tr>
+            <!-- Accounting Period **START -->
+            <td>                
+                <h2><spring:message code="ref.insturment.entry.label.othertab.accountingperiod" htmlEscape="false"/></h2>
+                <div class="entryBlkArea smallBlockHeight">
+                 
+                    <div class="formItemBlock dottedBg">
+            
+                         <div class="formItem ">
+                            <form:label path="commandForm.settlingMonth"><spring:message code="ref.insturment.entry.label.othertab.month" htmlEscape="false"/></form:label>
+                            <form:select id="settlingMonth" path="commandForm.settlingMonth" class="dropdowninput  ">
+								<form:option value=""/>
+                                <form:options items="${commandForm.monthValues}" itemLabel="label" itemValue="value"/>
+                            </form:select>
+                            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        </div>
+            
+                        <div class="formItem ">
+                            <form:label path="commandForm.settlingDay"><spring:message code="ref.insturment.entry.label.othertab.day" htmlEscape="false"/></form:label>
+                            <form:select id="settlingDay" path="commandForm.settlingDay" class="dropdowninput  ">
+                            </form:select>
+                            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        </div>
+                        
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            
+                        <div id="formActionArea" class="gridBtnMargin">
+                            <div class="right">
+                                <div class="btnWrapStyle submitBtn gridAddBtn">
+                                  <span class="addBtnAccPeriod" style="display:block"><input id="addAccPeriodBtn" type="button" value="${formadd_label}" class="inputBtnStyle  "/></span>
+                                </div>
+                                <span class="editBtnAccPeriod" style="display:none"> 
+                                    <div class="btnWrapStyle submitBtn"><input id="updateAccPeriodBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                                    <div class="btnWrapStyle resetBtn"><input id="cancelAccPeriodBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                                </span>
+                            </div>
+                        </div>
+                          
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        
+                        <div class="entryGrid">
+                            <div id="accPeriodGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+                        </div>
+            
+                    </div>
+                </div>            
+            </td>
+            <!-- Accounting Period **END -->
+           
+            <!-- Listed Market **START -->
+            <td>                
+                <h2><spring:message code="ref.insturment.entry.label.othertab.listedmarket" htmlEscape="false"/></h2>
+                <div class="entryBlkArea smallBlockHeight">
+                 
+                    <div class="formItemBlock dottedBg">
+             
+						<!-- Market -->
+						
+						<div class="formItem noWidth">
+							<form:label path="commandForm.market"><spring:message code="ref.insturment.entry.label.othertab.market" htmlEscape="false"/></form:label>
+							<span><form:input id="market" path="commandForm.market" class="textBox market" /></span>														
+							<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+						</div>	
+						
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            
+                        <div class="formItem noWidth">
+                            <form:label path="commandForm.marketType"><spring:message code="ref.insturment.entry.label.othertab.type" htmlEscape="false"/></form:label>
+                            <form:select id="marketType" path="commandForm.marketType" class="dropdowninput  ">
+								<form:option value=""/>
+                                <form:options items="${commandForm.marketTypeValues}" itemLabel="label" itemValue="value"/>
+                            </form:select>
+                            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        </div>             
+            
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            
+                        <div id="formActionArea" class="gridBtnMargin">
+                            <div class="right">
+                                <div class="btnWrapStyle submitBtn gridAddBtn">
+                                  <span class="addBtnListedMarket" style="display:block"><input id="addListedMarketBtn" type="button" value="${formadd_label}" class="inputBtnStyle  "/></span>
+                                </div>
+                                <span class="editBtnListedMarket" style="display:none"> 
+                                    <div class="btnWrapStyle submitBtn"><input id="updateListedMarketBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                                    <div class="btnWrapStyle resetBtn"><input id="cancelListedMarketBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                                </span>
+                            </div>
+                        </div>
+                          
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        
+                        <div class="entryGrid">
+                            <div id="listedMarketGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+                        </div>
+            
+                    </div>
+                </div>            
+            </td>
+            <!-- Listed Market **END -->
+            
+            <!-- CSD Eligibility **START -->
+            <td>                
+                <h2><spring:message code="ref.insturment.entry.label.othertab.csdeligibility" htmlEscape="false"/></h2>
+                <div class="entryBlkArea smallBlockHeight">
+                 
+                    <div class="formItemBlock dottedBg">
+            
+                         <div class="formItem noWidth">
+                              <form:label path="commandForm.csd"><spring:message code="ref.insturment.entry.label.othertab.csd" htmlEscape="false"/></form:label>
+                              <span><form:input id="csd" value="" path="commandForm.csd"  class="textBox"/></span>
+                              <div class="popupBtn">
+                                  <input type="button" class="popupBtnIco" tgt="csd" popType="finInstRoleType" bankRoles="Central Depository" value=""/>
+                              </div>                              
+                              <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        </div>
+					
+            
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            
+                        <div id="formActionArea" class="gridBtnMargin">
+                            <div class="right">
+                                <div class="btnWrapStyle submitBtn gridAddBtn">
+                                  <span class="addBtnCsdElg" style="display:block"><input id="addCsdElgBtn" type="button" value="${formadd_label}" class="inputBtnStyle  "/></span>
+                                </div>
+                                <span class="editBtnCsdElg" style="display:none"> 
+                                    <div class="btnWrapStyle submitBtn"><input id="updateCsdElgBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                                    <div class="btnWrapStyle resetBtn"><input id="cancelCsdElgBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                                </span>
+                            </div>
+                        </div>
+                          
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        
+                        <div class="entryGrid">
+                            <div id="csdElgGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+                        </div> 
+            
+                    </div>
+                </div>            
+            </td>
+            <!-- CSD Eligibility **END -->
+            
+            <!-- Settlement Prohibited Date **START -->
+            <td class="last">
+                <h2><spring:message code="ref.insturment.entry.label.othertab.stlprohibiteddate" htmlEscape="false"/></h2>
+                <div class="entryBlkArea smallBlockHeight">
+                 
+                    <div class="formItemBlock dottedBg">
+                    
+                        <div class="formItem noWidth">
+                            <form:label path="commandForm.setlProhibitedDate"><spring:message code="ref.insturment.entry.label.othertab.prohibiteddate" htmlEscape="false"/></form:label>
+                            <span><form:input id="setlProhibitedDate" value="" path="commandForm.setlProhibitedDate" class="formInput dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>
+                            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        </div>
+            
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            
+                        <div id="formActionArea" class="gridBtnMargin">
+                            <div class="right">
+                                <div class="btnWrapStyle submitBtn gridAddBtn">
+                                  <span class="addBtnStlPrDate" style="display:block"><input id="addStlPrDateBtn" type="button" value="${formadd_label}" class="inputBtnStyle  "/></span>
+                                </div>
+                                <span class="editBtnStlPrDate" style="display:none"> 
+                                    <div class="btnWrapStyle submitBtn"><input id="updateStlPrDateBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                                    <div class="btnWrapStyle resetBtn"><input id="cancelStlPrDateBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                                </span>
+                            </div>
+                        </div>
+                          
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        
+                        <div class="entryGrid">
+                            <div id="stlPrDateGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+                        </div>
+            
+                    </div>
+                </div>            
+            </td>
+            <!-- Settlement Prohibited Date **END -->
+            
+        </tr>
+        
+        
+        <tr>
+            <!-- Rating **START -->
+            <td>                
+                <h2><spring:message code="ref.insturment.entry.label.othertab.rating" htmlEscape="false"/></h2>
+                <div class="entryBlkArea smallBlockHeight">
+                 
+                    <div class="formItemBlock dottedBg">
+            
+                         <div class="formItem noWidth">
+                            <form:label path="commandForm.ratingAgency"><spring:message code="ref.insturment.entry.label.othertab.ratingagency" htmlEscape="false"/></form:label>
+                            <form:select id="ratingAgency" path="commandForm.ratingAgency" class="dropdowninput">
+                                <form:option value=""/>
+								<form:options items="${commandForm.ratingAgencyPkNameMap}"/>
+                            </form:select>
+                            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        </div>
+            
+                        <div class="formItem noWidth">
+                            <form:label path="commandForm.rating"><spring:message code="ref.insturment.entry.label.othertab.rating" htmlEscape="false"/></form:label>
+                            <form:select id="rating" path="commandForm.rating" class="dropdowninput">
+                                <form:option value=""/>
+								<form:options items="${commandForm.ratings}"/>
+                            </form:select>
+                            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        </div>
+            
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            
+                        <div id="formActionArea" class="gridBtnMargin">
+                            <div class="right">
+                                <div class="btnWrapStyle submitBtn gridAddBtn">
+                                  <span class="addBtnRating" style="display:block"><input id="addRatingBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+                                </div>
+                                <span class="editBtnRating" style="display:none"> 
+                                    <div class="btnWrapStyle submitBtn"><input id="updateRatingBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                                    <div class="btnWrapStyle resetBtn"><input id="cancelRatingBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                                </span>
+                            </div>
+                        </div>
+                          
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        
+                        <div class="entryGrid">
+                            <div id="ratingGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+                        </div> 
+            
+                    </div>
+                </div>            
+            </td>
+            <!-- Rating **END -->
+            
+            <!-- Callable **START -->
+            <td>                
+                <h2><spring:message code="ref.insturment.entry.label.othertab.callable" htmlEscape="false"/></h2>
+                <div class="entryBlkArea smallBlockHeight">
+                 
+                    <div class="formItemBlock dottedBg">
+            
+                         <div class="formItem noWidth">
+                            <form:label path="commandForm.instrumentPage.callableFlag"><spring:message code="ref.insturment.entry.label.othertab.callableflag" htmlEscape="false"/></form:label>
+                            <form:select id="callableFlag" path="commandForm.instrumentPage.callableFlag" class="dropdowninput  ">
+                                <form:options items="${commandForm.instrumentPage.callableFlagValues}" itemLabel="label" itemValue="value"/>
+                            </form:select>
+                            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        </div>
+                        
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        
+                        <div id="callableItems" style="display:none;">
+                            <div class="formItem noWidth">
+                                <form:label path="commandForm.callStartDate" ><spring:message code="ref.insturment.entry.label.othertab.callstartdate" htmlEscape="false"/></form:label> 
+                                
+								<span><form:input id="callStartDate" value="" path="commandForm.callStartDate" class="formInput dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>
+                                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                            </div>
+                            
+                            <div class="formItem noWidth">
+                                <form:label path="commandForm.callEndDate" ><spring:message code="ref.insturment.entry.label.othertab.callenddate" htmlEscape="false"/></form:label>
+								 
+                                <span><form:input id="callEndDate" value="" path="commandForm.callEndDate" class="formInput dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>
+                                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                            </div>
+                            
+                            <div class="formItem noWidth">
+                                <form:label path="commandForm.callPrice" ><spring:message code="ref.insturment.entry.label.othertab.callprice" htmlEscape="false"/></form:label>
+                                <span><form:input id="callPrice" path="commandForm.callPrice"  class="txtNormal"  onblur="formatPrice($('#callPrice'),15,3,null,$('#callPrice').parent().parent().find('label').text());"/></span>
+                                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                            </div>
+                            
+                            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            
+                            <div id="formActionArea" class="gridBtnMargin">
+                                <div class="right">
+                                    <div class="btnWrapStyle submitBtn gridAddBtn">
+                                      <span class="addBtnCallable" style="display:block"><input id="addCallableBtn" type="button" value="${formadd_label}" class="inputBtnStyle  "/></span>
+                                    </div>
+                                    <span class="editBtnCallable" style="display:none"> 
+                                        <div class="btnWrapStyle submitBtn"><input id="updateCallableBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                                        <div class="btnWrapStyle resetBtn"><input id="cancelCallableBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                                    </span>
+                                </div>
+                            </div>
+                              
+                            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                            
+                            <div class="entryGrid">
+                                <div id="callableGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+                            </div>
+                        </div>                   
+                    </div>
+                </div>            
+            </td>
+            <!-- Callable **END -->
+            
+            <!-- Compliance **START -->
+            <td>                
+                <h2><spring:message code="ref.insturment.entry.label.othertab.compliance" htmlEscape="false"/></h2>
+                <div class="entryBlkArea smallBlockHeight">
+                 
+                    <div class="formItemBlock dottedBg">
+            
+                        <div class="formItem noWidth">
+                            <form:label path="commandForm.compliance"><spring:message code="ref.insturment.entry.label.othertab.compliance" htmlEscape="false"/></form:label>
+                            <form:select id="compliance" path="commandForm.compliance" class="dropdowninput  ">
+								<form:option value=""/>
+                                <form:options items="${commandForm.complianceValues}"/>
+                            </form:select>
+                            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        </div>
+            
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            
+                        <div id="formActionArea" class="gridBtnMargin">
+                            <div class="right">
+                                <div class="btnWrapStyle submitBtn gridAddBtn">
+                                  <span class="addBtnCompliance" style="display:block"><input id="addComplianceBtn" type="button" value="${formadd_label}" class="inputBtnStyle  "/></span>
+                                </div>
+                                <span class="editBtnCompliance" style="display:none"> 
+                                    <div class="btnWrapStyle submitBtn"><input id="updateComplianceBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                                    <div class="btnWrapStyle resetBtn"><input id="cancelComplianceBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                                </span>
+                            </div>
+                        </div>
+                          
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        
+                        <div class="entryGrid">
+                            <div id="complianceGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+                        </div> 
+            
+                    </div>
+                </div>            
+            </td>
+            <!-- Compliance **END -->
+            
+            <!-- Underwriter **START -->
+            <td class="last">
+                <h2><spring:message code="ref.insturment.entry.label.othertab.underwriter" htmlEscape="false"/></h2>
+                <div class="entryBlkArea smallBlockHeight">
+                 
+                    <div class="formItemBlock dottedBg">
+                    
+                         <div class="formItem noWidth">
+                            <form:label path="commandForm.underwriter"><spring:message code="ref.insturment.entry.label.othertab.underwriter" htmlEscape="false"/></form:label>
+                            <span><form:input id="underwriter" value="" path="commandForm.underwriter"  class="textBox smallInput  "/></span>
+                            <div class="popupBtn">
+                                <input type="button" class="popupBtnIco" tgt="underwriter" popType="finInstRoleType" bankRoles="Under Writer" value="" />
+                            </div>                              
+                            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        </div>
+            
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            
+                        <div id="formActionArea" class="gridBtnMargin">
+                            <div class="right">
+                                <div class="btnWrapStyle submitBtn gridAddBtn">
+                                  <span class="addBtnUnderwriter" style="display:block"><input id="addUnderwriterBtn" type="button" value="${formadd_label}" class="inputBtnStyle  "/></span>
+                                </div>
+                                <span class="editBtnUnderwriter" style="display:none"> 
+                                    <div class="btnWrapStyle submitBtn"><input id="updateUnderwriterBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                                    <div class="btnWrapStyle resetBtn"><input id="cancelUnderwriterBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                                </span>
+                            </div>
+                        </div>
+                          
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                        
+                        <div class="entryGrid">
+                            <div id="underwriterGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+                        </div> 
+            
+                    </div>
+                </div>            
+            </td>
+            <!-- Underwriter **END -->
+        </tr>
+     
+     </table>
+	 </div>
+     
+	    <!-- Other Info **START -->
+	 
+      <div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.othertab.otherinfo" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="spanInstrumentOtherInfoId"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	  </div>	
+	  
+  
+    
+     <div class="entryBlkArea ">
+     
+        <div class="formItemBlock dottedBg">   
+                    
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.reopenDateStr"><spring:message code="ref.insturment.entry.label.othertab.reopendate" htmlEscape="false"/></form:label>
+                <span><form:input id="reopenDateStr" value="" path="commandForm.instrumentPage.reopenDateStr" class="formInput dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.ipoPaymentDateStr"><spring:message code="ref.insturment.entry.label.othertab.ipopaymentdate" htmlEscape="false"/></form:label>
+                <span><form:input id="ipoPaymentDateStr" value="" path="commandForm.instrumentPage.ipoPaymentDateStr" class="formInput dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.publicOfferStartDateStr"><spring:message code="ref.insturment.entry.label.othertab.publicofferstartdate" htmlEscape="false"/></form:label>
+                <span><form:input id="publicOfferStartDateStr" value="" path="commandForm.instrumentPage.publicOfferStartDateStr" class="formInput dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.publicOfferEndDateStr"><spring:message code="ref.insturment.entry.label.othertab.publicofferenddate" htmlEscape="false"/></form:label>
+                <span><form:input id="publicOfferEndDateStr" value="" path="commandForm.instrumentPage.publicOfferEndDateStr" class="formInput dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+			
+			<div class="formItem">
+                <form:label path="commandForm.instrumentPage.quantityPerUnitStr" ><spring:message code="ref.instrument.entry.label.othertab.quantityperunit" htmlEscape="false"/></form:label>
+                <span><form:input id="quantityPerUnitStr" path="commandForm.instrumentPage.quantityPerUnitStr"  class="txtNormal"  onblur="return formatQuantity($('#quantityPerUnitStr'),15,3,null,$('#quantityPerUnitStr').parent().parent().find('label').text());"/></span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            
+        </div>
+         
+		<div class="lineHide"><spring:message text="" htmlEscape="false"/>
+		</div>
+	</div> 
+	
+	<input type="hidden" id="settlingMonthHidden" />
+	<input type="hidden" id="settlingDayHidden" />
+	
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/inf/fieldvalidator.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			$('#reopenDateStr').ForceNumericOnly();	
+			$('#ipoPaymentDateStr').ForceNumericOnly();
+			$('#publicOfferStartDateStr').ForceNumericOnly();
+			$('#publicOfferEndDateStr').ForceNumericOnly();			
+		</jsp:body>
+	</jsp:element>
+		
+</div>
+</jsp:root>

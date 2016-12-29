@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Interest Rate Swap Query Implementation -->
+
+<containers:XenosQueryModule xmlns:mx="http://www.adobe.com/2006/mxml" 
+                             xmlns:containers="com.nri.rui.core.containers.*" 
+                             xmlns:flexlib="http://code.google.com/p/flexlib/" 
+                             xmlns:cntrls="com.nri.rui.core.controls.*" 
+                             xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+			    			 xmlns:swppopup="com.nri.rui.swp.popupImpl.*"
+                             xmlns:frmtrs="com.nri.rui.core.formatters.*"
+                             xmlns:valdtrs="com.nri.rui.core.validators.*" 
+                             layout="vertical" 
+                             percentWidth="100" 
+                             percentHeight ="100" 
+                             horizontalScrollPolicy="off" 
+                             verticalScrollPolicy="off" 
+                             creationComplete="{this.loadAll()}" >
+    <mx:Script>
+        <![CDATA[
+        	import com.nri.rui.core.utils.XenosStringUtils;
+            import com.nri.rui.core.Globals;
+            import com.nri.rui.core.RendererFectory;
+            import com.nri.rui.core.renderers.ImgSummaryRenderer;
+            import mx.containers.TitleWindow;
+            import mx.collections.ArrayCollection;
+            import mx.events.CloseEvent;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import mx.controls.CheckBox;
+            import mx.managers.PopUpManager;
+            
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.controls.CustomDataGrid;
+            import mx.events.DataGridEvent;
+            import mx.events.ValidationResultEvent;
+            import com.nri.rui.core.validators.XenosNumberValidator ;
+            import com.nri.rui.swp.renderers.SwapTradeAmendCancelRenderer ;
+                        
+            [Embed(source="../../assets/img/inf/addcolunm.png")]
+                
+            
+            [Bindable]private var icoColumns:Class;
+            public static var popupColumns:TitleWindow = null;
+            public var gridColumns:ArrayCollection = new ArrayCollection();
+            private function changeCurrentState():void{
+                currentState = "result";
+                app.submitButtonInstance = null;
+            }
+            /**
+            * Retrieve and return the Security Name for dataTip.
+            */
+            private function getSecurityName(item:Object):String {
+                return item.officialName;
+            }
+            /**
+            * Retrieve and return the Fund Account Number for dataTip.
+            */
+            private function getFundAccountNo(item:Object):String {
+                return item.inventoryAccountNoStr;
+            }
+            
+            private function displayVersionNo(item:Object,column : DataGridColumn):String{
+                return item.referenceNo+"-"+item.versionNoStr;
+                
+            }
+            
+           /**
+            *  datagrid header release event handler to handle datagridcolumn sorting
+            */
+            public function dataGrid_headerRelease(evt:DataGridEvent):void {                
+                var dg:CustomDataGrid = CustomDataGrid(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];       
+            }
+            
+            /**
+             * This method should be called on creationComplete of the datagrid 
+             */ 
+             private function bindDataGrid():void {
+                qh.dgrid = resultSummary;
+            }
+            
+            /**
+			 * Method to Format and validate numbers(B,M,T)
+			 */
+			private function numberHandler(numVal:XenosNumberValidator):void
+			{
+				//The source textinput control
+				var source:Object=numVal.source; 
+				    
+				var vResult:ValidationResultEvent;
+				var tmpStr:String = source.text; 
+				vResult = numVal.validate();
+				
+				if (vResult.type == ValidationResultEvent.VALID) {
+				   source.text=numberFormatter.format(source.text);            
+				}else{
+				   source.text = tmpStr;           
+				}
+			}
+            
+        ]]>
+    </mx:Script>
+    
+    <mx:Script source="actionscripts/SwapTradeQuery.as"/>
+    
+    <frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+    <valdtrs:XenosNumberValidator id="numVal1" requiredFieldError="" decimalPointCountError="" 
+        invalidCharError="" exceedsMaxError="" negativeError="" separationError="" source="{notionalAmountFrom}" property="text" 
+        allowNegative="true" domain="real" lowerThanMinError="" />
+    <valdtrs:XenosNumberValidator id="numVal2" requiredFieldError="" decimalPointCountError="" 
+        invalidCharError="" exceedsMaxError="" negativeError="" separationError="" source="{notionalAmountTo}" property="text" 
+        allowNegative="true" domain="real" lowerThanMinError="" />
+        
+    
+    <containers:states>
+        <mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions>
+        
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" id="screenNavigater">    
+        <mx:HBox width="100%" styleName="ExCoBgPanel">
+            <mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="{this.parentApplication.xResourceManager.getKeyValue('swp.tooltip.query')}" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;"  />      
+            <mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="{this.parentApplication.xResourceManager.getKeyValue('swp.tooltip.result')}" buttonMode="true" click="currentState='result'" />
+            <mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="{this.parentApplication.xResourceManager.getKeyValue('swp.tooltip.qryrslt')}" buttonMode="true" click="currentState='qryres';app.submitButtonInstance = submit;"/>     
+        </mx:HBox>
+        <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    <mx:VBox width="100%" height="100%">
+    <mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" >   
+        
+        <mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        <mx:VBox label="Query Criteria" width="100%" height="100%" styleName="HDivideStyle" >
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>         
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+                
+            <mx:Grid width="100%" borderThickness="0">
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.productType')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:ComboBox id="productType" labelField="label"/>
+                    </mx:GridItem>
+                    
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.officeid')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:ComboBox id="officeIdList" prompt="Select"/>
+                    </mx:GridItem>                                  
+                </mx:GridRow>
+                  
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.fundCode')}" />
+                    </mx:GridItem>                        
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:FundPopUpHbox id="fundPopUp"/>
+                    </mx:GridItem>                    
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.inventoryAccountNo')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:AccountPopUpHbox id="inventoryAccountNo" retContextItem="{returnContextItem}" recContextItem="{populateInvActContext()}"/>
+                    </mx:GridItem>                             
+                </mx:GridRow>
+                    
+                <mx:GridRow width="100%">
+                	<mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.contractReferenceNo')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+						<swppopup:ReferenceNoPopUpHbox  id="contractReferenceNo" retContextItem="{returnContextItem}" 
+														recContextItem="{populateContractRefNoContext()}"
+														mode="{XenosStringUtils.equals(this.mode,'query')? Globals.TRD_QUERY_MODE : this.mode}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.accountNo')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:AccountPopUpHbox id="accountNo" retContextItem="{returnContextItem}" recContextItem="{populateActContext()}"/> 
+                    </mx:GridItem>                    
+                </mx:GridRow>
+                
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.externalReferenceNo')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:TextInput id="externalReferenceNo"/>
+                    </mx:GridItem>                        
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.notionalExchangeFlag')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:ComboBox id="notionalExchangeFlag" labelField="label"/>
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.tradeDateEntry')}" /> 
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                    	<mx:HBox>
+                    		<mx:DateField id="tradeDateFrom" formatString="YYYYMMDD" editable="true" width="90"/>
+                    		<mx:DateField id="tradeDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                    	</mx:HBox>                                                      
+                    </mx:GridItem>                        
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.maturityDateEntry')}" /> 
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                    	<mx:HBox>
+                    		<mx:DateField id="maturityDateFrom" formatString="YYYYMMDD" editable="true" width="90"/>
+                    		<mx:DateField id="maturityDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                    	</mx:HBox>                                                  
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <mx:GridRow width="100%">                                                
+                    <mx:GridItem width="20%" borderThickness="0">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.terminationDateEntry')}" /> 
+				   </mx:GridItem>
+				   <mx:GridItem width="30%" borderThickness="0">
+				   		<mx:HBox>
+				   			<mx:DateField id="terminationDateFrom" formatString="YYYYMMDD" editable="true" width="90"/>
+				   			<mx:DateField id="terminationDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+				   		</mx:HBox>						   
+				   </mx:GridItem>
+				   <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.dataSource')}" />
+                   </mx:GridItem>
+                   <mx:GridItem width="30%" borderThickness="0">
+                        <mx:ComboBox id="dataSource" width="30%" labelField="label" />                    
+                   </mx:GridItem>
+                </mx:GridRow>                    
+                <mx:GridRow width="100%">                       						   
+					<mx:GridItem width="20%" borderThickness="0">
+                    	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.cancelDataSource')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:ComboBox id="cxlDataSource" width="30%" labelField="label" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.status')}" id="statusLabel"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:ComboBox id="statusCombo" width="30%" labelField="label" itemRenderer="mx.controls.Label" />
+                    </mx:GridItem>
+                 </mx:GridRow>    
+	             <mx:GridRow width="100%" id="terminationBlock">
+	                    <mx:GridItem width="20%" borderThickness="0">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.terminationFlag')}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="0">
+	                         <mx:ComboBox id="terminationFlag" labelField="label"/> 
+	                    </mx:GridItem>                        
+	                    <mx:GridItem width="20%" borderThickness="0">
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="0">
+	                    </mx:GridItem>
+	             </mx:GridRow>
+
+            </mx:Grid>
+            
+            <flexlib:WindowShade id="ws2" tabChildren="{ws2.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('swp.swap.label.stream')}" opened="true" width="100%">
+                <mx:Grid width="100%" borderThickness="0">                    
+                   <mx:GridRow width="100%">                                                
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.deliveryReceiveFlag')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="deliveryReceiveFlag" labelField="label"/>                           
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.notionalAmountEntry')}" /> 
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        	<mx:HBox>
+                        		<mx:TextInput id="notionalAmountFrom" width="100" focusOut="numberHandler(numVal1)"/>
+                        		<mx:TextInput id="notionalAmountTo" width="100" focusOut="numberHandler(numVal2)"/>	
+                        	</mx:HBox>                                                       
+                        </mx:GridItem>
+                   </mx:GridRow>
+                                      
+                   <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.interestRateType')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="interestRateType" prompt="Select"/>                           
+                        </mx:GridItem>                        
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.fixedFloatingType')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">                            
+                            <mx:ComboBox id="fixedFloatingType" labelField="label"/>                           
+                        </mx:GridItem>                    
+                   </mx:GridRow> 
+                   
+                   <mx:GridRow width="100%"> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.paymentCurrency')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <cntrls:CurrencyHBox id="payemntCurrency"/>                           
+                        </mx:GridItem>                        
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.paymentFrequency')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="paymentFrequency" labelField="label"/>                           
+                        </mx:GridItem>                    
+                   </mx:GridRow>                
+                </mx:Grid>
+            </flexlib:WindowShade>
+            
+            <flexlib:WindowShade id="ws3" tabChildren="{ws3.opened}" styleName="linkButtonWindowShade" label="Sort Order Fields" opened="true" width="100%">
+                <mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="100%" borderThickness="0">
+                            <mx:HBox width="100%">
+                                <mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()" width="200" itemRenderer="mx.controls.Label"></mx:ComboBox>
+                                <mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()" width="200" itemRenderer="mx.controls.Label"> </mx:ComboBox>
+                                <mx:ComboBox id="sortField3" labelField="label" width="200" itemRenderer="mx.controls.Label"> </mx:ComboBox>                                
+                            </mx:HBox>                      
+                        </mx:GridItem>
+                    </mx:GridRow>
+                </mx:Grid>
+            </flexlib:WindowShade>
+            
+            <mx:HBox width="100%" styleName="ButtonBackPanel">
+               <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" 
+               					   id="submit" styleName="BtnStyle" 
+               					   click="{this.mode == 'query' ?  this.dispatchEvent(new Event('querySubmit')) 
+               					   								: ((this.mode == 'AMEND' || this.mode == 'amend' )? 
+               					   								this.dispatchEvent(new Event('amendSubmit')) 
+               					   								: this.dispatchEvent(new Event('cancelSubmit')) )}" />
+               					   								
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="{this.mode == 'query' ?  this.dispatchEvent(new Event('queryReset')) : ((this.mode == 'AMEND' || this.mode == 'amend' ) ? this.dispatchEvent(new Event('amendReset')) : this.dispatchEvent(new Event('cancelReset')))}" />
+            </mx:HBox>
+            
+        </mx:VBox>      
+        </mx:Canvas>
+                
+        <mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >          
+        
+            <cntrls:QueryResultHeader id="qh" printFunction="dispatchPrintEvent" pdfFunction="dispatchPdfEvent" 
+            						  xlsFunction="dispatchXlsEvent" previousFunction="dispatchPrevEvent" 
+            						  nextFunction="dispatchNextEvent" startIndex="{this.mode == 'query' ? 1 : 2}"
+            						  />
+            
+            <cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{queryResult}" 
+            				       sortableColumns="true" headerRelease="dataGrid_headerRelease(event)" 
+            				       variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()"
+            				       >
+                <cntrls:columns>         
+                	        
+                   <mx:DataGridColumn textAlign="center" sortable="false" dataField="" visible="{!terminationMode}" 
+                   					  headerText="" width="40" draggable="false" resizable="false" 
+                   					  itemRenderer="{mode == 'query' ? new RendererFectory(ImgSummaryRenderer) 
+                   					  				: new RendererFectory(SwapTradeAmendCancelRenderer, mode)}" />
+                   	
+                   <mx:DataGridColumn textAlign="center" sortable="false" dataField="" visible="{terminationMode}"
+                   					  headerText="" width="40" draggable="false" resizable="false" 
+                   					  itemRenderer="{new RendererFectory(SwapTradeAmendCancelRenderer, 'TERMINATION')}" />				  				
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="productType"
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.productType')}" />                   
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="fundCode" 
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.fundCode')}" 
+                   					  itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer"/>                   
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="fundName" 
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.fundName')}"/>                   
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="fundAccountNo"
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.inventoryAccountNo')}" 
+                   					  itemRenderer="com.nri.rui.core.renderers.AccountDetailsRenderer"/>                   
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="fundAccountName"
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.fundAccountName')}"/>                   
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="contractReferenceNo" 
+                   					  itemRenderer="com.nri.rui.swp.renderers.TradeDetailRenderer"
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.contractReferenceNo')}"/>                   
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="deliveryReceiveFlag" 
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.deliveryReceiveFlag')}"/>                   
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="false" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="streamReferenceNo" 
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.streamReferenceNo')}"/>                   
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="accountNo"  
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.accountNo')}" 
+                   					  itemRenderer="com.nri.rui.core.renderers.AccountDetailsRenderer" />				   
+				   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+				   					  sortCompareFunction="sortUtil.sortString" dataField="accountName" 
+				   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.accountName')}"/>
+				   <mx:DataGridColumn textAlign="right" sortable="true" visible="true" showDataTips="true" 
+				   					  sortCompareFunction="sortUtil.sortString" dataField="notionalAmountStr" 
+				   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.notionalAmount')}"/>
+				   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+				   					  sortCompareFunction="sortUtil.sortString" dataField="securityId" 
+				   					  dataTipFunction="getSecurityName" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer"
+				   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.paymentCurrency')}"/>
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="tradeDateStr"
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.contractStartDate')}"/>
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="effectiveDateStr" 
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.contractExecutionDate')}"/>
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="maturityDateStr"
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.contractExpiryDate')}"/>
+				   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+				   					  sortCompareFunction="sortUtil.sortString" dataField="terminationDateStr" 
+				   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.terminationDate')}"/>
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="dataSource" 
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.dataSource')}"/>
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="cxlDataSource" 
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.cancelDataSource')}"/>
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="fixedFloatingType" 
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.fixedFloatingType')}"/>
+                   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="interestRateTypes" 
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.interestRateType')}"/>
+				   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+				   					  sortCompareFunction="sortUtil.sortString" dataField="officeId" 
+				   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.officeid')}"/>
+				   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+				   					  sortCompareFunction="sortUtil.sortString" dataField="notionalExchangeFlag"
+				   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.notionalExchangeFlag')}"/>
+				   <mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" 
+                   					  sortCompareFunction="sortUtil.sortString" dataField="status" 
+                   					  headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.swptradequery.label.status')}"
+                   					  itemRenderer="com.nri.rui.core.renderers.StatusRenderer" />
+                </cntrls:columns> 
+            </cntrls:CustomDataGrid>
+            
+            
+            
+            
+            <!--mx:HBox width="100%" styleName="ButtonBackPanel" visible = "{terminationMode}" 
+            				       includeInLayout = "{terminationMode}" >
+            				       
+                   <cntrls:XenosButton id="cancelSubmit" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" 
+                   					   styleName="BtnStyle" click="showConfirmModule()" />
+            </mx:HBox-->
+                
+        </mx:VBox>
+            
+    </mx:HDividedBox>
+    </mx:VBox>
+    
+    </mx:Canvas>
+    
+</containers:XenosQueryModule>

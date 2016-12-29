@@ -1,0 +1,566 @@
+<!--$Id$-->
+<!--$Author: shalinis $-->
+<!--$Date: 2016-12-27 11:13:15 $-->
+
+
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:spring="http://www.springframework.org/tags"
+	xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:tiles="http://tiles.apache.org/tags-tiles"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">	 
+	 
+<div class="entryContainer paddingFour">
+		<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+		<jsp:output	omit-xml-declaration="yes" />
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+		
+        <jsp:body>	 
+			
+			 xenos.loadLocalizedScript([
+                  {path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+                  {path: xenos.context.path + '/scripts/cax/xenos-cax-i18n', async: false}
+				 
+              ]);
+              //Loading Required scripts before validator is called.
+              xenos.loadScript([
+                  {path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},                  
+                  {path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				  {path: xenos.context.path + '/scripts/cax/xenos/caxEventEntry.js', async: false}
+              ]);	 
+			var context;
+			var $context;
+			var i = 0;
+           var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+				
+				/**
+					* A common request handler to be used server communication.
+					*/
+					var xenos$Handler$RequestHandler = xenos$Handler$function({
+						get: {
+							requestType: xenos$Handler$default.requestType.asynchronous
+						},	
+						settings : {
+							beforeSend : function(request) {
+							request.setRequestHeader('Accept', 'text/html;type=ajax');
+						},
+						type : 'POST'
+						}
+					});
+					
+					/**
+					* A common request handler to be used server communication.
+					*/
+					var xenos$Handler$RequestHandlerJson = xenos$Handler$function({
+						get: {
+							contentType: 'json',
+							requestType: xenos$Handler$default.requestType.asynchronous
+						},	
+						settings: {
+							beforeSend: function(request) {
+								request.setRequestHeader('Accept', 'application/json');
+							},
+							type: 'POST'
+						}
+					});
+		        context = $xenos$Wizard.$context;
+				$tradeEntry$contaxt = $('#commandForm');
+				var eventType = "${commandForm.corporateActionId}";
+				$context = $xenos$Wizard.$context;
+				var baseUrl = xenos.context.path + context.find('form').attr('action');
+				var resposeHtml = null;
+				var corporateActionId = null;
+								
+				$('#subEventType',			$tradeEntry$contaxt).unbind('change',xenos$cax$event$entry$taxPopulateHandler);
+				$('#subEventType',			$tradeEntry$contaxt).bind('change',xenos$cax$event$entry$taxPopulateHandler);				
+				
+				$('#processingFrequency',$context).unbind('change',xenos$cax$event$entry$processingFrequencyHandler)
+						                             .bind('change',xenos$cax$event$entry$processingFrequencyHandler)
+													 .trigger('change');						 
+				var currentPage = $("#currentPageName").attr("value");
+				
+				if(currentPage=="GeneralDetailEntry"){
+					$('#subEventType',			$tradeEntry$contaxt).trigger('change');
+					$("#blockForEventType").show();
+				}
+				
+				if(currentPage=="GeneralDetailAmend"){
+					$('#subEventType',			$tradeEntry$contaxt).trigger('change');
+					$("#blockForEventType").show();
+				}			
+				
+				var xenos$cax$event$entry$validateHook = function() {
+				   
+				   var validationMessages = [];
+				   
+				   if(VALIDATOR.isNullValue($.trim($('#subEventType').val()))) {   
+						validationMessages.push(xenos$CAX$i18n.rightsConditionEntry.enter_subEventType);
+					} else if(corporateActionId !=null) {
+					
+						 if(corporateActionId == 'CASH_DIVIDEND' || corporateActionId == 'CAPITAL_REPAYMENT') {
+							var errMsg = xenos.ns.cax.eventEntry.validateCashDividend(corporateActionId) || [];
+						
+							$.each(errMsg, function(index,message){
+							validationMessages.push(message);
+							});
+						
+						}
+						
+						if(corporateActionId == 'BONUS_ISSUE' || corporateActionId == 'STOCK_DIVIDEND') {	
+							var errMsg = xenos.ns.cax.eventEntry.validateBonusIssue(corporateActionId) || [];
+						
+							$.each(errMsg, function(index,message){
+							validationMessages.push(message);
+						});
+						}
+						
+						if(corporateActionId == 'NAME_CHANGE' || corporateActionId == 'REVERSE_STOCK_SPLIT' 
+						|| corporateActionId == 'STOCK_SPLIT' || corporateActionId == 'SPIN_OFF' ) {
+						
+							var errMsg = xenos.ns.cax.eventEntry.validateStockEventsEntry(corporateActionId) || [];
+						
+							$.each(errMsg, function(index,message){
+							validationMessages.push(message);
+						});
+						} 
+						
+						if(corporateActionId == 'COUPON_PAYMENT') {	
+						var errMsg = xenos.ns.cax.eventEntry.validateCouponPaymentEntry(corporateActionId) || [];
+						
+							$.each(errMsg, function(index,message){
+							validationMessages.push(message);
+						});
+						}
+					
+						if(corporateActionId == 'STOCK_MERGER') {
+							var isStockPresent = false;
+							if($('.grid-canvas')[0].innerHTML!="") {
+								isStockPresent = true;
+							}
+							
+							var errMsg = xenos.ns.cax.eventEntry.validateStockMergerSubmit(isStockPresent) || [];
+							$.each(errMsg, function(index,message){
+								validationMessages.push(message);
+						});
+							
+						}
+						
+						if(corporateActionId == 'RIGHTS_ALLOCATION') {	
+						var errMsg = xenos.ns.cax.eventEntry.validateRightsIssue(corporateActionId) || [];
+						
+							$.each(errMsg, function(index,message){
+							validationMessages.push(message);
+						});
+						}
+					
+						if(corporateActionId == 'REDEMPTION_BOND') {
+							
+							var errMsg = xenos.ns.cax.eventEntry.validateRedemptionBond(corporateActionId) || [];
+							
+								$.each(errMsg, function(index,message){
+								validationMessages.push(message);
+						});
+						}
+					
+						if(corporateActionId == 'OPTIONAL_STOCK_DIV' ||  $('#subEventType').val() == 'DIV_REINVESTMENT') {
+							
+							var errMsg = xenos.ns.cax.eventEntry.validateStockCashOption(corporateActionId) || [];
+							
+								$.each(errMsg, function(index,message){
+								validationMessages.push(message);
+						});
+						}
+						
+						if(corporateActionId == 'OTHERS') {
+							
+							var errMsg = xenos.ns.cax.eventEntry.validateOthers(corporateActionId) || [];
+							
+								$.each(errMsg, function(index,message){
+								validationMessages.push(message);
+						});
+						}
+							
+					}
+				   
+				
+				   if(validationMessages.length >0){
+						xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);			
+						return false;
+					} else {
+						xenos$cax$event$entry$changeToCapsExt();
+					} 
+					
+				};
+				
+				function xenos$cax$event$entry$changeToCapsExt(){
+					$('#extRefNo').val($('#extRefNo').val().toUpperCase());
+				
+				}
+				
+				var xenos$cax$event$entry$unloadHook = function(){
+					$xenos$Wizard.deregister('next',xenos$cax$event$entry$validateHook);
+					$xenos$Wizard.deregister('submit',xenos$cax$event$entry$validateHook);
+					$xenos$Wizard.deregister('unload',xenos$cax$event$entry$unloadHook);
+					$context.find('#processingFrequency').unbind('change',xenos$cax$event$entry$processingFrequencyHandler);
+				};
+				$xenos$Wizard.register('next',xenos$cax$event$entry$validateHook);
+				$xenos$Wizard.register('submit',xenos$cax$event$entry$validateHook);
+				$xenos$Wizard.register('unload',xenos$cax$event$entry$unloadHook);
+				
+				xenos.utils.afterFormRenderScuts();
+				
+				function xenos$cax$event$entry$processingFrequencyHandler(e){
+					
+					var value = $(e.target).val();
+					if(value == "" || value == "MANUAL"){
+						$context.find('#processStartDateValue').val("");
+						$context.find('#processEndDateValue').val("");
+						$context.find('#processStartDateLable').hide();
+						$context.find('#processEndDateLable').hide();
+					}
+					if(value == "DAILY"){
+						$context.find('#processStartDateLable').show();
+						$context.find('#processEndDateLable').show();
+					}
+					if(value == "TRIGGER"){
+						$context.find('#processStartDateLable').show();
+						$context.find('#processEndDateValue').val("");
+						$context.find('#processEndDateLable').hide();
+					}
+				}
+				
+				function xenos$cax$event$entry$populateTradeTypeRequestParams(){
+				
+                     var reqObj = {
+                         "tradeScreenData.tradeType"    :    $.trim($('#subEventType',$tradeEntry$contaxt).val())
+                        };
+						return reqObj;
+                  }
+				  
+				 function xenos$cax$event$entry$populateEventParam(pageName) {
+					var reqObj = {
+                         "pageName"    :    pageName
+                        };
+						return reqObj;
+				}
+				
+				function xenos$cax$event$entry$populateTaxHandler(e) {
+					
+					var baseUrl = xenos.context.path + context.find('form').attr('action');
+					
+					if($.trim($(e.target).val()) != ""){
+					
+						var requestUrl = baseUrl + "/populateTax.json?commandFormId=" + $('[name=commandFormId]').val();
+						
+						
+						xenos$Handler$RequestHandlerJson.generic(undefined, {	
+							requestUri: requestUrl,
+							settings: {
+								type: 'POST',
+								data : xenos$cax$event$entry$populateCorporateActionParam()
+							},
+							onJsonContent :  function(ev, options, $target, content) {
+								if(content.success == true){
+									$("#blockForEventType").show();
+									
+									xenos$cax$event$entry$populateEventTypeStatus(content.value[0]);
+									corporateActionId = content.value[0].corporateActionId;
+									xenos$cax$event$entry$populateTaxData(content.value[0]);
+									xenos$cax$event$entry$populateTaxRateData(content.value[0]);
+									
+								}else {
+									xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+									return true;
+								}
+						 
+							}
+						});
+					}
+				}
+				  
+				function xenos$cax$event$entry$taxPopulateHandler(e) {
+					
+					var baseUrl = xenos.context.path + context.find('form').attr('action');
+					
+					if($.trim($(e.target).val()) != ""){
+					
+						var requestUrl = baseUrl + "/populateTax.json?commandFormId=" + $('[name=commandFormId]').val();
+						
+						
+						xenos$Handler$RequestHandlerJson.generic(undefined, {	
+							requestUri: requestUrl,
+							settings: {
+								type: 'POST',
+								data : xenos$cax$event$entry$populateCorporateActionParam()
+							},
+							onJsonContent :  function(ev, options, $target, content) {
+								if(content.success == true){
+									$("#blockForEventType").show();
+									
+									xenos$cax$event$entry$populateEventTypeStatus(content.value[0]);
+									corporateActionId = content.value[0].corporateActionId;
+									xenos$cax$event$entry$populateTaxData(content.value[0]);
+									xenos$cax$event$entry$populateTaxRateData(content.value[0]);
+																		
+									xenos$cax$event$entry$tradeTypeChangeHandler(e);
+									
+								}else {
+									xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+									return true;
+								}
+						 
+							}
+						});
+					}
+				}
+				
+				function xenos$cax$event$entry$tradeTypeChangeHandler(e) {
+						
+					var baseUrl = xenos.context.path + context.find('form').attr('action');
+					var requestUrl = null;
+					if($.trim($(e.target).val()) != ""){
+					
+						if($('#subEventType').val() == 'BONUS_ISSUE') {
+							requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=stockDividendEntry";
+						} else if ($('#subEventType').val() == 'CASH_DIVIDEND') {
+							requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=cashDividendEntry";
+						} else if ($('#subEventType').val() == 'CAPITAL_REPAYMENT') {
+							requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=cashDividendEntry";
+						} else if ($('#subEventType').val() == 'SPECIAL_CASH_DIVIDEND') {
+							requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=cashDividendEntry";
+						} else if ($('#subEventType').val() == 'SCHEME_OF_ARRANGEMENT_CASH') {
+							requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=cashDividendEntry";
+						}  else if ($('#subEventType').val() == 'STOCK_DIVIDEND') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=stockDividendEntry";
+						} else if ($('#subEventType').val() == 'NAME_CHANGE') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=rcAssCapRvsplShaexStosplEntry";
+						} else if ($('#subEventType').val() == 'REVERSE_STOCK_SPLIT') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=rcAssCapRvsplShaexStosplEntry";
+						} else if ($('#subEventType').val() == 'STOCK_SPLIT') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=rcAssCapRvsplShaexStosplEntry";
+						} else if ($('#subEventType').val() == 'SPIN_OFF') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=rcAssCapRvsplShaexStosplEntry";
+						}  else if ($('#subEventType').val() == 'CONVERSION') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=rcAssCapRvsplShaexStosplEntry";
+						} else if ($('#subEventType').val() == 'EXCHANGE') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=rcAssCapRvsplShaexStosplEntry";
+						} else if ($('#subEventType').val() == 'STOCK_SPLIT_WITH_CODE_CHANGE') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=rcAssCapRvsplShaexStosplEntry";
+						} else if ($('#subEventType').val() == 'FUNGIBILITY') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=rcAssCapRvsplShaexStosplEntry";
+						} else if ($('#subEventType').val() == 'ASSIMILATION') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=rcAssCapRvsplShaexStosplEntry";
+						} else if ($('#subEventType').val() == 'RIGHTS_REGISTRATION') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=rcAssCapRvsplShaexStosplEntry";
+						} else if ($('#subEventType').val() == 'CONSOLIDATION') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=rcAssCapRvsplShaexStosplEntry";
+						} else if ($('#subEventType').val() == 'TAKE_OVER') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=rcAssCapRvsplShaexStosplEntry";
+						} else if ($('#subEventType').val() == 'COUPON_PAYMENT') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=couponPaymentEntry";
+						} else if ($('#subEventType').val() == 'MERGER') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=mergerEntry";
+						} else if ($('#subEventType').val() == 'SCHEME_OF_ARRANGEMENT') {
+						    requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=mergerEntry";
+						} else if($('#subEventType').val() == 'RIGHTS_ALLOCATION') {
+							requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=rightsEntry";
+						} else if($('#subEventType').val() == 'REDEMPTION_BOND') {
+							requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=redemptionEntry";
+						} else if($('#subEventType').val() == 'OPTIONAL_STOCK_DIV') {
+							requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=cashStockOptionEntry";
+						} else if($('#subEventType').val() == 'SCRIPT_DIVIDEND') {
+							requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=cashStockOptionEntry";
+						} else if($('#subEventType').val() == 'DIV_REINVESTMENT') {
+							requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=cashStockOptionEntry";
+						} else if($('#subEventType').val() == 'OTHERS') {
+							requestUrl = baseUrl + "/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=othersEntry";
+						}
+						
+						
+						xenos$Handler$RequestHandler.generic(undefined, {	
+							requestUri: requestUrl,
+							onHtmlContent: function(e, options, $target, content) {
+								
+								if($('.xenos-grid', '#content').length &gt; 0){
+									$('.xenos-grid', '#content').each(function(idx, elm){
+										var grid = $(elm).data('gridInstance') || false;
+										if(grid){
+											grid.destroy();
+										}
+									});
+								}
+								
+								$("#blockForEventType").html(content);
+								$('input.dateinput', "#blockForEventType").xenosdatepicker();
+								$("#eventTypeStatus").show();
+								
+								$("#processFreq").show();
+								$("#extRef").show();
+								$("#corpIdDesc").show();
+								$("#remarks").show();
+								
+								if(corporateActionId == 'CASH_DIVIDEND' || corporateActionId == 'COUPON_PAYMENT') {
+									if($('#subEventType').val() =='SCHEME_OF_ARRANGEMENT_CASH') {
+										$('#taxFeeEntryDiv', '#content').hide();
+									} else {
+										$('#taxFeeEntryDiv', '#content').show();
+										xenos$cax$event$entry$populateTaxEntryFields();
+									}
+								} else if (corporateActionId == 'CAPITAL_REPAYMENT') {
+									$('#taxFeeEntryDiv', '#content').hide();
+								}
+								
+								if ($('#subEventType').val() == 'MERGER' || $('#subEventType').val() == 'SCHEME_OF_ARRANGEMENT') {
+									xenos$cax$event$entry$populateSecurityStockfields();
+								}
+								
+								
+								if(currentPage=="GeneralDetailAmend"){
+									xenos.ns.cax.eventEntry.enableFieldsForAmend();
+									xenos.ns.cax.eventEntry.disableFieldsForAmend();
+								}
+								
+								// Re-apply the tab index after all content modifications
+                                $xenos$Wizard.applyTabindex();		
+							},
+							settings: {
+								data : xenos$cax$event$entry$populateEventParam(currentPage),
+							},
+							target: '#blockForEventType'
+						}); 
+					}
+					// again papolate tax
+					xenos$cax$event$entry$populateTaxHandler(e);
+				}
+				
+				var defaultValue = '<c:out value="${commandForm.taxFeeId}"/>'
+				// Function to populate drop-down list for tax Fee Id.
+                    function xenos$cax$event$entry$populateTaxData(data){
+						var taxFeeId = data.taxFeeId;
+						var rate = data.rate;
+						
+                        var $target = context.find('#taxFeeId');
+                        var $option = $('<option/>');
+                       
+                        $target.empty().append($option);
+                        data = data.taxFeeIdDropdownList || [] ;
+                        $.each(data, function(index, item) {
+                            $option = $('<option/>');
+						
+                        $option.attr('value', item).text(item);
+                            $target.append($option);
+                        });
+						
+						$("#taxFeeId").val(taxFeeId);
+						$("#rate").val(rate);
+						
+			
+                       
+                    }
+					
+					// Function to populate drop-down list for Tax Rate Id.
+                    function xenos$cax$event$entry$populateTaxRateData(data){
+						var rateType = data.rateType;
+                        var $target = context.find('#rateType');
+                        var $option = $('<option/>');
+						
+                        $target.empty().append($option);
+                        data = data.rateTypeDropdownList || [] ;
+                        $.each(data, function(index, item) {
+						$option = $('<option/>');
+                        $option.attr('value', item.value).text(item.label);
+                        $target.append($option);
+                        });
+						$("#rateType").val(rateType);
+                    }
+					
+					// Function to populate drop-down list for EventType Status.
+                    function xenos$cax$event$entry$populateEventTypeStatus(data){
+						var conditionStatus =data.conditionStatus;
+						
+                        var $target = context.find('#conditionStatus');
+                        var $option = $('<option/>');
+                        
+                        $target.empty().append($option);
+                        data = data.eventTypeStatusDropdownList || [] ;
+                        $.each(data, function(index, item) {
+                            $option = $('<option/>');
+						
+                        $option.attr('value', item.value).text(item.label);
+                            $target.append($option);
+                        });
+						
+						$("#conditionStatus").val(conditionStatus);
+                    }
+					
+					function xenos$cax$event$entry$populateCorporateActionParam(){
+					var reqObj = {	"subEventType"				:	$.trim($('#subEventType').val())
+								};
+					return reqObj;
+				}
+			
+			}		
+        </jsp:body>
+    </jsp:element>
+    
+    
+    <c:if test="${success =='false'}">
+        <!-- Error message Area -->
+        <ul class="xenosError">
+            <c:forEach items="${value}" var="dl">       
+            <li><spring:message text="${dl}" htmlEscape="false"/></li>  
+            </c:forEach>
+        </ul>   
+    </c:if>
+		<div class="entryBlkArea">
+			<div class="formItemBlock dottedBg">
+				<form:hidden id="currentPageName" path="commandForm.pageName"/>
+				<div class="formItem">
+					<form:label path="commandForm.subEventType" class="required"><spring:message code="cax.rightsCondition.label.eventType" htmlEscape="false"/></form:label> 
+					
+					
+						  <form:select id="subEventType"
+									path="commandForm.subEventType"
+									class="dropdowninput"  >
+								<form:option value="" />
+									<form:options
+										items="${commandForm.eventTypeDropdownList}"
+										itemLabel="label" itemValue="value" />
+								</form:select>	
+						 
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem" id="eventTypeStatus" style="display:none;">
+					<form:label path="commandForm.conditionStatus" class="required"><spring:message code="cax.rightscondition.label.eventtypestatus" htmlEscape="false"/></form:label> 
+					<span>
+						<form:select path="commandForm.conditionStatus" class="dropdowninput" id="conditionStatus">
+							<form:option value="" />
+							<form:options items="${commandForm.eventTypeStatusDropdownList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						
+						
+					</span>           
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				
+				<!-- CA Event Ref No block for AMEND operation-->
+				<c:if test="${commandForm.pageName == 'GeneralDetailAmend'}">
+					<div class="formItem" id="caEventRef">
+						<form:label path="commandForm.conditionRefrenceNo" class="required"><spring:message code="cax.rights.detail.query.label.eventrefno" htmlEscape="false"/></form:label>
+						<span><form:input value="" path="commandForm.conditionRefrenceNo" class="textBox" maxlength="16" id="caEventRefNo"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</c:if>	
+				
+				<div id="blockForEventType" style="display:none;"><spring:message text="" htmlEscape="false"/></div>
+			</div> 
+		</div>
+		<div class="clear parent-next"><spring:message text="" htmlEscape="false"/></div>
+		<div class="lineHide"><spring:message text="" htmlEscape="false" /></div>
+</div>
+</jsp:root>

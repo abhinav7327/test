@@ -1,0 +1,146 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"  xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:jsp="http://java.sun.com/JSP/Page"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+>
+
+<div >
+    <jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+    <jsp:output	omit-xml-declaration="yes" /> 
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>	
+	    var isNext = <c:out value="${isNext}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [
+			   {name:"<spring:message code="ncm.cashmanagement.query.label.bank" htmlEscape="false"/>", field:"bankCode",id:"bankCode", width:160,sortable:true,formatter:Slick.Formatters.FinInstDetailViewFormater},
+			   {name:"<spring:message code="ncm.cashmanagement.query.label.bankname" htmlEscape="false"/>", field:"bankShortName",id:"bankShortName", visible:false,width:150,sortable:true},
+			   {name:"<spring:message code="ncm.cashmanagement.query.label.accountNo" htmlEscape="false"/>", field:"prefixedAccNo",id:"prefixedAccNo", width:160,sortable:true,formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'accountPk'}},
+			   {name:"<spring:message code="ncm.cashmanagement.query.label.accountname" htmlEscape="false"/>", field:"accountShortName",id:"accountShortName", width:150,sortable:true},
+			   {name:"<spring:message code="ncm.cashmanagement.query.label.fundCode" htmlEscape="false"/>", field:"fundCode",id:"fundCode", width:140,sortable:true,formatter:Slick.Formatters.FundDetailViewFormatter},
+			   {name:"<spring:message code="ref.fund.label.fundName" htmlEscape="false"/>", field:"fundName",id:"fundName", width:200,sortable:true},
+			   {name:"<spring:message code="ncm.cashmanagement.query.label.projectedbalance" htmlEscape="false"/>", field:"formattedProjectedBalance",id:"formattedProjectedBalance",cssClass:'xenos-grid-number', width:200,sortable:true,formatter:Slick.Formatters.NegativeBalanceDetailViewFormater,
+				option:{url:'/secure/ncm/cashmanagement/query/details/balance/drilldown/projected_balance/', 
+								dialogTitle:xenos.title.projectedBalanceDetail,
+								view:'projectedBalanceDetail',
+								pkFieldName:'accountPk',
+								extraPathVariablesInOrder:['bankPk','brknoAccountNo','bankCode','fundCode','securityId'],
+								dialog_height:300,
+								width:520
+								}}, 
+			   {name:"<spring:message code="ncm.cashmanagement.query.label.actualbalance" htmlEscape="false"/>", field:"formattedActualBalance",id:"formattedActualBalance",cssClass:'xenos-grid-number', width:200,sortable:true, formatter:Slick.Formatters.NegativeBalanceDetailViewFormater,
+				option:{url:'/secure/ncm/cashmanagement/query/details/balance/drilldown/actual_balance/', 
+								dialogTitle:xenos.title.actualBalanceDetail,
+								view:'actualBalanceDetail',
+								pkFieldName:'accountPk',
+								extraPathVariablesInOrder:['bankPk','brknoAccountNo','bankCode','fundCode','securityId'],
+								dialog_height:300,
+								width:520
+								}}, 
+			   {name:"<spring:message code="ncm.cashmanagement.query.label.failbalance" htmlEscape="false"/>", field:"formattedFailBalance",id:"formattedFailBalance", cssClass:'xenos-grid-number',width:200,sortable:true,formatter:Slick.Formatters.NegativeBalanceDetailViewFormater,
+				option:{url:'/secure/ncm/cashmanagement/query/details/balance/drilldown/fail_balance/', 
+								dialogTitle:xenos.title.failBalanceDetail,
+								view:'failBalanceDetail',
+								pkFieldName:'accountPk',
+								extraPathVariablesInOrder:['bankPk','brknoAccountNo','bankCode','fundCode','securityId'],
+								dialog_height:300,
+								width:520
+								}}, 
+			   {name:"<spring:message code="ncm.cashmanagement.query.label.unmatchedbalance" htmlEscape="false"/>", field:"formattedUnmatchedBalance",id:"formattedUnmatchedBalance", cssClass:'xenos-grid-number',width:200,sortable:true,formatter:Slick.Formatters.NegativeBalanceDetailViewFormater,
+				option:{url:'/secure/ncm/cashmanagement/query/details/balance/drilldown/unmatched_balance/', 
+								dialogTitle:xenos.title.unmatchBalanceDetail,
+								view:'unmatchedBalanceDetail',
+								pkFieldName:'accountPk',
+								extraPathVariablesInOrder:['bankPk','brknoAccountNo','bankCode','fundCode','securityId'],
+								dialog_height:300,
+								width:520
+								}}, 
+			   {name:"<spring:message code="ncm.cashmanagement.query.label.currency" htmlEscape="false"/>", field:"securityId",id:"securityId", width:135,sortable:true},
+			   {name:"<spring:message code="ncm.balance.query.label.noofunknown" htmlEscape="false"/>", field:"noOfUnknown",id:"noOfUnknown", cssClass:'xenos-grid-number',width:160,sortable:true},
+			   {name:"<spring:message code="ncm.balance.query.label.noofng" htmlEscape="false"/>", field:"noOfNg",id:"noOfNg", cssClass:'xenos-grid-number',width:90,sortable:true}
+			   
+            ];		
+			var grid_result_settings = {
+				enableToolbar:true,
+				buttons:{
+					print:true,	
+					xls:true,	
+					pdf:true,	
+					xlsPref:true,
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					url: '/secure/ncm/cashmanagement/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/ncm/cashmanagement/query/result.json?fetch=next',
+					prevPage : '/secure/ncm/cashmanagement/query/result.json?fetch=previous',
+					pdfReport: '/secure/ncm/cashmanagement/query/report.json?outputType=pdf',
+					xlsReport: '/secure/ncm/cashmanagement/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/ncm/cashmanagement/query/reportPref.json?outputType=xls'
+				},
+				events:{
+					onDataUpdate: function(data,continueUpdate){
+						for(i in data.value){
+							data.value[i].finInstRolePk = data.value[i].bankPk;
+						}
+						continueUpdate(data);
+					}
+				},
+				afterRenderComplete : function(grid, $context){
+					
+					var formItemHeight = $context.find('formItemArea').height();
+					
+					if(formItemHeight &lt; 150){
+					$context.find('.xenos-grid').css('min-height',150);
+					grid.resizeCanvas();
+					}
+					},
+				moduleParam:"cashmanagement",
+				forceFitColumns:false,
+				defaultInvisibleColumns: ["bankShortName","accountShortName"]
+			};
+			
+            var row_id = 0;			
+            var rec = {};
+			<xenos:out escapeXml="false">
+				<c:forEach items="${value}" var="dl">
+					rec = {};
+					row_id+=1;
+					rec.id = "xenos_" + row_id;				
+
+					rec.bankCode = "<c:out value="${dl.bankCode}" />";
+					rec.prefixedAccNo = "<c:out value="${dl.prefixedAccNo}" />";  
+					rec.fundCode = "<c:out value="${dl.fundCode}" />";
+					rec.formattedProjectedBalance = "<c:out value="${dl.formattedProjectedBalance}" />";
+					rec.formattedActualBalance = "<c:out value="${dl.formattedActualBalance}" />";
+					rec.formattedFailBalance = "<c:out value="${dl.formattedFailBalance}" />";
+					rec.formattedUnmatchedBalance = "<c:out value="${dl.formattedUnmatchedBalance}" />";
+					rec.noOfUnknown = "<c:out value="${dl.noOfUnknown}" />";
+					rec.noOfNg = "<c:out value="${dl.noOfNg}" />";
+					rec.fundPk = "<c:out value="${dl.fundPk}" />";
+					rec.accountPk = "<c:out value="${dl.accountPk}" />";
+					rec.finInstRolePk = "<c:out value="${dl.bankPk}" />";
+
+					rec.bankPk = "<c:out value="${dl.bankPk}" />";
+					rec.brknoAccountNo = "<c:out value="${dl.brknoAccountNo}" />";
+					rec.securityId = "<c:out value="${dl.securityId}" />";
+					rec.bankShortName = "<c:out value="${dl.bankShortName}" />";
+					rec.accountShortName = "<c:out value="${dl.accountShortName}" />";
+					rec.fundName = "<c:out value="${dl.fundName}" />";
+					grid_result_data.push(rec);
+				</c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+	
+</div>
+</jsp:root>

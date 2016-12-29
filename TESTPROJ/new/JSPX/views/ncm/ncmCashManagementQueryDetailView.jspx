@@ -1,0 +1,190 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"  xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:jsp="http://java.sun.com/JSP/Page"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:display="http://displaytag.sf.net"
+	xmlns:valueDifference="http://www.nri.co.jp/valueDifference">
+
+<div class="formContent paddingFour detailPopup">
+
+	<jsp:directive.page contentType="text/html;charset=UTF-8" />
+	<jsp:output omit-xml-declaration="yes" />
+			
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+
+	<jsp:element name="script">
+        	<jsp:attribute name="type">text/javascript</jsp:attribute>
+        	<jsp:attribute name="src"><c:url value="/scripts/jquery.PrintArea.js" /></jsp:attribute>
+		<jsp:body></jsp:body>
+    	</jsp:element>
+
+
+	<!-- div class="clear">
+		<spring:message text="" htmlEscape="false" />
+	</div -->
+	
+	
+	<!-- Header Information -->
+
+	<div class="detailBlock entrySingleCol dtlInfoBlock">
+		<div class="dtlInfoBlock">
+			<tr class="noBdr">
+				<td>
+					<span class="detailTxtVal" align="center">
+					
+					<c:if test ="${commandForm.balanceList[0] != null}">
+						${commandForm.bank}/${commandForm.accountNo}
+					</c:if>
+					
+					</span>
+				</td>
+			</tr>
+		</div>
+	</div>
+	
+    
+	
+		
+	<div style="width:100%;height:50%">
+		<div id="ncmBalanceGrid" class="xenos-grid ncmBalanceGrid" style="width:100%;height:10px;"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+		
+	
+    
+	<div class="detailBlock entrySingleCol">
+		<div class="dtlInfoBlock">
+			<table class="tableStyle sixCol">
+				<tr>
+					<td colspan="2" class="detailSmlBrdPad"><label><spring:message code="ncm.cash.management.total.payment.label" htmlEscape="false" /></label></td>
+					<c:if test ="${commandForm.balanceList[0] == null}">
+						<td><span class="detailTxtVal xenos-grid-number"></span></td>
+					</c:if>
+					<c:if test ="${commandForm.balanceList[0] != null}">
+						<td><span class="detailTxtVal xenos-grid-number">${commandForm.negativeBalanceForDisplay}</span></td>
+					</c:if>
+				</tr>
+				<tr>
+					<td colspan="2" class="detailSmlBrdPad "><label><spring:message code="ncm.cash.management.total.receipt.label" htmlEscape="false" /></label></td>
+
+					<c:choose>
+					    <c:when test="${commandForm.balanceList[0] == null}">
+					       <td><span class="detailTxtVal xenos-grid-number"></span></td>
+					    </c:when>
+					    <c:when test="${commandForm.positiveBalanceForDisplay == '+0.00' || commandForm.positiveBalanceForDisplay == '+0'}">
+						<td><span class="detailTxtVal xenos-grid-number">0</span></td>
+					    </c:when>
+					    <c:when test="${not fn:contains(commandForm.positiveBalanceForDisplay, '.')}">
+						<td><span class="detailTxtVal xenos-grid-number">${fn:substring(commandForm.positiveBalanceForDisplay, 1,fn:length(commandForm.positiveBalanceForDisplay))}</span></td>
+					    </c:when>
+					    <c:otherwise>
+						<td><span class="detailTxtVal xenos-grid-number">${commandForm.positiveBalanceForDisplay}</span></td>
+					    </c:otherwise>
+					</c:choose>
+										
+				</tr>
+			</table>
+		</div>
+	</div>
+
+
+	<jsp:element name="script">
+    	<jsp:attribute name="type">text/javascript</jsp:attribute>
+    		<jsp:body>		
+		
+			(function(){
+				var referenceNoGeneration = false;
+				var ncmBalanceGridConf = {
+				height: 300,
+				enableToolbar:false,
+				forceFitColumns:true,
+				buttons:{
+					print:false,	
+					xls:false,	
+					pdf:false,	
+					columnPicker:false,	
+					save:false	
+				},
+				pagingInfo:{},
+				urls:{}
+				};
+	
+				var ncmBalanceColumns = [	
+					<c:if test ="${(commandForm.balanceType == 'projected_balance') || (commandForm.balanceType == 'actual_balance')}">
+						{name:"<spring:message code="ncm.cashmanagement.query.label.referenceno" htmlEscape="false"/>",  width:100, field:"transactionRefNo", id:"transactionRefNo", sortable:false,formatter:Slick.Formatters.BalanceDetailViewFormatter},
+					</c:if>
+					<c:if test ="${(commandForm.balanceType == 'fail_balance')}">
+						{name:"<spring:message code="ncm.cashmanagement.query.label.referenceno" htmlEscape="false"/>",  width:100, field:"transactionRefNo", id:"transactionRefNo", sortable:false,formatter:Slick.Formatters.SettlementDetailViewInstructionFormater},
+					</c:if>
+					<c:if test ="${(commandForm.balanceType == 'unmatched_balance')}">
+						{name:"<spring:message code="ncm.cashmanagement.query.label.referenceno" htmlEscape="false"/>",  width:100, field:"transactionRefNo", id:"transactionRefNo", sortable:false},
+					</c:if>
+					{name:"<spring:message code="ncm.cashmanagement.query.label.amount" htmlEscape="false" />",  width:120, field:"amountDisp",	id:"amountDisp", sortable:false, cssClass:'xenos-grid-number', formatter:Slick.Formatters.NegetiveBalanceFormatter}
+				];
+				
+				var item = {};
+				var ncmBalanceGrid;
+				var ncmBalanceResult = [];
+				var rowId = 0;
+				<c:forEach items="${commandForm.balanceList}" var="dl">
+				
+						item = {};
+						rowId = rowId + 1;
+						item.id = "xenos_" + rowId;
+
+						<c:if test ="${(commandForm.balanceType == 'projected_balance') || (commandForm.balanceType == 'actual_balance')}">
+							item.sourceComponentId 	= "<c:out value="${dl.sourceComponentId}"/>";
+							item.transactionType 	= "<c:out value="${dl.transactionType}"/>";
+							<c:if test="${dl.sourceComponentId == 'NCM'}">
+								item.ncmEntryPk = "<c:out value="${dl.entryPk}"/>";
+							</c:if>
+						<c:if test="${dl.sourceComponentId == 'STL'}">
+							<c:if	test="${dl.transactionType != 'UNKNOWN_COMPLETION'}">
+								item.settlementInfoPk = "<c:out value="${dl.clientSettleInfoPk}"/>";
+							</c:if>
+						</c:if>
+						</c:if>
+						<c:if test ="${(commandForm.balanceType == 'fail_balance')}">
+							item.settlementInfoPk = "<c:out value="${dl.settlementInfoPk}"/>";
+						</c:if>
+						<c:if test ="${(commandForm.balanceType == 'unmatched_balance')}">
+							item.ncmEntryPk = "<c:out value="${dl.receivedCompNoticeInfoPk}"/>";
+						</c:if>						
+						
+						item.transactionRefNo 		= "<c:out value="${dl.transactionRefNo}"/>";
+						item.amountDisp 			= "<c:out value="${dl.amountDisp}"/>";
+						ncmBalanceResult.push(item);
+
+				</c:forEach> 
+				ncmBalanceGrid = $('.ncmBalanceGrid').xenosgrid(ncmBalanceResult, ncmBalanceColumns,ncmBalanceGridConf);				
+			})();
+		
+		
+		
+      			var xenos$Dialog$Detail$Hook = function (container, btnContainer) {
+      			
+        		var details$View$print$Handler = function printHandler(e){
+          		e.preventDefault();
+          		container.printArea(xenos.utils.defaultPrintOption);};
+
+        		//show different buttons
+				var $btn1 = jQuery('.btn1', btnContainer);
+        		$btn1.children().first().html(xenos.title.printInfo);
+        		$btn1.show();
+        		$btn1.click(details$View$print$Handler);};
+			
+			
+    		</jsp:body>
+  	</jsp:element>
+	
+</div>
+</jsp:root>

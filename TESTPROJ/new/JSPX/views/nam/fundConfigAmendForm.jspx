@@ -1,0 +1,407 @@
+<!--$Id$-->
+<!--$Author: Saravanan $-->
+<!--$Date: 2016-12-24 17:14:00 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles"
+	 xmlns:util="urn:jsptagdir:/WEB-INF/tags/util">
+	 
+<div class="entryContainer" id="fundConfigAmend">
+		<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	    <jsp:output	omit-xml-declaration="yes" />
+		
+	<input type="hidden" id="actionType" value="${commandForm.options.actionType}"/>
+
+	<style type="text/css">
+		body{
+			min-width:1340px;
+		}
+	</style>
+
+	<!-- Java script include -->
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>		
+        <jsp:body>
+			xenos.loadLocalizedScript([
+                  {path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+                  {path: xenos.context.path + '/scripts/slr/xenos-slr-i18n', async: false}			  				  
+              ]);
+			//Loading Required scripts before validator is called.
+              xenos.loadScript([
+                  {path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},                  
+                  {path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				  {path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false},
+				  {path: xenos.context.path + '/scripts/nam/xenos-nam-i18n', async: false}
+              ]);
+
+		    var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+				loadAccountInfoRequiredFields();
+				fundConfigAmendValidate();
+ 				var validateHook = function() {
+					var valid = false;
+					valid = fundConfigAmendValidateDetailSubmit();
+					if(valid){						
+						return true;
+					}else{
+						return false;
+					}
+				};
+				
+				var unloadHook = function(){
+					$xenos$Wizard.deregister('submit',validateHook);
+					$xenos$Wizard.deregister('unload',unloadHook);
+				}
+
+				$xenos$Wizard.register('submit',validateHook);
+				$xenos$Wizard.register('unload',unloadHook);
+		    };
+			 
+			$('#businessStartDateStr', '#fundConfigAmend').on('change', function(){
+	            if(!checkDate(this)){
+	                xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$NAM$i18n.fundConfigAmendForm.alert.InvalidStartDate, [this.value]))
+	            } else {
+	                xenos.ns.views.namFundConfigQuery.formatDate(this.value,$('#businessStartDateStr'));
+	            };
+	        });
+			
+			$('#businessEndDateStr', '#fundConfigAmend').on('change', function(){
+	            if(!checkDate(this)){
+	                xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$NAM$i18n.fundConfigAmendForm.alert.InvalidEndDate, [this.value]))
+	            } else {
+	                xenos.ns.views.namFundConfigQuery.formatDate(this.value,$('#businessEndDateStr'));
+	            };
+	        });
+			
+			$('#investmentStartDateStr', '#fundConfigAmend').on('change', function(){
+	            if(!checkDate(this)){
+	                xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$NAM$i18n.fundConfigAmendForm.alert.InvalidInvestmentDate, [this.value]))
+	            } else {
+	                xenos.ns.views.namFundConfigQuery.formatDate(this.value,$('#investmentStartDateStr'));
+	            };
+	        });
+
+		</jsp:body>
+	</jsp:element>
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src">
+			<c:url value="/scripts/nam/xenos/fundConfigAmend.js"/>
+		</jsp:attribute>
+		<jsp:body>
+			
+		</jsp:body>
+	</jsp:element>
+	
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+	<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+	<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+	<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+
+	<div>
+	<!-- General Entry Start -->
+	<div id="generalEntry">
+		<!-- Fund Basic Information Block -->		
+		<div class="moreHandle">
+			<h1 class="msgHead">
+				<spring:message code="nam.fundconfig.label.fundBasicInfo" htmlEscape="false"/>
+				<div class="handleBlock">
+					<span class="handler collapse" id="fundBasicInfoSection"><spring:message text="" htmlEscape="false"/></span>
+				</div>
+			</h1>  
+		</div>
+		<div class="entryBlkArea ">
+			<div class="formItemBlock topitems dottedBg">
+				<!-- Fund Code -->
+				<div class="formItem">
+					<form:label path="commandForm.fundCode" class="required" ><spring:message code="nam.label.fundcode" htmlEscape="false"/></form:label>
+					<span><form:input value="${commandForm.fundCode}" id= "fundCode" path="commandForm.fundCode"  class="textBox readOnlyInput" style="width:250px;" disabled="true"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!-- Fund Name -->
+				<div class="formItem">
+					<form:label path="commandForm.fundName" class="required" ><spring:message code="nam.fundconfig.label.fundName" htmlEscape="false"/></form:label>
+					<span><form:input value="${commandForm.fundName}" path="commandForm.fundName"  class="textBox readOnlyInput" style="width:400px;" disabled="true"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!-- Office ID -->
+				<div class="formItem">
+					<form:label path="commandForm.officeId" class="required"><spring:message code="nam.label.officeid" htmlEscape="false"/></form:label>
+					
+					<xenos:select id="officeId" path="commandForm.officeId" class="dropdowninput" onChange="onchangeSecStlMode();" disabled="true">
+						<form:option  value="" />
+						<form:options items="${commandForm.officeIdList}" />
+					</xenos:select>
+					
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- FundCategtory List -->
+				<div class="formItem">
+					<form:label path="commandForm.fundCategory" class="required"><spring:message code="nam.fundconfig.label.fundCategory" htmlEscape="false"/></form:label>
+					
+					<xenos:select id="fundCategory" path="commandForm.fundCategory" class="dropdowninput" disabled="true">
+						<form:option  value="" />
+						<form:options items="${commandForm.fundCategoryList}" itemLabel="label" itemValue="value" />
+					</xenos:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- Base Currency -->
+				<div class="formItem">
+					<form:label path="commandForm.baseCurrency" class="required"><spring:message code="nam.fundconfig.label.baseCurrency" htmlEscape="false" /></form:label>
+					<span><form:input id="baseCurrency" value="" path="commandForm.baseCurrency" class="textBox readOnlyInput" disabled="true"/></span>
+					<div class="popupBtn" readonly ="true">
+						<input  id="baseCurrency" type="button" class="popupBtnIco" tgt="baseCurrency" popType="currency" value="" disabled="true" />
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		   </div>
+	    </div> 
+		<!-- Fund Accounting Control Block -->		
+		<div class="moreHandle">
+			<h1 class="msgHead">
+				<spring:message code="nam.fundconfig.label.fundAccountingControl" htmlEscape="false"/>
+				<div class="handleBlock">
+					<span class="handler collapse" id="fundAccountingControlSection"><spring:message text="" htmlEscape="false"/></span>
+				</div>
+			</h1>  
+		</div>	
+		<div class="entryBlkArea">
+			<div class="formItemBlock topitems dottedBg">
+				<!-- Default Underlying Asset Flag(FX) -->
+				<div class="formItem">
+					<form:label path="commandForm.defaultUndAssetFlagFX" ><spring:message code="nam.fundconfig.label.defaultUnderlyingAssetFlagFX" htmlEscape="false"/></form:label>
+					
+					<xenos:select id="defaultUndAssetFlagFX" path="commandForm.defaultUndAssetFlagFX" class="dropdowninput">
+						<form:option  value="" />
+						<form:options items="${commandForm.defUnAssetFlagFXList}" itemLabel="label" itemValue="value" />
+					</xenos:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!-- Actual/Interim Flag -->
+				<div class="formItem">
+					<form:label path="commandForm.actualIntrimFlag" ><spring:message code="nam.fundconfig.label.actualIntrimFlag" htmlEscape="false"/></form:label>
+					
+					<xenos:select id="actualIntrimFlag" path="commandForm.actualIntrimFlag" class="dropdowninput">
+						<form:option  value="" />
+						<form:options items="${commandForm.actIntrimFlagList}" itemLabel="label" itemValue="value" />
+					</xenos:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!-- Auto Completion for MT566 Reqd -->
+				<div class="formItem">
+					<form:label path="commandForm.autoComplForMT566Reqd" ><spring:message code="nam.fundconfig.label.autoCompletionForMT566Reqd" htmlEscape="false"/></form:label>
+					
+					<xenos:select id="autoComplForMT566Reqd" path="commandForm.autoComplForMT566Reqd" class="dropdowninput">
+						<form:option  value="" />
+						<form:options items="${commandForm.autoComplForMT566List}" itemLabel="label" itemValue="value" />
+					</xenos:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!-- Accounting Info Required -->
+				<div class="formItem twoCols">
+					<form:label path="commandForm.accInfoRequired" id= "accInfoRequiredLable"><spring:message code="nam.fundconfig.label.accountingInfoRequired" htmlEscape="false"/></form:label>
+					
+					<xenos:select id="accInfoRequired" path="commandForm.accInfoRequired" class="dropdowninput" >
+						<form:option  value="" />
+						<form:options items="${commandForm.accInfoRequiredList}" itemLabel="label" itemValue="value" />
+					</xenos:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!-- On change() of accInfoRequired-->
+				<div class="accountingControlShow" style="display: none;">
+					<!-- GX/ODW Required -->
+					<div class="formItem">
+						<form:label path="commandForm.gxOdwRequired" id= "gxOdwRequiredLable"><spring:message code="nam.fundconfig.label.gxodwRequired" htmlEscape="false"/></form:label>
+						
+						<xenos:select id="gxOdwRequired" path="commandForm.gxOdwRequired" class="dropdowninput">
+							<form:option  value="" />
+							<form:options items="${commandForm.gxOdwRequiredList}" itemLabel="label" itemValue="value" />
+						</xenos:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- Smart Port Required -->
+					<div class="formItem">
+						<form:label path="commandForm.smartPortRequired" id= "smartPortRequiredLable"><spring:message code="nam.fundconfig.label.smartPortRequired" htmlEscape="false"/></form:label>
+						
+						<xenos:select id="smartPortRequired" path="commandForm.smartPortRequired" class="dropdowninput">
+							<form:option  value="" />
+							<form:options items="${commandForm.smartPortReqList}" itemLabel="label" itemValue="value" />
+						</xenos:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- DEX Required -->
+					<div class="formItem">
+						<form:label path="commandForm.dexRequired" ><spring:message code="nam.fundconfig.label.dexRequired" htmlEscape="false"/></form:label>
+						
+						<xenos:select id="dexRequired" path="commandForm.dexRequired" class="dropdowninput">
+							<form:option  value="" />
+							<form:options items="${commandForm.dexRequiredList}" itemLabel="label" itemValue="value" />
+						</xenos:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- Balance to NBL -->
+					<div class="formItem">
+						<form:label path="commandForm.balanceToNBL" ><spring:message code="nam.fundconfig.label.balanceToNBL" htmlEscape="false"/></form:label>
+						
+						<xenos:select id="balanceToNBL" path="commandForm.balanceToNBL" class="dropdowninput">
+							<form:option  value="" />
+							<form:options items="${commandForm.balanceToNBLList}" itemLabel="label" itemValue="value" />
+						</xenos:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- Shariah Flag -->
+					<div class="formItem">
+						<form:label path="commandForm.shariahFlag" ><spring:message code="nam.fundconfig.label.shariahFlag" htmlEscape="false"/></form:label>
+						
+						<xenos:select id="shariahFlag" path="commandForm.shariahFlag" class="dropdowninput">
+							<form:option  value="" />
+							<form:options items="${commandForm.shariahFlagList}" itemLabel="label" itemValue="value" />
+						</xenos:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- GST Flag -->
+					<div class="formItem">
+						<form:label path="commandForm.gstFlag" ><spring:message code="nam.fundconfig.label.gstFlag" htmlEscape="false"/></form:label>
+						
+						<xenos:select id="gstFlag" path="commandForm.gstFlag" class="dropdowninput">
+							<form:option  value="" />
+							<form:options items="${commandForm.gstFlagList}" itemLabel="label" itemValue="value" />
+						</xenos:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- Official Name -->
+					<div class="formItem">
+						<form:label path="commandForm.officialName" ><spring:message code="nam.fundconfig.label.officialName" htmlEscape="false"/></form:label>
+						<span><form:input id="officialName" value="" path="commandForm.officialName" class="textBox"  maxlength="60" style="width:300px;" /></span>			
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- Report Date Format -->
+					<div class="formItem">
+						<form:label path="commandForm.reportDateFormat" ><spring:message code="nam.fundconfig.label.reportDateFormat" htmlEscape="false"/></form:label>
+						
+						<xenos:select id="reportDateFormat" path="commandForm.reportDateFormat" class="dropdowninput">
+							<form:option  value="" />
+							<form:options items="${commandForm.reportDateFormatList}" itemLabel="label" itemValue="value" />
+						</xenos:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- Business Start Date -->
+					<div class="formItem">
+						<form:label path="commandForm.businessStartDateStr"><spring:message code="nam.fundconfig.label.businessStartDate" htmlEscape="false"/></form:label>
+						<span><form:input id="businessStartDateStr" value="" path="commandForm.businessStartDateStr" class="dateinput"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- Business End Date -->
+					<div class="formItem">
+						<form:label path="commandForm.businessEndDateStr"><spring:message code="nam.fundconfig.label.businessEndDate" htmlEscape="false"/></form:label>
+						<span><form:input id="businessEndDateStr" value="" path="commandForm.businessEndDateStr" class="dateinput" /></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- Investment Start Date -->
+					<div class="formItem">
+						<form:label path="commandForm.investmentStartDateStr"><spring:message code="nam.fundconfig.label.investStartDate" htmlEscape="false"/></form:label>
+						<span><form:input id="investmentStartDateStr" value="" path="commandForm.investmentStartDateStr" class="dateinput" /></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</div>
+		<!-- Data Management Control Block -->		
+		<div class="moreHandle">
+			<h1 class="msgHead">
+				<spring:message code="nam.fundconfig.label.DataManagementControl" htmlEscape="false"/>
+				<div class="handleBlock">
+					<span class="handler" id="dataManagementControlSection"><spring:message text="" htmlEscape="false"/></span>
+				</div>
+			</h1>  
+		</div>	
+		<div class="entryBlkArea">
+			<div class="formItemBlock topitems dottedBg">
+				<!-- CRIMS Suppress Reqd -->
+				<div class="formItem">
+					<form:label path="commandForm.crimsSuppressReqd" ><spring:message code="nam.fundconfig.label.crimsSuppressReqd" htmlEscape="false"/></form:label>
+					
+					<xenos:select id="crimsSuppressReqd" path="commandForm.crimsSuppressReqd" class="dropdowninput">
+						<form:option  value="" />
+						<form:options items="${commandForm.crimsSuppReqdList}" itemLabel="label" itemValue="value" />
+					</xenos:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!-- Balance Suppress Reqd -->
+				<div class="formItem">
+					<form:label path="commandForm.balSuppressReqd" ><spring:message code="nam.fundconfig.label.balanceSuppressReqd" htmlEscape="false"/></form:label>
+					
+					<xenos:select id="balSuppressReqd" path="commandForm.balSuppressReqd" class="dropdowninput">
+						<form:option  value="" />
+						<form:options items="${commandForm.balSuppressReqdList}" itemLabel="label" itemValue="value" />
+					</xenos:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!-- MT54X rule for short account Reqd -->
+				<div class="formItem">
+					<form:label path="commandForm.mt54XShortAccReqd" ><spring:message code="nam.fundconfig.label.mt54XRuleForShortAccountReqd" htmlEscape="false"/></form:label>
+					
+					<xenos:select id="mt54XShortAccReqd" path="commandForm.mt54XShortAccReqd" class="dropdowninput">
+						<form:option  value="" />
+						<form:options items="${commandForm.mt54XShortAccReqdList}" itemLabel="label" itemValue="value" />
+					</xenos:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!-- FPS Adjustment On change() of fundCategory-->
+				<div class="formItem">
+					<form:label path="commandForm.fpsAdjustment" ><spring:message code="nam.fundconfig.label.fpsAdjustment" htmlEscape="false"/></form:label>
+					
+					<xenos:select id="fpsAdjustment" path="commandForm.fpsAdjustment" class="dropdowninput" disabled="true">
+						<form:option  value="" />
+						<form:options items="${commandForm.adjustmentForList}" itemLabel="label" itemValue="value" />
+					</xenos:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!-- SBA Required Flag -->
+				<div class="formItem">
+					<form:label path="commandForm.sbaRequiredFlag" ><spring:message code="nam.fundconfig.label.sbaRequiredFlag" htmlEscape="false"/></form:label>
+					
+					<xenos:select id="sbaRequiredFlag" path="commandForm.sbaRequiredFlag" class="dropdowninput">
+						<form:option  value="" />
+						<form:options items="${commandForm.sbaRequiredFlagList}" itemLabel="label" itemValue="value" />
+					</xenos:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<div class="formItem" style="display: none;">
+						<form:label path="commandForm.isFundExistinFam"><spring:message code="nam.fundconfig.label.investStartDate" htmlEscape="false"/></form:label>
+						<span><form:input id="isFundExistinFam" value="" path="commandForm.isFundExistinFam" /></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+	    </div> 
+		<div class="lineHide">
+			<spring:message text="" htmlEscape="false" />
+		</div>
+	</div>
+  </div> 
+  <!-- End of General Entry Block -->	 
+</div>
+</jsp:root>

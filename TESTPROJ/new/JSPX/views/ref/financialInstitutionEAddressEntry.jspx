@@ -1,0 +1,903 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+<div id="formContainer" class="entryContainer paddingFour">
+	 
+	<jsp:element name="script">
+    <jsp:attribute name="type">text/javascript</jsp:attribute>
+    <jsp:body>
+		var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+			var context = $xenos$Wizard.$context;
+		    var baseUrl = xenos.context.path + context.find('form').attr('action');
+			/**
+			* A common request handler to be used server communication.
+			*/
+			var xenos$Handler$RequestHandler = xenos$Handler$function({
+				get: {
+					contentType: 'json',
+					requestType: xenos$Handler$default.requestType.asynchronous
+				},	
+				settings: {
+					beforeSend: function(request) {
+						request.setRequestHeader('Accept', 'application/json');
+					},
+					type: 'POST'
+				}
+			});
+			
+			/***************** For Local Addition of Global Fin Inst *****************/
+			var amendLocalAttributeFlag = "<c:out value="${commandForm.amendLocalAttributeFlag}" />";
+			
+			if($.trim(amendLocalAttributeFlag) == "true"){
+				var el = $('.amendReadOnlyItem');
+				el.attr('disabled', 'disabled');
+				el.parent().next('.popupBtn').hide();
+				el.next('.ui-datepicker-trigger').hide();
+			}
+			/**
+	         * A function to check whether edit or delete is possible or not.
+	         */
+			function isAmendable(){
+				if($.trim(amendLocalAttributeFlag) == "true"){
+					return false;
+				}
+				return true;
+			}
+			var ourAccountPresent = "<c:out value="${commandForm.finInstRolePage.ourAccountPresent}"/>";
+			if(ourAccountPresent != 'Y')
+			{
+				$( ".formItem span input" ).prop( "disabled", true );
+				$(".gridButton").prop( "disabled", true );
+				$( ".formItem select" ).prop( "disabled", true );
+			}
+			/**
+			* Common variables declaration to be used for future reference.
+			*/
+			var item = {},
+				rowId =0,
+				eaddressGridData =[],
+				deliveryEaddressRuleGridData =[],	
+				delvEaddressGrid,
+				eaddressGrid;
+			
+			/**
+			* Configuration of E-Address Grid.
+			*/
+			var eaddressGridConfig = {
+						forceFitColumns				:	true,
+						editMode 					: 	'both',
+						editCallback 				: 	editFinInstEAddressHandler,
+						editEnableCallback 		 	: 	isAmendable,	
+						deleteCallback				:	deleteFinInstEAddressHandler
+			};
+			
+			/**
+			* Configuration of E-Address Rule Grid.
+			*/
+			var deliveryEaddressRuleGridConfig = {
+						forceFitColumns				:	true,
+						editMode 					: 	'both',
+						editCallback 				: 	editFinInstEAddressRuleHandler,
+						editEnableCallback 		 	: 	isAmendable,
+						deleteCallback				:	deleteFinInstEAddressRuleHandler
+			};
+			var addressGridColumns = [		
+						{name:"<spring:message code="ref.fininst.label.addressid" htmlEscape="false"/>", 				field:"addressId",		id:"addressId", 	width:150},
+						{name:"<spring:message code="ref.fininst.label.phone" htmlEscape="false"/>", 					field:"phone",			id:"phone",			width:150},
+						{name:"<spring:message code="ref.fininst.label.mobile" htmlEscape="false"/>", 					field:"mobile",			id:"mobile",		width:150},
+						{name:"<spring:message code="ref.fininst.label.fax" htmlEscape="false"/>", 						field:"fax",			id:"fax", 			width:150}, 
+						{name:"<spring:message code="ref.fininst.label.email" htmlEscape="false"/>", 					field:"email",			id:"email",			width:150},
+						{name:"<spring:message code="ref.fininst.label.swiftcode" htmlEscape="false"/>", 				field:"swiftCode",		id:"swiftCode",		width:150}, 
+						{name:"<spring:message code="ref.fininst.label.telexcountrycode" htmlEscape="false"/>", 		field:"tlxCountryCode",	id:"tlxCountryCode",width:150},
+						{name:"<spring:message code="ref.fininst.label.telexdialno" htmlEscape="false"/>", 				field:"tlxDial",		id:"tlxDial", 		width:150}, 
+						{name:"<spring:message code="ref.fininst.label.telexanswerback" htmlEscape="false"/>", 			field:"answerBack",		id:"answerBack",	width:150},
+						{name:"<spring:message code="ref.fininst.label.recipientname" htmlEscape="false"/>", 			field:"recipientName",	id:"recipientName", width:150}, 
+						{name:"<spring:message code="ref.fininst.label.oasyscode" htmlEscape="false"/>", 				field:"oasysCode",		id:"oasysCode", 	width:150},
+						{name:"<spring:message code="ref.fininst.label.attention" htmlEscape="false"/>", 				field:"attention",		id:"attention", 	width:150}
+		
+			];
+			var deliveryEaddressRuleGridColumns = [		
+						{name:"<spring:message code="ref.fininst.label.reportname" htmlEscape="false"/>", 		field:"reportId",			id:"reportId"},
+						{name:"<spring:message code="ref.fininst.label.groupreportname" htmlEscape="false"/>",	field:"reportGroupId",		id:"reportGroupId"},
+						{name:"<spring:message code="ref.fininst.label.addressid" htmlEscape="false"/>",		field:"addressId",			id:"addressId"},
+						{name:"<spring:message code="ref.fininst.label.addresstype" htmlEscape="false"/>", 		field:"addressType",		id:"addressType"},
+						{name:"<spring:message code="ref.fininst.label.automanualflag" htmlEscape="false"/>",	field:"autoManualFeedFlagExp",	id:"autoManualFeedFlagExp"}
+					];
+			
+				<xenos:out escapeXml="false">
+				<c:forEach items="${commandForm.electronicAddresses}" var="dl">
+					item = {};
+					rowId+=1;
+					item.id = "xenos_" + rowId;
+					item.addressId =  "<c:out value="${dl.addressId}" />";
+					item.phone		= "<c:out value="${xenosfn:escapeJS(dl.phone)}" />";
+					item.mobile =  "<c:out value="${xenosfn:escapeJS(dl.mobile)}" />";
+					item.fax = "<c:out value="${xenosfn:escapeJS(dl.fax)}" />";
+					item.email = "<c:out value="${xenosfn:escapeJS(dl.email)}" />";
+					item.swiftCode = "<c:out value="${dl.swiftCode}" />";
+					item.tlxCountryCode = "<c:out value="${xenosfn:escapeJS(dl.tlxCountryCode)}" />";
+					item.tlxDial = "<c:out value="${xenosfn:escapeJS(dl.tlxDial)}" />";
+					item.answerBack = "<c:out value="${xenosfn:escapeJS(dl.answerBack)}" />";
+					item.recipientName = "<c:out value="${xenosfn:escapeJS(dl.recipientName)}" />";
+					item.oasysCode = "<c:out value="${xenosfn:escapeJS(dl.oasysCode)}" />";
+					item.attention = "<c:out value="${xenosfn:escapeJS(dl.attention)}" />";
+					eaddressGridData.push(item);
+				</c:forEach>
+			
+				rowId =0;
+				<c:forEach items="${commandForm.deliveryEAddressRules}" var="dl">
+					item = {};
+					rowId+=1;
+					item.id = "xenos_" + rowId;
+					item.reportId =  "<c:out value="${dl.reportId}" />";
+					item.reportGroupId = "<c:out value="${dl.reportGroupId}" />";
+					item.addressId = "<c:out value="${dl.addressId}"/>";
+					item.addressType = "<c:out value="${dl.addressType}" />";
+					item.autoManualFeedFlagExp = "<c:out value="${dl.autoManualFeedFlagExp}" />";
+					deliveryEaddressRuleGridData.push(item);
+				</c:forEach>
+				</xenos:out>
+				
+			eaddressGrid = $("#eaddressGrid").xenoseditablegrid(eaddressGridData, addressGridColumns, eaddressGridConfig);
+			delvEaddressGrid = $("#delvEaddressGrid").xenoseditablegrid(deliveryEaddressRuleGridData, deliveryEaddressRuleGridColumns, deliveryEaddressRuleGridConfig);
+			
+			/**
+			 * This method will be called when 'ADD' button of Electronic Address Details in the Eaddress Tab.
+			 * Validates for selecting at least one field among the fields phone,mobile,fax,email,swiftcode,telex country code,
+			 * telex dial no ,telex answer back,recipient name, oasis code,attention, DTC Id Number AND CHECK Mandetary Field ADDRESS ID 
+			 */
+			function validateOnAddEAddress(){
+				var validationMessages = [];
+				if(VALIDATOR.isNullValue($.trim($('#delvEAddAddressId').val()))){
+				    validationMessages.push(xenos$REF$i18n.fininst.eadderess.addressid_empty);
+				}
+				
+				if ( VALIDATOR.isNullValue($.trim($('#delvEAddPhone').val()))
+						&amp;&amp; VALIDATOR.isNullValue($.trim($('#delvEAddMobile').val())) 
+						&amp;&amp; VALIDATOR.isNullValue($.trim($('#delvEAddFax').val())) 
+						&amp;&amp; VALIDATOR.isNullValue($.trim($('#delvEAddEmail').val())) 
+						&amp;&amp; VALIDATOR.isNullValue($.trim($('#delvEAddSwiftCode').val())) 
+						&amp;&amp; VALIDATOR.isNullValue($.trim($('#delvEAddTlxCountryCode').val()))
+						&amp;&amp; VALIDATOR.isNullValue($.trim($('#delvEAddTlxDial').val())) 
+						&amp;&amp; VALIDATOR.isNullValue($.trim($('#delvEAddAnswerBack').val())) 
+						&amp;&amp; VALIDATOR.isNullValue($.trim($('#delvEAddRecipientName').val())) 
+						&amp;&amp; VALIDATOR.isNullValue($.trim($('#delvEAddOasysCode').val()))   
+						&amp;&amp; VALIDATOR.isNullValue($.trim($('#delvEAddVCcassParticipantId').val())) 	
+						&amp;&amp; VALIDATOR.isNullValue($.trim($('#delvEAddEuroclearCode').val())) 						
+						&amp;&amp; VALIDATOR.isNullValue($.trim($('#delvEAddAttention').val()))
+						&amp;&amp; VALIDATOR.isNullValue($.trim($('#delvEAddBankCode').val())) 
+					) {
+						validationMessages.push(xenos$REF$i18n.fininst.eadderess.one_field_required);
+						
+					if ( validationMessages.length >0)
+
+                        {
+							$('.formHeader').find('.formTabErrorIco').css('display', 'block');
+							$('.formHeader').find('.formTabErrorIco').off('click');
+							$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+
+						return false;
+
+                        } 
+					else 
+						{
+
+                            $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+
+                        }
+					} 
+					
+					if(VALIDATOR.isNullValue($.trim($('#delvEAddSwiftCode').val())) == false){
+						var retVal=validateSwiftCode($.trim($('#delvEAddSwiftCode').val()));
+						if (retVal==false) {
+							return false;
+						}
+					}
+					
+					return true;
+			}
+			
+			/**
+			 * This method will be called when 'ADD' button of Electronic Address rule Details in the Eaddress Tab.
+			 * Validates for selecting  one field between the fields report name and groupreport name 
+			 *  AND CHECK Mandetary Fields ADDRESS ID,ADDRESS TYPE , AUTO MANUAL FLAG. 
+			 */
+			 
+			function validateOnAddEAddressRule(){
+				var validationMessages = [];
+
+				var repid=VALIDATOR.isNullValue($.trim($('#delvEAddRuleReportId').val()));
+				var repgrid=VALIDATOR.isNullValue($.trim($('#delvEAddRuleReportGroupId').val()));
+
+				if(repid == repgrid ){
+				    validationMessages.push(xenos$REF$i18n.fininst.eadderess.repid_grpid_reqd);
+				}
+				
+				if(VALIDATOR.isNullValue($.trim($('#delvEAddRuleAddressId').val()))){
+				     validationMessages.push(xenos$REF$i18n.fininst.eadderess.addressid_empty);
+				}
+				
+				
+				if(VALIDATOR.isNullValue($.trim($('#delvEAddRuleAutoManualFeedFlag').val()))){
+				    validationMessages.push(xenos$REF$i18n.fininst.eadderess.automanualflag_empty);
+				}
+				
+				if(VALIDATOR.isNullValue($.trim($('#delvEAddRuleAddressType').val()))){
+				    validationMessages.push(xenos$REF$i18n.fininst.eadderess.addresstype_empty);
+				}
+				
+				
+				if ( validationMessages.length >0)
+				{
+				            $('.formHeader').find('.formTabErrorIco').show();
+							$('.formHeader').find('.formTabErrorIco').off('click');
+                            $('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+
+					 return false;
+				}
+				else 
+				{
+                            $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                }
+				
+				return true;
+			}
+			
+			/**
+				 * This method helps to determine whether the alphane is non alphanumeric or not.
+				 * return true if the alphane is non alphanumeric
+				 * return false other wise false
+				 */
+				function isNonAlphanumeric(alphane){
+					var patt   = /[^0-9a-z]/i;
+					return patt.test(alphane)
+				}
+			
+			/**
+			 * validate the SWIFT Code.
+			 * SWIFT CODE should be 11 digit Alphanumeric
+			 */
+			function validateSwiftCode(swiftCodeVal) {
+			    var validationMessages = [];
+
+				if (swiftCodeVal.length != 11){
+					validationMessages.push(xenos$REF$i18n.fininst.eadderess.swiftcodelen_req);
+				}
+				
+				if(isNonAlphanumeric(swiftCodeVal)){
+					validationMessages.push(xenos$REF$i18n.fininst.eadderess.swiftcodelen_req);
+				}
+				 if(validationMessages.length >0) {
+				 
+					$('.formHeader').find('.formTabErrorIco').css('display', 'block');
+					$('.formHeader').find('.formTabErrorIco').off('click');
+                    $('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+
+					return false;
+                 } 
+				else 
+				{
+                     $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+				 }
+				 return true;
+			}
+			
+			/**
+			* Populate E-address request parameters.
+			*/
+			function populateEAddressRequestParam(){
+				var reqObj = {		"elctronicAddress.addressId" 			:	$.trim($('#delvEAddAddressId').val()),
+									"elctronicAddress.phone"				:	$.trim($('#delvEAddPhone').val()),
+									"elctronicAddress.mobile"				:	$.trim($('#delvEAddMobile').val()),
+									"elctronicAddress.fax"					:	$.trim($('#delvEAddFax').val()),
+									"elctronicAddress.email"				:	$.trim($('#delvEAddEmail').val()),
+									"elctronicAddress.swiftCode"			:	$.trim($('#delvEAddSwiftCode').val()),
+									"elctronicAddress.tlxCountryCode"		:	$.trim($('#delvEAddTlxCountryCode').val()),
+									"elctronicAddress.tlxDial"				:	$.trim($('#delvEAddTlxDial').val()),
+									"elctronicAddress.answerBack"			:	$.trim($('#delvEAddAnswerBack').val()),
+									"elctronicAddress.recipientName"		:	$.trim($('#delvEAddRecipientName').val()),
+									"elctronicAddress.oasysCode"			:	$.trim($('#delvEAddOasysCode').val()),
+									"elctronicAddress.attention"			:	$.trim($('#delvEAddAttention').val())
+							};
+				return reqObj;
+			}
+			
+			/**
+			* Populate E-address Rule request parameters.
+			*/
+			function populateEAddressRuleRequestParam(){
+				var reqObj = { 	"deliveryEAddressRulePage.reportId"				:$.trim($('#delvEAddRuleReportId').val()),
+								"deliveryEAddressRulePage.reportGroupId"		:$.trim($('#delvEAddRuleReportGroupId').val()),
+								"deliveryEAddressRulePage.addressId"			:$.trim($('#delvEAddRuleAddressId').val()),
+								"deliveryEAddressRulePage.addressType"			:$.trim($('#delvEAddRuleAddressType').val()),
+								"deliveryEAddressRulePage.autoManualFeedFlag"	:$.trim($('#delvEAddRuleAutoManualFeedFlag').val())
+							   };
+				return reqObj;
+			}
+			
+			/**
+			* Populate E-address form.
+			*/
+			function populateEAddressForm(result){
+				if(result){
+					$('#delvEAddAddressId').val(result.elctronicAddress.addressId);
+					$('#delvEAddPhone').val(result.elctronicAddress.phone);
+					$('#delvEAddMobile').val(result.elctronicAddress.mobile);
+					$('#delvEAddFax').val(result.elctronicAddress.fax);
+					$('#delvEAddEmail').val(result.elctronicAddress.email);
+					$('#delvEAddSwiftCode').val(result.elctronicAddress.swiftCode);
+					$('#delvEAddTlxCountryCode').val(result.elctronicAddress.tlxCountryCode);
+					$('#delvEAddTlxDial').val(result.elctronicAddress.tlxDial);
+					$('#delvEAddAnswerBack').val(result.elctronicAddress.answerBack);
+					$('#delvEAddRecipientName').val(result.elctronicAddress.recipientName);
+					$('#delvEAddOasysCode').val(result.elctronicAddress.oasysCode);
+					$('#delvEAddAttention').val(result.elctronicAddress.attention);
+					$('#delvEAddAddressId').focus();
+				}
+			}
+			
+			/**
+			* Populate E-address rule form.
+			*/
+			function populateEAddressRuleForm(result){
+				if(result){
+					$('#delvEAddRuleReportId').val(result.deliveryEAddressRulePage.reportId);
+					$('#delvEAddRuleReportGroupId').val(result.deliveryEAddressRulePage.reportGroupId);
+					$('#delvEAddRuleAddressId').val(result.deliveryEAddressRulePage.addressId);
+					$('#delvEAddRuleAddressType').val(result.deliveryEAddressRulePage.addressType);
+					$('#delvEAddRuleAutoManualFeedFlag').val(result.deliveryEAddressRulePage.autoManualFeedFlag);
+					$('#delvEAddRuleAddressId').focus();
+				}
+			}
+			/**
+			* Insert /Update EAddress.
+			*/
+			function upsertDeliveryEAddress(data){
+				var result = data.electronicAddresses;
+				if(result){
+					eaddressGrid.clearData();
+					for(var i in result){
+						item = {};
+						rowId+=1;
+						item.id 			= "xenos_" + rowId;
+						item.addressId 		= $.trim(result[i].addressId);
+						item.phone			= $.trim(result[i].phone);
+						item.mobile 		= $.trim(result[i].mobile);
+						item.fax 			= $.trim(result[i].fax);
+						item.email 			= $.trim(result[i].email);
+						item.swiftCode 		= $.trim(result[i].swiftCode);
+						item.tlxCountryCode = $.trim(result[i].tlxCountryCode);
+						item.tlxDial 		= $.trim(result[i].tlxDial);
+						item.answerBack 	= $.trim(result[i].answerBack);
+						item.recipientName 	= $.trim(result[i].recipientName);
+						item.oasysCode 		= $.trim(result[i].oasysCode);
+						item.attention 		= $.trim(result[i].attention);
+						eaddressGrid.addOrUpdateRow(item,{});
+					}
+					populateEAddressForm(data);
+					populateAddressID(data);
+				}
+			}
+			
+			/**
+			* Populate Address ID list.
+			*/
+			function populateAddressID(data){
+				if(data){
+					$('#delvEAddRuleAddressId option').remove();
+						
+					var delvAddressIdList = data.addressIdList;
+					$('#delvEAddRuleAddressId option').remove();
+					var option = $('<option/>');
+					option.attr('value', "").attr('selected','selected').text("");
+					$('#delvEAddRuleAddressId').append(option);
+					$.each(delvAddressIdList, function(index, item){
+						option = $('<option/>');
+						option.attr('value', item).text(item);
+						$('#delvEAddRuleAddressId').append(option);
+					});
+				}
+			}
+			
+			/**
+			* Insert /Update EAddress Rule.
+			*/
+			function upsertDeliveryEAddressRule(data){
+					var result = data.deliveryEAddressRules;
+					if(result){
+						delvEaddressGrid.clearData();
+						for(var i in result){
+							item = {};
+							rowId+=1;
+							item.id = "xenos_" + rowId;
+							item.reportId =  $.trim(result[i].reportId);
+							item.reportName =  $.trim(result[i].reportName);
+							item.reportGroupId = $.trim(result[i].reportGroupId);
+							item.addressId = $.trim(result[i].addressId);
+							item.addressType = $.trim(result[i].addressType);
+							item.autoManualFeedFlagExp = $.trim(result[i].autoManualFeedFlagExp);
+							delvEaddressGrid.addOrUpdateRow(item,{});
+						}
+						populateEAddressRuleForm(data);
+					}
+			}
+			
+			/**
+			* New E-address add handler.
+			*/
+			function addFinInstEAddressHandler(e){
+					var valid = validateOnAddEAddress();
+					if(valid){
+						var requestUrl = baseUrl + "/addEaddress.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateEAddressRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertDeliveryEAddress(content.value[0]);
+																		$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+																	} else {
+																		$('.formHeader').find('.formTabErrorIco').css('display', 'block');
+																		$('.formHeader').find('.formTabErrorIco').off('click');
+									                                    $('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, content.value, true));
+																	}
+																}
+															 }
+															);
+					}
+			}
+			
+			/**
+			* E-Address Edit handler
+			*/
+			function editFinInstEAddressHandler(rowIndex, dataContext){
+					var requestUrl = baseUrl + "/editEaddress.json?commandFormId=" + $('[name=commandFormId]').val();
+					xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+															settings: {data : {"editIndexEaddress" : rowIndex}},
+															onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	populateEAddressForm(content.value[0]);
+																	$('.editBtnDeliveryEAddress').css('display','block'); 
+																	$('.addBtnDeliveryEAddress').css('display','none'); 
+																	$('.formHeader').find('.formTabErrorIco').hide();
+																} else {
+																	$('.formHeader').find('.formTabErrorIco').show();
+																	$('.formHeader').find('.formTabErrorIco').off('click');
+																	$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, content.value, true));
+																		
+																}
+																return true;
+															}
+														 }
+														);
+			}
+			
+			/**
+			* E-Address Delete handler
+			*/
+			function deleteFinInstEAddressHandler(rowIndex, dataContext){
+				var requestUrl = baseUrl + "/deleteEaddress/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+				xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+														onJsonContent :  function(e, options, $target, content) {
+															if(content.success == true){
+																upsertDeliveryEAddress(content.value[0]);
+																$('.editBtnDeliveryEAddress').hide();
+																$('.addBtnDeliveryEAddress').show(); 
+																$('.formHeader').find('.formTabErrorIco').hide();
+															} else {
+																$('.formHeader').find('.formTabErrorIco').show();
+																$('.formHeader').find('.formTabErrorIco').off('click');
+																$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, content.value, true));
+															}
+														}
+													 }
+										);
+			}
+			
+			/**
+			* E-Address Update handler
+			*/
+			function updateFinInstEAddressHandler(e){
+					var valid = validateOnAddEAddress();
+					if(valid){
+						var requestUrl = baseUrl + "/updateEaddress.json?commandFormId=" + $('[name=commandFormId]').val();
+
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateEAddressRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertDeliveryEAddress(content.value[0]);
+																		$('.editBtnDeliveryEAddress').css('display','none'); 
+																		$('.addBtnDeliveryEAddress').css('display','block'); 
+																		$('.formHeader').find('.formTabErrorIco').hide();
+																	} else {
+																	$('.formHeader').find('.formTabErrorIco').show();
+																	$('.formHeader').find('.formTabErrorIco').off('click');
+																	$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, content.value, true));
+																	}
+																}
+															 }
+															);
+					}
+			}
+			
+			/**
+			* E-Address Cancel handler
+			*/
+			function cancelFinInstEAddressHandler(e){
+					var requestUrl = baseUrl + "/cancelEaddress.json?commandFormId=" + $('[name=commandFormId]').val();
+					xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+															onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertDeliveryEAddress(content.value[0]);
+																		$('.editBtnDeliveryEAddress').css('display','none'); 
+																		$('.addBtnDeliveryEAddress').css('display','block'); 
+																		$('.formHeader').find('.formTabErrorIco').hide();
+																	} else {
+																	$('.formHeader').find('.formTabErrorIco').show();
+																	$('.formHeader').find('.formTabErrorIco').off('click');
+																	$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, content.value, true));
+																	}
+																	return true;
+																}
+															 }
+												);
+			}
+			
+			/**
+			* New E-address rule add handler.
+			*/
+			function addFinInstEAddressRuleHandler(e){
+				var valid = validateOnAddEAddressRule();
+				if(valid){
+					var requestUrl = baseUrl + "/addEaddressRule.json?commandFormId=" + $('[name=commandFormId]').val();
+							   
+					xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+															settings: {data : populateEAddressRuleRequestParam()},
+															onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertDeliveryEAddressRule(content.value[0]);
+																	$('.formHeader').find('.formTabErrorIco').hide();
+																} else {
+																	$('.formHeader').find('.formTabErrorIco').show();
+																	$('.formHeader').find('.formTabErrorIco').off('click');
+																	$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, content.value, true));
+																}
+															}
+														 }
+											);
+				}
+			}
+			
+			/**
+			* E-Address rule Edit handler
+			*/
+			function editFinInstEAddressRuleHandler(rowIndex, dataContext){
+				var requestUrl = baseUrl + "/editEaddressRule.json?commandFormId=" + $('[name=commandFormId]').val();
+				xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+														settings: {data : {"editIndexEaddressRule" : rowIndex}},
+														onJsonContent :  function(e, options, $target, content) {
+															if(content.success == true){
+																populateEAddressRuleForm(content.value[0]);
+																$('.editBtnDeliveryEAddressRule').css('display','block'); 
+																$('.addBtnDeliveryEAddressRule').css('display','none'); 
+																$('.formHeader').find('.formTabErrorIco').hide();
+															} else {
+																$('.formHeader').find('.formTabErrorIco').show();
+																$('.formHeader').find('.formTabErrorIco').off('click');
+																$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, content.value, true));
+															}
+															return true;
+														}
+													 }
+										);
+			}
+			
+			/**
+			* E-AddressRule Delete handler
+			*/
+			function deleteFinInstEAddressRuleHandler(rowIndex, dataContext){
+				var requestUrl = baseUrl + "/deleteEaddressRule/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+					xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+															onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertDeliveryEAddressRule(content.value[0]);
+																	$('.editBtnDeliveryEAddressRule').hide();
+																	$('.addBtnDeliveryEAddressRule').show();
+																	$('.formHeader').find('.formTabErrorIco').hide();
+																} else {
+																	$('.formHeader').find('.formTabErrorIco').show();
+																	$('.formHeader').find('.formTabErrorIco').off('click');
+																	$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, content.value, true));
+																}
+															}
+														 }
+											);
+			}
+			
+			/**
+			* E-Address rule Update handler
+			*/
+			function updateFinInstEAddressRuleHandler(e){
+				var valid = validateOnAddEAddressRule();
+				if(valid){
+					var requestUrl = baseUrl + "/updateEaddressRule.json?commandFormId=" + $('[name=commandFormId]').val();
+					
+					xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+															settings: {data : populateEAddressRuleRequestParam()},
+															onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertDeliveryEAddressRule(content.value[0]);
+																	$('.formHeader').find('.formTabErrorIco').hide();
+																	$('.editBtnDeliveryEAddressRule').css('display','none'); 
+																	$('.addBtnDeliveryEAddressRule').css('display','block'); 
+																	$('.formHeader').find('.formTabErrorIco').hide();
+																} else {
+																	$('.formHeader').find('.formTabErrorIco').show();
+																	$('.formHeader').find('.formTabErrorIco').off('click');
+									                                $('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, content.value, true));
+																}
+															}
+														 }
+											);
+				}
+			}
+			
+			/**
+			* E-Address rule Cancel handler
+			*/
+			function cancelFinInstEAddressRuleHandler(e){
+				var requestUrl = baseUrl + "/cancelEaddressRule.json?commandFormId=" + $('[name=commandFormId]').val();
+				xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+														onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	upsertDeliveryEAddressRule(content.value[0]);
+																	$('.editBtnDeliveryEAddressRule').css('display','none'); 
+																	$('.addBtnDeliveryEAddressRule').css('display','block'); 
+																	$('.formHeader').find('.formTabErrorIco').hide();
+																} else {
+																	$('.formHeader').find('.formTabErrorIco').show();
+																	$('.formHeader').find('.formTabErrorIco').off('click');
+																	$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, content.value, true));
+																}
+																return true;
+															}
+														 }
+											);
+			}
+			
+			var unloadHook = function(){
+				$xenos$Wizard.deregister('unload',unloadHook);
+				eaddressGrid.destroy();
+				delvEaddressGrid.destroy();
+				delete eaddressGrid;
+				delete delvEaddressGrid;
+			}
+			
+			$xenos$Wizard.register('unload',unloadHook);
+			
+			$('#addElectronicAddressBtn').unbind('click',addFinInstEAddressHandler);
+			$('#updateElectronicAddressBtn').unbind('click',updateFinInstEAddressHandler);
+			$('#cancelElectronicAddressBtn').unbind('click',cancelFinInstEAddressHandler);
+			$('#addEaddressRuleDetailBtn').unbind('click',addFinInstEAddressRuleHandler);
+			$('#updateEaddressRuleDetailBtn').unbind('click',updateFinInstEAddressRuleHandler);
+			$('#cancelEaddressRuleDetailBtn').unbind('click',cancelFinInstEAddressRuleHandler);
+			$('#addElectronicAddressBtn').bind('click',addFinInstEAddressHandler);
+			$('#updateElectronicAddressBtn').bind('click',updateFinInstEAddressHandler);
+			$('#cancelElectronicAddressBtn').bind('click',cancelFinInstEAddressHandler);
+			$('#addEaddressRuleDetailBtn').bind('click',addFinInstEAddressRuleHandler);
+			$('#updateEaddressRuleDetailBtn').bind('click',updateFinInstEAddressRuleHandler);
+			$('#cancelEaddressRuleDetailBtn').bind('click',cancelFinInstEAddressRuleHandler);
+		}
+	</jsp:body>
+	</jsp:element>
+	
+	
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+	<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+	<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+	
+	<div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.account.label.eaddress" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="EAddressEntry"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	</div>
+	
+	<!-- Electronic Address -->
+	<div class="entryBlkArea" id="electronicAddressSection">
+		<div class="formItemBlock dottedBg">
+			<!-- Address ID -->
+			<div class="formItem">
+				<form:label path="commandForm.elctronicAddress.addressId" class="required"><spring:message code="ref.fininst.label.addressid" htmlEscape="false"/></form:label>
+				<form:select id="delvEAddAddressId" path="commandForm.elctronicAddress.addressId" class="dropdowninput amendReadOnlyItem">
+						<form:option value=""/>
+						<form:options items="${commandForm.addressIds}" itemLabel="label" itemValue="value"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Phone -->
+			<div class="formItem">
+				<form:label path="commandForm.elctronicAddress.phone"><spring:message code="ref.fininst.label.phone" htmlEscape="false"/></form:label>
+				<span><form:input id="delvEAddPhone" value="" path="commandForm.elctronicAddress.phone"  class="txtNormal amendReadOnlyItem" maxlength="20"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Mobile -->
+			<div class="formItem">
+				<form:label path="commandForm.elctronicAddress.mobile"><spring:message code="ref.fininst.label.mobile" htmlEscape="false"/></form:label>
+				<span><form:input id="delvEAddMobile" value="" path="commandForm.elctronicAddress.mobile"  class="txtNormal amendReadOnlyItem" maxlength="20"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Fax -->
+			<div class="formItem">
+				<form:label path="commandForm.elctronicAddress.fax"><spring:message code="ref.fininst.label.fax" htmlEscape="false"/></form:label>
+				<span><form:input id="delvEAddFax" value="" path="commandForm.elctronicAddress.fax"  class="txtNormal amendReadOnlyItem" maxlength="20"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- E-Mail -->
+			<div class="formItem">
+				<form:label path="commandForm.elctronicAddress.email"><spring:message code="ref.fininst.label.email" htmlEscape="false"/></form:label>
+				<span><form:input id="delvEAddEmail" value="" path="commandForm.elctronicAddress.email"  class="txtNormal amendReadOnlyItem" maxlength="40"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- SWIFT Code -->
+			<div class="formItem">
+				<form:label path="commandForm.elctronicAddress.swiftCode"><spring:message code="ref.fininst.label.swiftcode" htmlEscape="false"/></form:label>
+				<span><form:input id="delvEAddSwiftCode" value="" path="commandForm.elctronicAddress.swiftCode"  class="txtNormal amendReadOnlyItem" maxlength="20"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Telex Country Code -->
+			<div class="formItem">
+				<form:label path="commandForm.elctronicAddress.tlxCountryCode"><spring:message code="ref.fininst.label.telexcountrycode" htmlEscape="false"/></form:label>
+				<span><form:input id="delvEAddTlxCountryCode" value="" path="commandForm.elctronicAddress.tlxCountryCode"  class="txtNormal amendReadOnlyItem" maxlength="10"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Telex Dial No -->
+			<div class="formItem">
+				<form:label path="commandForm.elctronicAddress.tlxDial"><spring:message code="ref.fininst.label.telexdialno" htmlEscape="false"/></form:label>
+				<span><form:input id="delvEAddTlxDial" value="" path="commandForm.elctronicAddress.tlxDial"  class="txtNormal amendReadOnlyItem" maxlength="30"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Telex Answer Back -->
+			<div class="formItem">
+				<form:label path="commandForm.elctronicAddress.answerBack"><spring:message code="ref.fininst.label.telexanswerback" htmlEscape="false"/></form:label>
+				<span><form:input id="delvEAddAnswerBack" value="" path="commandForm.elctronicAddress.answerBack"  class="txtNormal amendReadOnlyItem" maxlength="20"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Recipient Name -->
+			<div class="formItem">
+				<form:label path="commandForm.elctronicAddress.recipientName"><spring:message code="ref.fininst.label.recipientname" htmlEscape="false"/></form:label>
+				<span><form:input id="delvEAddRecipientName" value="" path="commandForm.elctronicAddress.recipientName"  class="txtNormal amendReadOnlyItem" maxlength="60"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Oasys Code -->
+			<div class="formItem">
+				<form:label path="commandForm.elctronicAddress.oasysCode"><spring:message code="ref.fininst.label.oasyscode" htmlEscape="false"/></form:label>
+				<span><form:input id="delvEAddOasysCode" value="" path="commandForm.elctronicAddress.oasysCode"  class="txtNormal amendReadOnlyItem" maxlength="20"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Attention -->
+			<div class="formItem">
+				<form:label path="commandForm.elctronicAddress.attention"><spring:message code="ref.fininst.label.attention" htmlEscape="false"/></form:label>
+				<span><form:input id="delvEAddAttention" value="" path="commandForm.elctronicAddress.attention"  class="txtNormal amendReadOnlyItem" maxlength="60"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			<div id="formActionArea" class="gridBtnMargin">
+				<div class="right">
+					<div class="btnWrapStyle submitBtn gridAddBtn">
+						<span class="addBtnDeliveryEAddress" style="display:block"><input id="addElectronicAddressBtn" type="button" value="${formadd_label}" class="inputBtnStyle amendReadOnlyItem gridButton"/></span>
+					</div>
+					<span class="editBtnDeliveryEAddress" style="display:none">	
+						<div class="btnWrapStyle submitBtn"><input id="updateElectronicAddressBtn" type="button" value="${formsave_label}" class="inputBtnStyle gridButton"/></div>
+						<div class="btnWrapStyle resetBtn"><input id="cancelElectronicAddressBtn" type="button" value="${formcancel_label}" class="inputBtnStyle gridButton"/></div>
+					</span>
+				</div>
+			</div>	
+			<div class="entryGrid">
+				<div id="eaddressGrid" class="xenos-grid" style="width:100%;height:170px;"><spring:message text="" htmlEscape="false"/></div>	
+			</div>
+		</div>
+		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+
+	<div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.account.label.deliveryeaddressruleinfo" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler" id="EAddressEntry"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	</div>
+	
+	<!-- Delivery E-Address Rule Info -->
+	<div class="entryBlkArea">
+		<div class="formItemBlock dottedBg">
+			<!-- Report Name -->
+			<div class="formItem">
+				<form:label path="commandForm.deliveryEAddressRulePage.reportId"><spring:message code="ref.fininst.label.reportname" htmlEscape="false"/></form:label>				
+					<form:select id="delvEAddRuleReportId" path="commandForm.deliveryEAddressRulePage.reportId" class="dropdowninput amendReadOnlyItem" style="max-width:200px;">
+						<form:option value=""/>
+						<form:options items="${commandForm.reportNames}" itemLabel="label" itemValue="value"/>
+					</form:select>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Group Report Name -->
+			<div class="formItem">
+				<form:label path="commandForm.deliveryEAddressRulePage.reportGroupId"><spring:message code="ref.fininst.label.groupreportname" htmlEscape="false"/></form:label>
+				<form:select id="delvEAddRuleReportGroupId" path="commandForm.deliveryEAddressRulePage.reportGroupId" class="dropdowninput amendReadOnlyItem">
+					<form:option value=""/>
+					<form:options items="${commandForm.groupReportNames}"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Address Id -->
+			<div class="formItem">
+				<form:label path="commandForm.deliveryEAddressRulePage.addressId" class="required"><spring:message code="ref.fininst.label.addressid" htmlEscape="false"/></form:label>
+				<form:select id="delvEAddRuleAddressId" path="commandForm.deliveryEAddressRulePage.addressId" class="dropdowninput amendReadOnlyItem">
+						<form:option value=""/>
+						<form:options items="${commandForm.addressIdList}"/>
+				</form:select>					
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Address Type -->
+			<div class="formItem">
+				<form:label path="commandForm.deliveryEAddressRulePage.addressType" class="required"><spring:message code="ref.fininst.label.addresstype" htmlEscape="false"/></form:label>
+				<form:select id="delvEAddRuleAddressType" path="commandForm.deliveryEAddressRulePage.addressType" class="dropdowninput amendReadOnlyItem">
+					<form:option value=""/>
+					<form:options items="${commandForm.addressTypes}"  itemLabel="label" itemValue="value"/>
+				</form:select>					
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Auto Manual Flag -->
+			<div class="formItem">
+				<form:label path="commandForm.deliveryEAddressRulePage.autoManualFeedFlag" class="required"><spring:message code="ref.fininst.label.automanualflag" htmlEscape="false"/></form:label>
+				<form:select id="delvEAddRuleAutoManualFeedFlag" path="commandForm.deliveryEAddressRulePage.autoManualFeedFlag" class="dropdowninput amendReadOnlyItem">
+					<form:option value=""/>
+					<form:options items="${commandForm.autoManualFlags}"  itemLabel="label" itemValue="value"/>
+				</form:select>					
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			
+			<div id="formActionArea" class="gridBtnMargin">
+				<div class="right">
+					<div class="btnWrapStyle submitBtn gridAddBtn">
+						<span class="addBtnDeliveryEAddressRule" style="display:block"><input id="addEaddressRuleDetailBtn" type="button" value="${formadd_label}" class="inputBtnStyle amendReadOnlyItem gridButton"/></span>
+					</div>
+					<span class="editBtnDeliveryEAddressRule" style="display:none">	
+						<div class="btnWrapStyle resetBtn"><input id="cancelEaddressRuleDetailBtn" type="button" value="${formcancel_label}" class="inputBtnStyle gridButton"/></div>
+						<div class="btnWrapStyle submitBtn"><input id="updateEaddressRuleDetailBtn" type="button" value="${formsave_label}" class="inputBtnStyle gridButton"/></div>
+					</span>
+				</div>
+			</div>
+			<div class="entryGrid">
+				<div id="delvEaddressGrid" class="xenos-grid" style="width:100%;height:170px;"><spring:message text="" htmlEscape="false"/></div>	
+			</div>
+		</div>
+		<!-- Rule -->
+		<div class="detailtrdHide"><spring:message text="" htmlEscape="false"/></div>	
+	</div>
+		
+</div> 
+</jsp:root>

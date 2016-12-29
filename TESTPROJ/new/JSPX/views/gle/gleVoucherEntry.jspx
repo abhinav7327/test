@@ -1,0 +1,708 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+	xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:form="http://www.springframework.org/tags/form" 
+	xmlns:jsp="http://java.sun.com/JSP/Page" 
+	xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:tiles="http://tiles.apache.org/tags-tiles" 
+	xmlns:xenos="http://www.nri.co.jp/xenos" 
+	xmlns:xenosfn="http://www.nri.co.jp/jstl/functions"
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util">
+	
+	 <style type="text/css">
+				.entryGrid .slick-header-column {
+						height:30px !important;
+				}
+				.entryGrid .slick-viewport{
+				 height:70% !important;
+				}
+	 </style>
+	 <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/inf/fieldvalidator.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src">
+			<c:url value="/scripts/inf/utilCommons.js"/>
+		</jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+		            xenos.loadLocalizedScript([
+						{path: xenos.context.path + '/scripts/gle/xenos-gle-i18n', async: false}
+					]);
+					var context = $xenos$Wizard.$context;
+		        	var baseUrl = xenos.context.path + context.find('form').attr('action');
+					
+					var JournalResult = [],
+						rowId = 0,		
+						item = {},
+						JournalGrid = null
+						
+					/**
+					* A common request handler to be used server communication.
+					*/
+					var xenos$Handler$RequestHandler = xenos$Handler$function({
+						get: {
+							contentType: 'json',
+							requestType: xenos$Handler$default.requestType.asynchronous
+						},	
+						settings: {
+							beforeSend: function(request) {
+								request.setRequestHeader('Accept', 'application/json');
+							},
+							type: 'POST'
+						}
+					});
+	
+	            var JournalColumns = [];
+				
+				JournalColumns.push({name:"<spring:message code="gle.balanceQuery.label.result.ledger_code_name" htmlEscape="false"/>", 	field:"ledgerCodeName",	id:"ledgerCodeName", 	sortable:false});
+				JournalColumns.push({name:"<spring:message code="gle.balanceQuery.label.result.sub_ledger_code" htmlEscape="false"/>", 		field:"subLedgerCode",		id:"subLedgerCode",		sortable:false});
+				JournalColumns.push({name:"<spring:message code="gle.voucherentry.details" htmlEscape="false"/>", 		field:"details",id:"details",sortable:false});
+				JournalColumns.push({name:"<spring:message code="gle.balanceQuery.label.result.Debit" htmlEscape="false"/>", 	field:"debit",	id:"debit", sortable:false,cssClass:'xenos-grid-number'});
+				JournalColumns.push({name:"<spring:message code="gle.balanceQuery.label.result.Credit" htmlEscape="false"/>", 	field:"credit",	id:"credit", sortable:false,cssClass:'xenos-grid-number'});
+				
+				
+				
+					
+					var JournalGridConf = {
+						editMode 					: 	'both',																
+						editCallback 				: 	editJournalHandler,
+						deleteCallback				:	deleteJournalHandler,
+						forceFitColumns				:	true
+					};
+					
+				/**
+				* Journal Edit handler
+				*/
+				function editJournalHandler(rowIndex, dataContext){
+					var requestUrl = baseUrl + "/editJournal.json?commandFormId=" + $('[name=commandFormId]').val();
+					xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+															settings: {data : {"editIndexJournal" : rowIndex}},
+															onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	populateVoucherForm(content.value[0]);
+																	$('.editBtnJournal',context).css('display','block'); 
+																	$('.addJournal',context).css('display','none');
+																} else {
+																	xenos.postNotice(xenos.notice.type.error, content.value);
+																}
+																return true;
+															}
+														 }
+											);
+				}
+				/**
+				* Journal Delete handler
+				*/
+				function deleteJournalHandler(rowIndex, dataContext){
+					var requestUrl = baseUrl + "/deleteJournal/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertJournal(content.value[0]);
+																		$('.editBtnJournal',context).hide();
+																		$('.addJournal',context).show();
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value);
+																	}
+																}
+															 }
+												);
+				}
+					
+                    <xenos:out escapeXml="false">
+					<c:forEach items="${commandForm.journalList}" var="dl">
+					    item = {};
+						rowId+=1;
+						var deatilString="";
+					    var staffCode = "<c:out value="${dl.map.staffCode}"/>";
+						var bankChequeNo = "<c:out value="${dl.map.bankChequeNo}"/>";
+						var remarks = "<c:out value="${dl.map.remarks}"/>";
+						
+						if(VALIDATOR.isNullValue(staffCode) <![CDATA[&&]]> VALIDATOR.isNullValue(bankChequeNo) <![CDATA[&&]]> VALIDATOR.isNullValue(remarks)){
+						  deatilString=""; 
+					    }else{
+							deatilString = "<c:out value="${dl.map.staffCode}"/>"+":"+"<c:out value="${dl.map.bankChequeNo}"/>"+":"+"<c:out value="${dl.map.remarks}"/>";
+						}
+						item.id = "xenos_" + rowId;
+						item.ledgerCodeName = "<c:out value="${dl.map.ledgerCode}" />"+":"+"<c:out value="${dl.map.ledgerName}" />";
+						item.subLedgerCode 	= "<c:out value="${dl.map.subLedgerCode}" />";
+						item.details = deatilString;
+						item.debit 	= "<c:out value="${dl.map.fDebitAmt}" />";
+						item.credit = "<c:out value="${dl.map.fCreditAmt}" />";
+						JournalResult.push(item);
+					</c:forEach>
+					</xenos:out>
+	                JournalGrid = $('#JournalGrid',context).xenoseditablegrid(JournalResult, JournalColumns, JournalGridConf);
+					
+				function validateJournalAttributes(){
+						var validationMessages = [];		
+						var currency = $.trim($('#currency',context).val());
+						var ledgerCode = $.trim($('#ledgerCode',context).val());
+						var amountStr = $.trim($('#amountStr',context).val());
+						
+						if(VALIDATOR.isNullValue(currency)){
+							validationMessages.push(xenos$GLE$i18n.voucher.entry.enter_ccy_code);
+						}
+						if(VALIDATOR.isNullValue(ledgerCode)){
+							validationMessages.push(xenos$GLE$i18n.voucher.entry.enter_ledger_code);
+						}
+						if(VALIDATOR.isNullValue(amountStr)){
+							validationMessages.push(xenos$GLE$i18n.voucher.entry.enter_amt);
+						}else {
+							formatAmount($('#amountStr'),15,3,validationMessages,$('#amountStr').parent().parent().find('label').text());
+						}
+						if (validationMessages.length > 0){
+							 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+							 return false;
+						}else {
+	                           xenos.utils.clearGrowlMessage();
+						}
+						return true;
+					}
+				function validateVoucherAttributes(){
+						var validationMessages = [];		
+						var currency = $.trim($('#currency',context).val());
+						var transactionDate = $.trim($('#transactionDate',context).val());
+						var tgtaccountNoId = $.trim($('#tgtaccountNoId',context).val());
+						var trialBalanceId = $.trim($('#trialBalanceId',context).val());
+						var tgtinventoryAccountNoId = $.trim($('#tgtinventoryAccountNoId',context).val());
+						
+						if(VALIDATOR.isNullValue(currency)){
+							validationMessages.push(xenos$GLE$i18n.voucher.entry.enter_ccy);
+						}
+						if(VALIDATOR.isNullValue(transactionDate)){
+							validationMessages.push(xenos$GLE$i18n.voucher.entry.enter_date);
+						}
+						if(isDateCustom(transactionDate)==false <![CDATA[&&]]> transactionDate.length>0) {
+							validationMessages.push(xenos$GLE$i18n.voucher.entry.invalid_transaction_date);
+						}else{
+							formatDate(transactionDate,$('#transactionDate',context));
+						}
+						if(VALIDATOR.isNullValue(tgtaccountNoId) <![CDATA[&&]]> VALIDATOR.isNullValue(trialBalanceId) <![CDATA[&&]]> VALIDATOR.isNullValue(tgtinventoryAccountNoId)){
+							validationMessages.push(xenos$GLE$i18n.voucher.entry.trialbalance_or_account);
+						}
+						if (validationMessages.length > 0){
+							 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+							 return false;
+						}else {
+	                           xenos.utils.clearGrowlMessage();
+						}
+						return true;
+					}
+					
+	            /**
+				* Populate Voucher form.
+				*/
+				function populateVoucherForm(result){
+					if(result.voucherPage){
+						$('#ledgerCode',context).val(result.voucherPage.ledgerCode);
+						$('#subLedgerCode',context).val(result.voucherPage.subLedgerCode);
+						$('#debitCreditFlag',context).val(result.voucherPage.debitCreditFlag);
+						$('#amountStr',context).val(result.voucherPage.amountStr);
+						$('#staffCode',context).val(result.voucherPage.staffCode);
+						$('#bankChequeNo',context).val(result.voucherPage.bankChequeNo);
+						$('#totalCreditAmountStr',context).val(result.voucherPage.totalCreditAmountStr);
+						$('#totalDebitAmountStr',context).val(result.voucherPage.totalDebitAmountStr);
+						$('#journalRemarks',context).val(result.voucherPage.journalRemarks);
+						$('input[type=text],textarea,select', 'div.formItemBlock').filter(':enabled:visible:first').focus();
+					}
+				}  
+				
+				/**
+				* Journal Detail Add handler.
+				*/
+				
+				function addJournalHandler(e){
+					var valid = validateJournalAttributes();
+					if(valid){
+						var requestUrl = baseUrl + "/addJournal.json?commandFormId=" + $('[name=commandFormId]').val();
+								   
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data: $("#commandForm").serialize()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertJournal( content.value[0]);
+																		xenos.utils.clearGrowlMessage();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																	}
+																}
+															 }
+												);
+					}
+				}
+				
+				
+				
+				/**
+				* Journal Detail update handler.
+				*/
+				function updateJournalHandler(e){			
+					var valid = validateJournalAttributes();
+					if(valid){
+						var requestUrl = baseUrl + "/updateJournal.json?commandFormId=" + $('[name=commandFormId]').val();
+						
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data: $("#commandForm").serialize()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertJournal(content.value[0]);
+																		$('.editBtnJournal',context).css('display','none'); 
+																		$('.addJournal',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value);
+																	}
+																}
+															 }
+												);
+					}
+				}
+				
+				/**
+				* Journal Detail cancel handler.
+				*/
+				function cancelJournalHandler(e){
+					var requestUrl = baseUrl + "/cancelJournal.json?commandFormId=" + $('[name=commandFormId]').val();
+					xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+															onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertJournal(content.value[0]);
+																		$('.editBtnJournal',context).css('display','none'); 
+																		$('.addJournal',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				/**
+				* Insert/ Update Journal Detail(s)
+				*/
+				function upsertJournal(data){
+					var result = data.journalList;	
+					JournalGrid.clearData();
+					for(var i in result){
+							var deatilString = "";
+							var staffCodeEmpty = VALIDATOR.isNullValue(result[i].map.staffCode);	
+							var bankChequeNoEmpty = VALIDATOR.isNullValue(result[i].map.bankChequeNo);
+							var remarksEmpty = VALIDATOR.isNullValue(result[i].map.remarks);
+							if(staffCodeEmpty <![CDATA[&&]]> bankChequeNoEmpty <![CDATA[&&]]> remarksEmpty){
+							   deatilString = "";
+							}else{
+							  deatilString = $.trim(result[i].map.staffCode)+":"+$.trim(result[i].map.bankChequeNo)+":"+$.trim(result[i].map.remarks);
+							}
+							item = {};
+							rowId+=1;
+							item.id 				= 	"xenos_" + rowId;
+							item.ledgerCodeName     = $.trim(result[i].map.ledgerCode)+":"+$.trim(result[i].map.ledgerName);
+							item.subLedgerCode 		= $.trim(result[i].map.subLedgerCode);
+							item.details 	= deatilString;
+							item.debit 		= $.trim(result[i].map.fDebitAmt);
+							item.credit 	= $.trim(result[i].map.fCreditAmt);
+							JournalGrid.addOrUpdateRow(item,{});
+					}	
+					populateVoucherForm(data);
+				}
+				
+				$('#addJournalBtn',context).bind('click',addJournalHandler);
+				$('#updateJournalBtn',context).bind('click',updateJournalHandler);
+				$('#cancelJournalBtn',context).bind('click',cancelJournalHandler);
+				
+				var submitValidateHook = function() {
+                    var valid = validateVoucherAttributes();					 
+					return valid;					
+				};
+				
+				var unloadHook = function(){
+					$('#addJournalBtn',context).unbind('click',addJournalHandler);
+					$('#updateJournalBtn',context).unbind('click',updateJournalHandler);
+					$('#cancelJournalBtn',context).unbind('click',cancelJournalHandler);
+					
+					$xenos$Wizard.deregister('submit',submitValidateHook);
+					$xenos$Wizard.deregister('unload',unloadHook);
+					JournalGrid.destroy();
+				}
+				$xenos$Wizard.register('submit',submitValidateHook);
+				$xenos$Wizard.register('unload',unloadHook);
+				<!--Assigning shortcuts for form items-->
+				xenos.utils.afterFormRenderScuts();
+		    }
+		</jsp:body>
+    </jsp:element>
+
+
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+					<li>
+                        <spring:message htmlEscape="false" text="${dl}"/>
+                    </li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+	<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+	<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>	
+		<div class="entryBlkArea" id="gleVoucherEntry">
+			<div class="moreHandle" title="Collapse">
+				<h1 class="msgHead">
+					<spring:message text="" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse" id="gleMoreSectionFirst"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>
+			<div class="formItemBlock topitems dottedBg">
+			<!--Form Item for currency-->
+            <div class="formItem">
+                <form:label class="required" path="commandForm.voucherPage.currency">
+                    <spring:message code="gle.label.ccy" htmlEscape="false"/>
+                </form:label>
+                <span>
+                    <form:input class="textBox" id="currency" path="commandForm.voucherPage.currency"/>
+                </span>
+				<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="currency" popType="currency" value="" /></div>
+                <div class="clear">
+                    <spring:message htmlEscape="false" text=""/>
+                </div>
+            </div>
+			
+			<!--Form Item for date-->
+			
+			<div class="formItem">
+                    <form:label class="required" path="commandForm.transactionDate">
+                        <spring:message code="gle.label.date" htmlEscape="false"/>
+                    </form:label>
+                    <span>
+                        <form:input id = "transactionDate" class="dateinput" path="commandForm.transactionDate" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$GLE$i18n.voucher.entry.date_format_check, [this.value]))}else{formatDate(this.value,$('#transactionDate','#gleVoucherEntry'))};"/>
+                    </span>
+                    <span class="remove" style="display: none;" title="Remove this field">
+                        <spring:message htmlEscape="false" text=""/>
+                    </span>
+                    <div class="clear">
+                        <spring:message htmlEscape="false" text=""/>
+                    </div>
+                </div>
+
+			<!--Form Item for reversalType-->
+
+			<div class="formItem">
+                    <form:label path="commandForm.voucherPage.reverse">
+                        <spring:message code="gle.VoucherDetail.label.result.reversal_Type" htmlEscape="false"/>
+                    </form:label>
+                    <span>
+                        <xenos:select id="reverse" class="dropdowninput" path="commandForm.voucherPage.reverse">
+                            <form:option value=""/>
+                            <form:options itemLabel="label" itemValue="value" items="${commandForm.reversalTypeList}"/>
+                        </xenos:select>
+                    </span>
+                    <span class="remove" style="display: none;" title="Remove this field">
+                        <spring:message htmlEscape="false" text=""/>
+                    </span>
+                    <div class="clear">
+                        <spring:message htmlEscape="false" text=""/>
+                    </div>
+                </div>
+
+			<!--Form Item for trialBalanceId-->
+
+			<div class="formItem">
+                    <form:label path="commandForm.voucherPage.trialBalanceId">
+                        <spring:message code="gle.VoucherDetail.label.result.trial_balance_id" htmlEscape="false"/>
+                    </form:label>
+                    <span>
+                        <form:input class="textBox" id="trialBalanceId" path="commandForm.voucherPage.trialBalanceId"/>
+                    </span>
+                    <div class="popupBtn">
+                        <input class="popupBtnIco" popType="trialBalanceId" tgt="trialBalanceId" type="button"/>
+                    </div>
+                    <span class="remove" style="display: none;" title="Remove this field">
+                        <spring:message htmlEscape="false" text=""/>
+                    </span>
+                    <div class="clear">
+                        <spring:message htmlEscape="false" text=""/>
+                    </div>
+                </div>
+
+			<!--Form Item for extRefNo-->
+
+			<div class="formItem">
+                    <form:label path="commandForm.voucherPage.extReferenceNo">
+                        <spring:message code="gle.VoucherDetail.label.result.ext_ref_no" htmlEscape="false"/>
+                    </form:label>
+                    <span>
+                        <form:input class="textBox" id="extRefNo" maxlength="16" path="commandForm.voucherPage.extReferenceNo"/>
+                    </span>
+                    <span class="remove" style="display: none;" title="Remove this field">
+                        <spring:message htmlEscape="false" text=""/>
+                    </span>
+                    <div class="clear">
+                        <spring:message htmlEscape="false" text=""/>
+                    </div>
+                </div>
+
+			<!--Form Item for batchFileNo-->
+
+			<div class="formItem">
+                    <form:label path="commandForm.voucherPage.batchFileNo">
+                        <spring:message code="gle.VoucherDetail.label.result.batch_file_no" htmlEscape="false"/>
+                    </form:label>
+                    <span>
+                        <form:input class="textBox" id="batchFileNo" maxlength="50" path="commandForm.voucherPage.batchFileNo"/>
+                    </span>
+                    <span class="remove" style="display: none;" title="Remove this field">
+                        <spring:message htmlEscape="false" text=""/>
+                    </span>
+                    <div class="clear">
+                        <spring:message htmlEscape="false" text=""/>
+                    </div>
+                </div>
+
+			<!--Form Item for remarks-->
+
+			<div class="formItem">
+                    <form:label path="commandForm.voucherPage.remarks">
+                        <spring:message code="gle.VoucherDetail.label.result.remarks" htmlEscape="false"/>
+                    </form:label>
+                    <span>
+                        <form:input class="textBox" id="remarks" maxlength="35" path="commandForm.voucherPage.remarks"/>
+                    </span>
+                    <span class="remove" style="display: none;" title="Remove this field">
+                        <spring:message htmlEscape="false" text=""/>
+                    </span>
+                    <div class="clear">
+                        <spring:message htmlEscape="false" text=""/>
+                    </div>
+                </div>
+
+				<!--Form Item for invtActPopUp-->
+			
+				<div class="formItem">
+					<form:label path="commandForm.voucherPage.inventoryAccountNo" ><spring:message code="gle.transactionquery.label.inventoryaccount" htmlEscape="false"/></form:label>
+					<util:xenospopup id="inventoryAccountNoId" path="commandForm.voucherPage.inventoryAccountNo" showResolvedName="false"  
+					tgt="inventoryAccountNo" popType="cpAccount" actTypeContext="T|S|B" actCPTypeContext="INTERNAL" actContext="TRADING|BOTH" event="change focusout" 
+					endpoint="secure/ref/nameresolver/fund"/>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- Form Item for actPopUp -->
+				 
+				<div class="formItem">
+					<form:label path="commandForm.voucherPage.accountNo"><spring:message code="gle.auditinformation.label.account" htmlEscape="false"/></form:label>
+					<util:xenospopup id="accountNoId" path="commandForm.voucherPage.accountNo" showResolvedName="false"  
+					tgt="accountNo" popType="cpAccount" actTypeContext="T|S|B" actCPTypeContext="BANK/CUSTODIAN" actContext="TRADING|BOTH" event="change focusout" 
+					endpoint="secure/ref/nameresolver/account"/>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+             <!--Security Code -->
+				<div class="formItem valPlaceHolder">
+				<form:label path="commandForm.voucherPage.securityId"><spring:message code="gle.voucherentry.label.security" htmlEscape="false"/></form:label>
+				<util:xenospopup 
+					id="securityId" 					
+					path="commandForm.voucherPage.securityId"					
+					showResolvedName="false" 					
+					popType="security" 					 
+					event="change" 
+					endpoint="secure/ref/nameresolver/security"
+					/>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!--Form Item for projectId-->
+
+				<div class="formItem">
+                    <form:label path="commandForm.voucherPage.projectId">
+                        <spring:message code="gle.voucherentry.label.projectid" htmlEscape="false"/>
+                    </form:label>
+                    <span>
+                        <form:input class="textBox" id="projectId" path="commandForm.voucherPage.projectId" maxlength="10" size="20"/>
+                    </span>
+                    <div class="clear">
+                        <spring:message htmlEscape="false" text=""/>
+                    </div>
+                </div>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>	
+   </div>
+  </div>
+	<div class="entryBlkArea">
+		<div class="moreHandle" title="Collapse">
+				<h1 class="msgHead">
+					<spring:message text="" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse" id="gleMoreSectionSecond"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+	   </div>
+	<div class="formItemBlock dottedBg">
+		<!-- Ledger Popup-->
+	    <div class="formItem">
+			<form:label class="required" path="commandForm.voucherPage.ledgerCode">
+				<spring:message code="gle.ledgerEntry.label.ledger_code" htmlEscape="false"/>
+			</form:label>
+			<span>
+				<form:input class="textBox" id="ledgerCode" path="commandForm.voucherPage.ledgerCode" size="20"/>
+			</span>
+			<div class="popupBtn">
+				<input class="popupBtnIco" popType="gleLedgerCode" tgt="ledgerCode" type="button"/>
+			</div>
+			<div class="clear">
+				<spring:message htmlEscape="false" text=""/>
+			</div>
+       </div>
+	   
+        <div class="formItem">
+			<form:label path="commandForm.voucherPage.subLedgerCode">
+				<spring:message code="gle.label.subledgercode" htmlEscape="false"/>
+			</form:label>
+			<span>
+				<form:input class="textBox" id="subLedgerCode" path="commandForm.voucherPage.subLedgerCode" maxlength="38" size="20"/>
+			</span>
+			<div class="popupBtn">
+				<input class="popupBtnIco" invActTypeContext="T|S|B" invCPTypeContext="INTERNAL" popType="invAccount" tgt="subLedgerCode" type="button"/>
+			</div>
+			<div class="clear">
+				<spring:message htmlEscape="false" text=""/>
+			</div>
+       </div>
+
+		<!--Form Item for debit_credit-->
+
+		<div class="formItem">
+			<form:label class="required" path="commandForm.voucherPage.debitCreditFlag">
+				<spring:message code="gle.voucherentry.db_cr" htmlEscape="false"/>
+			</form:label>
+			<span>
+				<xenos:select id="debitCreditFlag" class="dropdowninput" path="commandForm.voucherPage.debitCreditFlag">
+					<form:options itemLabel="label" itemValue="value" items="${commandForm.dbCrList}"/>
+				</xenos:select>
+			</span>
+			<div class="clear">
+				<spring:message htmlEscape="false" text=""/>
+			</div>
+		</div>
+		
+		
+		<div class="formItem">
+			<form:label class="required" path="commandForm.voucherPage.amountStr">
+				<spring:message code="gle.voucherqueryresult.label.amount" htmlEscape="false"/>
+			</form:label>
+			<span>
+				<form:input class="txtNormal" id="amountStr" path="commandForm.voucherPage.amountStr" onchange="return formatAmount($('#amountStr'),15,3,null,$('#amountStr').parent().parent().find('label').text())"/>
+			</span>
+			<div class="clear">
+				<spring:message htmlEscape="false" text=""/>
+			</div>
+        </div>
+
+			<!--Form Item for chequeno-->
+
+			<div class="formItem">
+                    <form:label path="commandForm.voucherPage.bankChequeNo">
+                        <spring:message code="gle.voucherentry.cheque_no" htmlEscape="false"/>
+                    </form:label>
+                    <span>
+                        <form:input class="textBox" id="bankChequeNo" maxlength="20" path="commandForm.voucherPage.bankChequeNo"/>
+                    </span>
+                    <span class="remove" style="display: none;" title="Remove this field">
+                        <spring:message htmlEscape="false" text=""/>
+                    </span>
+                    <div class="clear">
+                        <spring:message htmlEscape="false" text=""/>
+                    </div>
+                </div>
+
+			<!--Form Item for empHb-->
+
+			<div class="formItem">
+                    <form:label path="commandForm.voucherPage.staffCode">
+                        <spring:message code="gle.voucherentry.staff_code" htmlEscape="false"/>
+                    </form:label>
+                    <span>
+                        <form:input class="txtNormal" id="staffCode" path="commandForm.voucherPage.staffCode"/>
+                    </span>
+                    <div class="popupBtn">
+                        <input class="popupBtnIco" popType="employee" tgt="staffCode" type="button"/>
+                    </div>
+                    <span class="remove" style="display: none;" title="Remove this field">
+                        <spring:message htmlEscape="false" text=""/>
+                    </span>
+                    <div class="clear">
+                        <spring:message htmlEscape="false" text=""/>
+                    </div>
+                </div>
+
+			<!--Form Item for journalRemarks-->
+
+			<div class="formItem">
+                    <form:label path="commandForm.voucherPage.journalRemarks">
+                        <spring:message code="gle.VoucherDetail.label.result.remarks" htmlEscape="false"/>
+                    </form:label>
+                    <span>
+                        <form:input class="textBox" id="journalRemarks" maxlength="35" path="commandForm.voucherPage.journalRemarks"/>
+                    </span>
+                    <div class="clear">
+                        <spring:message htmlEscape="false" text=""/>
+                    </div>
+          </div>
+		  <div id="formActionArea" class="gridBtnMargin AddBtnformActionAreaBg">
+				<div class="right">
+					<div class="btnWrapStyle submitBtn gridAddBtn">
+						<span class="addJournal" style="display:block"><input id="addJournalBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+					</div>
+					<span class="editBtnJournal" style="display:none">	
+							<div class="btnWrapStyle submitBtn"><input id="updateJournalBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+							<div class="btnWrapStyle resetBtn"><input id="cancelJournalBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+					</span>
+				</div>
+		</div>  		
+		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		<div class="entryGrid" style="background-color:white">
+			<div id="JournalGrid" class="xenos-grid" style="width:100%;height:200px;"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+		<div class="formItem">
+			<form:label path="commandForm.voucherPage.totalDebitAmountStr">
+				<spring:message code="gle.voucherentry.total_debit" htmlEscape="false"/>
+			</form:label>
+			<span>
+				<form:input id="totalDebitAmountStr" readOnly= "true" path="commandForm.voucherPage.totalDebitAmountStr" />
+			</span>
+			<div class="clear">
+				<spring:message htmlEscape="false" text=""/>
+			</div>
+	   </div>
+	   <div class="formItem">
+			<form:label path="commandForm.voucherPage.totalCreditAmountStr">
+				<spring:message code="gle.voucherentry.total_credit" htmlEscape="false"/>
+			</form:label>
+			<span>
+				<form:input id="totalCreditAmountStr" readOnly= "true" path="commandForm.voucherPage.totalCreditAmountStr" />
+			</span>
+			<div class="clear">
+				<spring:message htmlEscape="false" text=""/>
+			</div>
+	   </div>
+	</div>
+  </div>
+  <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			$('#transactionDate').ForceNumericOnly();	
+		</jsp:body>
+	</jsp:element>
+</jsp:root>

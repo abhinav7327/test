@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Item Renderer for Fund Maintenance Cancel/Amend.  -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%">
+    <mx:Script>
+        <![CDATA[
+        	import com.nri.rui.oms.OmsConstants;
+        	import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.Globals;
+        	import com.nri.rui.core.containers.SummaryPopup;
+        	import com.nri.rui.core.utils.XenosStringUtils;
+        	import flash.events.MouseEvent;
+	        import mx.core.UIComponent;
+	        import mx.managers.PopUpManager;
+	
+    		[Bindable] public var _mode:String = "cancel";
+    		private var sPopup : SummaryPopup;	
+    		
+    		/**
+    		 * Invoked on clicking the Cancel button of the Cancel UI.
+    		 * Responsible for loading the Cancel Details page in a pop-up.
+    		 */ 
+    		public function handleMouseClick(event:MouseEvent):void {
+    			
+    			sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+    			sPopup.addEventListener("OkSystemConfirm",handleOkSystemConfirm);
+    			sPopup.width = 800;
+    			sPopup.height = 225;
+    			PopUpManager.centerPopUp(sPopup);		
+    			var fundInstrPk :String = data.fundInstrParticipantPk;
+    			if(XenosStringUtils.equals(_mode, Globals.MODE_CANCEL)) {
+              			sPopup.title = parentApplication.xResourceManager.getKeyValue('oms.fund.header') + " " + parentApplication.xResourceManager.getKeyValue('inf.title.cancel');
+              			sPopup.moduleUrl = OmsConstants.FUND_MAINTENANCE_CANCEL + Globals.QS_SIGN 
+    							   + OmsConstants.FUND_INSTR_PARTICIPANT_PK + Globals.EQUALS_SIGN + fundInstrPk 
+    							   + Globals.AND_SIGN + Globals.MODE + Globals.EQUALS_SIGN + _mode;
+
+       			} else if(XenosStringUtils.equals(_mode, Globals.MODE_AMEND)) {
+       					sPopup.title = parentApplication.xResourceManager.getKeyValue('oms.fund.header') + " " + parentApplication.xResourceManager.getKeyValue('inf.title.amend');
+              			sPopup.moduleUrl = OmsConstants.FUND_MAINTENANCE_AMEND + Globals.QS_SIGN 
+    							   + OmsConstants.FUND_INSTR_PARTICIPANT_PK + Globals.EQUALS_SIGN + fundInstrPk 
+    							   + Globals.AND_SIGN + Globals.MODE + Globals.EQUALS_SIGN + _mode;
+       			}
+		    }
+		    /**
+        	 * Event Handler for the custom event "OkSystemConfirm"
+        	 */
+        	public function handleOkSystemConfirm(event:Event):void { 
+              //this.parentDocument.currentState = "";
+                if(_mode == "amend")
+                  this.parentDocument.dispatchEvent(new Event("amendSubmit"));
+                else if(_mode == "cancel")
+                  this.parentDocument.dispatchEvent(new Event("cancelSubmit"));
+                sPopup.removeMe();
+            }
+        ]]>
+    </mx:Script>
+    
+    <mx:Button id="imgDel" styleName="{_mode == 'amend' ? 'BtnEdit' : 'BtnDelete'}" width="18" height="18" label="{_mode == 'amend' ? 'Edit' : 'Cancel'}" click="handleMouseClick(event)" toolTip="{_mode == 'amend' ? 'Edit' : 'Cancel'}"/>
+</mx:VBox>

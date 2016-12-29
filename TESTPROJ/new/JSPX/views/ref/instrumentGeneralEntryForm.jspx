@@ -1,0 +1,1903 @@
+<!--$Id$-->
+<!--$Author: himanshum $-->
+<!--$Date: 2016-12-28 13:08:37 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+<div class="entryContainer">
+          
+    <!-- Java script include -->
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/ref/instrumentEntry.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+	</jsp:element>
+		
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		
+        var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+        	
+	        var context = $xenos$Wizard.$context;
+			var baseUrl = xenos.context.path + context.find('form').attr('action');
+			
+			xenos.loadScript([
+				{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				{path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false},
+				{path: xenos.context.path + '/scripts/ref/instrumentEntry.js', async: false}
+			]);
+			
+			if(("${commandForm.instrumentPage.instrumentType}"=="" || "${commandForm.instrumentPage.instrumentType}"==null) <![CDATA[&&]]> ("${commandForm.instrumentTypeFlag}"=="false" || "${commandForm.instrumentTypeFlag}"==false)) {
+				$('#wizardNavigation').find('ul#wizStep').find('[pageId=page1').hide();
+			}
+			
+			if("${commandForm.options.actionType}" == "AMEND" || "${commandForm.options.actionType}" == "amend"){
+				var defaultIndex = getIndexOfDropdownValue($("#instrumentCodeType"), "${commandForm.defaultInstrumentCodeType}");
+				$("#instrumentCodeType option").eq(defaultIndex).prop('selected', true);
+			}
+			
+			if("${commandForm.options.actionType}" == "ENTRY" ){
+				
+				if("${commandForm.parentInstType}" == "FI" || "${commandForm.parentInstType}" == "DRV" || $("#instrumentType").val() == ""){
+					$("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','none');
+				}
+				else if("${commandForm.parentInstType}" == "EQ" || "${commandForm.parentInstType}" == "FUND" || "${commandForm.parentInstType}" == "OT" || "${commandForm.parentInstType}" == "CCY") {
+					$("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','block');
+				}
+				
+				else {
+					$("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','block');
+				}
+				
+				if($("#instrumentType").val() == ""){
+					$("#formActionArea > div > div > .wizNext > .inputBtnStyle").css('display','none');
+				}
+				$("#formActionArea > div > div > .wizPrev > .inputBtnStyle").css('display','none');
+			}
+			
+ 		function instrumentTypeChangeHandler(e){
+			
+        	var selValue =$.trim($('#instrumentType').val()).toUpperCase(); 
+			<!-- var trdValue =$.trim($('#tradingUnit').val()).toUpperCase(); -->
+			
+        	if(selValue == 'CCY'){
+			
+        		$('#tradeCcy').val('');
+        		$('#issueCcy').hide();
+				$('#countryCodelable').removeClass('required');
+				$('#displaySeq').show();
+        		$('#mtu label:first-child').addClass('required');
+			} else {
+			
+        		$('#issueCcy').show();
+        		$('#txtDisplaySeq').val('');
+        		$('#displaySeq').hide();
+				$('#countryCodelable').addClass('required');
+        		$('#mtu label:first-child').removeClass('required');
+			}
+			
+			if("${commandForm.options.actionType}" == "ENTRY" || "${commandForm.options.actionType}" == "ENTRY"){
+				var defaultIndex = getIndexOfDropdownValue($("#instrumentCodeType"), "${commandForm.defaultInstrumentCodeType}");
+				$("#instrumentCodeType option").eq(defaultIndex).prop('selected', true);
+			}
+			
+        } 
+		
+			$('#instrumentType').bind('blur' ,instrumentTypeChangeHandler); 
+			$('#instrumentType').trigger('blur');  
+			
+	        /**
+	         * A common request handler to be used server communication.
+	         */
+	         var xenos$Handler$RequestHandler = xenos$Handler$function({
+	             get: {
+	                 contentType: 'json',
+	                 requestType: xenos$Handler$default.requestType.asynchronous
+	             },  
+	             settings: {
+	                 beforeSend: function(request) {
+	                     request.setRequestHeader('Accept', 'application/json');
+	                 },
+	                 type: 'POST'
+	             }
+	         });
+			 							
+		$('#instEntryNameInfoDetails').slideToggle("fast");
+
+		
+        /*************************** Grid result, config and columns ****************************/
+        
+        var codeInfoResult=[], nameInfoResult=[], categoryInfoResult=[];
+        var rowId = 0;
+        var codeInfoGrid,nameInfoGrid,categoryInfoGrid;
+        
+        
+		var codeInfoGridConfig = {
+                    editMode                    :   'both',                                                             
+                    editCallback                :   codeInfoEditHandler,
+                    deleteCallback              :   codeInfoDeleteHandler,					
+                    forceFitColumns             :   true
+                };
+     
+        var codeInfoColumns = [        
+                    {name:"<spring:message code="ref.insturment.entry.label.generaltab.enterprisedefault" htmlEscape="false"/>", field:"entDefault",id:"entDefault", sortable:false, formatter:Slick.Formatters.InstrumentDefaultCodeFormatter},
+                    {name:"<spring:message code="ref.insturment.entry.label.generaltab.codetype" htmlEscape="false"/>", field:"instrumentCodeType",id:"instrumentCodeType",sortable:false},
+                    {name:"<spring:message code="ref.insturment.entry.label.generaltab.code" htmlEscape="false"/>", field:"securityId",id:"securityId",sortable:false}
+                ];
+                
+        var nameInfoGridConfig = {
+                    editMode                    :   'both',                                                             
+                    editCallback                :   nameInfoEditHandler,
+                    deleteCallback              :   nameInfoDeleteHandler,                  
+                    forceFitColumns             :   true
+                };
+     
+        var nameInfoColumns = [        
+                    {name:"<spring:message code="ref.insturment.entry.label.generaltab.languagecode" htmlEscape="false"/>", field:"charsetCode",id:"charsetCode", sortable:false},
+                    {name:"<spring:message code="ref.insturment.entry.label.generaltab.shortname" htmlEscape="false"/>", field:"shortName",id:"shortName",sortable:false},
+                    {name:"<spring:message code="ref.insturment.entry.label.generaltab.officialname" htmlEscape="false"/>", field:"officialName",id:"officialName",sortable:false}
+                ];  
+         
+                                
+        var categoryInfoConfig = {
+                    editMode                    :   'both',                                                             
+                    editCallback                :   categoryInfoEditHandler,
+                    deleteCallback              :   categoryInfoDeleteHandler,                  
+                    forceFitColumns             :   true
+                };
+                
+         var categoryInfoColumns = [                       
+                    {name:"<spring:message code="ref.insturment.entry.label.generaltab.categorytype" htmlEscape="false"/>", field:"categoryType",id:"categoryType",sortable:false},
+                    {name:"<spring:message code="ref.insturment.entry.label.generaltab.categoryid" htmlEscape="false"/>", field:"categoryId",id:"categoryId",sortable:false}
+                 ];  
+
+         var memoGridResult=[];
+         var memoGrid;
+         var memoGridConfig = {
+                     editMode                    :   'both',                                                             
+                     editCallback                :   memoEditHandler,
+                     deleteCallback              :   memoDeleteHandler,                    
+					 forceFitColumns             :   true
+         };
+         
+         var memoGridColumns = [
+                    {name:"<spring:message code="ref.insturment.entry.label.restrictiontab.memo" htmlEscape="false"/>", field:"memo",id:"memo", sortable:false},
+                    {name:"<spring:message code="ref.insturment.entry.label.restrictiontab.descriptionone" htmlEscape="false"/>", field:"description1",id:"description1",sortable:false},
+                    {name:"<spring:message code="ref.insturment.entry.label.restrictiontab.descriptiontwo" htmlEscape="false"/>", field:"description2",id:"description2",sortable:false}                                        
+         ];				 
+                                
+        /************************ Request Object Population ********************/
+        
+        /**
+        * Code info request object
+        */
+        function populateCodeInfoRequestParams(){
+            var enterpriseDefault = $('#default').is(':checked') ? true : false;
+            var reqObj = {"instrumentCodeType" :   $.trim($('#instrumentCodeType').val()),
+                          "securityId"     :   $.trim($('#securityId').val()),                                                    
+                          "default" :  enterpriseDefault                 
+            };
+
+            return reqObj;
+        } 
+        
+        /**
+        * Category type request object
+        */
+        function populateCategoryTypeRequestParams(){
+           var reqObj = {"categoryType"    :   $.trim($('#categoryType').val())                
+           };
+		   
+           return reqObj;
+        }
+        
+        /**
+        * Category type and id request object
+        */
+        function populateCategoryRequestParams(){
+            var reqObj = {
+                "categoryType"  :    $.trim($('#categoryType').val()),
+                "categoryId"    :    $.trim($('#categoryId').val())
+            };
+            return reqObj;
+        }
+        
+        /**
+        * Instrument name request object
+        */
+        function populateNameInfoRequestParams(){
+            var reqObj = {
+                "charsetCode"    :$.trim($('#charsetCodeId').val()),
+                "shortName"      :$.trim($('#shortNameId').val()),
+                "officialName"   :$.trim($('#officialNameId').val())
+            };
+			
+            return reqObj;
+        }
+         
+		         function populateRestrictionInfoRequestParams(){
+            var reqObj = {
+                "resSelectedItem"  :    $.trim($('#resSelectedItem').val()),
+                "startDate"  :    $.trim($('#startDate').val()),
+                "endDate"  :    $.trim($('#endDate').val())
+            };
+            return reqObj;
+         }
+         
+         function populateMemoRequestParams(){
+            var reqObj = {
+                "memo"  :    $.trim($('#memo').val()),
+                "description1"  :    $.trim($('#description1').val()),
+                "description2"  :    $.trim($('#description2').val())
+            };
+            return reqObj;
+         } 
+		 
+        /*************************** Validation functions **********************/
+        
+         
+		/**
+         * This method validates mandatory entry fields 
+         * for instrument code and code type entry and update option.
+         */
+        function validateInstrumentCodeInfoAddUpdate(){  
+			
+            var validationMessages = [];            
+            
+            if(VALIDATOR.isNullValue($.trim($('#securityId').val()))){                
+                validationMessages.push(xenos$REF$i18n.instrument.generalinfo.instrumentcode_empty);
+            }
+            
+            if ( validationMessages.length >0){      
+				xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+                 return false;
+            } else {
+				$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+            }
+            return true;
+        }  
+        
+		/**
+        * Validator method to validate if both category type and
+        * category id values are present
+        */
+        function validateCategoryInfoAddUpdate(){
+            var validationMessages = [];
+            
+            if(VALIDATOR.isNullValue($.trim($('#categoryType').val()))){                
+                validationMessages.push(xenos$REF$i18n.instrument.generalinfo.categorytype_empty);
+            }
+            
+            if(VALIDATOR.isNullValue($.trim($('#categoryId').val()))){                
+                validationMessages.push(xenos$REF$i18n.instrument.generalinfo.categoryid_empty);
+            }
+            
+            if ( validationMessages.length >0){
+				 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+                 return false;
+             }else {
+				$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+            }  
+            return true;
+        } 
+       
+ 
+ 
+		/**
+        * Validator method to validate if default short name 
+        * and default official names are present or not
+        */
+        function validateNameInfoAddUpdate(){
+            var validationMessages = [];
+
+			var charsetCodeId = $.trim($('#charsetCodeId').val());
+			var shortNameVar = $.trim($('#shortNameId').val());
+			var officialNameVar =$.trim($('#officialNameId').val()); 
+			
+			if(VALIDATOR.isNullValue(charsetCodeId)){
+				validationMessages.push(xenos$REF$i18n.instrument.generalinfo.lang_code_blank);
+			}
+					
+			if(VALIDATOR.isNullValue(shortNameVar)){                
+                validationMessages.push(xenos$REF$i18n.instrument.generalinfo.shortname_empty);
+            }
+            
+            if(VALIDATOR.isNullValue(officialNameVar)){                
+                validationMessages.push(xenos$REF$i18n.instrument.generalinfo.officialname_empty);
+            }
+            
+            if ( validationMessages.length >0){ 
+				 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+                 return false;
+            }else{
+                 $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+            }   
+            return true;
+        }
+	
+		 
+         function validateMemoAddUpdate(){
+            var validationMessages = [];
+            
+            if(VALIDATOR.isNullValue($.trim($('#memo').val()))){                
+                validationMessages.push(xenos$REF$i18n.instrument.restriction.memo_empty);
+            }
+            
+          if ( validationMessages.length >0){
+				xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+                 return false;
+           } else {
+                $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+            }
+            return true;
+         } 
+        
+        /***************************** Handler callbacks **************************/
+		
+		function codeInfoGridReOrderAfterUpdate(e, args){
+			var dataList = args.grid.getData().getItems();
+			for(var i in dataList){
+				if(dataList[i].instrumentCodeType == "${commandForm.defaultInstrumentCodeType}"){
+					var gridInst = $('#codeInfoGrid').data('gridInstance');
+					var canvasCtx = gridInst.getCanvasNode();
+					if($('.slick-row', canvasCtx).length &gt; 0) {
+						$('.slick-row', canvasCtx).each(function(index, elm){
+							if(index == i){
+								$('.deleteIco', elm).parent().hide();
+							}
+						});
+					}
+				}
+			}
+		}
+        
+         function upsertInstrumentCodeInfo(data){
+            var result = data.instrumentCrossRefs;
+			
+            if(result){
+                codeInfoGrid.clearData();
+                for(var i in result){                    
+                    items = {};
+                    rowId+=1;
+                    items.id             =   "xenos_" + rowId;
+                    items.entDefault        =   result[i].default;
+                    items.instrumentCodeType =   result[i].instrumentCodeType;
+                    items.securityId     =   result[i].securityId;
+                    
+                    codeInfoGrid.addOrUpdateRow(items,{});
+					if($("#actionTypeOption").val() == "amend" || $("#actionTypeOption").val() == "AMEND"){
+						if(result[i].instrumentCodeType == "${commandForm.defaultInstrumentCodeType}"){
+							var gridInst = $('#codeInfoGrid').data('gridInstance');
+							var canvasCtx = gridInst.getCanvasNode();
+							if($('.slick-row', canvasCtx).length &gt; 0) {
+								$('.slick-row', canvasCtx).each(function(index, elm){
+									if(index == i){
+										$('.deleteIco', elm).parent().hide();
+									}
+								});
+							}
+						}
+					}
+                }
+                populateCodeInfoForm(data);
+            }
+			xenos.utils.clearGrowlMessage();
+			if($("#actionTypeOption").val() == "amend" || $("#actionTypeOption").val() == "AMEND"){
+				$('#codeInfoGrid').data('gridInstance').onColumnsReordered.unsubscribe(codeInfoGridReOrderfunction);
+				$('#codeInfoGrid').data('gridInstance').onColumnsReordered.unsubscribe(codeInfoGridReOrderAfterUpdate);
+				$('#codeInfoGrid').data('gridInstance').onColumnsReordered.subscribe(codeInfoGridReOrderAfterUpdate);
+				
+				$('#codeInfoGrid').data('gridInstance').onColumnsResized.unsubscribe(codeInfoGridReOrderfunction);
+				$('#codeInfoGrid').data('gridInstance').onColumnsResized.unsubscribe(codeInfoGridReOrderAfterUpdate);
+				$('#codeInfoGrid').data('gridInstance').onColumnsResized.subscribe(codeInfoGridReOrderAfterUpdate);
+			}
+			
+        } 
+        
+         /**
+        * Populate Code X Ref form.
+        */
+        function populateCodeInfoForm(result){
+            if(result){                    
+                $('#instrumentCodeType').val(result.instrumentCodeType);
+                $('#securityId').val(result.securityId);
+                if(result['default'] == true){
+                    $('#default').attr('checked', true);
+                }else{
+                    $('#default').attr('checked', false);
+                }
+            }
+			var defaultIndex = getIndexOfDropdownValue($("#instrumentCodeType"), "${commandForm.defaultInstrumentCodeType}");
+			$("#instrumentCodeType option").eq(defaultIndex).prop('selected', true);
+        } 
+		
+		function upsertRestrictionInfo(data){
+            var result = data.restrictions;  
+            var rowId = 0;               
+            if(result){
+                restrictionInfoGrid.clearData();
+                for(var i in result){                    
+                    items = {};
+                    rowId+=1;
+                    items.id             =   "xenos_" + rowId;
+                    items.insRestrictionDisp        =   result[i].insRestrictionDisp;
+                    items.startDate =   result[i].startDateDisp;
+                    items.endDate     =   result[i].endDateDisp;
+                    restrictionInfoGrid.addOrUpdateRow(items,{});
+                }
+                populateRestrictionInfoForm(data);
+            }
+			xenos.utils.clearGrowlMessage();
+        }
+        
+		function populateRestrictionInfoForm(result){
+			if(result){
+				$('#resSelectedItem').val(result.resSelectedItem); 
+				$('#startDate').val(result.startDate);
+				$('#endDate').val(result.endDate);                
+			}
+		}
+        
+		
+		/**** Memo handler callbacks ****/
+        
+        function upsertMemo(data){
+            var result = data.memos;        
+            var rowId = 0;        
+            if(result){
+                memoGrid.clearData();
+                for(var i in result){                    
+                    items = {};
+                    rowId+=1;
+                    items.id             =   "xenos_" + rowId;
+                    items.memo        =   result[i].memoCode;
+                    items.description1 =   result[i].description1;
+                    items.description2    =   result[i].description2;
+                  	memoGrid.addOrUpdateRow(items,{});
+                }                
+                populateMemoForm(data);                
+            }
+			xenos.utils.clearGrowlMessage();
+        }
+        
+		function populateMemoForm(result){
+			if(result){
+				$('#memo').val(result.memo);
+				$('#description1').val(result.description1);
+				$('#description2').val(result.description2);
+			}
+		}
+
+        
+        
+        /******* Instrument Category info callback functions ********/
+        
+        function upsertCategoryInfo(data){
+            var result = data.categories;
+            if(result){
+                categoryInfoGrid.clearData();
+                for(var i in result){                    
+                    items = {};
+                    rowId+=1;
+                    items.id             =   "xenos_" + rowId;                    
+                    items.categoryType =   result[i].categoryType;
+                    items.categoryId     =   result[i].categoryId;
+                    categoryInfoGrid.addOrUpdateRow(items,{});
+                }
+                <!-- resetCategoryInfoForm(); -->
+            }
+			xenos.utils.clearGrowlMessage();
+        }
+        
+        <!-- function resetCategoryInfoForm(){
+            //$('#categoryType').val('');
+            $('#categoryType').trigger('change');            
+        } -->
+        
+        function populateCategoryInfoForm(result, categoryId){
+            if(result){
+                $('#categoryType').val(result.categoryType);
+                $('#categoryType').trigger('change',categoryId);                
+            }
+        }
+        
+        function populateCategoryId(data, categoryId){
+			var $target = $('#categoryId');
+			$target.empty();
+			$option = $('<option/>');
+			$option.attr('value', '').text('');
+			$target.append($option);
+			$.each(data || [], function(index, item) {
+				$option = $('<option/>');
+				$option.attr('value', item).text(item);
+				if((item == categoryId)){
+					$option.attr('selected', "selected");
+				}
+				$target.append($option);
+			});
+        }
+        
+        /****** Instrument Name info callback functions ******/        
+        
+        function upsertNameInfo(data){
+			
+			var result = data.instrumentNameCrossRefs;
+            if(result){
+                nameInfoGrid.clearData();
+                for(var i in result){                    
+                    items = {};
+                    rowId+=1;
+                    items.id             =   "xenos_" + rowId;                    
+                    items.charsetCode    =   result[i].charsetCode;
+                    items.shortName      =   result[i].shortName;
+                    items.officialName   =   result[i].officialName;
+                    nameInfoGrid.addOrUpdateRow(items,{});
+                }
+                resetNameInfoForm();
+            }  
+			xenos.utils.clearGrowlMessage();
+        } 
+        
+       function resetNameInfoForm(){
+                $('#charsetCodeId').val('');
+                $('#shortNameId').val('');
+                $('#officialNameId').val('');			
+        }
+        
+            function populateNameInfoForm(result){
+				
+            if(result){
+                $('#charsetCodeId').val(result.charsetCode);
+                $('#shortNameId').val(result.shortName);
+                $('#officialNameId').val(result.officialName);
+            }
+        } 
+        
+        /***************************** Handler functions **************************/
+        
+       /**
+        * Code info add handler
+        */
+        function codeInfoAddHandler(e){
+            var valid = validateInstrumentCodeInfoAddUpdate();
+            if(valid){
+                var requestUrl = baseUrl + "/addInstrumentCode.json?commandFormId=" + $('[name=commandFormId]').val();                    
+                xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                        settings: {data : populateCodeInfoRequestParams()},
+                                                        onJsonContent :  function(e, options, $target, content) {	
+                                                            if(content.success == true){
+                                                            	upsertInstrumentCodeInfo(content.value[0]);
+																$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                                                            } else {
+																xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+            }
+        } 
+        
+       /**
+        * Code info cancel handler
+        */
+        function codeInfoCancelHandler(e){
+            var requestUrl = baseUrl + "/cancelInstrumentCode.json?commandFormId=" + $('[name=commandFormId]').val();
+            xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                    onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                upsertInstrumentCodeInfo(content.value[0]);
+                                                                $('.editBtnCodeInfo').css('display','none'); 
+                                                                $('.addBtnCodeInfo').css('display','block'); 
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                            return true;
+                                                        }
+                                                     }
+                                        );
+        } 
+        
+		/**
+        * Code info edit handler
+        */
+        function codeInfoEditHandler(rowIndex, dataContext){
+            var requestUrl = baseUrl + "/editInstrumentCode.json?commandFormId=" + $('[name=commandFormId]').val();
+            xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                    settings: {data : {"rowNo" : rowIndex}},
+                                                    onJsonContent :  function(e, options, $target, content) {
+														
+														for(var i = 0; i <![CDATA[<]]> content.value[0].instrumentCrossRefs.length; i++){
+															if($("#actionTypeOption").val() == "amend" || $("#actionTypeOption").val() == "AMEND"){
+																if(content.value[0].instrumentCrossRefs[i].instrumentCodeType == "${commandForm.defaultInstrumentCodeType}"){
+																	var gridInst = $('#codeInfoGrid').data('gridInstance');
+																	var canvasCtx = gridInst.getCanvasNode();
+																	if($('.slick-row', canvasCtx).length &gt; 0) {
+																		$('.slick-row', canvasCtx).each(function(index, elm){
+																			if(index == i){
+																				$('.deleteIco', elm).parent().hide();
+																			}
+																		});
+																	}
+																}
+															}
+															
+														}
+													
+                                                        if(content.success == true){
+                                                            populateCodeInfoForm(content.value[0]);
+                                                            $('.editBtnCodeInfo').css('display','block'); 
+                                                            $('.addBtnCodeInfo').css('display','none');
+                                                        } else {
+                                                            xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                        }
+                                                        return true;
+                                                    }
+                                                 }
+                                    );
+        }        
+                
+		/**
+        * Code info delete handler
+        */
+        function codeInfoDeleteHandler(rowIndex, dataContext){
+            var requestUrl = baseUrl + "/deleteInstrumentCode.json?commandFormId=" + $('[name=commandFormId]').val();
+            xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                    settings: {data : {"rowNo" : rowIndex}},
+                                                    onJsonContent :  function(e, options, $target, content) {
+                                                        if(content.success == true){
+                                                            upsertInstrumentCodeInfo(content.value[0], true);
+															$('.editBtnCodeInfo').hide(); 
+															$('.addBtnCodeInfo').show(); 
+                                                        } else {
+                                                            xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                        }
+                                                    }
+                                                 }
+                                    );
+        } 	
+        
+		/**
+        * Code info update handler
+        */
+        function codeInfoUpdateHandler(e){          
+          var valid = validateInstrumentCodeInfoAddUpdate();
+          if(valid){
+              var requestUrl = baseUrl + "/updateInstrumentCode.json?commandFormId=" + $('[name=commandFormId]').val();
+              xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                      settings: {data : populateCodeInfoRequestParams()},
+                                                      onJsonContent :  function(e, options, $target, content) {
+                                                          if(content.success == true){
+                                                        	  upsertInstrumentCodeInfo(content.value[0]);
+                                                              $('.editBtnCodeInfo').css('display','none'); 
+                                                              $('.addBtnCodeInfo').css('display','block'); 
+                                                          } else {
+                                                              xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                          }
+                                                      }
+                                                   }
+                                      );
+          }
+        } 
+        
+        /****** Instrument Name info add, edit, delete and update handlers ****/
+        
+         /**
+        * Instrument Name info add handler
+        */
+        function nameInfoAddHandler(e){
+            var valid = validateNameInfoAddUpdate();
+            if(valid){
+                var requestUrl = baseUrl + "/addInstrumentName.json?commandFormId=" + $('[name=commandFormId]').val();                         
+                xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                        settings: {data : populateNameInfoRequestParams()},
+                                                        onJsonContent :  function(e, options, $target, content) {                                                            
+                                                           
+															if(content.success == true){
+                                                                upsertNameInfo(content.value[0]);
+																$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                                                            } else {
+																xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+            }
+        } 
+        
+         /**
+        * Instrument Name info edit handler
+        */
+        function nameInfoEditHandler(rowIndex, dataContext){
+            var requestUrl = baseUrl + "/editInstrumentName.json?commandFormId=" + $('[name=commandFormId]').val();
+            xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                    settings: {data : {"rowNo" : rowIndex}},
+                                                    onJsonContent :  function(e, options, $target, content) {
+                                                        if(content.success == true){
+                                                            populateNameInfoForm(content.value[0]);
+                                                            $('.editBtnNameInfo').css('display','block'); 
+                                                            $('.addBtnNameInfo').css('display','none');
+                                                        } else {
+                                                            xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                        }
+                                                        return true;
+                                                    }
+                                                 }
+                                    );
+        }
+        
+        /**
+        * Instrument Name info cancel handler
+        */
+        function nameInfoCancelHandler(e){
+            var requestUrl = baseUrl + "/cancelInstrumentName.json?commandFormId=" + $('[name=commandFormId]').val();
+            xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                    onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                upsertNameInfo(content.value[0]);
+                                                                $('.editBtnNameInfo').css('display','none'); 
+                                                                $('.addBtnNameInfo').css('display','block'); 
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                            return true;
+                                                        }
+                                                     }
+                                        );
+        } 
+        
+        /**
+        * Instrument Name info delete handler
+        */
+        function nameInfoDeleteHandler(rowIndex, dataContext){
+            var requestUrl = baseUrl + "/deleteInstrumentName.json?commandFormId=" + $('[name=commandFormId]').val();
+            xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                    settings: {data : {"rowNo" : rowIndex}},
+                                                    onJsonContent :  function(e, options, $target, content) {
+                                                        if(content.success == true){
+                                                            upsertNameInfo(content.value[0]);
+															$('.editBtnNameInfo').hide();
+															$('.addBtnNameInfo').show();
+                                                        } else {
+                                                            xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                        }
+                                                    }
+                                                 }
+                                    );
+        } 
+        
+        /**
+        * Instrument Name info update handler
+        */
+        function nameInfoUpdateHandler(e){
+            var valid = validateNameInfoAddUpdate();
+            if(valid){
+                var requestUrl = baseUrl + "/updateInstrumentName.json?commandFormId=" + $('[name=commandFormId]').val();                         
+                xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                        settings: {data : populateNameInfoRequestParams()},
+                                                        onJsonContent :  function(e, options, $target, content) {                                                            
+                                                            if(content.success == true){
+                                                                upsertNameInfo(content.value[0]);
+                                                                $('.editBtnNameInfo').css('display','none'); 
+                                                                $('.addBtnNameInfo').css('display','block');
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+            }
+        } 
+        
+        /****** Instrument Category info add, edit, delete and update handlers ******/
+        
+        /**
+        * Category info add handler
+        */
+        function categoryInfoAddHandler(e){
+            var valid = validateCategoryInfoAddUpdate();
+            if(valid){
+                var requestUrl = baseUrl + "/addCategory.json?commandFormId=" + $('[name=commandFormId]').val();      
+                xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                        settings: {data : populateCategoryRequestParams()},
+                                                        onJsonContent :  function(e, options, $target, content) {                                                            
+                                                            if(content.success == true){
+                                                                upsertCategoryInfo(content.value[0]);
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+            }
+        }
+        
+        /**
+        * Category info edit handler
+        */
+        function categoryInfoEditHandler(rowIndex, dataContext){
+            var requestUrl = baseUrl + "/editCategory.json?commandFormId=" + $('[name=commandFormId]').val();
+            xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                    settings: {data : {"rowNo" : rowIndex}},
+                                                    onJsonContent :  function(e, options, $target, content) {
+                                                        if(content.success == true){
+                                                            populateCategoryInfoForm(content.value[0],content.value[0].categoryId);
+                                                            $('.editBtnCategoryInfo').css('display','block'); 
+                                                            $('.addBtnCategoryInfo').css('display','none');
+                                                        } else {
+                                                            xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                        }
+                                                        return true;
+                                                    }
+                                                 }
+                                    );
+        }
+        
+        /**
+        * Category info cancel handler
+        */
+        function categoryInfoCancelHandler(e){
+            var requestUrl = baseUrl + "/cancelCategory.json?commandFormId=" + $('[name=commandFormId]').val();
+            xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                    onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                upsertCategoryInfo(content.value[0]);
+                                                                $('.editBtnCategoryInfo').css('display','none'); 
+                                                                $('.addBtnCategoryInfo').css('display','block'); 
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                            return true;
+                                                        }
+                                                     }
+                                        );
+        }        
+                
+        /**
+        * category info delete handler
+        */
+        function categoryInfoDeleteHandler(rowIndex, dataContext){
+           var requestUrl = baseUrl + "/deleteCategory.json?commandFormId=" + $('[name=commandFormId]').val();
+            xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                    settings: {data : {"rowNo" : rowIndex}},
+                                                    onJsonContent :  function(e, options, $target, content) {
+                                                        if(content.success == true){
+                                                            upsertCategoryInfo(content.value[0]);
+															$('.editBtnCategoryInfo').hide(); 
+															$('.addBtnCategoryInfo').show(); 
+                                                        } else {
+                                                            xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                        }
+                                                    }
+                                                 }
+                                    );
+        }
+        
+        /**
+        * category info update handler
+        */
+        function categoryInfoUpdateHandler(e){
+           var valid = validateCategoryInfoAddUpdate();
+            if(valid){
+                var requestUrl = baseUrl + "/updateCategory.json?commandFormId=" + $('[name=commandFormId]').val();                   
+                xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                        settings: {data : populateCategoryRequestParams()},
+                                                        onJsonContent :  function(e, options, $target, content) {                                                            
+                                                            if(content.success == true){
+                                                                upsertCategoryInfo(content.value[0]);
+                                                                $('.editBtnCategoryInfo').css('display','none'); 
+                                                                $('.addBtnCategoryInfo').css('display','block'); 
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+            }
+        }
+        
+        /**
+        * Function to populate the category Id based on category type selection
+        */
+        function populateCategoryIdHandler(e,categoryId){
+            var requestUrl = baseUrl + "/setCategoryIds.json?commandFormId=" + $('[name=commandFormId]').val();
+            xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                      settings: {data : populateCategoryTypeRequestParams()},
+                                                      onJsonContent :  function(e, options, $target, content) {
+                                                          if(content.success == true){
+                                                              populateCategoryId(content.value[0].categoryTypeIdMap[$('#categoryType').val()],categoryId);
+                                                          } else {
+                                                              xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                          }
+                                                      }
+                                                   }
+                                      );
+        }
+		
+		         
+         function memoAddHandler(e){
+                var valid = validateMemoAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/addMemo.json?commandFormId=" + $('[name=commandFormId]').val();                                               
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                            settings: {data : populateMemoRequestParams()},
+                                                            onJsonContent :  function(e, options, $target, content) {                                                            
+                                                                if(content.success == true){
+                                                                    upsertMemo(content.value[0]);
+                                                                } else {
+                                                                    xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                            }
+                                                         }
+                                            );
+                }
+             }
+             
+        /**
+        * Instrument Name info edit handler
+        */
+        function  memoEditHandler(rowIndex, dataContext){
+            var requestUrl = baseUrl + "/editMemo.json?commandFormId=" + $('[name=commandFormId]').val();
+            xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                    settings: {data : {"rowNo" : rowIndex}},
+                                                    onJsonContent :  function(e, options, $target, content) {
+                                                        if(content.success == true){
+                                                            populateMemoForm(content.value[0]);
+                                                            $('.editBtnMemo').css('display','block'); 
+                                                            $('.addBtnMemo').css('display','none');
+                                                        } else {
+                                                            xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                        }
+                                                        return true;
+                                                    }
+                                                 }
+                                    );
+        }
+          
+          function memoDeleteHandler(rowIndex, dataContext){
+             var requestUrl = baseUrl + "/deleteMemo.json?commandFormId=" + $('[name=commandFormId]').val();
+             xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                     settings: {data : {"rowNo" : rowIndex}},
+                                                     onJsonContent :  function(e, options, $target, content) {
+                                                         if(content.success == true){
+                                                             upsertMemo(content.value[0]);
+															 $('.editBtnMemo').hide();
+															 $('.addBtnMemo').show();
+                                                         } else {
+                                                             xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                         }
+                                                     }
+                                                  }
+                                     );
+          }          
+          
+        /**
+        * Memo update handler
+        */
+        function memoUpdateHandler(e){
+           var valid = validateMemoAddUpdate();
+            if(valid){
+                var requestUrl = baseUrl + "/updateMemo.json?commandFormId=" + $('[name=commandFormId]').val();
+                                               
+                xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                        settings: {data : populateMemoRequestParams()},
+                                                        onJsonContent :  function(e, options, $target, content) {                                                            
+                                                            if(content.success == true){
+                                                                upsertMemo(content.value[0]);
+                                                                $('.editBtnMemo').css('display','none'); 
+                                                                $('.addBtnMemo').css('display','block'); 
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+            }
+        }
+         
+         
+        /**
+        * Memo cancel handler
+        */
+        function memoCancelHandler(e){
+            var requestUrl = baseUrl + "/cancelMemo.json?commandFormId=" + $('[name=commandFormId]').val();
+            xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                    onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                upsertMemo(content.value[0]);
+                                                                $('.editBtnMemo').css('display','none'); 
+                                                                $('.addBtnMemo').css('display','block'); 
+                                                            } else {
+                                                                xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                            return true;
+                                                        }
+                                                     }
+                                        );
+        }		  
+	
+		//var action = "${commandForm.actionType}";
+						
+        /**************************** Handler bindings **************************/
+		
+        
+		
+	/*
+		$('#instrumentType').unbind('click');
+        $('#instrumentType').bind('click' ,instrumentTypeChangeHandler); 
+	
+		$('#instrumentType').unbind('change');
+        $('#instrumentType').bind('change' ,instrumentTypeChangeHandler);  
+		
+		$('#instrumentType').unbind('focusout');
+        $('#instrumentType').bind('focusout' ,instrumentTypeChangeHandler); */
+        
+        $('#addCodeInfoBtn').unbind('click');
+        $('#addCodeInfoBtn').bind('click',codeInfoAddHandler);
+        
+        $('#updateCodeInfoBtn').unbind('click');
+        $('#updateCodeInfoBtn').bind('click',codeInfoUpdateHandler);
+        
+        $('#cancelCodeInfoBtn').unbind('click');
+        $('#cancelCodeInfoBtn').bind('click',codeInfoCancelHandler);
+
+        
+        $('#addNameInfoBtn').unbind('click');
+        $('#addNameInfoBtn').bind('click',nameInfoAddHandler);
+        
+        $('#updateNameInfoBtn').unbind('click');
+        $('#updateNameInfoBtn').bind('click',nameInfoUpdateHandler);
+        
+        $('#cancelNameInfoBtn').unbind('click');
+        $('#cancelNameInfoBtn').bind('click',nameInfoCancelHandler); 
+		
+
+        $('#addCategoryInfoBtn').unbind('click');
+        $('#addCategoryInfoBtn').bind('click',categoryInfoAddHandler);
+        
+        $('#updateCategoryInfoBtn').unbind('click');
+        $('#updateCategoryInfoBtn').bind('click',categoryInfoUpdateHandler);
+        
+        $('#cancelCategoryInfoBtn').unbind('click');
+        $('#cancelCategoryInfoBtn').bind('click',categoryInfoCancelHandler);
+        
+        $('#categoryType:enabled').unbind('change', populateCategoryIdHandler)
+								  .bind('change', populateCategoryIdHandler);
+								  
+ 		if(${commandForm.categoryId == ''}){
+		
+			$('#categoryType:enabled').unbind('change', populateCategoryIdHandler)
+								  .bind('change', populateCategoryIdHandler).trigger('change');
+		}
+		
+								   
+        
+		
+		 $('#addMemoBtn').unbind('click');
+         $('#addMemoBtn').bind('click', memoAddHandler);
+         
+         $('#updateMemoBtn').unbind('click');
+         $('#updateMemoBtn').bind('click', memoUpdateHandler);
+         
+         $('#cancelMemoBtn').unbind('click');
+         $('#cancelMemoBtn').bind('click', memoCancelHandler);
+		
+		
+		
+							        
+        /*************************** Grid initializations *************************************/
+         <xenos:out escapeXml="false">
+			<c:forEach items="${commandForm.instrumentNameCrossRefs}" var="dl">								
+				items = {};
+				rowId+=1;
+				items.id 			= "xenos_" + rowId;
+				
+				items.charsetCode    =   '<c:out value="${dl.charsetCode}" />';
+				items.shortName      =   '<c:out value="${xenosfn:escapeJS(dl.shortName)}" />';
+				items.officialName   =   '<c:out value="${xenosfn:escapeJS(dl.officialName)}" />';				
+				
+				nameInfoResult.push(items); 				
+			</c:forEach>
+			rowId = 0; 
+			
+		    nameInfoGrid = $('#nameInfoGrid').xenoseditablegrid(nameInfoResult, nameInfoColumns, nameInfoGridConfig);
+		
+			var tempRowId = 0;
+			var flag = false;
+			<c:forEach items="${commandForm.instrumentCrossRefs}" var="dl">
+				if("${dl.instrumentCodeType}" == "${commandForm.defaultInstrumentCodeType}"){
+					tempRowId = rowId;
+					flag = true;
+				}
+				items = {};
+				rowId+=1;
+				items.id 			= "xenos_" + rowId;
+
+				items.entDefault         =       '<c:out value="${dl['default']}" />';
+				items.instrumentCodeType =       '<c:out value="${dl.instrumentCodeType}" />';
+				items.securityId         =       '<c:out value="${xenosfn:escapeJS(dl.securityId)}" />';
+				
+				codeInfoResult.push(items);
+			</c:forEach>
+			rowId = 0;
+			codeInfoGrid = $('#codeInfoGrid').xenoseditablegrid(codeInfoResult, codeInfoColumns, codeInfoGridConfig);
+			
+			if($("#actionTypeOption").val() == "amend" || $("#actionTypeOption").val() == "AMEND"){
+				if(codeInfoGrid){
+					var gridInst = $('#codeInfoGrid').data('gridInstance');
+					var canvasCtx = gridInst.getCanvasNode();
+					if($('.slick-row', canvasCtx).length &gt; 0) {
+						$('.slick-row', canvasCtx).each(function(index, elm){
+							if(index == tempRowId <![CDATA[&&]]> flag){
+								$('.deleteIco', elm).parent().hide();
+							}
+						});
+					}
+				}
+			}
+			
+			
+			var codeInfoGridReOrderfunction = function() {
+				var tempRowId2 = 0;
+				var row1 = 0;
+				var flag2 = false;
+				
+				<c:forEach items="${commandForm.instrumentCrossRefs}" var="dl2">
+					if("${dl2.instrumentCodeType}" == "${commandForm.defaultInstrumentCodeType}"){
+						tempRowId2 = row1;
+						flag2 = true;
+					}
+					row1+=1;
+				</c:forEach>
+				var codeInfoGridInst = $('#codeInfoGrid').data('gridInstance');
+				var reordercanvasCtx = codeInfoGridInst.getCanvasNode();
+				if($('.slick-row', reordercanvasCtx).length &gt; 0) {
+					$('.slick-row', reordercanvasCtx).each(function(index1, elm1){
+						if(index1 == tempRowId2 <![CDATA[&&]]> flag2){
+							$('.deleteIco', elm1).parent().hide();
+						}
+					});
+				}				
+
+			};
+			
+			if($("#actionTypeOption").val() == "amend" || $("#actionTypeOption").val() == "AMEND"){
+				$('#codeInfoGrid').data('gridInstance').onColumnsReordered.unsubscribe(codeInfoGridReOrderfunction);
+				$('#codeInfoGrid').data('gridInstance').onColumnsReordered.subscribe(codeInfoGridReOrderfunction);
+				
+				$('#codeInfoGrid').data('gridInstance').onColumnsResized.unsubscribe(codeInfoGridReOrderfunction);
+				$('#codeInfoGrid').data('gridInstance').onColumnsResized.subscribe(codeInfoGridReOrderfunction);
+			}
+			
+			
+			<c:forEach items="${commandForm.categories}" var="dl">
+				items = {};
+				rowId+=1;
+				items.id 			= "xenos_" + rowId;
+				
+				items.categoryType    =   '<c:out value="${dl.categoryType}" />';
+				items.categoryId      =   '<c:out value="${dl.categoryId}" />';	        
+				
+				categoryInfoResult.push(items);
+			</c:forEach>
+		
+			rowId = 0;
+			categoryInfoGrid = $('#categoryInfoGrid').xenoseditablegrid(categoryInfoResult, categoryInfoColumns, categoryInfoConfig);
+
+			<c:forEach items="${commandForm.memos}" var="dl">
+				  items = {};
+				  rowId+=1;
+				  items.id             = "xenos_" + rowId;               
+				  items.memo  =   '<c:out value="${dl.memoCode}" />';
+				  items.description1  =   '<c:out value="${xenosfn:escapeJS(dl.description1)}" />';
+				  items.description2  =   '<c:out value="${xenosfn:escapeJS(dl.description2)}" />';                              
+				  memoGridResult.push(items);
+			  </c:forEach>
+			  
+		  </xenos:out>
+			rowId = 0;
+			memoGrid = $('#memoGrid').xenoseditablegrid(memoGridResult, memoGridColumns, memoGridConfig);
+			
+		
+		/************** page load hooks **************/
+        
+    var validateHook = function() {
+			
+ 	        var validationMessages = [];
+ 			
+ 			
+ 			var instrumentTypeStr = $.trim($('#instrumentType').val());
+			var isInstrumentCcyType = false;
+			var contractSizeStr = $.trim($('#txtSecurityId').val());
+			var countryCodeStr  = $.trim($('#countryCode').val());
+			var investmentCountryCodeStr = $.trim($('#investmentCountryCode').val());
+			var issueCcyStr = $.trim($('#tradeCcy').val());
+			var displaySequenceStr = $.trim($('#txtDisplaySeq').val());
+			var minTradingUnitStr = $.trim($('#minTradingUnitId').val());
+			var listedIdStr = $.trim($('#listedId').val());
+			var priceTypeStr = $.trim($('#priceUnit').val());
+			var defaultShortName = $.trim($('#defaultShortName').val());
+			var defaultOfficialName = $.trim($('#defaultOfficialName').val());
+			
+			if(instrumentTypeStr === "CCY") {
+				isInstrumentCcyType = true;
+			}
+			else {
+				isInstrumentCcyType = false;
+			}
+			
+			if (VALIDATOR.isNullValue(contractSizeStr)) {
+				 validationMessages.push(xenos$REF$i18n.instrument.generalinfo.contractsizeempty);			
+			}
+			
+			if($.trim($('#txtSecurityId').val()) != ""){
+				formatQuantity($('#txtSecurityId'),9,5,validationMessages,$('#txtSecurityId').parent().parent().find('label').text());
+			}
+		            
+            if (VALIDATOR.isNullValue(countryCodeStr) <![CDATA[&&]]> !isInstrumentCcyType){
+				 validationMessages.push(xenos$REF$i18n.instrument.generalinfo.countrycodeempty);
+			}
+			if (VALIDATOR.isNullValue(investmentCountryCodeStr) <![CDATA[&&]]> !isInstrumentCcyType){
+            	 validationMessages.push(xenos$REF$i18n.instrument.generalinfo.investmentcountrycodeempty);
+			}
+			
+            if (VALIDATOR.isNullValue(issueCcyStr) <![CDATA[&&]]> !isInstrumentCcyType){
+            	 validationMessages.push(xenos$REF$i18n.instrument.generalinfo.issuecurrenceempty);
+			}
+			
+			if (VALIDATOR.isNullValue(displaySequenceStr) <![CDATA[&&]]> isInstrumentCcyType){
+            	 validationMessages.push(xenos$REF$i18n.instrument.generalinfo.displaysequenceempty);
+			}
+			
+			if(!(VALIDATOR.isNullValue(displaySequenceStr))  <![CDATA[&&]]> isInstrumentCcyType){
+				formatQuantity($('#txtDisplaySeq'),3,0,validationMessages,$('#txtDisplaySeq').parent().parent().find('label').text()) ;
+			}
+			
+            if (VALIDATOR.isNullValue(minTradingUnitStr) <![CDATA[&&]]> isInstrumentCcyType){
+            	 validationMessages.push(xenos$REF$i18n.instrument.generalinfo.minimumtradeunitempty);
+			} 
+			
+			if($.trim($('#minTradingUnitId').val()) != ""  <![CDATA[&&]]> isInstrumentCcyType){
+				formatQuantity($('#minTradingUnitId'),15,3,validationMessages,$('#minTradingUnitId').parent().parent().find('label').text()) ;
+			}
+			
+            if (VALIDATOR.isNullValue(listedIdStr)){
+            	 validationMessages.push(xenos$REF$i18n.instrument.generalinfo.listidempty);
+			}
+			
+            if (VALIDATOR.isNullValue(priceTypeStr)){
+            	 validationMessages.push(xenos$REF$i18n.instrument.generalinfo.pricetypeempty);
+			}	
+			
+			if (VALIDATOR.isNullValue(defaultShortName)){
+            	 validationMessages.push(xenos$REF$i18n.instrument.generalinfo.instrumentshortnameempty);
+			}	
+			
+			if (VALIDATOR.isNullValue(defaultOfficialName)){
+            	 validationMessages.push(xenos$REF$i18n.instrument.generalinfo.officialintrumentnameempty);
+			}
+			
+            if (VALIDATOR.isNullValue(instrumentTypeStr)){
+            	 validationMessages.push(xenos$REF$i18n.instrument.generalinfo.instrumenttypeempty);
+			} 
+			
+			if(codeInfoGrid.countRows() &lt; 1){
+        		validationMessages.push(xenos$REF$i18n.instrument.generalinfo.one_instrument_code_required);
+        	}
+			
+			if (($("#listedDate").val() != "" <![CDATA[&&]]> $("#listedDate").val() != null <![CDATA[&&]]> $("#listedDate").val() != undefined) <![CDATA[&&]]> isDateCustom($("#listedDate").val())==false){
+				validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.generalinfo.listed_date_error));
+			}
+			
+			if (($("#delistedDate").val() != "" <![CDATA[&&]]> $("#delistedDate").val() != null <![CDATA[&&]]> $("#delistedDate").val() != undefined) <![CDATA[&&]]> isDateCustom($("#delistedDate").val())==false){
+				validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.generalinfo.delisted_date_error));
+			}
+			
+			if (($("#auctionDateStr").val() != "" <![CDATA[&&]]> $("#auctionDateStr").val() != null <![CDATA[&&]]> $("#auctionDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#auctionDateStr").val())==false){
+				validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.generalinfo.auction_date_error));
+			}
+			
+			if($.trim($('#issueQuantityStr').val()) != ""){
+				formatQuantity($('#issueQuantityStr'),15,3,validationMessages,$('#issueQuantityStr').parent().parent().find('label').text());
+			}
+			
+			if($.trim($('#outstandingQuantityStr').val()) != ""){
+				formatQuantity($('#outstandingQuantityStr'),15,3,validationMessages,$('#outstandingQuantityStr').parent().parent().find('label').text());
+			}
+			
+         	if ( validationMessages.length >0){
+				xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+                 return false;
+            }else{
+                $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+            }                
+            return true; 
+			
+        };
+        
+        var unloadHook = function(){
+			$('#instrumentType').unbind('blur');
+			$('#instrumentType').unbind('xenos-treeview.FocusOut');
+        	$xenos$Wizard.deregister('next',validateHook);
+			$xenos$Wizard.deregister('submit',validateHook);
+			$xenos$Wizard.deregister('unload',unloadHook);
+        };
+        
+        $('#instrumentType').bind('xenos-treeview.FocusOut', loadTab);
+        
+        $xenos$Wizard.register('next',validateHook);
+        $xenos$Wizard.register('submit',validateHook);
+        $xenos$Wizard.register('unload',unloadHook);
+		
+		function getIndexOfDropdownValue(list,value){
+			var index = 0;
+			if(value == "" || value == null || value == undefined){
+				return index;
+			}
+			for(var i = 0; i <![CDATA[<]]> list.children('option').length; i++){
+				if(list.children('option').eq(i).val() == value){
+					index = i;
+					break;
+				}
+			}
+			return index;
+		}
+        	
+ };
+        
+        </jsp:body>
+    </jsp:element>
+	
+	
+    <spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+    <spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+    <spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+    <input type="hidden" id="actionType" value="${commandForm.actionType}"/>
+    <input type="hidden" id="actionTypeOption" value="${commandForm.options.actionType}"/>
+    <input type="hidden" id="defaultInstrumentCodeTypeHidden" value="${commandForm.defaultInstrumentCodeType}"/>
+    <form:input type='hidden' id='originalInvestmentCountryCode' path="commandForm.instrumentPage.originalInvestmentCountryCode" value='${commandForm.instrumentPage.investmentCountryCode}'/>
+	<form:input type="hidden" id="tempInstrumentType" path="commandForm.instrumentPage.tempInstrumentType" value="${commandForm.instrumentPage.instrumentType}"  />
+    
+    <h1><spring:message code="ref.insturment.entry.label.titleWizard" htmlEscape="false"/> <spring:message code="ref.insturment.entry.label.generalWizard" htmlEscape="false"/></h1>
+	
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	<c:if test="${isSoftValidationExists =='true'}">
+	<!-- Warning message Area -->
+		<ul class="xenosWarn">
+			<c:forEach items="${softValidationList}" var="dl">		
+				<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+
+		<div class="moreHandle">
+			<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.generaltab.instrumentcodeinfo" htmlEscape="false"/>
+				<div class="handleBlock">
+					<span class="handler collapse" id="spaninstrumentcodeinfoid"><spring:message text="" htmlEscape="false"/></span>
+				</div>
+			</h1>
+		</div>		 
+		 
+	   <div> 
+		<div class="left width40Perc">		
+			<div class="entryBlkArea smallBlockHeight" style="min-height:290px;">
+			<div class="formItemBlock dottedBg">
+				<form:input type="hidden" id="instrumentTypeFlag" path="commandForm.instrumentTypeFlag" value=""/>
+				<div class="formItem thrCol">
+					<form:label path="commandForm.instrumentCodeTypes"  class="required"><spring:message code="ref.insturment.entry.label.generaltab.codetype" htmlEscape="false"/></form:label>
+					<form:select id="instrumentCodeType" path="commandForm.instrumentCodeType" class="dropdowninput">
+						<form:options items="${commandForm.instrumentCodeTypes}"/>
+					</form:select>
+					<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			
+ 				<div class="formItem thrCol">
+					<form:label path="commandForm.securityId"  class="required"><spring:message code="ref.insturment.entry.label.generaltab.id" htmlEscape="false"/></form:label>
+					<span><form:input style="width:100px;" id="securityId" path="commandForm.securityId" maxlength="21" class="textBox"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<div class="formItem thrCol">
+					<form:label path="commandForm.default"><spring:message code="ref.insturment.entry.label.generaltab.enterprisedefault" htmlEscape="false"/></form:label>
+					<span style="padding-top:5px;"><form:checkbox id="default" path="commandForm.default" value="true" /></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+				<div id="formActionArea" class="gridBtnMargin">
+					<div class="right">
+						<div class="btnWrapStyle submitBtn gridAddBtn">
+							<span class="addBtnCodeInfo" style="display:block"><input id="addCodeInfoBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+						</div>
+						<span class="editBtnCodeInfo" style="display:none"> 
+							<div class="btnWrapStyle submitBtn"><input id="updateCodeInfoBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+							<div class="btnWrapStyle resetBtn"><input id="cancelCodeInfoBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+						</span>
+					</div>
+				</div>
+				
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+				<div class="entryGrid">
+					<div id="codeInfoGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+
+			</div>
+			
+			</div>	
+		</div>
+		 
+		 <div class="right width60Perc">	
+	    	<div class="entryBlkArea smallBlockHeight" style="min-height:290px;">
+			<div class="formItemBlock dottedBg">        
+				 <div class="formItem">
+					<form:label path="commandForm.instrumentPage.instrumentType" class="required" ><spring:message code="ref.insturment.entry.label.generaltab.instrumenttype" htmlEscape="false"/></form:label>
+					<span><form:input id="instrumentType" value="" path="commandForm.instrumentPage.instrumentType"  class="textBox instrumentType " /></span>					
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div> 
+				 
+				<div class="formItem">
+					<form:label path="commandForm.instrumentPage.contractSizeStr" class="required"><spring:message code="ref.insturment.entry.label.generaltab.contractsize" htmlEscape="false"/></form:label>
+					<span><form:input id="txtSecurityId" path="commandForm.instrumentPage.contractSizeStr"  class="txtNormal " onblur="return formatQuantity($('#txtSecurityId'),9,5,null,$('#txtSecurityId').parent().parent().find('label').text());"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<div class="formItem" >
+					<form:label path="commandForm.instrumentPage.countryCode" class="required" id= "countryCodelable"><spring:message code="ref.insturment.entry.label.generaltab.countrycode" htmlEscape="false"/></form:label>
+					<span><form:input id="countryCode" value="" path="commandForm.instrumentPage.countryCode"  class="textBox " /></span>
+					<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="countryCode" popType="nationality" /></div>					
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				
+				<div class="formItem" id="issueCcy">
+					<form:label path="commandForm.instrumentPage.tradeCcy" class="required"><spring:message code="ref.insturment.entry.label.generaltab.issueCcy" htmlEscape="false"/></form:label> 
+					<span><form:input id="tradeCcy" value="" path="commandForm.instrumentPage.tradeCcy"  class="textBox " /></span>
+					<div class="popupBtn">
+						<input type="button" class="popupBtnIco" tgt="tradeCcy" popType="currency" value="" />
+					</div>					
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<div class="formItem" id="displaySeq" style="display:none;">
+					<form:label path="commandForm.instrumentPage.displaySeqStr" class="required"><spring:message code="ref.insturment.entry.label.generaltab.displaysequence" htmlEscape="false"/></form:label>
+					<span><form:input id="txtDisplaySeq" path="commandForm.instrumentPage.displaySeqStr" class="txtNormal " onblur="return formatQuantity($('#txtDisplaySeq'),3,0,null,$('#txtDisplaySeq').parent().parent().find('label').text()) ;"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				
+				
+				<div class="formItem" id="mtu">
+					<form:label path="commandForm.instrumentPage.minTradingUnitStr"><spring:message code="ref.insturment.entry.label.generaltab.mtu" htmlEscape="false"/></form:label>
+					<span><form:input id="minTradingUnitId" path="commandForm.instrumentPage.minTradingUnitStr" class="txtNormal " onblur="return formatQuantity($('#minTradingUnitId'),15,3,null,$('#minTradingUnitId').parent().parent().find('label').text()) ;" /></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				
+				
+				<div class="formItem">
+					<form:label path="commandForm.instrumentPage.listedId" class="required"><spring:message code="ref.insturment.entry.label.generaltab.listedid" htmlEscape="false"/></form:label>
+					<form:select id="listedId" path="commandForm.instrumentPage.listedId" class="dropdowninput ">						
+						<form:options items="${commandForm.instrumentPage.listedIdValues}" itemLabel="label" itemValue="value"/>
+					</form:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				
+				
+				<div class="formItem">
+					<form:label path="commandForm.instrumentPage.priceUnit" class="required"><spring:message code="ref.insturment.entry.label.generaltab.pricetype" htmlEscape="false"/></form:label>
+					<form:select id="priceUnit" path="commandForm.instrumentPage.priceUnit" class="dropdowninput ">						
+						<form:options items="${commandForm.instrumentPage.priceTypeValues}" itemLabel="label" itemValue="value"/>
+					</form:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				 <div class="formItem">
+					<form:label path="commandForm.instrumentPage.investmentCountryCode" class="required" > <spring:message code="ref.insturment.entry.label.generaltab.investmentcountrycode" htmlEscape="false"/> </form:label>
+					<span><form:input id="investmentCountryCode" value="" path="commandForm.instrumentPage.investmentCountryCode"  class="textBox " /></span>	
+					<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="investmentCountryCode" popType="nationality" /></div>						
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div> 
+				
+					
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</div>
+	
+	</div>
+		 
+	  </div>
+	  
+	  <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+	  <div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.generaltab.instrumentnameinfo" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="spaninstrumentnameinfoid"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	  </div>	
+		 
+		 
+	  <div class="entryBlkArea smallBlockHeight" style="min-height:60px;">
+     
+	  <div class="formItemBlock dottedBg Scrn3col">
+		
+		<div class="formItem skipWarning">
+					<form:label path="commandForm.defaultCharsetCode" class="required"><spring:message code="ref.insturment.entry.label.generaltab.languagecode" htmlEscape="false"/></form:label>
+					<form:label path="commandForm.defaultCharsetCode">${commandForm.defaultCharsetCode}</form:label>
+        </div>
+            
+        <div class="formItem">
+					<form:label path="commandForm.defaultShortName" class="required"><spring:message code="ref.insturment.entry.label.generaltab.shortname" htmlEscape="false"/></form:label>
+					<span><form:input id="defaultShortName" path="commandForm.defaultShortName" maxlength="65"  class="textBox "/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+            
+        <div class="formItem">
+					<form:label path="commandForm.defaultOfficialName" class="required"><spring:message code="ref.insturment.entry.label.generaltab.officialname" htmlEscape="false"/></form:label>
+					<span><form:input id="defaultOfficialName" path="commandForm.defaultOfficialName" maxlength="85"  class="textBox"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+		
+		<div class="right primaryBtn detailBtnMargin" >
+		      <spring:message code="ref.account.label.button.details" htmlEscape="false" var="detail_label"/>
+			  <input type="button" id="detailbtnid" onclick="showDetails()" value="${detail_label}" />
+		</div> 
+		          
+        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		
+		
+	<div id="instEntryNameInfoDetails" >	
+		<div class="formItem skipWarning">
+					<form:label path="commandForm.charsetCode" class="required"><spring:message code="ref.insturment.entry.label.generaltab.languagecode" htmlEscape="false"/></form:label>              
+					<form:select id="charsetCodeId" path="commandForm.charsetCode" class="dropdowninput">
+						<form:options items="${commandForm.charsetCodeValues}"/>
+					</form:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+            
+        <div class="formItem">
+					<form:label path="commandForm.shortName" class="required"><spring:message code="ref.insturment.entry.label.generaltab.shortname" htmlEscape="false"/></form:label>
+					<span><form:input id="shortNameId" path="commandForm.shortName" maxlength="65"  class="textBox"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+            
+        <div class="formItem">
+					<form:label path="commandForm.officialName" class="required"><spring:message code="ref.insturment.entry.label.generaltab.officialname" htmlEscape="false"/></form:label>
+					<span><form:input id="officialNameId" path="commandForm.officialName" maxlength="85"  class="textBox"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+		
+		<div id="formActionArea" class="gridBtnMargin">
+                <div class="right">
+                    <div class="btnWrapStyle submitBtn gridAddBtn">
+                        <span class="addBtnNameInfo" style="display:block"><input id="addNameInfoBtn" type="button" value="${formadd_label}" class="inputBtnStyle "/></span>
+                    </div>
+                    <span class="editBtnNameInfo" style="display:none"> 
+                        <div class="btnWrapStyle submitBtn"><input id="updateNameInfoBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                        <div class="btnWrapStyle resetBtn"><input id="cancelNameInfoBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                    </span>
+                </div>
+        </div>
+
+        <div class="entryGrid">
+                <div id="nameInfoGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+	</div>	
+		          
+		<div class="clear"><spring:message text="" htmlEscape="false"/></div>	
+        </div>
+    </div>
+        
+		
+	 <!-- Basic Attributes **START --> 
+	  <div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.generaltab.basicattributes" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="spanInstrumentBasicAttributesId"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	  </div>
+        
+     <div class="entryBlkArea ">
+	 
+		<div class="formItemBlock dottedBg">
+            
+           
+            
+            <div class="formItem">
+			 <form:label path="commandForm.instrumentPage.listedDate"><spring:message code="ref.insturment.entry.label.generaltab.listeddate" htmlEscape="false"/></form:label>
+			 <span><form:input id="listedDate" value="" path="commandForm.instrumentPage.listedDate" class="formInput dateinput " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"  /></span>
+			 <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<div class="formItem">
+			 <form:label path="commandForm.instrumentPage.delistedDate"><spring:message code="ref.insturment.entry.label.generaltab.delisteddate" htmlEscape="false"/></form:label>
+			 <span><form:input id="delistedDate" value="" path="commandForm.instrumentPage.delistedDate" class="formInput dateinput " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"  /></span>
+			 <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			
+			
+			<div class="formItem">
+				<form:label path="commandForm.instrumentPage.auctionDateStr"><spring:message code="ref.insturment.entry.label.generaltab.auctiondate" htmlEscape="false"/></form:label>
+				<span><form:input id="auctionDateStr" value="" path="commandForm.instrumentPage.auctionDateStr" class="formInput dateinput " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"  /></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<div class="formItem">
+			 <form:label path="commandForm.instrumentPage.issueStatus"><spring:message code="ref.insturment.entry.label.generaltab.issuestatus" htmlEscape="false"/></form:label>
+			 <form:select id="issueStatus" path="commandForm.instrumentPage.issueStatus" class="dropdowninput ">
+				 <form:option value=""/>
+				 <form:options items="${commandForm.instrumentPage.issueStatusValues}"/>
+			 </form:select>
+			 <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			
+            
+			
+			<div class="formItem">
+			 <form:label path="commandForm.instrumentPage.issuer"><spring:message code="ref.insturment.entry.label.generaltab.issuer" htmlEscape="false"/></form:label>
+			 <form:select id="issuer" path="commandForm.instrumentPage.issuer" class="dropdowninput ">
+				 <form:option value=""/>
+				 <form:options items="${commandForm.instrumentPage.issuerPkIdMap}" />
+			 </form:select>
+			 <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<div class="formItem">
+			 <form:label path="commandForm.instrumentPage.whenIssuedFlag"><spring:message code="ref.insturment.entry.label.generaltab.whenissuedflag" htmlEscape="false"/></form:label>
+			 <form:select id="whenIssuedFlag" path="commandForm.instrumentPage.whenIssuedFlag" class="dropdowninput ">
+				 <form:options items="${commandForm.instrumentPage.whenIssuedFlagValues}" itemLabel="label" itemValue="value"/>
+			 </form:select>
+			 <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+
+			
+
+			<div class="formItem">
+				<form:label path="commandForm.instrumentPage.issueQuantityStr"><spring:message code="ref.insturment.entry.label.generaltab.issuequantity" htmlEscape="false"/></form:label>
+				<span><form:input id="issueQuantityStr" path="commandForm.instrumentPage.issueQuantityStr" class="txtNormal " onblur="return formatQuantity($('#issueQuantityStr'),15,3,null,$('#issueQuantityStr').parent().parent().find('label').text());"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="formItem">
+				<form:label path="commandForm.instrumentPage.outstandingQuantityStr"><spring:message code="ref.insturment.entry.label.generaltab.outstandingquantity" htmlEscape="false"/></form:label>
+				<span><form:input id="outstandingQuantityStr" path="commandForm.instrumentPage.outstandingQuantityStr"  class="txtNormal " onblur="return formatQuantity($('#outstandingQuantityStr'),15,3,null,$('#outstandingQuantityStr').parent().parent().find('label').text());"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			
+			
+			<div class="formItem">
+				<form:label path="commandForm.instrumentPage.defaultDeliveryMethod"><spring:message code="ref.insturment.entry.label.generaltab.deliveryform" htmlEscape="false"/></form:label>
+				<form:select id="defaultDeliveryMethod" path="commandForm.instrumentPage.defaultDeliveryMethod" class="dropdowninput ">
+					<form:option value=""/>
+					<form:options items="${commandForm.instrumentPage.defaultDeliveryMethodList}" itemLabel="label" itemValue="value"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+			</div>
+			<div class="formItem">
+				<form:label path="commandForm.instrumentPage.transferAgentCode"><spring:message code="ref.insturment.entry.label.generaltab.transferagent" htmlEscape="false"/></form:label>
+				<span><form:input id="transferAgentCode" value="" path="commandForm.instrumentPage.transferAgentCode"  class="textBox "/></span>
+				<div class="popupBtn amendReadOnlyPopup">
+					<input type="button" class="popupBtnIco" tgt="transferAgentCode" popType="finInstRoleType" bankRoles="Stock Exchange|Security Broker|Bank/Custodian|Central Depository|Transfer Agent" value="" />
+				</div>
+				<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			
+			
+			
+			<div class="formItem">
+				<form:label path="commandForm.instrumentPage.dualListed"><spring:message code="ref.insturment.entry.label.generaltab.duallistedflag" htmlEscape="false"/></form:label>
+				<form:select id="dualListed" path="commandForm.instrumentPage.dualListed" class="dropdowninput ">
+					<form:option value=""/>
+					<form:options items="${commandForm.instrumentPage.dualListedFlagValues}" itemLabel="label" itemValue="value"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="formItem">
+				<form:label path="commandForm.instrumentPage.defaultSettlementLocation"><spring:message code="ref.insturment.entry.label.generaltab.defaultstllocation" htmlEscape="false"/></form:label>
+				<form:select id="defaultSettlementLocation" path="commandForm.instrumentPage.defaultSettlementLocation" class="dropdowninput ">
+					<form:option value=""/>
+					<form:options items="${commandForm.instrumentPage.defaultSettlementLocationList}" itemLabel="label" itemValue="value"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			
+			
+			
+			<div class="formItem ">
+				<form:label path="commandForm.instrumentPage.investmentSector"><spring:message code="ref.insturment.entry.label.generaltab.investmentsector" htmlEscape="false"/></form:label>
+				<form:select id="investmentSector" path="commandForm.instrumentPage.investmentSector" class="dropdowninput  ">
+					<form:option value=""/>
+					<form:options items="${commandForm.instrumentPage.investmentSectorList}" itemLabel="label" itemValue="value"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="formItem ">
+				<form:label path="commandForm.instrumentPage.mutualFundCategory"><spring:message code="ref.insturment.entry.label.generaltab.mutualfundcategory" htmlEscape="false"/></form:label>
+				<form:select id="defaultSettlementLocation" path="commandForm.instrumentPage.mutualFundCategory" class="dropdowninput ">
+					<form:option value=""/>
+					<form:options items="${commandForm.instrumentPage.mutualFundCategoryList}" itemLabel="label" itemValue="value"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+
+		</div>
+		
+		 
+     </div>
+        
+    <!-- Category Info **START --> 
+	 
+	  <div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.generaltab.categoryinfo" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="spanInstrumentCategoryInfoId"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	  </div>
+	 
+     <div class="entryBlkArea ">
+        <div class="formItemBlock dottedBg">
+        <div class="formItem">
+            <form:label path="commandForm.categoryTypes"><spring:message code="ref.insturment.entry.label.generaltab.categorytype" htmlEscape="false"/></form:label>
+            <form:select id="categoryType" path="commandForm.categoryType" class="dropdowninput ">
+			     <form:option value=""/>
+                 <form:options items="${commandForm.categoryTypes}"/>
+            </form:select>
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>            
+        </div>
+        <div class="formItem">
+            <form:label path="commandForm.categoryIds"><spring:message code="ref.insturment.entry.label.generaltab.categoryid" htmlEscape="false"/></form:label>
+            <form:select id="categoryId" path="commandForm.categoryId" class="dropdowninput ">
+				 <form:option value=""/>
+                 <form:options items="${commandForm.categoryIds}"/>
+            </form:select>
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+                
+        <div id="formActionArea" class="gridBtnMargin">
+           <div class="right">
+               <div class="btnWrapStyle submitBtn gridAddBtn">
+                   <span class="addBtnCategoryInfo" style="display:block"><input id="addCategoryInfoBtn" type="button" value="${formadd_label}" class="inputBtnStyle "/></span>
+               </div>
+               <span class="editBtnCategoryInfo" style="display:none"> 
+                       <div class="btnWrapStyle submitBtn"><input id="updateCategoryInfoBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                       <div class="btnWrapStyle resetBtn"><input id="cancelCategoryInfoBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+               </span>
+           </div>
+          </div>
+		  </div>
+          <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+          
+          <div class="entryGrid">
+              <div id="categoryInfoGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+          </div>
+        
+     </div>
+     
+     <!-- Memo **START --> 
+	  <div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.generaltab.memo" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="spanInstrumentMemoId"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	  </div>
+	 
+     <div class="entryBlkArea ">
+     	<div class="formItemBlock dottedBg Scrn3col">
+        
+	        <div class="formItem">
+	            <form:label path="commandForm.memo"><spring:message code="ref.insturment.entry.label.restrictiontab.memo" htmlEscape="false"/></form:label> 
+	            <span>
+	            <form:select id="memo" path="commandForm.memo" >
+					<form:option value=""/>
+	                <form:options items="${commandForm.memoValues}" />
+	            </form:select>
+	            </span>            
+	            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	        </div>
+	        
+	       <div class="formItem">
+            <form:label path="commandForm.description1"><spring:message code="ref.insturment.entry.label.restrictiontab.descriptionone" htmlEscape="false"/></form:label>
+            <span><form:input id="description1" value="" path="commandForm.description1"  maxlength="50"  class="textBox "/></span>            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+           </div>
+           
+           <div class="formItem">
+            <form:label path="commandForm.description2"><spring:message code="ref.insturment.entry.label.restrictiontab.descriptiontwo" htmlEscape="false"/></form:label>
+            <span><form:input id="description2" value="" path="commandForm.description2" maxlength="50"  class="textBox "/></span>            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+           </div>
+              
+         	<div id="formActionArea" class="gridBtnMargin">
+            	 <div class="right">
+                	 <div class="btnWrapStyle submitBtn gridAddBtn">
+                   		<span class="addBtnMemo" style="display:block"><input id="addMemoBtn" type="button" value="${formadd_label}" class="inputBtnStyle "/></span>
+                 	</div>
+                 	<span class="editBtnMemo" style="display:none"> 
+                     	<div class="btnWrapStyle submitBtn"><input id="updateMemoBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                     	<div class="btnWrapStyle resetBtn"><input id="cancelMemoBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                 	</span>
+             	</div>
+         	</div>
+         	
+         	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+       </div>
+       <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+       <div class="entryGrid">
+           	<div id="memoGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+       </div>
+       <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+     </div>
+
+
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			
+			function showDetails()
+				{   
+					var validationMessages = [];
+					
+					var defaultShortName = $.trim($('#defaultShortName').val());
+					var defaultOfficialName = $.trim($('#defaultOfficialName').val());
+					
+					if(VALIDATOR.isNullValue(defaultShortName)){
+						validationMessages.push(xenos$REF$i18n.instrument.generalinfo.defaultshortname_required);
+					}
+					
+					if(VALIDATOR.isNullValue(defaultOfficialName)){
+						validationMessages.push(xenos$REF$i18n.instrument.generalinfo.defaultofficialname_required);
+					}
+					
+
+					if ( validationMessages.length >0)
+					{
+						 $('.formHeader').find('.formTabErrorIco').css('display', 'block');
+						 $('.formHeader').find('.formTabErrorIco').off('click');
+						 $('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+						 return false;
+					 }
+					 else 
+					 {
+						 $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+						 jQuery('#instEntryNameInfoDetails').slideToggle("slow");
+						 return true;
+					 }
+				}
+			
+		</jsp:body>
+	</jsp:element>
+
+</div> 
+</jsp:root>

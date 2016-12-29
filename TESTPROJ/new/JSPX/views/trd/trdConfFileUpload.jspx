@@ -1,0 +1,121 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+     <div class="entryContainer paddingFour">
+	 
+	<jsp:directive.page contentType="text/html;charset=UTF-8"/>
+	<jsp:output omit-xml-declaration="yes"/>
+  
+	<spring:message code="form.button.label.upload" htmlEscape="false" var="formupload_label"/>
+  
+	<div class="entryBlkArea">
+		<div class="formItemBlock topitems dottedBg">
+			<div class="formItem twoCols">
+				<label class="required"><spring:message code="trd.confirmation.file" htmlEscape="false"/></label>
+				<span><form:input path="commandForm.fileName" size="85" type="file" accept=".xls,.xlsx"/></span>
+				<span class="uploadingLoader" style="display:none;"><spring:message text="" htmlEscape="false"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</div>
+		<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	<!-- Java script include -->
+	<jsp:element name="script">
+    <jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+		    $(":file", "#content").jfilestyle({buttonText: "${formupload_label}"});
+			xenos.loadLocalizedScript([
+				{path: xenos.context.path + '/scripts/trd/xenos-trd-i18n', async: false}
+			]);
+		
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+				var context = $xenos$Wizard.$context;
+				
+				var btnDiv = $('#formActionArea',context).find('.btnsArea').find('.wizSubmit').find('.inputBtnStyle').val('Upload');
+				$('#formActionArea',context).find('.btnsArea').find('.wizSubmit').unwrap();
+				$('#formActionArea',context).prepend('<div class="wizSubmit submitBtn right newDiv"></div>');
+				$('#formActionArea',context).find('.newDiv').wrapInner(btnDiv);
+				
+				$xenos$Wizard.apply({
+					multipart: true,
+					multipartForm: '#content form'
+				});
+				
+				var unloadHook = function(){
+					$('.wizConfirm ',context).unbind('click', onConfirmClick);
+					$('#fileName', context).unbind('change', onChangeFileData);
+					$xenos$Wizard.deregister('submit',validateHook);
+					$xenos$Wizard.deregister('unload',unloadHook);
+				}
+				
+				//Client Side Validation
+				var validateHook = function(){
+					var fileName = $('#fileName',context).val();
+					var file = $('#fileName',context)[0].files[0];
+					 if(fileName === ""){
+						xenos.utils.displayGrowlMessage(xenos.notice.type.error, xenos$TRD$i18n.trdConfirmationExcelUpload.validation.cannotbeblank);
+						$('#fileName',context).focus();
+						return false;
+					}else{
+						if(file.size>1048576){
+							xenos.utils.displayGrowlMessage(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$TRD$i18n.trdConfirmationExcelUpload.validation.maxfilesize,[1048576]));
+							$('#fileName',context).focus();
+							return false;
+						} else {
+							$('#fileName',context).closest('.topitems').find('.uploadingLoader').show();
+						}
+					} 
+				}
+				//Shift the focus to Submit Button if the file has been selected
+				var onChangeFileData = function(){
+					var fileName = $('#fileName',context).val();
+					$('input[type=submit]:visible', context).focus();
+					if(fileName.substr(fileName.length-3) !== "xls"){
+						if(fileName.substr(fileName.length-4) !== "xlsx"){
+							xenos.utils.displayGrowlMessage(xenos.notice.type.error, xenos$TRD$i18n.trdConfirmationExcelUpload.validation.invalidfiletype);
+							$('#fileName',context).val('');
+							$('#fileName',context).focus();
+							return false;
+						}
+					}
+				}
+				var onConfirmClick = function(){
+					$('.growlBox [rel="close"]').trigger('click');
+				}
+				
+				$('.wizConfirm ',context).bind('click', onConfirmClick);
+				$('#fileName', context).bind('change', onChangeFileData);
+				$xenos$Wizard.register('submit',validateHook);
+				$xenos$Wizard.register('unload',unloadHook);
+				
+			  /**
+                * Error Icon may be present if an error or warning has occured in the 
+				* user confirmation page and then the user has press the back button to 
+				* load the upload entry page again and hence on page load 
+				* Remove the Tab Error Icon if present
+                */
+				$('.formHeader').find('.formTabErrorIco').removeClass('formTabWarningIco');
+			}
+		</jsp:body>
+	</jsp:element>
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+</div>
+</jsp:root>

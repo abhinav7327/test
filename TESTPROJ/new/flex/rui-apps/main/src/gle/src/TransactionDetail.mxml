@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- MXML module for displaying the Transaction Detail for a specific reference Number.  -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" 
+    xmlns:cntrls="com.nri.rui.core.controls.*"
+    xmlns:flexlib="http://code.google.com/p/flexlib/"  
+    width="100%" height="100%" creationComplete="init()">
+    <mx:Script>
+        <![CDATA[
+            import mx.binding.utils.BindingUtils;
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.controls.XenosAlert;
+            import mx.managers.FocusManager;
+            import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+            import mx.rpc.events.FaultEvent;
+            import mx.controls.Alert;
+            import com.nri.rui.core.Globals;
+            import com.nri.rui.core.utils.PrintUtils;
+           
+            [Bindable]private var summaryResult:ArrayCollection = new ArrayCollection;
+            
+            [Bindable]private var transactionPk : String = "";
+            
+            [Bindable]
+            private var objAudit:Object = null;
+            [Bindable]
+            private var objTxn:Object = null;
+            [Bindable]
+            private var settlementCurrency:Object = null;
+            [Bindable]
+            private var instrumentCode : Object = null;
+            [Bindable]
+            private var instShortName:Object = null;
+            [Bindable]
+            private var processDescription:Object = null;
+            
+            
+
+            /**
+             * Extracts the parameters and set them to some variables for query criteria from the Module Loader Info.
+             * 
+             */ 
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if (tempA[0] == "transactionPk") {
+                            transactionPk = tempA[1];
+                        } 
+                    }
+                } catch (e:Error) {
+                    trace(e);
+                }
+               
+            }
+            /**
+             * Initializes the module and send the submit request.
+             * 
+             */     
+            private function init():void{
+                wsAudit.visible=false;
+                parseUrlString();
+                
+                var rndNo:Number = Math.random();
+                httpService.url= "gle/journalQueryResult.action?rnd=" + rndNo;
+                
+                var req : Object = new Object();
+                req.method="viewTransactionDetailsPop";
+                req.transactionPk=this.transactionPk; 
+                httpService.request=req;
+                    
+                httpService.send();
+                PopUpManager.centerPopUp(this);
+            }
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function httpService_fault(evt:FaultEvent):void {
+                XenosAlert.error(evt.fault.faultDetail);
+            }
+            /**
+             * Result handler for the submit Request. 
+             * 
+             */ 
+            private function httpService_result(event:ResultEvent):void {               
+                if (null != event) {            
+                    if(null == event.result.journalQueryResultActionForm){
+                        summaryResult.removeAll(); // clear previous data if any as there is no result now.
+                        if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+                            errPage.clearError(event); //clears the errors if any
+                            XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+                        } else { // Must be error
+                            errPage.displayError(event);    
+                        }
+                                   
+                    }else {
+                        errPage.clearError(event);
+                        //Get the Settlement Currenct of the form
+                        settlementCurrency = event.result.journalQueryResultActionForm.settlementCurrency;
+                        instrumentCode =event.result.journalQueryResultActionForm.instrumentCode;
+                        instShortName =event.result.journalQueryResultActionForm.instShortName;
+                        processDescription = event.result.journalQueryResultActionForm.processDescription;
+                        //Handle the Audit Object
+                        if(null == event.result.journalQueryResultActionForm.auditObject){ //means Audit Object is null
+                            wsAudit.includeInLayout = false;
+                        }else{
+                            wsAudit.visible=true;
+                            wsAudit.includeInLayout=true;
+                            wsAudit.opened = false;
+                            //populate the Audit Object value
+                            objAudit =  event.result.journalQueryResultActionForm.auditObject;
+                        }
+                        
+                        //Handle the Transaction Object  objTxn
+                        if(null == event.result.journalQueryResultActionForm.transaction){ //means Audit Object is null
+                            XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('gle.transactionDetail.label.notxnfound')); 
+                        }else{                          
+                            //populate the Transaction Object value
+                            objTxn =  event.result.journalQueryResultActionForm.transaction;
+                        }
+                        
+                        if(event.result.journalQueryResultActionForm.journalListColl != null){   
+	                        if(event.result.journalQueryResultActionForm.journalListColl.journalList is ArrayCollection) {
+	                                summaryResult = event.result.journalQueryResultActionForm.journalListColl.journalList as ArrayCollection;
+	                        } else {
+	                                summaryResult.removeAll();
+	                                summaryResult.addItem(event.result.journalQueryResultActionForm.journalListColl.journalList);
+	                        }
+                        }
+                    } 
+                }else {
+                    summaryResult.removeAll();
+                    XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+                }                
+            }
+        ]]>
+    </mx:Script>
+
+    <cntrls:XenosHTTPService id="httpService" 
+            useProxy="false"
+            fault="httpService_fault(event);"
+            result="httpService_result(event)" showBusyCursor="true" >
+          <!--  <mx:request >
+                <method>viewTransactionDetailsPop</method>
+                <transactionPk>{this.transactionPk}</transactionPk>                                 
+            </mx:request> -->
+     </cntrls:XenosHTTPService>
+     
+     <mx:VBox width="100%" height="0%">
+	    <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+	        <mx:Button id="Print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetail(this.detail)"/>
+	    </mx:HBox>
+    </mx:VBox>
+     
+    <mx:Canvas width="100%" height="100%">
+    	<mx:VBox width="100%" height="100%" id="detail">
+		
+        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>
+        
+        <flexlib:WindowShade id="ws1" tabChildren="{ws1.opened}" styleName="linkButtonWindowShade" label="Transaction Info" width="100%">
+            <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.journalquery.label.transactiontype')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Text text="{objTxn.transactionType==null? '' : objTxn.transactionType}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.journalquery.label.processtype')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Text text="{processDescription==null? '' : processDescription}" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.journalquery.label.tradereferenceno')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Text text="{objTxn.referenceNoWithVersion==null? '' : objTxn.referenceNoWithVersion}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.journalquery.label.cxlrefno')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Text text="{objTxn.cxlReferenceNo==null? '' : objTxn.cxlReferenceNo}" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                <mx:GridRow width="100%" >
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.transactionquery.label.ccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Text text="{settlementCurrency==null? '' : settlementCurrency}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.journalquery.label.status')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Text text="{objTxn.status==null? '' : objTxn.status}" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                <mx:GridRow width="100%" >
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.transactionquery.label.securitycode')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Text text="{instrumentCode==null? '' : instrumentCode}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.transactionquery.label.instshortname')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Text text="{instShortName==null? '' : instShortName}" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.journalquery.label.trialbalanceid')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Text text="{objTxn.trialBalanceId==null? '' : objTxn.trialBalanceId}" />
+                    </mx:GridItem>
+                     <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                        <mx:Text text="" />
+                    </mx:GridItem>                    
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.journalquery.label.description')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="80%" colSpan="3">
+                        <mx:TextArea text="{objTxn.description==null? '' : objTxn.description}" wordWrap="true" editable="false" width="100%"/>
+                    </mx:GridItem>                    
+                </mx:GridRow>
+                
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%"  styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.journalqueryaction.label.remarks')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="80%" colSpan="3">
+                        <mx:Text text="{objTxn.remarks==null? '' : objTxn.remarks}" />
+                    </mx:GridItem>                   
+                </mx:GridRow>
+            </mx:Grid>            
+        </flexlib:WindowShade>
+        
+        <flexlib:WindowShade id="ws2" tabChildren="{ws2.opened}" styleName="linkButtonWindowShade" label="Journal List" width="100%" opened="true">
+            <mx:DataGrid id="SummaryResult" dataProvider="{this.summaryResult}" rowCount="3" width="100%" height="100%" sortableColumns="false" variableRowHeight="true">
+                <mx:columns>  
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.journalqueryresultaction.label.basedate')}" textAlign="center" dataField="baseDateString"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.journalqueryresultaction.label.postingtype')}" textAlign="center" dataField="description"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.journalqueryresultaction.label.status')}" textAlign="center" dataField="status"/>
+                   <!-- 
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.journalqueryresultaction.label.postingrulepk')}" textAlign="right" dataField="postingRulePkString" /> 
+                   -->
+                   <mx:DataGridColumn headerText="" textAlign="center" dataField="journalPk" itemRenderer="com.nri.rui.gle.renderers.JournalsDetailsRenderer"/>                              
+                </mx:columns>
+             </mx:DataGrid>
+        </flexlib:WindowShade>
+        
+        <flexlib:WindowShade id="wsAudit" tabChildren="{wsAudit.opened=false}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('gle.journalquery.label.auditinformation')}" width="100%">
+            <mx:HBox width="100%">
+                <mx:Grid width="100%" id="gdAudit" includeInLayout="false" horizontalGap="0" verticalGap="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.auditinformation.label.amountcalcpk')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objAudit.interestAmountCalcPkStr==null? '' : objAudit.interestAmountCalcPkStr}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.auditinformation.label.transactionpk')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objAudit.transactionPkStr==null? '' : objAudit.transactionPkStr}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.auditinformation.label.accrintrstartdate')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objAudit.accruedIntrStartDateStr==null? '' : objAudit.accruedIntrStartDateStr}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.auditinformation.label.accrintrenddate')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objAudit.accruedIntrEndDateStr==null? '' : objAudit.accruedIntrEndDateStr}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%" >
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.auditinformation.label.accrueddays')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objAudit.accruedDaysStr==null? '' : objAudit.accruedDaysStr}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.auditinformation.label.quantity')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objAudit.quantityNominalStr==null? '' : objAudit.quantityNominalStr}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.auditinformation.label.cost')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" >
+                            <mx:Text text="{objAudit.costStr==null? '' : objAudit.costStr}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.auditinformation.label.bookvalue')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" >
+                            <mx:Text text="{objAudit.bookValueStr==null? '' : objAudit.bookValueStr}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.auditinformation.label.marketprice')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" >
+                            <mx:Text text="{objAudit.marketpriceStr==null? '' : objAudit.marketpriceStr}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.auditinformation.label.marketvalue')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" >
+                            <mx:Text text="{objAudit.marketvalueStr==null? '' : objAudit.marketvalueStr}" />
+                        </mx:GridItem>
+                    </mx:GridRow>                
+                </mx:Grid>  
+            </mx:HBox>          
+        </flexlib:WindowShade>
+        
+     </mx:VBox>
+   </mx:Canvas>
+</mx:Module>

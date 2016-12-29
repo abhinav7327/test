@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Item Renderer for Entitlement Cancel.  -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%">
+    <mx:Script>
+        <![CDATA[
+        	import com.nri.rui.core.controls.XenosAlert;
+        	import com.nri.rui.cax.CaxConstants;
+            import com.nri.rui.core.Globals;
+        	import com.nri.rui.core.containers.SummaryPopup;
+        	import com.nri.rui.core.utils.XenosStringUtils;
+        	import flash.events.MouseEvent;
+	        import mx.core.UIComponent;
+	        import mx.managers.PopUpManager;
+	
+    		[Bindable] public var _mode:String = "cancel";
+    		
+    		/**
+    		 * Invoked on clicking the Cancel button of the Cancel UI.
+    		 * Responsible for loading the Cancel Details page in a pop-up.
+    		 */ 
+    		public function handleMouseClick(event:MouseEvent):void {
+    			var sPopup : SummaryPopup;	
+    			sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+    			sPopup.addEventListener("OkSystemConfirm",handleOkSystemConfirm);
+    			sPopup.width = parentApplication.width - 100;    		
+				sPopup.height = parentApplication.height - 100;
+    			PopUpManager.centerPopUp(sPopup);		
+    			var rdPk :String = data.rightsDetailPk;
+    			if(XenosStringUtils.equals(_mode, Globals.MODE_CANCEL)) {
+              			sPopup.title = parentApplication.xResourceManager.getKeyValue('cax.entitlements.header') + " " + parentApplication.xResourceManager.getKeyValue('inf.title.cancel');
+              			sPopup.moduleUrl = CaxConstants.ENTITLEMENT_CANCEL_SWF + Globals.QS_SIGN 
+    							   + CaxConstants.RIGHTS_DETAIL_PK + Globals.EQUALS_SIGN + rdPk 
+    							   + Globals.AND_SIGN + Globals.MODE + Globals.EQUALS_SIGN + _mode;
+
+       			} else if(XenosStringUtils.equals(_mode, Globals.MODE_AMEND)) {
+    				sPopup.title = parentApplication.xResourceManager.getKeyValue('cax.entitlements.header') + " " + parentApplication.xResourceManager.getKeyValue('cax.title.amend');
+    				sPopup.moduleUrl = CaxConstants.ENTITLEMENT_AMEND_SWF + Globals.QS_SIGN 
+    							   + CaxConstants.RIGHTS_DETAIL_PK + Globals.EQUALS_SIGN + rdPk 
+    							   + Globals.AND_SIGN + Globals.MODE + Globals.EQUALS_SIGN + _mode;
+       			}
+    			    			
+		    }
+		    /**
+        	 * Event Handler for the custom event "OkSystemConfirm"
+        	 */
+        	public function handleOkSystemConfirm(event:Event):void { 
+                parentDocument.submitQuery();
+            }
+        ]]>
+    </mx:Script>
+    
+    <mx:Button id="imgDel" styleName="{_mode == 'amend' ? 'BtnEdit' : 'BtnDelete'}" width="18" height="18" label="{_mode == 'amend' ? 'Edit' : 'Cancel'}" click="handleMouseClick(event)" toolTip="{_mode == 'amend' ? 'Edit' : 'Cancel'}"/>
+</mx:VBox>

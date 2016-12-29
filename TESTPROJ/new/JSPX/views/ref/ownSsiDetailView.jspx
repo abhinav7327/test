@@ -1,0 +1,418 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0" xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+	xmlns:spring="http://www.springframework.org/tags"
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util"
+	xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:display="http://displaytag.sf.net"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+
+	<div class="formItemArea entryContainerConfirm paddingFour">
+
+		<jsp:directive.page contentType="text/html;charset=UTF-8" />
+		<jsp:output omit-xml-declaration="yes" />
+		<!-- This following section is being commented since in existing NAM
+             own ssi detail view, if while fetching any value, throws an exception
+			 then nothing is done with the error, only the detail view is displayed
+			 with the labels and no corresponding values. -->			 
+		<c:if test="${success =='false'}">
+				<c:if test="${commandForm.viewPage == 'submit'}">
+					<ul class="xenosError">
+						<c:forEach items="${value}" var="dl">
+							<li><spring:message text="${dl}" htmlEscape="false" /></li>
+						</c:forEach>
+					</ul>
+				</c:if>
+				<c:if test="${commandForm.actionType == 'ADD'}">
+					<ul class="xenosError">
+						<c:forEach items="${value}" var="dl">
+							<li><spring:message text="${dl}" htmlEscape="false" /></li>
+						</c:forEach>
+					</ul>
+				</c:if>
+		    </c:if>  
+		<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+			<jsp:body>
+				var xenos$Dialog$Detail$Hook = function (container, btnContainer) {
+					var details$View$print$Handler = function printHandler(e){
+						e.preventDefault();
+						container.printArea(xenos.utils.defaultPrintOption);
+					};
+					// show print button
+					var $btn2 = jQuery('.btn2', btnContainer);
+					$btn2.children().first().html(xenos.title.printInfo);
+					$btn2.show();
+					$btn2.click(details$View$print$Handler);
+				};
+				var xenos$Wizard$onPageLoad${commandForm.uniqueId}  = function($xenos$Wizard){ 
+							var context = $xenos$Wizard.$context;
+				            var mode = "<c:out value="${commandForm.options.mode}" />";
+							
+							if(mode != "NONINTERACTIVE"){
+							    $("#stlAccount").removeClass("detail-view-hyperlink");
+								$("#settlementBank").removeClass("detail-view-hyperlink");
+								$("#tradingAccount").removeClass("detail-view-hyperlink");
+								$("#marketCode").removeClass("detail-view-hyperlink");
+								$("#cashStlAccount").removeClass("detail-view-hyperlink");
+								$("#cashSettlementBank").removeClass("detail-view-hyperlink");
+								$("#instrumentCode").removeClass("detail-view-hyperlink");
+								$("#cpCode").removeClass("detail-view-hyperlink");
+								$xenos$Wizard.apply({ navigations : {
+														okHandler : 'backToQuerySummary'
+													  }
+							});
+								
+							}
+			};	
+			</jsp:body>
+    </jsp:element>
+		<form:form id="queryForm" modelAttribute="commandForm">
+
+			<div class="clear">
+				<spring:message text="" htmlEscape="false" />
+			</div>
+			<!-- Fund Details Block Start -->
+			<div class="detailBlock paddingFour">
+				<div>
+					<h1 class="msgHead">
+					<c:if test="${commandForm.options.mode!='NONINTERACTIVE'}">
+						<spring:message code="ref.ownssirule.label.ownssidetails" htmlEscape="false" />
+					</c:if>
+					</h1>
+				</div>
+				<div class="dtlInfoBlock content1">
+					<table class="tableStyle sixCol">
+						<tr>
+							<td><form:label path="">
+									<spring:message code="ref.fund.label.fundcode"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.fundCode}</span></td>
+							<td><form:label path="">
+									<spring:message code="ref.fund.label.fundName"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.fundName}</span></td>
+						</tr>
+						<tr>
+							<td><form:label path="">
+									<spring:message code="ref.fund.label.fundAccount"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.inventoryAccount}</span></td>
+							<td><form:label path="">
+									<spring:message code="ref.fund.label.fundaccountname"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.inventoryAccountName}</span></td>
+						</tr>
+						<tr>
+							<td><form:label path="">
+									<spring:message
+										code="ref.fund.label.settlementFor"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.settlementFor}</span></td>
+							<td><form:label path="">
+									<spring:message
+										code="ref.stlacctforfund.label.cashorsecurity"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.cashSecurityFlag}</span></td>
+						</tr>
+						<tr>
+							<td><form:label path="">
+									<spring:message code="ref.common.popup.label.settlementbank"
+										htmlEscape="false" />
+								</form:label></td>
+							<td>
+							   <div class="hyperlink-relative-div">
+							         <span id = "settlementBank" class="detailTxtVal detail-view-hyperlink"
+										view="finInstDetailView;"
+										dialogTitle="[${commandForm.ownStandingRule.settlementBank}] Financial Institution Details"
+										href="/secure/ref/fininst/details/${commandForm.ownStandingRule.ourBankPk}?popup=true"
+										style="outline: 0;">
+									 ${commandForm.ownStandingRule.settlementBank}
+									 </span>
+							    </div>
+							
+							
+							</td>
+							<td><form:label path="">
+									<spring:message code="ref.common.popup.label.settlementbankname"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.settlementBankName}</span></td>
+						</tr>
+						<tr>
+							<td><form:label path="">
+									<spring:message code="ref.common.popup.label.settleac"
+										htmlEscape="false" />
+								</form:label></td>
+							<td>
+								<!--c:if test="${commandForm.options.mode=='NONINTERACTIVE'}"></c:if-->
+							    <div class="hyperlink-relative-div">
+										 <span id="stlAccount" class="detailTxtVal detail-view-hyperlink"
+											view="accountDetailView;"
+											dialogTitle="[${commandForm.ownStandingRule.settlementAccount}] Account Details"
+											href="/secure/ref/account/common/details/${commandForm.ownStandingRule.ourSettleAccountPk}?popup=true"
+											style="outline: 0;">
+										 ${commandForm.ownStandingRule.settlementAccount}
+										 </span>
+								</div>
+							</td>
+							<td><form:label path="">
+									<spring:message code="ref.common.popup.label.settleacname"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.settlementAccountName}</span></td>
+						</tr>
+						<tr>
+							<td><form:label path="">
+									<spring:message code="ref.popup.instrumentsearch.label.instrumenttype"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.instrumentType}</span></td>
+							<td><form:label path="">
+									<spring:message code="ref.cprule.label.settlementlocation"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.settlementLocation}</span></td>
+						</tr>
+						<tr>
+							<td><form:label path="">
+									<spring:message code="ref.label.stl.ccy"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.settlementCcy}</span></td>
+							<td><spring:message text="" htmlEscape="false"/></td>
+							<td><spring:message text="" htmlEscape="false"/></td>
+						</tr>
+						<tr>
+							<td><form:label path="">
+									<spring:message code="ref.popup.instrumentsearch.label.instrumentcode"
+										htmlEscape="false" />
+								</form:label></td>
+							<td>
+								 <div class="hyperlink-relative-div">
+										 <span id = "instrumentCode" class="detailTxtVal detail-view-hyperlink"
+											view="instrumentDetailView;"
+											dialogTitle="Security/CCY Details"
+											href="/secure/ref/instrument/details/${commandForm.ownStandingRule.instrumentPk}?popup=true"
+											style="outline: 0;">
+												${commandForm.ownStandingRule.instrumentCode}
+										 </span>
+							     </div>	
+							</td>
+							
+							<td><form:label path="">
+									<spring:message code="ref.popup.instrumentsearch.label.instrumentname"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.securityName}</span></td>
+						</tr>
+						<tr>
+							<td><form:label path="">
+									<spring:message code="ref.popup.instrumentsearch.label.alternate.instrumentcode"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.alternateSecurityCode}</span></td>
+							<td><spring:message text="" htmlEscape="false"/></td>
+							<td><spring:message text="" htmlEscape="false"/></td>
+						</tr>
+						<tr>
+							<td><form:label path="">
+									<spring:message code="ref.account.label.counterpartycode"
+										htmlEscape="false" />
+								</form:label></td><td>
+								<div class="hyperlink-relative-div">
+							         <span id = "cpCode" class="detailTxtVal detail-view-hyperlink"
+										view="finInstDetailView;"
+										dialogTitle="Financial Institution Details"
+										href="/secure/ref/fininst/details/${commandForm.ownStandingRule.brokerPk}?popup=true"
+										style="outline: 0;">
+									 ${commandForm.counterpartyCodeExp}
+									 </span>
+							    </div>							
+
+							
+							</td>
+
+							<td><c:if test="${commandForm.options.mode=='NONINTERACTIVE'}"><form:label path="">
+								<spring:message code="ref.fund.label.cpcodename"
+									htmlEscape="false" />
+							</form:label></c:if></td>
+							<td><c:if test="${commandForm.options.mode=='NONINTERACTIVE'}"><span class="detailTxtVal">${commandForm.ownStandingRule.counterpartyCodeName}</span></c:if></td>
+						</tr>
+						<tr>
+							<td><form:label path="">
+									<spring:message code="ref.account.label.counterpartyAccount"
+										htmlEscape="false" />
+								</form:label></td>
+							<td>
+                                 <div class="hyperlink-relative-div">
+										 <span id = "tradingAccount" class="detailTxtVal detail-view-hyperlink"
+											view="accountDetailView;"
+											dialogTitle="[${commandForm.ownStandingRule.tradingAccount}] Account Details"
+											href="/secure/ref/account/common/details/${commandForm.ownStandingRule.tradingAccountPk}?popup=true"
+											style="outline: 0;">
+												${commandForm.ownStandingRule.tradingAccount}
+										 </span>
+							     </div>							
+							</td>
+							<td>
+							    <form:label path="">
+									<spring:message code="ref.account.label.counterpartyAccountName"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.tradingAccountName}</span></td>
+						</tr>
+						<tr>
+							<td><form:label path="">
+									<spring:message code="ref.label.inx.transmission"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.instructionReqdExp}</span></td>
+							<td><form:label path="">
+									<spring:message code="ref.label.auto.reqd"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.autoTransmissionFlagExp}</span></td>
+						</tr>
+						<tr>
+							<td><form:label path="">
+									<spring:message code="ref.fund.label.priority"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.priority}</span></td>
+							<td><form:label path="">
+									<spring:message code="ref.marketPrice.label.market"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><div class="hyperlink-relative-div">
+							         <span id = "marketCode" class="detailTxtVal detail-view-hyperlink"
+										view="finInstDetailView;"
+										dialogTitle="[${commandForm.ownStandingRule.marketCode}] Financial Institution Details"
+										href="/secure/ref/fininst/details/${commandForm.ownStandingRule.marketPk}?popup=true"
+										style="outline: 0;">
+									 ${commandForm.ownStandingRule.marketCode}
+									 </span>
+							    </div></td>
+						</tr>
+						<tr>
+							<td><form:label path="">
+									<spring:message code="ref.label.settlement.mode"
+										htmlEscape="false" />
+								</form:label></td>
+							<td><span class="detailTxtVal">${commandForm.ownStandingRule.settlementMode}</span></td>
+							<td><spring:message text="" htmlEscape="false"/></td>
+							<td><spring:message text="" htmlEscape="false"/></td>
+						</tr>
+						 
+					</table>
+				</div>
+				<div class="dtlInfoBlock content1" id = "showDetails" style="display:none;">
+				<div>
+					<h1 class="msgHead">
+					<c:if test="${commandForm.options.mode=='NONINTERACTIVE'}">
+						<spring:message code="ref.ownssirule.label.details" htmlEscape="false" />
+					</c:if>
+					<c:if test="${commandForm.options.mode!='NONINTERACTIVE'}">
+						<spring:message code="ref.ownssirule.label.cashdetails" htmlEscape="false" />
+					</c:if>
+					</h1>
+				</div>
+				
+					<table class="tableStyle sixCol">
+						
+							<tr><td><form:label path="">
+										<spring:message code="ref.label.existing.rule"
+											htmlEscape="false" />
+									</form:label></td>
+								<td><span class="detailTxtVal">${commandForm.existingRuleId}</span></td>
+								<td></td>
+								<td></td>
+							</tr>
+							<tr>
+								<td><form:label path="">
+										<spring:message code="ref.label.settlement.mode"
+											htmlEscape="false" />
+									</form:label></td>
+								<td><span class="detailTxtVal">${commandForm.cashStandingRule.settlementMode}</span></td>
+								<td><form:label path="">
+										<spring:message code="ref.label.inx.transmission"
+											htmlEscape="false" />
+									</form:label></td>
+								<td><span class="detailTxtVal">${commandForm.instructionReqdExp}</span></td>
+							</tr>
+							<tr>
+								<td><form:label path="">
+										<spring:message code="ref.common.popup.label.settlementbank"
+											htmlEscape="false" />
+									</form:label></td>
+								<td>
+								    <div class="hyperlink-relative-div">
+							         <span id = "cashSettlementBank" class="detailTxtVal detail-view-hyperlink"
+										view="finInstDetailView;"
+										dialogTitle="[${commandForm.cashStandingRule.settlementBank}] Financial Institution Details"
+										href="/secure/ref/fininst/details/${commandForm.cashStandingRule.ourBankPk}?popup=true"
+										style="outline: 0;">
+									 ${commandForm.cashStandingRule.settlementBank}
+									 </span>
+							    </div>
+								  
+								</td>
+								<td><form:label path="">
+										<spring:message code="ref.common.popup.label.settleac"
+											htmlEscape="false" />
+									</form:label></td>
+								<td>
+								    <div class="hyperlink-relative-div">
+										 <span id = "cashStlAccount" class="detailTxtVal detail-view-hyperlink"
+											view="accountDetailView;"
+											dialogTitle="[${commandForm.cashStandingRule.settlementAccount}] Account Details"
+											href="/secure/ref/account/common/details/${commandForm.cashStandingRule.ourSettleAccountPk}?popup=true"
+											style="outline: 0;">
+										 ${commandForm.cashStandingRule.settlementAccount}
+										 </span>
+								    </div>
+							    </td>
+							</tr> 
+							<tr>
+								<td><form:label path="">
+										<spring:message code="ref.fund.label.priority"
+											htmlEscape="false" />
+									</form:label></td>
+								<td><span class="detailTxtVal">${commandForm.cashStandingRule.priority}</span></td>
+								<td></td>
+								<td></td>
+							</tr>
+					</table>
+				
+				
+				</div>
+				
+			</div>
+
+		</form:form>
+	</div>
+    <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+			<jsp:body>
+				var diffCashForAgainst = "<c:out value="${commandForm.diffCashForAgainst}" />";
+				var success = "<c:out value="${success}" />";
+				var viewPage = "<c:out value="${commandForm.viewPage}" />";
+                var actionType = "<c:out value="${commandForm.actionType}" />";
+				if(diffCashForAgainst == "Y")
+					$('#showDetails').show();
+				else if(success=="false"){
+					if(viewPage!=="submit" <![CDATA[&&]]> actionType!="ADD" )
+						$('#showDetails').show();
+				}
+
+			</jsp:body>
+    </jsp:element>
+</jsp:root>

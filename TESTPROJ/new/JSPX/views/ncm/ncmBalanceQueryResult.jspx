@@ -1,0 +1,95 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div>	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+				var isNext = <c:out value="${isNext}" />;
+				var grid_result_data = [];
+				var grid_result_columns = [
+				
+					{name:"<spring:message code="ncm.balance.queryresult.label.bank" htmlEscape="false"/>", field:"finInstRoleCode", id:"finInstRoleCode", sortable: true, width:180, formatter:Slick.Formatters.FinInstDetailViewFormater},
+					{name:"<spring:message code="ncm.balance.queryresult.label.bankname" htmlEscape="false"/>", field:"bankShortName", id:"bankShortName", sortable: true, width:200},
+					{name:"<spring:message code="ncm.balance.queryresult.label.bankaccount" htmlEscape="false"/>", field:"accountNoWithBrkno", id:"accountNoWithBrkno", sortable: true, width:220, formatter:Slick.Formatters.AccountDetailViewFormater},
+					{name:"<spring:message code="ncm.balance.queryresult.label.bankaccname" htmlEscape="false"/>", field:"accountShortName", id:"accountShortName", sortable: true, width:200},
+					{name:"<spring:message code="ncm.balance.queryresult.label.fundcode" htmlEscape="false"/>", field:"fundCode", id:"fundCode", sortable: true, width:170, formatter:Slick.Formatters.FundDetailViewFormatter},
+					{name:"<spring:message code="ncm.balance.queryresult.label.fundname" htmlEscape="false"/>", field:"fundName", id:"fundName", sortable: true, width:220},
+					{name:"<spring:message code="ncm.balance.queryresult.label.seccurrencycode" htmlEscape="false"/>", field:"instrumentCode", id:"instrumentCode", sortable: true, width:290,formatter:Slick.Formatters.InstrumentDetailViewFormater},
+					{name:"<spring:message code="ncm.balance.queryresult.label.secname" htmlEscape="false"/>", field:"instrumentShortName", id:"instrumentShortName", sortable: true, width:320},
+					{name:"<spring:message code="ncm.balance.queryresult.label.altsecurity" htmlEscape="false"/>", field:"alternateSecurity", id:"alternateSecurity", sortable: true, width:210},
+					{name:"<spring:message code="ncm.balance.queryresult.label.balance" htmlEscape="false"/>", field:"formattedBalance", id:"formattedBalance", cssClass: 'xenos-grid-number',sortable: true, width:210,formatter:Slick.Formatters.NegetiveBalanceFormatter}
+				];
+				var grid_result_settings = {
+					enableToolbar:true,
+					consolidateActionFlag:false,
+					buttons: {
+						print:true,	
+						xls:true,	
+						pdf:true,
+						xlsPref:true,
+						columnPicker:true,	
+						save:true	
+					},
+					pagingInfo:{
+						isNext : isNext,
+						url: '/secure/ncm/balance/query/count.json'
+					},
+					urls:{
+						nextPage : '/secure/ncm/balance/query/result.json?fetch=next',
+						prevPage : '/secure/ncm/balance/query/result.json?fetch=previous',
+						pdfReport: '/secure/ncm/balance/query/report.json?outputType=pdf',
+						xlsReport: '/secure/ncm/balance/query/report.json?outputType=xls',
+						xlsCurrent: '/secure/ncm/balance/query/reportPref.json?outputType=xls'
+					},
+					events:{
+						onDataUpdate: function(data,continueUpdate){
+							for(i in data.value){
+								data.value[i].finInstRolePk = data.value[i].bankPk;
+							}
+							continueUpdate(data);
+						}
+					},
+					defaultInvisibleColumns: ["bankShortName","accountShortName"]					
+				};
+				var row_id = 0;
+				var rec = {};
+				<xenos:out escapeXml="false">
+				<c:forEach items="${value}" var="dl">
+					rec = {};
+					row_id+=1;
+					rec.id = "xenos_" + row_id;
+					
+					rec.finInstRoleCode = "<c:out value="${dl.finInstRoleCode}" />";
+					rec.bankShortName = "<c:out value="${dl.bankShortName}" />";
+					rec.accountNoWithBrkno = "<c:out value="${dl.accountNoWithBrkno}" />";
+					rec.accountShortName = "<c:out value="${dl.accountShortName}" />";
+					rec.fundCode = "<c:out value="${dl.fundCode}" />";
+					rec.fundName = "<c:out value="${dl.fundName}" />";
+					rec.instrumentCode = "<c:out value="${dl.instrumentCode}" />";
+					rec.instrumentShortName = "<c:out value="${dl.instrumentShortName}" />";
+					rec.alternateSecurity = "<c:out value="${dl.alternateSecurity}" />";
+					rec.formattedBalance = "<c:out value="${dl.formattedBalance}" />";
+					rec.fundPk = "<c:out value="${dl.fundPk}" />";
+					rec.accountPk = "<c:out value="${dl.accountPk}" />";
+					rec.finInstRolePk = "<c:out value="${dl.bankPk}" />";
+					rec.instrumentPk = "<c:out value="${dl.instrumentPk}"/>";
+					
+					grid_result_data.push(rec);
+				</c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+</div>
+</jsp:root>

@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="loadAll()">
+
+    <mx:Script source="actionscripts/RightsDetailsEntryNew.as"/>
+    <mx:Script>
+        <![CDATA[    
+            private function getInstrumentCode(item:Object, column:DataGridColumn):String{
+                
+                return item.securityCode;
+            }
+            
+            private function getAllotmentInstCode(item:Object, column:DataGridColumn):String{
+                return item.allottedSecurityCode;
+            }
+            ]]>
+    </mx:Script>
+     <cntrls:XenosHTTPService id="initRightsDetailEntry"
+         showBusyCursor="true"
+         method="POST"           
+         result="loadSummaryPage(event)" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' ' + event.fault.faultString)"         
+         useProxy="false" 
+         resultFormat="xml">
+    </cntrls:XenosHTTPService>   
+    
+    <cntrls:XenosHTTPService id="rightDetailEntrySubmit" 
+         url="cax/entitlementEntryDispatch.action?method=doConfirmEntry" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' ' + event.fault.faultString)"
+         result="loadConfirmPage(event)" showBusyCursor="true" resultFormat="xml">
+    </cntrls:XenosHTTPService>   
+    
+    <cntrls:XenosHTTPService id="rightsDetailOk" 
+        fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' ' + event.fault.faultDetail);ok.enabled=true;" 
+        url="cax/entitlementEntryDispatch.action?method=doCommitEntry"
+        result="okResult(event)" 
+        showBusyCursor="true" />   
+        
+    <cntrls:XenosHTTPService id="rightsDetailReset" 
+        fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' ' + event.fault.faultDetail)" 
+        url="cax/entitlementEntryDispatch.action?method=reset"
+        result="loadSummaryPage(event)" 
+        showBusyCursor="true" resultFormat="xml"/>            
+    
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto" creationComplete="initPageStart()">
+        <mx:ViewStack id="detailEntry" width="100%" >                               
+        <mx:VBox width="100%" height="100%" id="entry" >                
+         <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+            <mx:Grid width="100%">
+                <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.rightsconditionrefno')}" fontWeight="bold" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:Label text="{caEventRefNo}"/>
+                        </mx:GridItem>                        
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.eventtype')}" fontWeight="bold" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:Label text="{eventType}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+            </mx:Grid>
+
+            <!--mx:DataGrid id="rightsDetail" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" >
+                <mx:columns>
+                    <mx:DataGridColumn textAlign="center" headerText="" id="dgColumnCb2" editable="false" dataField="rowNoArray" sortable="false" headerRenderer="com.nri.rui.cax.renderers.SelectAllRecords" itemRenderer="com.nri.rui.cax.renderers.SelectRecord"  width="20"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fundcode')}" dataField="fundCode" showDataTips="true" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.instrumentcode')}" dataField="instrumentPk" labelFunction="getInstrumentCode" itemRenderer="com.nri.rui.core.renderers.AdvInstrumentDetailsRenderer"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.securityname')}" dataField="securityName" showDataTips="true"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.securitybalance')}" dataField="ownershipSecurityBalanceStr" showDataTips="true"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrumentcode')}"  dataField="allottedInstrumentPk" labelFunction="getAllotmentInstCode" itemRenderer="com.nri.rui.core.renderers.AdvInstrumentDetailsRenderer"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrumentname')}" dataField="allottedSecurityName" showDataTips="true"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allottedquantity')}" dataField="ownershipAllottedQtyStr" textAlign="right"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.grossamount')}" dataField="ownershipAllottedAmtStr" textAlign="right"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.ownerlocationconsistancy')}" dataField="ownerLocationConsistency" itemRenderer="com.nri.rui.cax.renderers.ConsistancyRenderer" textAlign="center"/>
+                    <mx:DataGridColumn textAlign="center" headerText="View" draggable="false" resizable="false" editable="false" itemRenderer="com.nri.rui.cax.renderers.ImgViewRenderer"/>
+                </mx:columns>
+             </mx:DataGrid-->
+             
+             <mx:DataGrid id="rightsDetail" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" >
+                <mx:columns>
+                    <mx:DataGridColumn textAlign="center" headerText="" id="dgColumnCb2" editable="false" dataField="rowNoArray" sortable="false" headerRenderer="com.nri.rui.cax.renderers.SelectAllRecords" itemRenderer="com.nri.rui.cax.renderers.SelectRecord" width="20"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fundcode')}" dataField="fundCode" showDataTips="true" itemRenderer= "com.nri.rui.core.renderers.FundDetailsRenderer" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.lmoffice')}" dataField="lmOfficeId" showDataTips="true"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fundaccountno')}" dataField="fundAccountNoDisp" showDataTips="true" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRenderer"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.instrumentcode')}" dataField="instrumentPk" labelFunction="getInstrumentCode" itemRenderer="com.nri.rui.core.renderers.AdvInstrumentDetailsRenderer"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.securityname')}" dataField="securityName" showDataTips="true"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.securitybalance')}" dataField="securityBalanceStr" showDataTips="true"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrumentcode')}"  dataField="allottedInstrumentPk" labelFunction="getAllotmentInstCode" itemRenderer="com.nri.rui.core.renderers.AdvInstrumentDetailsRenderer"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrumentname')}" dataField="allottedSecurityName" showDataTips="true"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.paymentdate')}" dataField="paymentDateStr" textAlign="right"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.availabledate')}" dataField="availableDateStr" textAlign="right" visible="{!incomeFlag}"/>                    
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allottedquantity')}" dataField="allotedQuantityStr" textAlign="right"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.grossamount')}" dataField="allotedAmountStr" textAlign="right"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.netamount')}" dataField="netAmountStr" textAlign="right"/>
+                </mx:columns>
+             </mx:DataGrid>
+             <mx:HBox id="btnEntry">                
+                <mx:Button id="submit" label="Submit" styleName="BtnStyle" click="this.submitEntry();"/>
+                <mx:Button id="reset" label="Reset" styleName="BtnStyle" click="this.resetEntry();"/>
+             </mx:HBox>
+        </mx:VBox>
+                
+        <mx:VBox id="confirm" width="100%" label="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.confirm.title')}">         
+            <cntrls:XenosErrors id="errPage2" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+            <cntrls:XenosErrors id="errPageConf" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+            <cntrls:XenosErrors id="errPageOk" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+            <mx:List id="softWarning" width="100%" color="#3366FF" visible="false" includeInLayout="false" backgroundAlpha="0" borderStyle="none"/>
+            <mx:HBox id="hb" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" visible="false" verticalAlign="middle" includeInLayout="false">
+            <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.transaction.completed.successfully')}" fontWeight="bold" selectable="true"/> 
+            </mx:HBox>
+            <mx:Grid width="100%">
+                <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.rightsconditionrefno')}" fontWeight="bold" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:Label text="{caEventRefNo}"/>
+                        </mx:GridItem>                        
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.eventtype')}" fontWeight="bold" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:Label text="{eventType}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+            </mx:Grid>
+             <mx:DataGrid id="rightsDetailUserConf" width="100%" height="100%" dataProvider="{summaryResult2}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" >
+                <mx:columns>
+                	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fundcode')}" dataField="fundCode" showDataTips="true" itemRenderer= "com.nri.rui.core.renderers.FundDetailsRenderer" />
+                	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.lmoffice')}" dataField="lmOfficeId" showDataTips="true"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fundaccountno')}" dataField="fundAccountNoDisp" showDataTips="true" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRenderer"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.instrumentcode')}" dataField="instrumentPk" labelFunction="getInstrumentCode" itemRenderer="com.nri.rui.core.renderers.AdvInstrumentDetailsRenderer"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.securityname')}" dataField="securityName" showDataTips="true"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.securitybalance')}" dataField="securityBalanceStr" showDataTips="true"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrumentcode')}"  dataField="allottedInstrumentPk" labelFunction="getAllotmentInstCode" itemRenderer="com.nri.rui.core.renderers.AdvInstrumentDetailsRenderer"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrumentname')}" dataField="allottedSecurityName" showDataTips="true"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.paymentdate')}" dataField="paymentDateStr" textAlign="right"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.availabledate')}" dataField="availableDateStr" textAlign="right" visible="{!incomeFlag}"/>                    
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allottedquantity')}" dataField="allotedQuantityStr" textAlign="right"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.grossamount')}" dataField="allotedAmountStr" textAlign="right"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.netamount')}" dataField="netAmountStr" textAlign="right"/>                    
+                    <!--mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fundcode')}" dataField="fundCode" showDataTips="true" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.instrumentcode')}" dataField="securityCode"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.securityname')}" dataField="securityName"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.securitybalance')}" dataField="ownershipSecurityBalanceStr" showDataTips="true"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrumentcode')}" dataField="allottedSecurityCode" showDataTips="true"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrumentname')}" dataField="allottedSecurityName" showDataTips="true"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allottedquantity')}" dataField="ownershipAllottedQtyStr" textAlign="right"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.grossamount')}" dataField="ownershipAllottedAmtStr" textAlign="right"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.ownerlocationconsistancy')}" dataField="ownerLocationConsistency" itemRenderer="com.nri.rui.cax.renderers.ConsistancyRenderer" textAlign="center" /-->                                        
+                </mx:columns>
+             </mx:DataGrid>
+            <mx:HBox width="100%" styleName="ButtonBackPanel" > 
+                <mx:Button id="ok" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle"  click="this.doSave();" visible="true" includeInLayout="true"/>
+                <mx:Button id="ok2" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle"  click="this.initialState();" visible="false" includeInLayout="false"/>          
+                <mx:Button id="cancel" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.cancel')}" styleName="BtnStyle" click="this.previousState();" visible="true" includeInLayout="true"/>                     
+            </mx:HBox>
+        </mx:VBox>
+     </mx:ViewStack>                     
+        
+    </mx:Canvas>
+</mx:Module>

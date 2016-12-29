@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml"  xmlns:flexlib="http://code.google.com/p/flexlib/" layout="absolute"
+    xmlns:cntrls="com.nri.rui.core.controls.*" creationComplete="getCancellableRecord()" xmlns:renderers="com.nri.rui.core.renderers.*" width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+    <mx:Script>
+    	<![CDATA[
+    		import mx.controls.DataGrid;
+    		import mx.controls.dataGridClasses.DataGridColumn;		
+    		import com.nri.rui.core.controls.XenosAlert;
+    		import mx.events.DataGridEvent;
+    		        	
+        	[Bindable]
+        	public var entryPk:String;	
+        	/**
+             * Extract the value of the colum cell removing the prefix added at '0'th index.
+             */ 
+            private function extractPrecisionedValue(item:Object, column:DataGridColumn):String{
+                var strData:String = item[column.dataField];
+                if(!XenosStringUtils.isBlank(strData) && strData.charAt(0)=="F"){
+                    if(strData.length == 1)
+                        return XenosStringUtils.EMPTY_STR;
+                    else
+                        return strData.substring(1);
+                }else{
+                    return item[column.dataField];                    
+                }
+            }
+            /**
+ 			*  datagrid header release event handler to handle datagridcolumn sorting
+ 			*/
+			public function dataGrid_headerRelease(evt:DataGridEvent):void {				
+				var dg:DataGrid = DataGrid(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];			
+			}
+    	
+    	]]>
+    </mx:Script>
+    <mx:Script source="actionscripts/NostroAdjustmentCancel.as" />
+    
+    <!--The HTTPService object to find the detail of the seleced record-->
+    <cntrls:XenosHTTPService id="nostroAdjustmentCxlDetailRequest"
+     	 showBusyCursor="true"
+     	 method="POST" 
+     	 url="ncm/nostroCancelQueryDispatchAction.action?method=submitQuery" 
+         result="onResult(event)" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         useProxy="false" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="nostroAdjustmentDeleteConfirm"
+     	 showBusyCursor="true"
+     	 method="POST" 
+     	 url="ncm/nostroAdjustmentCancelDispatchAction.action?method=doDeleteConfirm" 
+         result="confirmResult(event)" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="nostroAdjustmentDeleteSysConfirm"
+     	 showBusyCursor="true"
+     	 method="POST" 
+     	 url="ncm/nostroAdjustmentCancelDispatchAction.action?method=doSave" 
+         result="sysConfirmResult(event)" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString);delUsrCnf.enabled=true;"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>
+    <mx:ViewStack id="adjustmentCancel" width="100%" height="100%" >
+    
+	<mx:VBox width="0%" height="100%" id="adjDeleteDtl" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle">
+	
+	<mx:HBox id="userConfirmhb" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" includeInLayout="false" visible="false">
+		    <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+		    <mx:Label id="usrCnfMessage" textAlign="left" fontWeight="bold" text="{parentApplication.xResourceManager.getKeyValue('ncm.nostrodelete.confirmation.message')}" width="100%" selectable="true"/>		    
+    </mx:HBox>
+    <mx:HBox id="sysConfirmhb" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" includeInLayout="false" visible="false">
+		    <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>		    
+		    <mx:Label id="txnMessage" textAlign="left" fontWeight="bold" text="{parentApplication.xResourceManager.getKeyValue('ncm.depository.transaction.complete')}" selectable="true"/>    
+    </mx:HBox>
+    <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+    	<!--<cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" width="100%"/>-->
+    	<mx:DataGrid id="adjustmentSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="true" headerRelease="dataGrid_headerRelease(event)" variableRowHeight="true" horizontalScrollPolicy="auto">
+            <mx:columns>
+            	<!--<mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>-->
+            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.referenceno')}" headerWordWrap="false" minWidth="140" dataField="referenceNo" itemRenderer="com.nri.rui.ncm.renderers.AdjustmentQueryDetailRenderer" sortCompareFunction="sortUtil.sortString" /> 
+            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" dataField="fundCode" sortCompareFunction="sortUtil.sortString" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer"/>
+            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.adjustment.label.bankcode')}" dataField="bankCode" itemRenderer="com.nri.rui.core.renderers.FinancialInstitutionDetailsRenderer" sortCompareFunction="sortUtil.sortString" />
+            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.bankaccountno')}" dataField="accountDisplayName" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRenderer" sortCompareFunction="sortUtil.sortString" />
+            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.gleledger')}" dataField="gleLedgerCode" sortCompareFunction="sortUtil.sortString" />
+            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.adjustment.label.ccycode')}" dataField="ccy" sortCompareFunction="sortUtil.sortString" />
+            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.adjustment.label.adjustmentdate')}" dataField="adjustmentInOutDisplayDate" sortCompareFunction="sortUtil.sortString" />
+            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.adjustment.label.adjustmenttype')}" dataField="adjustmentTypeDisp" sortCompareFunction="sortUtil.sortString" />
+            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.amount')}" textAlign="right" dataField="amountDisp" labelFunction="extractPrecisionedValue" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" sortCompareFunction="sortUtil.sortNumeric"  />
+            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.adjustmentqry.label.entryby')}" dataField="createdBy" visible="false" sortCompareFunction="sortUtil.sortString" />
+            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.adjustmentqry.label.updatedby')}" dataField="updatedBy" visible="false" sortCompareFunction="sortUtil.sortString" />
+            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.authorizationstatus')}" dataField="authorizationStatus" visible="true" sortCompareFunction="sortUtil.sortString" />
+            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.status')}" dataField="status" visible="true" itemRenderer="com.nri.rui.core.renderers.StatusRenderer" sortCompareFunction="sortUtil.sortString" />
+            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.adjustment.label.groupId')}" dataField="groupId" visible="true"  sortCompareFunction="sortUtil.sortString" />
+            </mx:columns>
+	    </mx:DataGrid>
+	    <mx:Spacer height="10"/> 
+		<mx:HBox width="100%" styleName="ButtonBackPanel" id="ajdDelete">			
+	        <mx:Button id="delCnf" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle"  click="doDeleteConfirm(event);"/>
+	        <mx:Button id="backToSummery" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" styleName="BtnStyle" click="doBack(event);" />					
+	    </mx:HBox>
+	    <mx:HBox width="100%" styleName="ButtonBackPanel" id="ajdDeleteUsrConfrm" includeInLayout="false" visible="false">	
+	    	<mx:Button id="delUsrCnf" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle"  click="doSave(event)"/>		
+		    <mx:Button id="backDeletePage" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" styleName="BtnStyle" click="backToDeletePage(event);" />
+		    <mx:Button id="backToSummary" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" styleName="BtnStyle" click="backToInitPage();" visible="false" includeInLayout="false"/>
+	    </mx:HBox> 
+	    <mx:HBox width="100%" styleName="ButtonBackPanel" id="ajdDeleteSysConfrm" includeInLayout="false" visible="false">
+	        <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle"  click="backToInitPage()"/>					
+	    </mx:HBox>           
+    </mx:VBox>	
+
+	
+
+	</mx:ViewStack>
+</mx:Module>

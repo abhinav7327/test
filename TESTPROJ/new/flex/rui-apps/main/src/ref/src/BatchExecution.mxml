@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<containers:XenosQueryModule xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:containers="com.nri.rui.core.containers.*" 
+	xmlns:flexlib="http://code.google.com/p/flexlib/" 
+	xmlns:cntrls="com.nri.rui.core.controls.*" 
+	xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+	layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" >
+
+	
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.Globals;
+			import mx.resources.ResourceBundle;						
+			import com.nri.rui.core.RendererFectory;
+			import com.nri.rui.core.renderers.ImgSummaryRenderer;
+			
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import com.nri.rui.core.controls.XenosAlert;    
+			import com.nri.rui.core.controls.TreeCombo;    
+			import com.nri.rui.core.controls.CurrencyHBox;    
+			import com.nri.rui.ref.popupImpl.FundPopUpHbox;
+			import com.nri.rui.ref.popupImpl.FinInstitutePopUpHbox;
+			import com.nri.rui.ref.popupImpl.InstrumentPopup;
+			import com.nri.rui.ref.popupImpl.InstrumentPopUpHbox;
+			import com.nri.rui.ref.popupImpl.AccountPopUpHbox;
+			import com.nri.rui.core.utils.DateUtils;
+			import com.nri.rui.core.utils.HiddenObject;
+			import com.nri.rui.core.startup.XenosApplication;
+			import com.nri.rui.core.controls.XenosQuery;
+			import mx.core.Application;
+			
+    /**
+	 * This method should be called on creationComplete of the datagrid 
+	 */ 
+	 private function bindDataGrid():void {
+//		qh.dgrid = resultSummary;
+	}
+		]]>
+	</mx:Script>
+	<mx:Script source="actionscripts/BatchExecution.as"/>
+	
+	<mx:Metadata>
+        [ResourceBundle("exmResources")]
+        [ResourceBundle("coreResources")]
+        [ResourceBundle("refResources")]
+    </mx:Metadata>
+    
+	<cntrls:XenosHTTPService id="proceedBatchExecutionHttpService" fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))" 
+             method="POST" useProxy="false" result="proceedResultHandler(event)" showBusyCursor="true"/>
+    <cntrls:XenosHTTPService id="proceedBatchExecutionHttpService2" fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))" 
+             method="POST" useProxy="false" result="submit1ResultHandler(event)" showBusyCursor="true" resultFormat="e4x"/>
+    <cntrls:XenosHTTPService id="proceedBatchExecutionHttpService3" fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))" 
+             method="POST" useProxy="false" result="commandGeneratorResultHandler(event)" showBusyCursor="true"/>
+    <cntrls:XenosHTTPService id="proceedBatchExecutionHttpService4" fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))" 
+             method="POST" useProxy="false" result="runCommandResultHandler(event)" showBusyCursor="true"/>             
+	
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%">
+	<mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="{this.loadAll()}"> 
+		
+		<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">		
+		<mx:VBox label="" width="100%" height="100%" borderThickness="0" verticalGap="0" horizontalGap="0" styleName="HDivideStyle" >
+			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+			<mx:Label id = "errorMessage" textAlign="{TextFormatAlign.CENTER}" text="{this.serverErrorMessage}" color="#FF0000" visible="false" fontWeight="bold"/>
+			<mx:VBox id="ws1" label="{this.parentApplication.xResourceManager.getKeyValue('ref.title.batch.execution.selection')}" visible="true" width="100%" styleName="HDivideStyle">
+	    	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.batchexecutionselection')}" fontWeight="bold"/>
+	    	<mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />	
+			<mx:Grid width="100%" borderThickness="0" paddingTop="5" paddingBottom="10">
+			   <mx:GridRow width="100%">					  		
+				   <mx:GridItem width="20%" color="0x842D22" borderThickness="0">
+                       <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.batchid')}"/>
+                   </mx:GridItem>
+                   <mx:GridItem width="30%" borderThickness="0">
+                       <mx:ComboBox id="batchId" labelField="label" editable="false" dataProvider="{batchIdList}" change="documentStatusOnChange(event)"/>
+                   </mx:GridItem>                                            
+               </mx:GridRow>
+               <mx:GridRow id="docStatus21" visible="false" width="100%">
+               	   <mx:GridItem width="20%" color="0x842D22" borderThickness="0">
+               	   	   <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.officeid')}"/>	
+               	   </mx:GridItem>
+               	   <mx:GridItem width="30%" borderThickness="0">
+               	   	   <mx:ComboBox id="officeId" labelField="label" editable="false"/>	
+               	   </mx:GridItem> 
+              	   <mx:GridItem width="20%" color="0x842D22" borderThickness="0">
+               	   	   <mx:Label text="LM/IM"/>	
+               	   </mx:GridItem>
+               	   <mx:GridItem width="30%" borderThickness="0">
+               	   	  <mx:ComboBox id="lmImId" labelField="label" editable="false" dataProvider="{lmImList}"/>               	   	  
+               	   </mx:GridItem>            	   
+               </mx:GridRow>  
+            </mx:Grid>   
+			<mx:HBox id="docStatus1" visible="true" width="100%" styleName="ButtonBackPanel">
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.button.proceed')}" id="proceed" styleName="BtnStyle" click="onProceed()" />
+	        </mx:HBox>
+			<mx:HBox id="docStatus22" visible="false" width="100%" styleName="ButtonBackPanel">
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.button.submit')}" id="submit" styleName="BtnStyle" click="preQuery1()"/>
+   	           <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.button.reset')}" styleName="BtnStyle" click="resetToInitialScreen()"/>
+	        </mx:HBox>	     
+	        </mx:VBox>   	 
+	        
+	        
+	    <!-- Fixed part -->
+	    <mx:VBox id="ws2" label="{this.parentApplication.xResourceManager.getKeyValue('ref.title.batch.execution.entry')}" visible="false" width="100%">
+	    	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.batchexecutionentry')}" fontWeight="bold"/>
+	    	<mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />		    
+	    	<mx:Grid width="100%" borderThickness="0">
+	    		<mx:GridRow width="100%">
+	    			<mx:GridItem width="20%" color="0x842D22" styleName="LabelBgColor">
+		                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.batchid')}"/> 
+		            </mx:GridItem> 
+		            <mx:GridItem width="30%" borderThickness="1">
+		            	<mx:Label text="{this.batchId.selectedItem.value}" /> 
+		            </mx:GridItem> 
+	    		</mx:GridRow>
+	    		<mx:GridRow width="100%">
+	    			<mx:GridItem width="20%" color="0x842D22" styleName="LabelBgColor">
+		                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.officeid')}"/> 
+		            </mx:GridItem> 
+		            <mx:GridItem width="30%" borderThickness="1">
+		            	<mx:Label text="{this.officeId.text}" id="idForOfficeId"/>
+		            </mx:GridItem> 
+		            <mx:GridItem width="20%" color="0x842D22" styleName="LabelBgColor">
+		                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.lmim')}"/> 
+		            </mx:GridItem> 
+		            <mx:GridItem width="30%" borderThickness="1">	
+		            	<mx:Label text="{this.lmImId.selectedItem.label}" />
+		            </mx:GridItem> 
+	    		</mx:GridRow>
+	    	</mx:Grid>
+	    	
+	    	<mx:HBox id="dynamicGenerator" visible="true" width="100%" styleName="">
+				<mx:Grid id="gridBase" width="100%" borderThickness="0">
+				<!-- Creates Dynamic UI -->
+				</mx:Grid>
+			</mx:HBox>
+	    	
+	    	<mx:HBox id="docStatus3" visible="true" width="100%" styleName="ButtonBackPanel">
+		       <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.button.back')}" styleName="BtnStyle" click="backToPrevious()" />
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.button.submit')}" styleName="BtnStyle" click="onSubmitGenerateCommand()" id="submit1"/>
+	        </mx:HBox>	
+	   </mx:VBox>
+	    
+	    <mx:VBox id="ws3" label="{this.headerLabel.toString()}" visible="false" width="100%">
+	    	<mx:Label text="{this.headerLabel}" fontWeight="bold"/>
+	    	<mx:HRule strokeColor="#d2d9dc" strokeWidth="2" width="100%" />	
+	    	<mx:Label id="docStatus6" text="{this.parentApplication.xResourceManager.getKeyValue('inf.label.confirm.txn')}" fontWeight="bold"/>
+	    	<mx:Grid width="100%" borderThickness="0">
+	    		<mx:GridRow id="success" visible="false" width="100%">
+	    			<mx:GridItem width="20%" borderThickness="0">
+		                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.refno')}" /> 
+		            </mx:GridItem> 
+		            <mx:GridItem width="20%" borderThickness="0">
+		            	<mx:Label text="{this.refNo.toString()}" id="idForRefNo"/> 
+		            </mx:GridItem> 
+	    		</mx:GridRow>
+	    		<mx:GridRow id="batchCommand" visible="true" width="100%">
+	    			<mx:GridItem width="20%" borderThickness="0">
+		                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.batchcmd')}" /> 
+		            </mx:GridItem> 
+		            <mx:GridItem width="20%" borderThickness="0">
+		            	<mx:Label text="{this.finalFullCommand.toString()}" id="command"/> 
+		            </mx:GridItem> 
+	    		</mx:GridRow>
+	    	</mx:Grid>
+	    	<mx:HBox id="docStatus4" visible="true" width="100%" styleName="ButtonBackPanel">
+		       <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.button.back')}" styleName="BtnStyle" click="backToPrevScreen()" />
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.button.confirm')}" styleName="BtnStyle" click="runTheGeneratedCommandOk()" id="confirm"/>
+	        </mx:HBox>	   
+	        <mx:HBox id="docStatus5" visible="false" width="100%" styleName="ButtonBackPanel">
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.button.confirm')}" styleName="BtnStyle" click="returnToInitial()" id="confirm1"/>
+	        </mx:HBox>	   	        
+	    </mx:VBox>  
+	    
+		</mx:VBox>	           				
+		</mx:Canvas>
+		
+	</mx:HDividedBox>
+    </mx:VBox>    
+    </mx:Canvas>  
+		 
+</containers:XenosQueryModule>
+
+					
+					
+         

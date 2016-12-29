@@ -1,0 +1,136 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+	 xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:form="http://www.springframework.org/tags/form"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:jsp="http://java.sun.com/JSP/Page">
+	 
+<div class="formItemArea">
+	
+    <jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" /> 
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>	     
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [
+           		{name:"", field:"cnslAct", id:"cnslAct", width:30,formatter: Slick.Formatters.ConsolidateActFormater},
+				{name:"<spring:message code="ncm.label.referenceno" htmlEscape="false"/>", field:"referenceNo", id:"referenceNo", sortable: true, width:150, formatter:Slick.Formatters.NcmAdjustmentQueryDetailViewFormatter},
+                {name:"<spring:message code="ref.fund.label.fundcode" htmlEscape="false"/>", field:"fundCode", id:"fundCode", sortable: true, width:130,formatter:Slick.Formatters.FundDetailViewFormatter},
+                {name:"<spring:message code="ref.fund.label.fundName" htmlEscape="false"/>", field:"fundName", id:"fundName", width:150, sortable: true },
+                {name:"<spring:message code="ncm.adjustment.label.bankcode" htmlEscape="false"/>", field:"bankCode",id:"bankCode", width:140, sortable:true,formatter:Slick.Formatters.FinInstDetailViewFormater},
+                {name:"<spring:message code="ncm.adjustment.label.bankname" htmlEscape="false"/>", field:"bankName", id:"bankName", width:150, sortable:true},
+				{name:"<spring:message code="ncm.label.bankaccountno" htmlEscape="false"/>", field:"accountDisplayName", id:"accountDisplayName", sortable: true, width:160, formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'accountPk'}},
+                {name:"<spring:message code="ncm.label.bankaccountname" htmlEscape="false"/>", field:"accountName", id:"accountName", sortable: true, width:150},
+                {name:"<spring:message code="ncm.label.gleledger" htmlEscape="false"/>", field:"gleLedgerCode", id:"gleLedgerCode", width:210, sortable: true },
+                {name:"<spring:message code="ncm.adjustment.label.ccycode" htmlEscape="false"/>", field:"ccy",id:"ccy", width:130, sortable:true},
+                {name:"<spring:message code="ncm.adjustment.label.adjustmentdate" htmlEscape="false"/>", field:"adjustmentInOutDisplayDate", id:"adjustmentInOutDisplayDate", width:130, sortable:true},
+				{name:"<spring:message code="ncm.adjustment.label.adjustmenttype" htmlEscape="false"/>", field:"adjustmentTypeDisp", id:"adjustmentTypeDisp", sortable: true, width:130},
+                {name:"<spring:message code="ncm.label.amount" htmlEscape="false"/>", field:"amountDisplayValue", id:"amountDisplayValue", sortable: true, width:140,cssClass:'xenos-grid-number',formatter:Slick.Formatters.NegetiveBalanceFormatter},
+                {name:"<spring:message code="ncm.adjustmentqry.label.entryby" htmlEscape="false"/>", field:"createdBy", id:"createdBy", width:120, sortable: true },
+                {name:"<spring:message code="ncm.adjustmentqry.label.updatedby" htmlEscape="false"/>", field:"updatedBy",id:"updatedBy", width:120, sortable:true},
+                {name:"<spring:message code="ncm.label.authorizationstatus" htmlEscape="false"/>", field:"authorizationStatus", id:"authorizationStatus", width:150, sortable:true},
+				{name:"<spring:message code="ncm.label.status" htmlEscape="false"/>", field:"status",id:"status", width:80, sortable:true,formatter:Slick.Formatters.CancelRecordFormatter},
+                {name:"<spring:message code="ncm.adjustment.label.groupId" htmlEscape="false"/>", field:"groupId", id:"groupId", width:100, sortable:true}
+            ];
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,	
+					xlsPref:true,
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+					url: '/secure/ncm/adjustment/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/ncm/adjustment/query/result.json?fetch=next',
+					prevPage : '/secure/ncm/adjustment/query/result.json?fetch=previous',
+					pdfReport: '/secure/ncm/adjustment/query/report.json?outputType=pdf',
+					xlsReport: '/secure/ncm/adjustment/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/ncm/adjustment/query/reportPref.json?outputType=xls'
+				},
+				events:{
+					onDataUpdate: function(data,continueUpdate){
+						for(i in data.value){
+							data.value[i].finInstRolePk = data.value[i].bankPk;
+						}
+						continueUpdate(data);
+					}
+				},
+				defaultInvisibleColumns: ["bankName", "accountName","createdBy","updatedBy"]
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				rec.ncmEntryPk = "<c:out value="${dl.ncmEntryPk}" />";
+				rec.instrumentPk = "<c:out value="${dl.instrumentPk}" />";
+				rec.referenceNo= "<c:out value="${dl.referenceNo}" />";
+				rec.fundCode= "<c:out value="${dl.fundCode}"/>";
+				rec.fundPk= "<c:out value="${dl.fundPk}"/>";
+                rec.fundName = "<c:out value="${dl.fundName}" />";
+                rec.bankCode = "<c:out value="${dl.bankCode}" />";
+				rec.finInstRolePk = "<c:out value="${dl.bankPk}" />";
+                rec.bankName = "<c:out value="${dl.bankName}" />";
+                rec.accountDisplayName = "<c:out value="${dl.accountDisplayName}" />";
+				 rec.prefix = "<c:out value="${dl.prefix}" />";
+				rec.accountNo = "<c:out value="${dl.accountNo}" />";
+				rec.accountPk= "<c:out value="${dl.accountPk}" />";
+				rec.accountName= "<c:out value="${dl.accountName}" />";
+				rec.gleLedgerCode= "<c:out value="${dl.gleLedgerCode}"/>";
+                rec.ccy = "<c:out value="${dl.ccy}" />";
+                rec.adjustmentInOutDisplayDate = "<c:out value="${dl.adjustmentInOutDisplayDate}" />";
+                rec.adjustmentTypeDisp = "<c:out value="${dl.adjustmentTypeDisp}" />";
+                rec.amountDisplayValue = "<c:out value="${dl.amountDisplayValue}" />";
+				rec.createdBy = "<c:out value="${dl.createdBy}" />";
+                rec.updatedBy = "<c:out value="${dl.updatedBy}" />";
+                rec.authorizationStatus = "<c:out value="${dl.authorizationStatus}" />";
+				rec.status = "<c:out value="${dl.status}" />";
+                rec.groupId = "<c:out value="${dl.groupId}" />";
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+	    <div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			  <a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'NCMNACX')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}"  id="cancel" status="ready" alt="Cancel" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			  </a>
+		</c:forEach>	  
+	</div>	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/ncm/nostroQueryResult.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+	</div>
+	</jsp:root>

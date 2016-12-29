@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- MXML module for displaying the Movements causing a specific balance position.  -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" xmlns:cntrls="com.nri.rui.core.controls.*" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="init()">
+    <mx:Script>
+        <![CDATA[
+        	import mx.utils.StringUtil;
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.binding.utils.BindingUtils;
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.controls.XenosAlert;
+            import mx.managers.FocusManager;
+            import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+            import mx.rpc.events.FaultEvent;
+            import mx.controls.Alert;
+            import com.nri.rui.core.Globals;
+            import com.nri.rui.core.utils.PrintUtils;
+           
+            //[Bindable]private var xmlSource:XML = new XML;
+            [Bindable]
+            private var balanceGroupList:ArrayCollection = new ArrayCollection();
+            
+            public var balanceType:String ="";
+            
+            [Bindable]private var accountNo : String = "";
+            [Bindable]private var accountPk : String= "";
+            [Bindable]private var bankPk : String= "";
+            [Bindable]private var bankName:String= "";
+            [Bindable]private var balanceBasis:String= "";
+            [Bindable]private var popupFlag:String= "";
+                          
+            public var o:Object = {};
+            
+            
+            /**
+             * Extracts the parameters and set them to some variables for query criteria from the Module Loader Info.
+             * 
+             */ 
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if (tempA[0] == "accountNo") {
+                            accountNo = tempA[1];
+                        } else if (tempA[0] == "accountPk") {
+                            accountPk = tempA[1];
+                        } else if (tempA[0] == "bankPk") {
+                            bankPk = tempA[1];
+                        } else if (tempA[0] == "bankName") {
+                            bankName = tempA[1];
+                        } else if (tempA[0] == "balanceBasis") {
+                            balanceBasis = tempA[1];
+                        } else if (tempA[0] == "flag") {
+                        	popupFlag = tempA[1];
+                        }
+                    }
+                } catch (e:Error) {
+                    trace(e);
+                }
+               
+            }
+            /**
+             * Initializes the module and send the submit request.
+             * 
+             */     
+            private function init():void{
+                
+                parseUrlString();
+                
+                var rndNo:Number = Math.random();
+                if (XenosStringUtils.equals(popupFlag, "popup")) {
+                	httpService.url= "ncm/cashManagementQueryPopupDispatch.action?rnd=" + rndNo;
+                } else {
+                	httpService.url= "ncm/cashManagementQueryDispatch.action?rnd=" + rndNo;
+                }
+                var req : Object = new Object();
+                req.method = "showBalanceDetails";
+                req.bankPk = bankPk;
+                req.accountPk = accountPk;
+                req.balanceBasis = balanceBasis;
+                req.accountNo = accountNo;
+                req.bankName = bankName;
+                
+                httpService.request = req;
+                httpService.send();
+                PopUpManager.centerPopUp(this);
+            }
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function httpService_fault(evt:FaultEvent):void {
+                XenosAlert.error(evt.fault.faultDetail);
+            }
+            /**
+             * Result handler for the submit Request. 
+             * 
+             */ 
+            private function httpService_result(event:ResultEvent):void { 
+                balanceGroupList.removeAll();              
+                if (null != event) {
+                    if(null == event.result.ncmCashManagementQueryActionForm.balanceGroup){
+                        if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+                            errPage.clearError(event); //clears the errors if any
+                            XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+                        } else { // Must be error
+                            errPage.displayError(event);    
+                        } 
+                                       
+                    }else {
+                        errPage.clearError(event); 
+                        
+                        totPayment.text = event.result.ncmCashManagementQueryActionForm.negativeBalanceForDisplay;
+                        totReceipt.text = event.result.ncmCashManagementQueryActionForm.positiveBalanceForDisplay;
+                        balanceType = event.result.ncmCashManagementQueryActionForm.balanceType;
+                        resultHead.text = event.result.ncmCashManagementQueryActionForm.bank+"/"+event.result.ncmCashManagementQueryActionForm.accountNo;
+                        
+                        if(event.result.ncmCashManagementQueryActionForm.balanceGroup.balanceGroupList is ArrayCollection) {
+                                balanceGroupList = event.result.ncmCashManagementQueryActionForm.balanceGroup.balanceGroupList as ArrayCollection;
+                                
+                        } else {
+                                balanceGroupList.removeAll();
+                                balanceGroupList.addItem(event.result.ncmCashManagementQueryActionForm.balanceGroup.balanceGroupList);
+                        }
+                    } 
+                }else {
+                    XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+                }                
+            }
+            
+            /**
+     		 * This method should be called on creationComplete of the datagrid 
+    		 */ 
+    		  /*  private function bindDataGrid():void {
+       			 qh.dgrid = SummaryResult;
+    		 }  */	
+            
+            /**
+             * Extract the value of the colum cell removing the prefix added at '0'th index.
+             */ 
+            private function extractPrecisionedValue(item:Object, column:DataGridColumn):String{
+                var strData:String = item[column.dataField];
+                if(!XenosStringUtils.isBlank(strData) && strData.charAt(0)=="F"){
+                    if(strData.length == 1)
+                        return XenosStringUtils.EMPTY_STR;
+                    else
+                        return strData.substring(1);
+                }else{
+                    return item[column.dataField];                    
+                }
+            }
+        ]]>
+    </mx:Script>    
+    <!--<mx:Script source="actionscripts/NcmBalanceDetail.as"/>-->
+
+
+    <cntrls:XenosHTTPService id="httpService" 
+            useProxy="false"
+            fault="httpService_fault(event);"
+            result="httpService_result(event)" showBusyCursor="true">
+            <!--<mx:request >
+                <method>showBalanceDetails</method>
+                <bankPk>{bankPk}</bankPk>
+                <accountPk>{accountPk}</accountPk>
+                <balanceBasis>{balanceBasis}</balanceBasis>
+                <accountNo>{accountNo}</accountNo>
+                <bankName>{bankName}</bankName>                 
+            </mx:request>-->
+     </cntrls:XenosHTTPService>
+     
+    <mx:VBox width="100%" height="0%">
+	    <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+			<mx:Button id="Print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetail(this.rslt)" horizontalCenter="right"/>        
+	    </mx:HBox>
+    </mx:VBox>
+    <mx:VBox width="100%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off">        
+        
+        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>
+        <!--<cntrls:QueryResultHeader id="qh" />-->
+        <mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text="" selectable="true"/>
+        <mx:DataGrid id="SummaryResult" dataProvider="{this.balanceGroupList}" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto">
+            <mx:columns>  
+               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.referenceno')}" dataField="transactionRefNo" minWidth="250" itemRenderer="com.nri.rui.ncm.renderers.ReferenceNoRenderer"/>
+               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.amount')}" dataField="amountDisp" labelFunction="extractPrecisionedValue" textAlign="right" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer"/>
+            </mx:columns>
+         </mx:DataGrid>
+         <mx:HBox width="100%">
+         	<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+         		 <mx:GridRow width="100%">
+                   	 <mx:GridItem width="40%" styleName="LabelBgColor">
+                    	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ncm.cashmanagement.query.label.totalpayment')}" />
+                	</mx:GridItem>
+                	<mx:GridItem width="60%" horizontalAlign="right">
+                		<mx:Label id="totPayment" text="" textAlign="right"/>
+                	</mx:GridItem>
+                </mx:GridRow>
+                <mx:GridRow width="100%"> 
+                	<mx:GridItem width="40%" styleName="LabelBgColor">
+                    	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ncm.cashmanagement.query.label.totalreceipt')}"/>
+                	</mx:GridItem>
+               	    <mx:GridItem width="60%" horizontalAlign="right">
+                    	<mx:Label  id="totReceipt" text="" textAlign="right"/>
+                	</mx:GridItem>
+                </mx:GridRow>        		
+         	</mx:Grid>
+         </mx:HBox>
+     
+     </mx:VBox>
+</mx:Module>

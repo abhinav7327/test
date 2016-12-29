@@ -1,0 +1,338 @@
+<!--$Id$-->
+<!--$Author: shivams $-->
+<!--$Date: 2016-12-23 21:02:20 $-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core"
+    xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+    xmlns:spring="http://www.springframework.org/tags" 
+    xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+    xmlns:form="http://www.springframework.org/tags/form"
+    xmlns:display="http://displaytag.sf.net"
+    xmlns:valueDifference="http://www.nri.co.jp/valueDifference"
+    xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div class="formItemArea entryContainerConfirm paddingFour">
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+        
+        var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){ 
+			var context = $xenos$Wizard.$context;
+			
+			var cached = xenos$Cache.get('globalPrefs');
+			var evenRowColor = cached.zebraColorEven ? cached.zebraColorEven:'#F9F9F9';
+			var oddRowColor = cached.zebraColorOdd ?cached.zebraColorOdd:'#E5E9ED';
+			$('tr.evenRowColor',context).css('background-color',evenRowColor);
+			$('tr.oddRowColor',context).css('background-color',oddRowColor);       
+			
+			if(${commandForm.options.actionType != 'CANCEL'}) {	
+				$("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','none');
+			}
+			
+        };
+        
+        </jsp:body>
+     </jsp:element>
+    
+    <c:if test="${success =='false'}">
+    <!-- Error message Area -->
+    <ul class="xenosError">
+        <c:forEach items="${value}" var="dl">       
+        <li><spring:message text="${dl}" htmlEscape="false"/></li>  
+        </c:forEach>
+    </ul>   
+    </c:if>
+	<c:if test="${isSoftValidationExists =='true'}">
+	<!-- Warning message Area -->
+		<ul class="xenosWarn">
+			<c:forEach items="${softValidationList}" var="dl">		
+				<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+    
+    <div class="detailBlock entrySingleCol">
+        <h1><spring:message code="ref.label.instrument.otherinfodetails" htmlEscape="false"/></h1>
+        <div class="dtlInfoBlock">
+            <table class="tableStyle sixCol">
+                <tr>
+                    <td><label><spring:message code="ref.label.instrument.securitycode" htmlEscape="false"/></label></td>
+                    <td><span class="detailTxtVal">${commandForm.defaultInstrumentCode}</span></td>
+                    <td><label><spring:message code="ref.instrument.label.securitytype" htmlEscape="false"/></label></td>
+                    <td><span class="detailTxtVal">${commandForm.instrumentPage.instrumentType}</span></td>
+                    <td><label><spring:message code="ref.insturment.entry.label.othertab.shortname" htmlEscape="false"/></label></td>
+                    <td><span class="detailTxtVal">${commandForm.defaultShortName}</span></td>	
+                </tr>
+            </table>
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+        
+        <div>
+			<h1 class="msgHead"><spring:message code="ref.label.toggle.more" htmlEscape="false"/>
+				<span class="toggleHandle collapse"></span>
+			</h1>
+		</div>
+        <div class="dtlInfoBlock">
+        
+        <table class="tableStyle entry4Cols">
+            <tr>
+                <td>
+                    <!-- Accounting Period **START -->
+                    <h2><spring:message code="ref.insturment.entry.label.othertab.accountingperiod" htmlEscape="false"/></h2>
+			        <div class="dtlInfoBlock">  
+			            <table class="reportTbl">
+			                <tr>						
+			                    <th><spring:message code="ref.insturment.entry.label.othertab.month" htmlEscape="false"/></th>
+			                    <th><spring:message code="ref.insturment.entry.label.othertab.day" htmlEscape="false"/></th>
+			                </tr>
+			                
+							
+							<c:if test="${empty commandForm.settlingDates}">
+						<tr>
+							<td colspan="3" class="noRecord">
+								<spring:message code="xenos.no.record" htmlEscape="false"/>
+							</td>
+						</tr>
+						</c:if>																																	
+			                <c:forEach var="settlingDateInfo" items="${commandForm.settlingDates}" varStatus="loopStatus">
+			                    <tr class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">		
+			                        <td>${settlingDateInfo.settlingMonth}</td>
+			                        <td>${settlingDateInfo.settlingDay}</td>
+			                    </tr>
+			                </c:forEach> 
+			            </table>
+			        </div>
+                    <!-- Accounting Period **END -->
+                </td>
+                
+                <td>
+                    <!-- Listed Market **START -->
+                    <h2><spring:message code="ref.insturment.entry.label.othertab.listedmarket" htmlEscape="false"/></h2>
+			        <div class="dtlInfoBlock">  
+			            <table class="reportTbl">
+			                <tr>					
+			                    <th><spring:message code="ref.insturment.entry.label.othertab.market" htmlEscape="false"/></th>
+			                    <th><spring:message code="ref.insturment.entry.label.othertab.type" htmlEscape="false"/></th>
+			                </tr>
+			                <c:if test="${empty commandForm.listedMarkets}">
+								<tr>
+									<td colspan="3" class="noRecord">
+										<spring:message code="xenos.no.record" htmlEscape="false"/>
+									</td>
+								</tr>
+							</c:if>
+			                <c:forEach var="listedMarketInfo" items="${commandForm.listedMarkets}" varStatus="loopStatus">
+			                    <tr class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">         
+									<td>${listedMarketInfo.finInstRoleCode}</td>
+			                        <td>${listedMarketInfo.marketTypeDisp}</td>
+			                    </tr>
+			                </c:forEach> 
+			            </table>
+			        </div>
+                    <!-- Listed Market **END -->
+                </td>
+                
+                <td>
+                    <!-- CSD Eligibility **START -->
+                    <h2><spring:message code="ref.insturment.entry.label.othertab.csdeligibility" htmlEscape="false"/></h2>
+			        <div class="dtlInfoBlock">  
+			            <table class="reportTbl">
+			                <tr>						
+			                    <th><spring:message code="ref.insturment.entry.label.othertab.csd" htmlEscape="false"/></th>
+			                </tr>
+			                <c:if test="${empty commandForm.csdEligibles}">
+								<tr>
+									<td colspan="3" class="noRecord">
+										<spring:message code="xenos.no.record" htmlEscape="false"/>
+									</td>
+								</tr>
+							</c:if>
+			                <c:forEach var="csdInfo" items="${commandForm.csdEligibles}" varStatus="loopStatus">
+			                    <tr class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">
+									<td>${csdInfo.finInstRoleCode}</td>
+			                    </tr>
+			                </c:forEach> 
+			            </table>
+			        </div>
+                    <!-- CSD Eligibility **END -->
+                </td>
+                
+                <td>
+                    <!-- Settlement Prohibited Date **START -->
+                    <h2><spring:message code="ref.insturment.entry.label.othertab.stlprohibiteddate" htmlEscape="false"/></h2>
+			        <div class="dtlInfoBlock">  
+			            <table class="reportTbl">
+			                <tr>					
+			                    <th><spring:message code="ref.insturment.entry.label.othertab.prohibiteddate" htmlEscape="false"/></th>
+			                </tr>
+			                <c:if test="${empty commandForm.setlProhibitedDates}">
+								<tr>
+									<td colspan="3" class="noRecord">
+										<spring:message code="xenos.no.record" htmlEscape="false"/>
+									</td>
+								</tr>
+							</c:if>
+			                <c:forEach var="setlProhibitedDateInfo" items="${commandForm.setlProhibitedDates}" varStatus="loopStatus">
+			                    <tr class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">
+			                        <td>${setlProhibitedDateInfo}</td>
+			                    </tr>
+			                </c:forEach> 
+			            </table>
+			        </div>
+                    <!-- Settlement Prohibited Date **END -->
+                </td>
+            </tr>
+            
+            <tr>
+                <td>
+                    <!-- Rating **START -->
+                    <h2><spring:message code="ref.insturment.entry.label.othertab.rating" htmlEscape="false"/></h2>
+			        <div class="dtlInfoBlock">  
+			            <table class="reportTbl">
+			                <tr>				
+			                    <th><spring:message code="ref.insturment.entry.label.othertab.ratingagency" htmlEscape="false"/></th>
+			                    <th><spring:message code="ref.insturment.entry.label.othertab.rating" htmlEscape="false"/></th>
+			                </tr>
+			                <c:if test="${empty commandForm.ratingValues}">
+								<tr>
+									<td colspan="4" class="noRecord">
+										<spring:message code="xenos.no.record" htmlEscape="false"/>
+									</td>
+								</tr>
+							</c:if>
+			                <c:forEach var="ratingInfo" items="${commandForm.ratingValues}" varStatus="loopStatus">
+			                    <tr class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">
+			                        <td>${ratingInfo.ratingAgencyName}</td>
+			                        <td>${ratingInfo.rating}</td>
+			                    </tr>
+			                </c:forEach> 
+			            </table>
+			        </div>
+                    <!-- Rating **END -->
+                </td>
+                
+                <td>
+                    <!-- Callable **START -->
+                    <h2><spring:message code="ref.insturment.entry.label.othertab.callable" htmlEscape="false"/></h2>
+			        <div class="dtlInfoBlock">  
+						<table class="tableStyle sixCol">
+			                <tr>
+								<td style="width:30%"><label style="color:#007dbb; font-size:12px !important"><spring:message code="ref.insturment.entry.label.othertab.callableflag" htmlEscape="false"/></label></td>
+								<td><span class="detailTxtVal">${commandForm.instrumentPage.callableFlagDisp}</span></td>
+							</tr>
+						</table>
+						<c:if test="${commandForm.instrumentPage.callableFlagDisp=='Yes'}">
+			            <table class="reportTbl">
+			                <tr>						
+			                    <th><spring:message code="ref.instrument.label.callstdate" htmlEscape="false"/></th>
+			                    <th><spring:message code="ref.insturment.entry.label.othertab.callenddate" htmlEscape="false"/></th>
+			                    <th><spring:message code="ref.insturment.entry.label.othertab.callprice" htmlEscape="false"/></th>
+			                </tr>
+							<c:if test="${empty commandForm.callables}">
+								<tr>
+									<td colspan="5" class="noRecord">
+										<spring:message code="xenos.no.record" htmlEscape="false"/>
+									</td>
+								</tr>
+							</c:if>
+			                <c:forEach var="callableInfo" items="${commandForm.callables}" varStatus="loopStatus">
+			                    <tr class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">
+			                        <td>${callableInfo.callStartDateDisp}</td>
+			                        <td>${callableInfo.callEndDateDisp}</td>
+			                        <td>${callableInfo.callPriceDisp}</td>
+			                    </tr>
+			                </c:forEach> 
+			            </table>
+						</c:if>
+			        </div>
+                    <!-- Callable **END -->
+                </td>
+                
+                <td>
+                    <!-- Compliance **START -->
+                    <h2><spring:message code="ref.insturment.entry.label.othertab.compliance" htmlEscape="false"/></h2>
+			        <div class="dtlInfoBlock">  
+			            <table class="reportTbl">
+			                <tr>
+			                    <th><spring:message code="ref.insturment.entry.label.othertab.compliance" htmlEscape="false"/></th>
+			                </tr>
+								<c:if test="${empty commandForm.compliances}">
+										<tr>
+											<td colspan="3" class="noRecord">
+												<spring:message code="xenos.no.record" htmlEscape="false"/>
+											</td>
+										</tr>
+								</c:if>
+								<c:forEach var="compliance" items="${commandForm.compliances}">
+									<tr>
+										<td>${compliance}</td>										
+									</tr>	
+								</c:forEach> 
+			            </table>
+			        </div>
+                    <!-- Compliance **END -->
+                </td>
+                
+                <td>
+                    <!-- Underwriter **START -->
+                    <h2><spring:message code="ref.insturment.entry.label.othertab.underwriter" htmlEscape="false"/></h2>
+			        <div class="dtlInfoBlock">  
+			            <table class="reportTbl">
+			                <tr>						
+			                    <th><spring:message code="ref.insturment.entry.label.othertab.underwriter" htmlEscape="false"/></th>
+			                </tr>
+			                <c:if test="${empty commandForm.underwriters}">
+								<tr>
+									<td colspan="3" class="noRecord">
+										<spring:message code="xenos.no.record" htmlEscape="false"/>
+									</td>
+								</tr>
+							</c:if>
+			                <c:forEach var="underwriterInfo" items="${commandForm.underwriters}" varStatus="loopStatus">
+			                    <tr class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">
+			                        <td>${underwriterInfo.finInstRoleCode}</td>
+			                    </tr>
+			                </c:forEach> 
+			            </table>
+			        </div>
+                    <!-- Underwriter **END -->
+                </td>
+            </tr>
+        </table>
+        </div>
+		
+        <div>
+			<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.othertab.otherinfo" htmlEscape="false"/>
+				<span class="toggleHandle collapse"></span>
+			</h1>
+		</div>
+        <div class="dtlInfoBlock">  
+            <table class="tableStyle sixCol">   
+                <tr>
+                    <td><label><spring:message code="ref.insturment.entry.label.othertab.reopendate" htmlEscape="false"/></label></td>
+					<td>${commandForm.instrumentPage.reopenDateStr}</td>
+                    <td><label><spring:message code="ref.insturment.entry.label.othertab.ipopaymentdate" htmlEscape="false"/></label></td>
+					<td>${commandForm.instrumentPage.ipoPaymentDateStr}</td>
+                </tr>
+                <tr class="noBdr">
+                    <td><label><spring:message code="ref.insturment.entry.label.othertab.publicofferstartdate" htmlEscape="false"/></label></td>
+					<td>${commandForm.instrumentPage.publicOfferStartDateStr}</td>
+                    <td><label><spring:message code="ref.insturment.entry.label.othertab.publicofferenddate" htmlEscape="false"/></label></td>
+					<td>${commandForm.instrumentPage.publicOfferEndDateStr}</td>
+                </tr>  
+                <tr>
+                    <td><label><spring:message code="ref.instrument.label.quantityperunit" htmlEscape="false"/></label></td>
+					<td>${commandForm.instrumentPage.quantityPerUnitStr}</td>
+                    <td><label><spring:message text="" htmlEscape="false"/></label></td>
+					<td></td>
+                </tr>
+                
+            </table>
+        </div>
+        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+    </div>
+    
+</div>
+</jsp:root>

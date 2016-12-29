@@ -1,0 +1,173 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:xenos="http://www.nri.co.jp/xenos"
+     xmlns:jsp="http://java.sun.com/JSP/Page">
+	 
+<div class="formItemArea"> 
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+	<div class="formItemBlock topitems dottedBg">		
+		
+		<div class="formItem">
+			<form:label path="reportId"><spring:message code="ref.batchreport.label.reportname" htmlEscape="false"/></form:label> 
+			<span>
+			<form:select id="reportId" path="reportId" style='width:530px;'>
+				<form:option value=""/>
+				<form:options items="${commandForm.reportNameValues}" itemLabel="label" itemValue="value"/>
+			</form:select>
+			</span>
+			<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+		
+		<form:input type="hidden" id="reportName" path="reportName" value="$('#reportId option:selected').text()"/>
+		
+		<div class="formItem">
+			<form:label path="officeId"><spring:message code="ref.account.label.office" htmlEscape="false"/></form:label> 
+			<span>
+			<form:select id="officeId" path="officeId" class="noWidth">
+				<form:option value=""/>
+				<form:options items="${commandForm.officeIdList}"/>
+			</form:select>
+			</span>
+			<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+		
+		<div class="formItem">
+			<form:label path="businessDateFrom"><spring:message code="ref.batchreport.label.applicationdatefromto" htmlEscape="false"/></form:label>
+			<span><form:input value="" id="businessDateFrom" path="businessDateFrom" class="dateinput" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}" /></span>
+			<span><form:input value="" id="businessDateTo" path="businessDateTo" class="dateinput" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}" /></span>
+			<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+		
+		<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	<div class="formBrdHide"><spring:message text="" htmlEscape="false"/></div>
+	<div class="formItemBlock delFormItems deltopitems" style="display:none;" >
+		<!-- Deleted Item goes here -->
+		<input type="button" class="restoreAllBtn" value="Restore All" />
+		<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	
+	<spring:eval expression="T(java.lang.System).currentTimeMillis()" var="myId"/>
+    <input type="hidden" id="${myId}"/>
+    <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			xenos.loadLocalizedScript([
+				{path: xenos.context.path + '/scripts/ref/xenos-ref-i18n', async: false}
+			]);	
+			//Loading Required scripts before validator is called.
+			xenos.loadScript([
+				{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false}
+			],{
+				success: function() {
+					jQuery('#' + '${myId}').parent().xenosform({
+						beforeSubmit: validateBatchRptFields,
+						afterRendering : afterBatchRptRenderFunc
+					});
+				}
+			});
+			
+			function validateBatchRptFields(){
+				var str=$('#reportId option:selected').text();
+				$('#reportName').val(str);
+				
+				var alertStr = [];
+				var businessDateFrom  = $('#businessDateFrom').val();
+				var businessDateTo    = $('#businessDateTo').val();
+				var dateFormatValidationFails = false;
+	
+				if(businessDateFrom.length > 0 <![CDATA[&&]]> isDateCustom(businessDateFrom)==false) {
+					dateFormatValidationFails = true;
+					alertStr.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [businessDateFrom]));
+				}
+				
+				if(businessDateTo.length > 0 <![CDATA[&&]]> isDateCustom(businessDateTo)==false) {
+					dateFormatValidationFails = true;
+					alertStr.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [businessDateTo]));
+				}
+				
+				if(!dateFormatValidationFails) {
+					if(isValidTextForBatchRpt(businessDateFrom) <![CDATA[&&]]> isValidTextForBatchRpt(businessDateTo)) {
+						if (!isValidDateRange(businessDateFrom, businessDateTo)) {
+							dateFormatValidationFails = true;
+						}
+					}
+					
+					if(dateFormatValidationFails) {
+						alertStr.push(xenos$REF$i18n.instrument.date_from_to_check);
+					}
+				}
+				
+				if(alertStr.length > 0){
+					$('.formHeader').find('.formTabErrorIco').css('display', 'block');
+					$('.formHeader').find('.formTabErrorIco').off('click');
+					$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, alertStr, true));
+					return false;
+				}else{
+					$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+				}
+				return true;
+			}
+			
+			function isValidTextForBatchRpt(text){
+				if(text!='undefined' <![CDATA[&&]]> text!=null <![CDATA[&&]]> $.trim(text).length > 0){
+					return true;
+				}
+				return false;
+			}
+			
+			function afterBatchRptRenderFunc($context){
+				
+				function reportIdChange(e){
+					var ofceId = $('#officeId').val();
+					var reportId = $(e.target).val();
+					var $target = $('#officeId', $context);
+					var $option = $('<option/>');
+					$option.attr('value', "").text("");
+					$target.empty().append($option);
+					if($.trim(reportId) != ""){
+						<c:forEach items="${commandForm.reportIdOfficeList}" var="dl">
+							var rptId="${dl.value}";
+							if(rptId==reportId) {
+								$option = $('<option/>');
+								$option.attr('value', "${dl.label}").text("${dl.label}");
+							if(ofceId === $.trim("${dl.label}")){
+								$option.attr('selected', "selected");
+							}
+							}
+							
+							$target.append($option);
+						</c:forEach>
+					} else {
+						<c:forEach items="${commandForm.officeIdList}" var="office">
+							$option = $('<option/>');
+							$option.attr('value', "${office}").text("${office}");
+							if(ofceId === $.trim("${office}")){
+								$option.attr('selected', "selected");
+							}
+							$target.append($option);
+						</c:forEach>
+					}
+				};
+
+				$context.find('#reportId').unbind('change').bind('change',reportIdChange).trigger('change');
+			
+			} 
+			
+		</jsp:body>
+	</jsp:element>
+</div>
+</jsp:root>

@@ -1,0 +1,134 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+			var isPrevious = <c:out value="${isPrevious}" />;
+            var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [
+				{name:"<spring:message code="frx.label.referenceno" htmlEscape="false"/>", field:"referenceNo", id:"referenceNo", sortable: true, width:100, formatter:Slick.Formatters.FrxTradeDetailViewFormatter},
+                {name:"<spring:message code="frx.label.fundcode" htmlEscape="false"/>", field:"fundCode", id:"fundCode", sortable: true, width:80, formatter:Slick.Formatters.FundDetailViewFormatter},
+				{name:"<spring:message code="frx.label.fundname" htmlEscape="false"/>", field:"fundName", id:"fundName", sortable: true, width:130},
+                {name:"<spring:message code="frx.label.inventoryaccountno" htmlEscape="false"/>", field:"fundAccNo", id:"fundAccNo", width:100, formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'fundAccountPk'}, sortable: true },
+				{name:"<spring:message code="frx.label.fundaccountname" htmlEscape="false"/>", field:"invAcName", id:"invAcName", width:130, sortable: true },
+                {name:"<spring:message code="frx.label.tradedate" htmlEscape="false"/>", field:"tradeDateStr", id:"tradeDateStr", width:80, sortable: true },
+                {name:"<spring:message code="frx.label.valuedate" htmlEscape="false"/>", field:"valueDateStr", id:"valueDateStr", width:80, sortable: true },
+                {name:"<spring:message code="frx.label.tradetype" htmlEscape="false"/>", field:"tradeType", id:"tradeType", width:100, sortable: true },
+                {name:"<spring:message code="frx.label.baseccy" htmlEscape="false"/>", field:"baseCcy", id:"baseCcy", width:60, sortable: true },
+                {name:"<spring:message code="frx.label.baseccyamt" htmlEscape="false"/>", field:"baseCcyAmountStr", id:"baseCcyAmountStr",cssClass: 'xenos-grid-number', width:100, sortable: true },
+                {name:"<spring:message code="frx.label.againstccy" htmlEscape="false"/>", field:"againstCcy", id:"againstCcy", width:60, sortable: true },
+                {name:"<spring:message code="frx.label.againstccyamt" htmlEscape="false"/>", field:"againstCcyAmountStr", id:"againstCcyAmountStr", cssClass: 'xenos-grid-number', width:100, sortable: true },
+                {name:"<spring:message code="frx.label.exchangerate" htmlEscape="false"/>", field:"exchangeRate", id:"exchangeRate", cssClass: 'xenos-grid-number', width:100, sortable: true },
+                {name:"<spring:message code="frx.label.counterpartycode" htmlEscape="false"/>", field:"accountNo", id:"accountNo", width:100, formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'accountPk'}, sortable: true},
+				{name:"<spring:message code="frx.label.counterpartyaccname" htmlEscape="false"/>", field:"shortName", id:"shortName", width:130, sortable: true },
+				{name:"<spring:message code="frx.label.extreferenceno" htmlEscape="false"/>", field:"externalReferenceNo", id:"externalReferenceNo", width:120, sortable: true },
+				{name:"<spring:message code="frx.label.datasource" htmlEscape="false"/>", field:"dataSource", id:"dataSource", width:100, sortable: true },
+				{name:"<spring:message code="frx.label.status" htmlEscape="false"/>", field:"status", id:"status", width:50, formatter:Slick.Formatters.CancelRecordFormatter, sortable: true },
+				{name:"<spring:message code="frx.label.noexchangeflag" htmlEscape="false"/>", field:"noExchangeFlag", id:"noExchangeFlag", width:70, sortable: true },
+				{name:"<spring:message code="frx.label.confirmationstatus" htmlEscape="false"/>", field:"confirmationStatus", id:"confirmationStatus", width:100, sortable: true },
+			];
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:true,
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,
+					xlsPref:true,	
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					url: '/secure/frx/forex/trade/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/frx/forex/trade/query/result.json?fetch=next',
+					prevPage : '/secure/frx/forex/trade/query/result.json?fetch=previous',
+					pdfReport: '/secure/frx/forex/trade/query/report.json?outputType=pdf',
+					xlsReport: '/secure/frx/forex/trade/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/frx/forex/trade/query/reportPref.json?outputType=xls'
+				},
+				events:{
+					onDataUpdate : function(data,callback){
+						for(i in data.value){							
+							data.value[i].fundAccNo= data.value[i].prefix+";"+data.value[i].fundAccNo;
+						}
+						callback(data);
+					}
+				},
+				defaultInvisibleColumns: ["invAcName"]
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				
+				rec.referenceNo = "<c:out value="${dl.referenceNo}" />";
+				rec.fundCode = "<c:out value="${dl.fundCode}" />";
+				rec.fundName = "<c:out value="${dl.fundName}" />";
+				rec.fundAccNo = "<c:out value="${dl.prefix}" />" + ";" + "<c:out value="${dl.fundAccNo}" />";
+				rec.fundAccountPk = "<c:out value="${dl.fundAccountPk}" />";
+				rec.invAcName = "<c:out value="${dl.invAcName}" />";
+				rec.tradeDateStr = "<c:out value="${dl.tradeDateStr}" />";
+				rec.valueDateStr = "<c:out value="${dl.valueDateStr}" />";
+				rec.tradeType = "<c:out value="${dl.tradeType}" />";
+				rec.baseCcy = "<c:out value="${dl.baseCcy}" />";
+				rec.baseCcyAmountStr = "<c:out value="${dl.baseCcyAmountStr}" />";
+				rec.againstCcy = "<c:out value="${dl.againstCcy}" />";
+				rec.againstCcyAmountStr = "<c:out value="${dl.againstCcyAmountStr}" />";
+				rec.exchangeRate = "<c:out value="${dl.exchangeRate}" />";
+				rec.accountNo = "<c:out value="${dl.accountNo}" />";
+				rec.accountPk = "<c:out value="${dl.accountPk}" />";
+				rec.shortName = "<c:out value="${dl.shortName}" />";
+				rec.externalReferenceNo = "<c:out value="${dl.externalReferenceNo}" />";
+				rec.dataSource = "<c:out value="${dl.dataSource}" />";
+				rec.status = "<c:out value="${dl.status}" />";
+				rec.noExchangeFlag = "<c:out value="${dl.noExchangeFlag}" />";
+				rec.confirmationStatus = "<c:out value="${dl.confirmationStatus}" />";
+				rec.fundPk = "<c:out value="${dl.fundPk}" />";
+				rec.frxTrdPk = "<c:out value="${dl.frxTrdPk}" />";
+				
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+    <div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			  <a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'FRXAM')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-amendIco.png" title="${record.actionName}" id="amend" status="ready" alt="Amend" /></c:when>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'FRXCL')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}"  id="cancel" status="ready" alt="Cancel" /></c:when>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'FRXNDFEN')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-amendIco.png" title="${record.actionName}" id="amend" status="ready" alt="Amend" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			  </a>
+		</c:forEach>	  
+	</div>
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/frx/frxTradeQueryResult.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+</jsp:root>

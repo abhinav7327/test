@@ -1,0 +1,1112 @@
+<!--$Id$-->
+<!--$Author: subhadipb $-->
+<!--$Date: 2016-12-27 12:13:06 $-->
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+<div class="entryContainer">
+		<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	    <jsp:output	omit-xml-declaration="yes" />
+		
+<input type="hidden" id="actionType" value="${commandForm.options.actionType}"/>
+
+<style type="text/css">
+	body{
+		min-width:1340px;
+	}
+</style>
+	<!-- Java script include -->
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src">
+			<c:url value="/scripts/drv/xenos/drvTradeEntry.js"/>
+		</jsp:attribute>
+		<jsp:body>
+			
+		</jsp:body>
+	</jsp:element>
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>		
+        <jsp:body>
+			xenos.loadLocalizedScript([
+                  {path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+                  {path: xenos.context.path + '/scripts/drv/xenos-drv-i18n', async: false}
+              ]);
+			//Loading Required scripts before validator is called.
+              xenos.loadScript([
+                  {path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},                  
+                  {path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				  {path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false},
+				  {path: xenos.context.path + '/scripts/drv/xenos/drvTradeEntryValidator.js', async: false}
+              ]);
+			  
+			  var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+					var context = $xenos$Wizard.$context;
+					$drvTradeEntry$contaxt = $('#commandForm');
+					
+					$("#formActionArea .btnsArea .wizNext .inputBtnStyle").unbind('click');
+					$("#formActionArea .btnsArea .wizNext .inputBtnStyle").bind('click', xenos$ns$views$drvTradeEntAmd$submitHandler);
+				
+					$("#formActionArea .btnsArea .wizPrev .inputBtnStyle").unbind('click');
+					$("#formActionArea .btnsArea .wizPrev .inputBtnStyle").bind('click', xenos$ns$views$drvTradeEntAmd$backHandler);
+					
+					var currentStatus = $("#currentPageStatus").attr("value");
+					
+					if(currentStatus=="init"){
+						xenos$ns$views$drvTradeEntAmd$populateAttributes();
+						xenos$ns$views$drvTradeEntAmd$onGeneralEntryPageLoad();
+					}else if(currentStatus=="entry"){
+					
+						 xenos$ns$views$drvTradeEntAmd$onGeneralEntrySubmit();
+						 $("#formActionArea .btnsArea .wizPrev").show();
+					}else{
+						 $("#formActionArea .btnsArea .wizPrev").hide();
+					}
+					
+					$($drvTradeEntry$contaxt).unbind('keydown').bind('keydown', function(e){
+					var keyCode = e.which || e.keyCode;
+					if(keyCode == 13) {						
+						if($("#currentPageStatus").attr("value") == "entry"){
+							<!-- $("#formActionArea .btnsArea .wizSubmit .inputBtnStyle").trigger('click'); -->
+						} else {
+							if($("#currentPageStatus").attr("value") == "init")
+							{
+							if($("#buttonName").attr("value") == "back"){
+							 $("#formActionArea .btnsArea .wizPrev .inputBtnStyle").trigger('click'); 
+							 $("#buttonName").val("submit");
+							 }
+							 else{
+								$("#buttonName").val("submit");
+								$("#formActionArea .btnsArea .wizNext .inputBtnStyle").trigger('click');
+								}
+							}	
+						}
+					}
+					});
+					
+					var xenos$ns$views$drvTradeEntAmd$validateHook = function() {
+						var valid = false;
+						if($("#currentPageStatus").attr("value") == "entry"){
+							valid = xenos.ns.views.derivativeTradeEntry.validateSubmit();
+						}
+						if(valid){						
+							return true;
+						}else{
+							return false;
+						}	
+					};
+				
+					var xenos$ns$views$drvTradeEntAmd$unloadHook = function(){
+						$xenos$Wizard.deregister('submit',xenos$ns$views$drvTradeEntAmd$validateHook);
+						$xenos$Wizard.deregister('unload',xenos$ns$views$drvTradeEntAmd$unloadHook);
+					}
+
+					$xenos$Wizard.register('submit',xenos$ns$views$drvTradeEntAmd$validateHook);
+					$xenos$Wizard.register('unload',xenos$ns$views$drvTradeEntAmd$unloadHook);
+					
+				
+									
+									
+				xenos.ns.filterHiddenTgt.filterHiddenTargetFieldId = function(row, tgt ) {
+				
+					if(tgt.attr("tgt") === "ownssipopupdrv"){
+						
+						$('#ourBankStr').val(row.settlementBank);
+						$('#bankPkStr').val(row.bankPkStr);
+						$('#settlementAcPkStr').val(row.settlementAcPkStr);
+						$('#ourSettleAccountStr').val(row.settlementAc);
+						$('#settlementMode').val(row.settlementMode).trigger('change');
+						$('#autoTransmissionReqdStr').val(row.autoTransmissionReqd);
+						$('#instructionReqdStr').val(row.instructionReqd);
+				
+					}	
+				} 
+			};
+			
+			
+			/**
+				*  JSON call to populate Bank Details when Bank Account Number is entered.
+				*/
+				
+				
+			function xenos$ns$views$drvTradeEntAmd$cleanFields(){
+				$("#exposure").val("");
+				$("#exposureInIssueCcy").val("");
+				$("#netAmount").val("");
+				$("#settlementType").val("");
+			}
+				   function xenos$ns$views$drvTradeEntAmd$populateAttributes(){
+				   
+				 
+				    var context = $("#content");
+					/**
+					 * A common request handler to be used server communication.
+					 */
+					var xenos$Handler$RequestHandler = xenos$Handler$function({
+							get: {
+								contentType: 'json',
+								requestType: xenos$Handler$default.requestType.asynchronous
+							},	
+							settings: {
+								beforeSend: function(request) {
+									request.setRequestHeader('Accept', 'application/json');
+								},
+								type: 'POST'
+							}
+						});
+					var baseUrl = xenos.context.path + "/secure/drv/trade";
+					var gridAcionUrl;
+					if($("#actionType").val()=="ENTRY"){
+						gridAcionUrl = baseUrl + "/entry";
+					}else{
+						gridAcionUrl = baseUrl + "/amend";
+					}
+					
+					var taxFeeEntryResult = [],
+						rowId = 0,		
+						item = {},
+						taxFeeEntryGrid = null,
+						taxFeeEntryList = [];
+					var taxFeeEntryGridConf = {
+						editMode 					: 	'delete',
+						deleteCallback				:	xenos$ns$views$drvTradeEntAmd$deleteTaxFeeEntryHandler,
+						emptyColumnCheck            :   false,
+						forceFitColumns				:	true
+					};
+					var taxFeeEntryColumns = [		
+								{name:"<spring:message code="drv.label.taxfeeid" htmlEscape="false"/>", field:"taxFeeId", id:"taxFeeId", sortable:false},
+								{name:"<spring:message code="drv.label.taxfeeamount" htmlEscape="false"/>", field:"taxFeeAmount", id:"taxFeeAmount", cssClass:'xenos-grid-number', sortable:false}
+							];
+					<xenos:out escapeXml="false">
+					<c:forEach items="${commandForm.taxFeeList}" var="dl">
+						item = {};
+						rowId+=1;
+						item.id 			= "xenos_" + rowId;
+						item.taxFeeId 	= "<c:out value="${dl.taxFeeId}" />";
+						item.taxFeeAmount 	= "<c:out value="${dl.taxFeeAmountStr}" />";
+						taxFeeEntryResult.push(item);
+					</c:forEach>
+					</xenos:out>
+					taxFeeEntryGrid = $('#taxFeeEntryGrid').xenoseditablegrid(taxFeeEntryResult, taxFeeEntryColumns, taxFeeEntryGridConf);
+					
+					/**
+					 * New TaxFee add handler.
+					 */
+					function xenos$ns$views$drvTradeEntAmd$addTaxFeeEntryHandler(e){
+							var valid = xenos$ns$views$drvTradeEntAmd$validateTaxFeeAttributes();
+							if(valid){
+								var requestUrl = gridAcionUrl + "/addTaxFee.json?commandFormId=" + $('[name=commandFormId]').val();
+								xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																		settings: {data : xenos$ns$views$drvTradeEntAmd$populateTaxFeeEntryRequestParam()},
+																		onJsonContent :  function(e, options, $target, content) {
+																			if(content.success == true){
+																				xenos$ns$views$drvTradeEntAmd$upsertTaxFeeEntry(content.value[0]);
+																			} else {
+																				xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																			}
+																		}
+																	 }
+														);
+									}
+						}
+						/**
+						* Validate TaxFee Entry attributes.
+						*/
+						function  xenos$ns$views$drvTradeEntAmd$validateTaxFeeAttributes() {
+							 
+							var taxAmount 	= $.trim($('#taxFeeAmount',$drvTradeEntry$contaxt).val());  
+							var taxFeeId 	= $.trim($('#taxFeeId',$drvTradeEntry$contaxt).val());
+							
+							var validationMessages = [];
+							
+							if(VALIDATOR.isNullValue(taxFeeId)){
+								xenos.utils.displayGrowlMessage(xenos.notice.type.error, xenos$DRV$i18n.derivativeTrade.entry.taxfee_id_empty);
+								return false;
+							}
+							
+							if(VALIDATOR.isNullValue(taxAmount)){
+								xenos.utils.displayGrowlMessage(xenos.notice.type.error, xenos$DRV$i18n.derivativeTrade.entry.taxfee_amt_empty); 
+								return false;
+							}
+							
+							formatTaxFeeAmount($('#taxFeeAmount',$drvTradeEntry$contaxt), 15, 3, validationMessages, $('#taxFeeAmount',$drvTradeEntry$contaxt).parent().parent().find('label').text());	
+							
+							//Show the error message
+							if (validationMessages.length > 0){
+								xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+								return false;
+							}else {
+								xenos.utils.clearGrowlMessage();
+							}
+							return true;
+						}			
+						/**
+						 * Populate TaxFee request parameters.
+						 */
+						function xenos$ns$views$drvTradeEntAmd$populateTaxFeeEntryRequestParam(){
+								var reqObj = {
+										  "taxFee.taxFeeId"				:	$.trim($('#taxFeeId',$drvTradeEntry$contaxt).val()),
+										  "taxFee.taxFeeAmountStr"		:	$.trim($('#taxFeeAmount',$drvTradeEntry$contaxt).val())
+										};
+								return reqObj;
+						}
+						/**
+						* Populate TaxFee form.
+						*/
+						function xenos$ns$views$drvTradeEntAmd$populateTaxFeeEntryForm(result){
+								if(result){
+									context.find('#taxFeeId').val(result.taxFee.taxFeeId);
+									context.find('#taxFeeAmount').val(result.taxFee.taxFeeAmountStr);
+								}
+						}
+						/**
+						 * Insert/Update TaxFee
+						 */
+						function xenos$ns$views$drvTradeEntAmd$upsertTaxFeeEntry(data){
+								var result = data.taxFeeList;
+								if(result){
+									taxFeeEntryGrid.clearData();
+									for(var i in result){
+										item = {};
+										rowId+=1;
+										item.id 				= 	"xenos_" + rowId;
+										item.taxFeeId 		= $.trim(result[i].taxFeeId);
+										item.taxFeeAmount 		= $.trim(result[i].taxFeeAmountStr);
+										
+										taxFeeEntryGrid.addOrUpdateRow(item,{});
+									}
+									xenos$ns$views$drvTradeEntAmd$populateTaxFeeEntryForm(data);
+								}
+								xenos.utils.clearGrowlMessage();
+						}
+					   	
+						/**
+						 * TaxFee Delete handler
+						 */
+						function xenos$ns$views$drvTradeEntAmd$deleteTaxFeeEntryHandler(rowIndex, dataContext){
+							var requestUrl = gridAcionUrl + "/deleteTaxFee/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+							xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																	onJsonContent :  function(e, options, $target, content) {
+																		if(content.success == true){
+																			xenos$ns$views$drvTradeEntAmd$upsertTaxFeeEntry(content.value[0]);
+																			$('#taxFeeGridAdd').css('display', 'block');
+																		} else {
+																			xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																		}
+																	}
+																 }
+													);
+					 }
+					// Start the margin grid implementation part.	 
+					var marginEntryResult = [],
+						rowId1 = 0,		
+						item1 = {},
+						marginEntryGrid = null,
+						marginEntryList = [];
+					
+					var marginEntryColumns = [		
+							{name:"<spring:message code="drv.label.margin.basedate" htmlEscape="false"/>", field:"baseDate", id:"baseDate", sortable:false},
+							{name:"<spring:message code="drv.label.margin.type" htmlEscape="false"/>", field:"marginType", id:"marginType",	sortable:false},
+							{name:"<spring:message code="drv.label.margin.ccy" htmlEscape="false"/>", field:"marginCcy", id:"marginCcy", sortable:false},
+							{name:"<spring:message code="drv.label.margin.amount" htmlEscape="false"/>", field:"marginAmount", id:"marginAmount", cssClass:'xenos-grid-number', sortable:false}
+							<c:if test="${commandForm.screenId=='DRTAE'}">
+							,{name:"<spring:message code="drv.label.margin.refno" htmlEscape="false"/>", field:"referenceNo", id:"referenceNo", sortable:false}
+							</c:if>
+						];
+					var marginEntryGridConf = {
+							editMode 					: 	'both',																
+							editCallback 				: 	xenos$ns$views$drvTradeEntAmd$editMarginEntryHandler,
+							deleteCallback				:	xenos$ns$views$drvTradeEntAmd$deleteMarginEntryHandler,
+							emptyColumnCheck                        :       false,
+							forceFitColumns				:	true
+						};
+					<xenos:out escapeXml="false">
+					<c:forEach items="${commandForm.marginList}" var="dl">
+						item1 = {};
+						rowId1+=1;
+						item1.id 			= "xenos_" + rowId1;
+						item1.baseDate 	= "<c:out value="${dl.baseDateStr}" />";
+						item1.marginType 	= "<c:out value="${dl.marginTypeStr}" />";
+						item1.marginCcy 	= "<c:out value="${dl.marginCcyStr}" />";
+						item1.marginAmount 	= "<c:out value="${dl.marginAmountStr}" />";
+						item1.referenceNo  = "<c:out value="${dl.referenceNo}" />";
+						marginEntryResult.push(item1);
+					</c:forEach>
+					</xenos:out>	
+	                marginEntryGrid = $('#marginEntryGrid').xenoseditablegrid(marginEntryResult, marginEntryColumns, marginEntryGridConf);
+					/**
+					 * New Margin add handler.
+					 */
+					function xenos$ns$views$drvTradeEntAmd$addMarginEntryHandler(e){
+							var valid = xenos$ns$views$drvTradeEntAmd$validateMarginAttributes();
+							if(valid){
+								var requestUrl = gridAcionUrl + "/addMargin.json?commandFormId=" + $('[name=commandFormId]').val();
+										   
+								xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																		settings: {data : xenos$ns$views$drvTradeEntAmd$populateMarginEntryRequestParam()},
+																		onJsonContent :  function(e, options, $target, content) {
+																			if(content.success == true){
+																				xenos$ns$views$drvTradeEntAmd$upsertMarginEntry( content.value[0]);
+																			} else {
+																				xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																			}
+																		}
+																	 }
+														);
+							}
+						}
+					   /**
+						* Validate Margin Entry attributes.
+						*/
+						function xenos$ns$views$drvTradeEntAmd$validateMarginAttributes(){
+								var baseDate = $.trim($('#baseDate',$drvTradeEntry$contaxt).val());
+								var marginType = $.trim($('#marginType',$drvTradeEntry$contaxt).val());
+								var marginAmount = $.trim($('#marginAmount',$drvTradeEntry$contaxt).val());
+								
+								if(VALIDATOR.isNullValue(baseDate)){
+									xenos.utils.displayGrowlMessage(xenos.notice.type.error, xenos$DRV$i18n.derivativeTrade.entry.base_date_empty); 
+									return false; 
+								}
+								if(VALIDATOR.isNullValue(marginType)){
+									xenos.utils.displayGrowlMessage(xenos.notice.type.error, xenos$DRV$i18n.derivativeTrade.entry.margin_type_empty); 
+									return false; 
+								}
+								if(VALIDATOR.isNullValue(marginAmount)){
+									xenos.utils.displayGrowlMessage(xenos.notice.type.error, xenos$DRV$i18n.derivativeTrade.entry.margin_amt_empty); 
+									return false; 
+								}
+								return xenos$ns$views$drvTradeEntAmd$formatMarginAmount($('#marginAmount',$drvTradeEntry$contaxt));
+						  }
+							/**
+							 * Populate Margin request parameters.
+							 */
+							function xenos$ns$views$drvTradeEntAmd$populateMarginEntryRequestParam(){
+								var reqObj = {
+											  "margin.marginType"		:	$.trim($('#marginType',$drvTradeEntry$contaxt).val()),
+											  "margin.baseDateStr"		:	$.trim($('#baseDate',$drvTradeEntry$contaxt).val()),
+											  "margin.marginCcyStr"	:	$.trim($('#marginCcy',$drvTradeEntry$contaxt).val()),
+											  "margin.marginAmountStr" : $.trim($('#marginAmount',$drvTradeEntry$contaxt).val())
+										   };
+								return reqObj;
+						    }
+						   /**
+							* Insert/Update Margin.
+							*/
+							function xenos$ns$views$drvTradeEntAmd$upsertMarginEntry(data){
+									var result = data.marginList;
+									if(result){
+										marginEntryGrid.clearData();
+										for(var i in result){
+											item1 = {};
+											rowId1+=1;
+											item1.id 				= 	"xenos_" + rowId1;
+											item1.baseDate 			= $.trim(result[i].baseDateStr);
+											item1.marginType 		= $.trim(result[i].marginTypeStr);
+											item1.marginCcy 		= $.trim(result[i].marginCcyStr);
+											item1.marginAmount 		= $.trim(result[i].marginAmountStr);
+											item1.referenceNo  		= $.trim(result[i].referenceNo);
+											marginEntryGrid.addOrUpdateRow(item1,{});
+										}
+										xenos$ns$views$drvTradeEntAmd$populateMarginEntryForm(data);
+									}
+									xenos.utils.clearGrowlMessage();
+							  }	
+							/**
+							 * Populate Margin form.
+							 */
+							function xenos$ns$views$drvTradeEntAmd$populateMarginEntryForm(result){
+									if(result){
+										context.find('#baseDate').val('');
+										//context.find('#marginType').val(result.margin.marginType);
+										context.find('#marginCcy').val('');
+										context.find('#marginAmount').val('');
+									}
+							} 
+							/**
+							 * Populate Margin form.
+							 */
+							function xenos$ns$views$drvTradeEntAmd$populateMarginEditForm(result){
+									if(result){
+										context.find('#baseDate').val(result.margin.baseDateStr);
+										context.find('#marginType').val(result.margin.marginType);
+										context.find('#marginCcy').val(result.margin.marginCcyStr);
+										context.find('#marginAmount').val(result.margin.marginAmountStr);
+									}
+							}  							
+							/**
+							 * Margin Edit handler
+							 */
+							function xenos$ns$views$drvTradeEntAmd$editMarginEntryHandler(rowIndex, dataContext){
+									var requestUrl = gridAcionUrl + "/editMargin.json?commandFormId=" + $('[name=commandFormId]').val();
+									xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																			settings: {data : {"editIndexMargin" : rowIndex}},
+																			onJsonContent :  function(e, options, $target, content) {
+																				if(content.success == true){
+																					xenos$ns$views$drvTradeEntAmd$populateMarginEditForm(content.value[0]);
+																					$('#marginGridEdit').css('display', 'block'); 
+																					$('#marginGridAdd').css('display', 'none');
+																				} else {
+																					xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																				}
+																				return true;
+																			}
+																		 }
+															);
+								}	
+								/**
+								 * Margin update handler.
+								 */
+								function xenos$ns$views$drvTradeEntAmd$updateMarginEntryHandler(e){				
+										var valid = xenos$ns$views$drvTradeEntAmd$validateMarginAttributes();
+										if(valid){
+											var requestUrl = gridAcionUrl + "/updateMargin.json?commandFormId=" + $('[name=commandFormId]').val();
+											
+											xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																					settings: {data : xenos$ns$views$drvTradeEntAmd$populateMarginEntryRequestParam()},
+																					onJsonContent :  function(e, options, $target, content) {
+																						if(content.success == true){
+																							xenos$ns$views$drvTradeEntAmd$upsertMarginEntry(content.value[0]);
+																							$('#marginGridEdit').css('display', 'none'); 
+																							$('#marginGridAdd').css('display', 'block');
+																						} else {
+																							xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																						}
+																					}
+																				 }
+																	);
+										}
+								 }
+								/**
+								 * Marin cancel handler.
+								 */
+								function xenos$ns$views$drvTradeEntAmd$cancelMarginEntryHandler(e){
+										var requestUrl = gridAcionUrl + "/cancelMargin.json?commandFormId=" + $('[name=commandFormId]').val();
+						
+										xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																				onJsonContent :  function(e, options, $target, content) {
+																						if(content.success == true){
+																							xenos$ns$views$drvTradeEntAmd$upsertMarginEntry(content.value[0]);
+																							$('#marginGridEdit').css('display', 'none'); 
+																							$('#marginGridAdd').css('display', 'block');
+																						} else {
+																							xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																						}
+																						return true;
+																					}
+																				 }
+																	);
+								  }
+								/**
+								 * Margin Delete handler
+								 */
+								function xenos$ns$views$drvTradeEntAmd$deleteMarginEntryHandler(rowIndex, dataContext){
+									var requestUrl = gridAcionUrl + "/deleteMargin/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+										xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																				onJsonContent :  function(e, options, $target, content) {
+																					if(content.success == true){
+																						xenos$ns$views$drvTradeEntAmd$upsertMarginEntry(content.value[0]);
+																						$('#marginGridEdit').css('display', 'none');
+																						$('#marginGridAdd').css('display', 'block');
+																					} else {
+																						xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																					}
+																				}
+																			 }
+																);
+									}
+									
+								   /**
+									* Reculculation handler.
+									*/
+									function xenos$ns$views$drvTradeEntAmd$recalculateHandler(e){
+										//cleanFeilds();
+										var requestUrl = gridAcionUrl + "/reCalclateAmount.json?commandFormId=" + $('[name=commandFormId]').val();
+										
+										var security = $('#securityCode', $drvTradeEntry$contaxt).val();
+										var openCloseFlag = $('#openClosePosition',$drvTradeEntry$contaxt).val();
+										var trdDate = $('#tradeDate',$drvTradeEntry$contaxt).val();
+										var valueDate = $('#valueDate',$drvTradeEntry$contaxt).val();
+										var invAccNo = $('#inventoryAccountNo',$drvTradeEntry$contaxt).val();
+										var exeBrkNo = $('#exeBrkAccountNo',$drvTradeEntry$contaxt).val();
+										var cpAccNo = $('#brkAccountNo',$drvTradeEntry$contaxt).val();
+										var price = $('#price',$drvTradeEntry$contaxt).val();
+										var quantity = $('#quantity',$drvTradeEntry$contaxt).val();
+										var exeMkt = $('#executionMarket',$drvTradeEntry$contaxt).val();
+										var trdCcy = $('#tradeCcy',$drvTradeEntry$contaxt).val();
+										var exRate = $('#exchangeRate',$drvTradeEntry$contaxt).val();
+										var exeOff = $('#executionOffice',$drvTradeEntry$contaxt).val();
+										var calcType = $('#calculationType',$drvTradeEntry$contaxt).val();
+									
+										var reqObj = {
+													"contractVo.otherAttributes.map['securityId']" : security,
+													"tradeVo.otherAttributes.map['openCloseFlag']" : openCloseFlag,
+													"tradeVo.otherAttributes.map['tradeDate']" : trdDate,
+													"tradeVo.otherAttributes.map['valueDate']" : valueDate,
+													"contractVo.otherAttributes.map['inventoryAccountNo']" : invAccNo,
+													"tradeVo.otherAttributes.map['executionBrokerAccountNo']" : exeBrkNo,
+													"tradeVo.otherAttributes.map['executionOffice']" : exeOff,
+													"contractVo.otherAttributes.map['cpAccountNo']" : cpAccNo,
+													"tradeVo.otherAttributes.map['price']" : price,
+													"tradeVo.otherAttributes.map['tradeQuantity']" : quantity, 
+													"tradeVo.otherAttributes.map['executionMarket']" : exeMkt,
+													"tradeVo.otherAttributes.map['tradingCcy']" : trdCcy,
+													"tradeVo.otherAttributes.map['exchangeRate']" : exRate,
+													"tradeVo.calculationType" : calcType
+													};
+										
+										xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																				settings: {data :  reqObj},
+																				onJsonContent :  function(e, options, $target, content) {
+																					if(content.success == true){
+																						xenos$ns$views$drvTradeEntAmd$upsertTaxFeeEntry( content.value[0]);
+																						xenos$ns$views$drvTradeEntAmd$upsertMarginEntry(content.value[0]);
+																						xenos$ns$views$drvTradeEntAmd$updateNetAmount(content.value[0]);
+																					} else {
+																						xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																					}
+																				}
+																			}
+																	);
+									}
+								 	
+								   /**
+									* Update principal and net amount fields after click the calculator button. 
+									*/
+									function xenos$ns$views$drvTradeEntAmd$updateNetAmount(data){
+										if(data){
+											$('#tradeCcy').val(data.tradeVo.otherAttributes.map['tradingCcy']);
+											$('#exchangeRate').val(data.tradeVo.otherAttributes.map['exchangeRate']);
+											$('#exposure').val(data.tradeVo.otherAttributes.map['principalAmount']);
+											$('#exposureInIssueCcy').val(data.tradeVo.otherAttributes.map['principalAmountInIssueCcy']);
+											$('#netAmount').val(data.tradeVo.otherAttributes.map['netAmount']);
+										}
+									}
+								   
+								 $('#addTaxFeeEntryBtn').unbind('click');
+								 $('#addTaxFeeEntryBtn').bind('click',xenos$ns$views$drvTradeEntAmd$addTaxFeeEntryHandler);
+								 $('#addMarginEntryBtn').unbind('click');
+								 $('#addMarginEntryBtn').bind('click',xenos$ns$views$drvTradeEntAmd$addMarginEntryHandler);
+								 $('#updateMarginEntryBtn').unbind('click');
+								 $('#updateMarginEntryBtn').bind('click',xenos$ns$views$drvTradeEntAmd$updateMarginEntryHandler);
+								 $('#editCallback').unbind('click');
+								 $('#editCallback').bind('click',xenos$ns$views$drvTradeEntAmd$editMarginEntryHandler);
+								 $('#deleteCallback').unbind('click');
+								 $('#deleteCallback').bind('click',xenos$ns$views$drvTradeEntAmd$deleteMarginEntryHandler);
+								 $('#cancelMarginEntryBtn').unbind('click');
+								 $('#cancelMarginEntryBtn').bind('click',xenos$ns$views$drvTradeEntAmd$cancelMarginEntryHandler);
+								 $('#calculateAmtBtn').unbind('click');
+								 $('#calculateAmtBtn').bind('click',xenos$ns$views$drvTradeEntAmd$recalculateHandler);
+								
+								 xenos$ns$views$drvTradeEntAmd$openClosePositionPopulate();
+								 xenos$ns$views$drvTradeEntAmd$executionOfficePopulate();
+								 xenos$ns$views$drvTradeEntAmd$settlementBasisPopulate();
+				   }
+			   /**
+				* Open/Close Position Dropdown List populate
+				*/
+				function xenos$ns$views$drvTradeEntAmd$openClosePositionPopulate(){ 
+					var openClosePositionHidden = $('#openClosePositionHidden').val();
+					$('#openClosePosition').html($('.openClosePositionList').html());
+					if(openClosePositionHidden!='undefined'){
+						$('#openClosePosition').val(openClosePositionHidden);
+					}
+				}
+			   /**
+				* Execution Office Dropdown List populate
+				*/
+				function xenos$ns$views$drvTradeEntAmd$executionOfficePopulate(){ 
+					var executionOfficeHidden = $('#executionOfficeHidden').val();
+					$('#executionOffice').html($('.executionOfficeList').html());
+					if(executionOfficeHidden!='undefined'){
+						$('#executionOffice').val(executionOfficeHidden);
+					}
+				}
+				/**
+				* Settlement Basis Dropdown List populate
+				*/
+				function xenos$ns$views$drvTradeEntAmd$settlementBasisPopulate(){ 
+					var settlementBasisHidden = $('#settlementBasisHidden').val();
+					$('#settlementBasis').html($('.settlementBasisList').html());
+					if(settlementBasisHidden!='undefined'){
+						$('#settlementBasis').val(settlementBasisHidden);
+					}
+					
+				}
+				
+				function xenos$ns$views$drvTradeEntAmd$resetFunction(){
+				$('#bankPkStr').val("");
+				$('#settlementAcPkStr').val("");
+				$('#ourBankStr').val("");
+				$('#ourSettleAccountStr').val("");
+				$('#settlementMode').val("");
+				$('#autoTransmissionReqdStr').val("");
+				$('#instructionReqdStr').val("");
+				
+				}
+				
+				$('#settlementMode').change(function() {
+						$('.formBtnBlock').find('.submitBtn input').focus();
+				});
+
+
+				
+				
+		</jsp:body>
+	</jsp:element>
+	
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+	<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+	<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+	<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+	
+	<input type="hidden" id="openClosePositionHidden" value="${commandForm.tradeVo.otherAttributes.map['openCloseFlag']}"/>
+	<input type="hidden" id="executionOfficeHidden" value="${commandForm.tradeVo.otherAttributes.map['executionOffice']}"/>
+	<input type="hidden" id="settlementBasisHidden" value="${commandForm.contractVo.otherAttributes.map['settlementBasis']}"/>
+	
+	
+	
+	<!-- Derivative Trade Entry -->
+ <div>
+	<!-- General Entry Start -->
+	<div id="generalEntry">	
+		<div class="entryBlkArea ">
+			<div class="formItemBlock topitems dottedBg">
+				<div>
+					<form:hidden id="currentPageStatus" path="commandForm.pageStatus"/>
+					<form:hidden id="contractMode" path="commandForm.contractMode"/>
+					<form:hidden id="buttonName" path="commandForm.buttonName"/>
+				</div>
+				<!-- Security -->
+				<div class="formItem">
+					<form:label path="commandForm.contractVo.otherAttributes.map['securityId']" class="required"><spring:message code="drv.label.securitycode" htmlEscape="false"/></form:label>
+					<!--<util:xenospopup id="securityCode" path="commandForm.contractVo.otherAttributes.map['securityId']" showResolvedName="true" tgt="securityCode" popType="security" statusContext="NORMAL" event="change focusout" endpoint="secure/ref/nameresolver/security"/>-->
+					<span><form:input id="securityCode" value="" path="commandForm.contractVo.otherAttributes.map['securityId']" class="textBox" /></span>			
+					<div class="popupBtn"><input id="securityPopup" type="button" class="popupBtnIco" tgt="securityCode" popType="security" value=""/></div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	            </div>
+				
+				<!-- Open/Close Position -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.otherAttributes.map['openCloseFlag']" class="required"><spring:message code="drv.label.opencloseposition" htmlEscape="false"/></form:label>
+					<form:select id="openClosePosition" path="commandForm.tradeVo.otherAttributes.map['openCloseFlag']" class="dropdowninput">
+					</form:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div >
+				
+				<!-- Trade Date -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.otherAttributes.map['tradeDate']" class="required"><spring:message code="drv.label.tradedate" htmlEscape="false"/></form:label>
+					<span><form:input id="tradeDate" value="" path="commandForm.tradeVo.otherAttributes.map['tradeDate']" class="dateinput" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$DRV$i18n.derivativeTrade.entry.date_format_check, [this.value]))};"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>	
+				
+				<!-- Value Date -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.otherAttributes.map['valueDate']" class="required"><spring:message code="drv.label.valuedate" htmlEscape="false"/></form:label>
+					<span><form:input id="valueDate" value="" path="commandForm.tradeVo.otherAttributes.map['valueDate']" class="dateinput" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$DRV$i18n.derivativeTrade.entry.date_format_check, [this.value]))};" /></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- Fund Account No  -->
+				<div class="formItem">
+					<form:label path="commandForm.contractVo.otherAttributes.map['inventoryAccountNo']" class="required"><spring:message code="drv.label.fundaccountno" htmlEscape="false"/></form:label>
+					<span><form:input id="inventoryAccountNo" value="" path="commandForm.contractVo.otherAttributes.map['inventoryAccountNo']" class="textBox" /></span>	
+					<div class="popupBtn"><input id="fundAccountPopup" type="button" class="popupBtnIco" tgt="inventoryAccountNo" popType="invAccount" invActTypeContext="T|B" invCPTypeContext="INTERNAL" actStatusContext="OPEN" value=""/></div>
+					<!-- <util:xenospopup id="inventoryAccountNo" path="commandForm.contractVo.otherAttributes.map['inventoryAccountNo']" showResolvedName="true" tgt="inventoryAccountNo" popType="invAccount" invActTypeContext="T|B" invCPTypeContext="INTERNAL" actStatusContext="OPEN" event="change focusout" endpoint="secure/ref/nameresolver/fund"/> -->
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- Execution Office -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.otherAttributes.map['executionOffice']" class="required"><spring:message code="drv.label.executionoffice" htmlEscape="false"/></form:label>
+					<form:select id="executionOffice" path="commandForm.tradeVo.otherAttributes.map['executionOffice']" class="dropdowninput">
+					</form:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- Execution Broker Account No  -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.otherAttributes.map['executionBrokerAccountNo']" class="required"><spring:message code="drv.label.exebrokeraccountno" htmlEscape="false"/></form:label>
+					<!--<util:xenospopup id="exeBrkAccountNo" path="commandForm.tradeVo.otherAttributes.map['executionBrokerAccountNo']" showResolvedName="true" tgt="exeBrkAccountNo" popType="cpAccount" actTypeContext="T|B" actCPTypeContext="BROKER" actStatusContext="OPEN" event="change focusout" endpoint="secure/ref/nameresolver/account"/>					-->
+					<span><form:input id="exeBrkAccountNo" value="" path="commandForm.tradeVo.otherAttributes.map['executionBrokerAccountNo']" class="textBox" /></span>	
+					<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="exeBrkAccountNo" popType="cpAccount" actTypeContext="T|B" actCPTypeContext="BROKER" actStatusContext="OPEN" value=""/></div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- Broker Account No  -->
+				<div class="formItem">
+					<form:label path="commandForm.contractVo.otherAttributes.map['cpAccountNo']" class="required"><spring:message code="drv.label.accountno" htmlEscape="false"/></form:label>
+					<!--<util:xenospopup id="brkAccountNo" path="commandForm.contractVo.otherAttributes.map['cpAccountNo']" showResolvedName="true" tgt="brkAccountNo" popType="cpAccount" actTypeContext="T|B" actCPTypeContext="BROKER" actStatusContext="OPEN" event="change focusout" endpoint="secure/ref/nameresolver/account"/>										-->
+					<span><form:input id="brkAccountNo" value="" path="commandForm.contractVo.otherAttributes.map['cpAccountNo']" class="textBox" /></span>	
+					<div class="popupBtn"><input id="brokerAccountPopup" type="button" class="popupBtnIco" tgt="brkAccountNo" popType="cpAccount" actTypeContext="T|B" actCPTypeContext="BROKER" actStatusContext="OPEN" value=""/></div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- Price -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.otherAttributes.map['price']" class="required"><spring:message code="drv.label.price" htmlEscape="false"/></form:label>
+					<span><form:input id="price" value="" path="commandForm.tradeVo.otherAttributes.map['price']"  class="txtNormal" onchange="formatPrice($('#price'),9,9,null,$('#price').parent().parent().find('label').text())"/></span>		
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- Quantity  -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.otherAttributes.map['tradeQuantity']" class="required"><spring:message code="drv.label.quantity" htmlEscape="false"/></form:label>
+					<span><form:input id="quantity" value="" path="commandForm.tradeVo.otherAttributes.map['tradeQuantity']"  class="txtNormal" onchange="formatQuantity($('#quantity'),15,3,null,$('#quantity').parent().parent().find('label').text())" /></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- Execution Market -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.otherAttributes.map['executionMarket']"><spring:message code="drv.label.executionmarket" htmlEscape="false"/></form:label>
+					<span><form:input id="executionMarket" value="" path="commandForm.tradeVo.otherAttributes.map['executionMarket']" class="textBox market" /></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	            </div>
+	
+				<!-- Trade Currency -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.otherAttributes.map['tradingCcy']"><spring:message code="drv.label.tradecurrency" htmlEscape="false"/></form:label> 
+					<span><form:input id="tradeCcy" value="" path="commandForm.tradeVo.otherAttributes.map['tradingCcy']"  class="textBox" /></span>
+					<div class="popupBtn">
+						<input type="button" class="popupBtnIco" tgt="tradeCcy" popType="currency" value="" />
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- Exchange Rate -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.otherAttributes.map['exchangeRate']"><spring:message code="drv.label.exchangerate" htmlEscape="false"/></form:label>
+					<span><form:input id="exchangeRate" value="" path="commandForm.tradeVo.otherAttributes.map['exchangeRate']"  class="txtNormal" onchange="formatExchangeRate($('#exchangeRate'),10,10,null,$('#exchangeRate').parent().parent().find('label').text())"/></span>		
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- Calculation Type -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.calculationType"><spring:message code="drv.label.calculationtype" htmlEscape="false"/></form:label>
+					<xenos:select id="calculationType" path="commandForm.tradeVo.calculationType" class="dropdowninput">
+						<form:option value="" />
+						<form:options items="${commandForm.dropDownListValues.calculationTypeList}" itemLabel="label" itemValue="value"/>
+					</xenos:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- Remarks -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.remarks"><spring:message code="drv.label.remarks" htmlEscape="false"/></form:label>
+					<span><form:input id="remarks" value="" path="commandForm.tradeVo.remarks"  class="txtNormal fullWidthInput" maxlength="255" size="50"/></span>	
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- Instruction Supress Flag -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.instructionSuppressFlag" class="required"><spring:message code="drv.label.inxsuppressflag" htmlEscape="false"/></form:label>
+					<xenos:select id="inxSuppressFlag" path="commandForm.tradeVo.instructionSuppressFlag" class="dropdowninput">
+						<form:options items="${commandForm.dropDownListValues.instructionSuppressFlagList}" itemLabel="label" itemValue="value"/>
+					</xenos:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			   </div>
+			  </div>  
+			  <!-- TaxFee Block -->
+			  <div class="moreHandle">
+				<h1 class="msgHead">
+					<spring:message code="drv.label.optionaltaxfee" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse" id="drvMoreSection"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>  
+			</div>
+			
+			<div class="entryBlkArea">
+			    <h1><spring:message code="drv.label.taxfeeinfo" htmlEscape="false"/></h1>
+				<div class="formItemBlock dottedBg">
+				<!-- TaxFee Id -->
+				<div class="formItem">
+					<form:label path="commandForm.taxFee.taxFeeId" class="required"><spring:message code="drv.label.taxfeeid" htmlEscape="false"/></form:label>
+					<span>
+						<xenos:select id="taxFeeId" path="commandForm.taxFee.taxFeeId" class="dropdowninput">
+							<form:option value="" />
+							<form:options items="${commandForm.dropDownListValues.taxFeeIdList}" itemLabel="label" itemValue="value"/>
+						</xenos:select>
+					</span>  
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!-- TaxFee Amount -->
+				<div class="formItem">
+					<form:label path="commandForm.taxFee.taxFeeAmountStr" class="required"><spring:message code="drv.label.taxfeeamount" htmlEscape="false"/></form:label>
+					<span><form:input id="taxFeeAmount" value="" path="commandForm.taxFee.taxFeeAmountStr"  class="txtNormal" onchange="formatTaxFeeAmount($('#taxFeeAmount'),15,3,null,$('#taxFeeAmount').parent().parent().find('label').text())" /></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+				<!-- Add Button -->
+				<div id="formActionArea" class="gridBtnMargin trdEntryBtnBg">
+					<div class="right">
+						<div id="taxFeeGridAdd" class="btnWrapStyle submitBtn gridAddBtn" style="display:block" >
+							<span class="addTaxFeeEntry"><input id="addTaxFeeEntryBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+						</div>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			</div>	
+			<div class="entryGrid">
+				<div id="taxFeeEntryGrid" class="xenos-grid" style="width:100%;height:100px;"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</div>
+		<div class="lineHide">
+				<spring:message text="" htmlEscape="false" />
+		</div>
+		<!-- Margin Block -->		
+		<div class="moreHandle">
+			<h1 class="msgHead">
+				<spring:message code="drv.label.optionalmargin" htmlEscape="false"/>
+				<div class="handleBlock">
+					<span class="handler collapse" id="drvMoreSection"><spring:message text="" htmlEscape="false"/></span>
+				</div>
+			</h1>  
+		</div>	
+		<div class="entryBlkArea">
+			<h1><spring:message code="drv.label.margininfo" htmlEscape="false"/></h1>
+			<div class="formItemBlock topitems dottedBg fourColumn">
+			<!-- Base Date -->
+			<div class="formItem">
+				<form:label path="commandForm.margin.baseDateStr" class="required"><spring:message code="drv.label.margin.basedate" htmlEscape="false"/></form:label>
+				<span><form:input id="baseDate" value="" path="commandForm.margin.baseDateStr" class="dateinput" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$DRV$i18n.derivativeTrade.entry.date_format_check, [this.value]))};"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Margin Type -->
+			<div class="formItem">
+				<form:label path="commandForm.margin.marginType" class="required"><spring:message code="drv.label.margin.type" htmlEscape="false"/></form:label>
+				<form:select id="marginType" path="commandForm.margin.marginType" class="dropdowninput">
+					<form:options items="${commandForm.dropDownListValues.marginTypeList}" itemLabel="label" itemValue="value"/>
+				</form:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Margin Currency -->
+			<div class="formItem">
+				<form:label path="commandForm.margin.marginCcyStr"><spring:message code="drv.label.margin.ccy" htmlEscape="false"/></form:label>
+				<span><form:input id="marginCcy" value="" path="commandForm.margin.marginCcyStr" class="textBox" /></span>
+				<div class="popupBtn">
+					<input type="button" class="popupBtnIco" tgt="marginCcy" popType="currency" value="" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Margin Amount -->
+			<div class="formItem">
+				<form:label path="commandForm.margin.marginAmountStr" class="required"><spring:message code="drv.label.margin.amount" htmlEscape="false"/></form:label>
+				<span><form:input id="marginAmount" value="" path="commandForm.margin.marginAmountStr" class="txtNormal" onchange="xenos$ns$views$drvTradeEntAmd$formatMarginAmount($('#marginAmount'))"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			
+			<div id="formActionArea" class="gridBtnMargin trdEntryBtnBg">
+				<div class="right">
+					<div id="marginGridAdd" class="btnWrapStyle submitBtn gridAddBtn" style="display:block">
+						<span class="addMarginEntry"><input id="addMarginEntryBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+					</div>
+					<div id="marginGridEdit" style="display:none">
+						<span class="gridEditBtn">
+							<div class="btnWrapStyle submitBtn"><input id="updateMarginEntryBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+							<div class="btnWrapStyle resetBtn"><input id="cancelMarginEntryBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+						</span>
+					</div>	
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>	
+			<div class="entryGrid">
+				<div id="marginEntryGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</div>
+		<div class="lineHide">
+			<spring:message text="" htmlEscape="false" />
+		</div>
+	</div>
+  </div> <!-- End of General Entry Block -->
+  <!-- Start of Detail Block -->					
+	  <div id="detailEntry" style="display: none;">
+			<!-- Other Information Block -->
+			<div class="moreHandle">
+				<h1 class="msgHead">
+					<spring:message code="drv.label.otherinfo" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse" id="drvMoreSection"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>  
+			</div>
+			<div class="entryBlkArea">
+					<div class="formItemBlock dottedBg">
+						<!-- Exposure -->
+						<div class="formItem">
+							<form:label path="commandForm.tradeVo.otherAttributes.map['principalAmount']"><spring:message code="drv.label.exposure" htmlEscape="false"/></form:label>
+							<span><form:input id="exposure" value="" path="commandForm.tradeVo.otherAttributes.map['principalAmount']" onchange="formatPrincipalAmount($('#exposure'),15,3,null,$('#exposure').parent().parent().find('label').text())" class="txtNormal" readonly="true"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<!-- Exposure In Issue Currency -->
+						<div class="formItem">
+							<form:label path="commandForm.tradeVo.otherAttributes.map['principalAmountInIssueCcy']"><spring:message code="drv.label.exposureinissueccy" htmlEscape="false"/></form:label>
+							<span><form:input id="exposureInIssueCcy" value="" path="commandForm.tradeVo.otherAttributes.map['principalAmountInIssueCcy']"  class="txtNormal" readonly="true"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<!-- Net Amount -->
+						<div class="formItem">
+							<form:label path="commandForm.tradeVo.otherAttributes.map['netAmount']"><spring:message code="drv.label.netamount" htmlEscape="false"/></form:label>
+							<span><form:input id="netAmount" value="" path="commandForm.tradeVo.otherAttributes.map['netAmount']"  class="txtNormal" readonly="true"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<!-- Settlement Type -->
+						<div class="formItem">
+							<form:label path="commandForm.contractVo.otherAttributes.map['drvSettlementType']"><spring:message code="drv.label.settlementtype" htmlEscape="false"/></form:label>
+							<span><form:input id="settlementType" value="" path="commandForm.contractVo.otherAttributes.map['drvSettlementType']"  class="textBox" readonly="true" style="text-transform: none"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<!-- Settlement Basis -->
+						<div class="formItem">
+							<form:label path="commandForm.contractVo.otherAttributes.map['settlementBasis']"><spring:message code="drv.label.settlementbasis" htmlEscape="false"/></form:label>
+							<form:select id="settlementBasis" path="commandForm.contractVo.otherAttributes.map['settlementBasis']" class="dropdowninput">
+							</form:select>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<!-- Calculate Amount Button-->
+						<div class="formItem">
+							<div class="btnWrapStyle calAmtBtnBtn calcBtn">
+								<span class="calculateAmt"><input id="calculateAmtBtn"
+									type="button" class=" calcBtnIco" /></span>
+							</div>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+						<div class="clear clear-block">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					 </div>
+					<div class="lineHide">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+				</div>
+				<!-- SSI Information Block -->
+					
+					<div class="moreHandle">
+						<h1 class="msgHead"><spring:message text="Optional Fields" htmlEscape="false"/>
+							<div class="handleBlock">
+							<span class="handler collapse" id="drvMoreSection"><spring:message text="" htmlEscape="false"/></span>
+							</div>
+						</h1>
+					</div>	
+				
+				<div class="entryBlkArea">
+					<div class="formItem twoCols">
+						<label>
+							<h1 class="left" style="padding-top:0;"><spring:message code="drv.label.ssiinfo" htmlEscape="false"/></h1>
+							<div class="btnWrapStyle restBtn">
+							<input type="button" value="Reset" class="small-btn-style" id="reset" onclick="xenos$ns$views$drvTradeEntAmd$resetFunction()"/>
+						</div> 
+						<div class="popupBtn inputBtnStyle btnWrapStyle  gridAddBtn">
+							<input class="small-btn-style" id="OwnSsiPopUpSubmitBtn" tgt="ownssipopupdrv" type="button" poptype="ownssiDrvEntryPopup"  value="Select" hiddenFieldFilteredReqd="true"/>
+						</div> 
+						</label>
+						
+					</div>
+			
+					<div class="formItemBlock dottedBg">
+						<!-- Settlement Mode -->
+						<div class="formItem">
+							<form:label path="commandForm.ssiInfo.settlementMode"><spring:message code="drv.label.settlementmode" htmlEscape="false"/></form:label>
+							<span><form:input id="settlementMode" value="" path="commandForm.ssiInfo.settlementMode" class="textBox" readonly="true" style="text-transform: none"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<!-- Our Settlement Bank -->
+						<div class="formItem">
+							<form:label path="commandForm.ssiInfo.ourBankStr"><spring:message code="drv.label.oursettlementbank" htmlEscape="false"/></form:label>
+							<span><form:input id="ourBankStr" value="" path="commandForm.ssiInfo.ourBankStr" class="textBox" readonly="true" style="text-transform: none"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<!-- Our Settlement Account -->
+						<div class="formItem">
+							<form:label path="commandForm.ssiInfo.ourSettleAccountStr"><spring:message code="drv.label.oursettlementaccount" htmlEscape="false"/></form:label>
+							<span><form:input id="ourSettleAccountStr" value="" path="commandForm.ssiInfo.ourSettleAccountStr" class="textBox" readonly="true" style="text-transform: none"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<!-- Instruction Required -->
+						<div class="formItem">
+							<form:label path="commandForm.ssiInfo.instructionReqdStr"><spring:message code="drv.label.instructionreqd" htmlEscape="false"/></form:label>
+							<span><form:input id="instructionReqdStr" value="" path="commandForm.ssiInfo.instructionReqdStr" class="textBox" readonly="true" style="text-transform: none"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<!-- Auto Transmission Required -->
+						<div class="formItem">
+							<form:label path="commandForm.ssiInfo.autoTransmissionReqdStr"><spring:message code="drv.label.autotransmissionreqd" htmlEscape="false"/></form:label>
+							<span><form:input id="autoTransmissionReqdStr" value="" path="commandForm.ssiInfo.autoTransmissionReqdStr" class="textBox" readonly="true" style="text-transform: none"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+					
+						<div class="formItem" style="display: none;">
+							<form:label path="commandForm.ssiInfo.bankPkStr"><spring:message code="drv.label.autotransmissionreqd" htmlEscape="false"/></form:label>
+							<span><form:input id="bankPkStr" value="" path="commandForm.ssiInfo.bankPkStr" class="textBox" readonly="true" style="text-transform: none"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						
+						<div class="formItem" style="display: none;">
+							<form:label path="commandForm.ssiInfo.settlementAcPkStr"><spring:message code="drv.label.autotransmissionreqd" htmlEscape="false"/></form:label>
+							<span><form:input id="settlementAcPkStr" value="" path="commandForm.ssiInfo.settlementAcPkStr" class="textBox" readonly="true" style="text-transform: none"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="clear clear-block">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+					<div class="lineHide">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+				</div>
+			
+	<!-- [HIDDEN] Open/Close Position List **START -->
+	<div class="openClosePositionList" style="display:none;">
+		<option></option>
+		<c:forEach items="${commandForm.dropDownListValues.openClosePositionList}" var="dl">
+			<option value="${dl.value}">${dl.label}</option>
+		</c:forEach>
+	</div>
+	<!-- [HIDDEN] Execution Office List **START -->
+	<div class="executionOfficeList" style="display:none;">
+		<c:forEach items="${commandForm.dropDownListValues.executionOfficeList}" var="dl">
+			<option value="${dl.value}">${dl.label}</option>
+		</c:forEach>
+	</div>
+	<!-- [HIDDEN] Settlement Basis List **START -->
+	<div class="settlementBasisList" style="display:none;">
+		<c:forEach items="${commandForm.dropDownListValues.settlementBasisList}" var="dl">
+			<option value="${dl.value}">${dl.label}</option>
+		</c:forEach>
+	</div>
+	<spring:eval expression="T(java.lang.System).currentTimeMillis()" var="myId"/>
+    <input type="hidden" id="${myId}"/>
+    <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			
+		</jsp:body>
+	</jsp:element>
+</div>	 
+</div>	 
+</div>
+</jsp:root>		

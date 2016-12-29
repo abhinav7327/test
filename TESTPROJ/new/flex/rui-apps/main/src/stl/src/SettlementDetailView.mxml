@@ -1,0 +1,1282 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml"  xmlns:flexlib="http://code.google.com/p/flexlib/" layout="vertical"
+    xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:controls="*" width="100%" height="100%" updateComplete="com.nri.rui.core.controls.AutoScroll.updateDisplayList(event);initData();">
+   
+	<mx:Script>
+		<![CDATA[
+			import mx.utils.StringUtil;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.core.containers.SummaryPopup;
+			import mx.managers.PopUpManager;
+			import com.nri.rui.core.utils.XenosPopupUtils;
+			import mx.core.UIComponent;
+			import mx.collections.XMLListCollection;
+			import com.nri.rui.core.controls.AutoScroll;
+			import mx.resources.ResourceBundle;
+			
+			[Bindable]	
+			public var xmlSource:XML = new XML();
+			
+			[Bindable]
+			public var initFlag:Boolean = true;
+			/* public function set dataProvider(value:XML):void
+			{
+				this.xmlSource = value;
+				this.tax=new XMLListCollection(xmlSource.taxFeeAmounts.taxFeeAmount);
+			} */
+			
+			[Bindable]public var statusStr:String;
+			[Bindable]public var blockStatusStr:String;
+			[Bindable]public var transmissionStatusStr:String;
+			[Bindable]public var cxlAcceptanceStatusStr:String;
+			[Bindable]private var flagforCpBankPk:Boolean;			
+			[Bindable]private var acceptanceStatusStr:String;
+            [Bindable]private var flagforInvAccPk : Boolean;
+            [Bindable]private var flagforCliAccPk : Boolean;
+			
+			public function initData():void
+			{
+					//XenosAlert.info("userId "+xmlSource.detailView.userId+" "+xmlSource.detailView.blockStatusString);
+					
+					//Settlement Status 
+					if(xmlSource.detailView.summary.failStatus == "FAIL") {
+						statusStr = "FAIL";
+					} else {
+						statusStr = xmlSource.detailView.summary.settleStatusString;
+					}
+					
+					var user:String = xmlSource.detailView.userId as String;
+					if(StringUtil.trim(user) == Globals.EMPTY_STRING){
+						blockStatusStr = xmlSource.detailView.blockStatusString;
+					}
+					else{
+						blockStatusStr = xmlSource.detailView.blockStatusString + "(userId = " + xmlSource.detailView.userId + ")";
+						
+					}
+					
+					if(xmlSource.detailView.inxStatus == "NORMAL")
+						transmissionStatusStr = xmlSource.detailView.transmissionStatus;
+					else if(xmlSource.detailView.inxStatus == "CANCEL")
+						transmissionStatusStr = "CANCELLED";
+					
+					
+					if(xmlSource.detailView.inxStatus == "NORMAL"){
+						if(xmlSource.detailView.transReqdForCxl == "N")
+							acceptanceStatusStr = "(Marked)";
+						else
+							acceptanceStatusStr = xmlSource.detailView.acceptanceStatus;
+					}
+					else{
+						acceptanceStatusStr = xmlSource.detailView.acceptanceStatus;
+					}
+					
+					if(xmlSource.detailView.inxStatus == "CANCEL"){
+						if(xmlSource.detailView.transReqdForCxl == "N"){
+							if(xmlSource.detailView.acceptanceStatus == "NG")
+								cxlAcceptanceStatusStr = "";
+							else
+								cxlAcceptanceStatusStr = "(Reset)";
+						}
+						else if(xmlSource.detailView.transReqdForCxl == "Y"){
+								cxlAcceptanceStatusStr = xmlSource.detailView.cxlAcceptanceStatus;
+						}
+						else if(xmlSource.detailView.transReqdForCxl == null){
+								cxlAcceptanceStatusStr = "(Expired)";
+						}
+						else
+							cxlAcceptanceStatusStr = xmlSource.detailView.acceptanceStatus;
+					}
+					else{
+						cxlAcceptanceStatusStr = "";
+					}
+					if(xmlSource.detailView.summary.settlementType == "AGAINST" ||
+						xmlSource.detailView.summary.instructionType == "SECURITY_FREE_DELIVER" ||
+						xmlSource.detailView.summary.instructionType == "SECURITY_FREE_RECEIVE"){
+						//XenosAlert.info("security side");
+						ws3.visible = true;
+						ws3.includeInLayout = true;
+					}
+					if(xmlSource.detailView.summary.settlementType == "AGAINST" ||
+						xmlSource.detailView.summary.instructionType == "CASH_FREE_RECEIVE" ||
+						xmlSource.detailView.summary.instructionType == "CASH_FREE_DELIVER"){
+						//XenosAlert.info("cash side");
+						ws4.visible = true;
+						ws4.includeInLayout = true;
+					}
+					useLink();
+					
+					
+				  flagforCpBankPk =  xmlSource.securitySide.hasOwnProperty("cpBankPk") as Boolean;
+				  
+				 //showing of cp bank id if cp bank pk is not present and removing the hyperlink in that case 
+				 if(flagforCpBankPk == true && xmlSource.securitySide.cpBankPk != null) {			  		  	
+					cpBank.styleName = "TextLink";
+					cpBank.useHandCursor = true;
+					cpBank.buttonMode = true;
+					cpBank.mouseChildren = false;					
+				  } else {	
+					cpBank.useHandCursor = false;
+					cpBank.buttonMode = false;
+				  }
+				  					
+				  if(flagforCpBankPk == true && xmlSource.securitySide.cpBankPk != null) {		  	
+					cpBankCash.styleName = "TextLink";
+					cpBankCash.useHandCursor = true;
+					cpBankCash.buttonMode = true;
+					cpBankCash.mouseChildren = false;
+				  } else {
+					cpBankCash.useHandCursor = false;
+					cpBankCash.buttonMode = false;
+				  }					
+					
+					
+			}
+										  										  
+	   /**
+	   * This method is used for loading FinInstPopUp module 
+	   * 
+	   */  
+	   public function showCpBankDetail():void{
+		if(flagforCpBankPk == true && xmlSource.securitySide.cpBankPk != null) {		   		
+			var finInstPkStr : String = xmlSource.securitySide.cpBankPk;
+			var parentApp :UIComponent = UIComponent(this.parentApplication);			
+			XenosPopupUtils.showFinInstDetails(finInstPkStr,parentApp);
+		}
+				
+	   }
+	   
+	   /**
+	   * This method is used for loading FinInstPopUp module 
+	   * 
+	   */  
+	   public function showCashCpBankDetail():void{
+		if(flagforCpBankPk == true && xmlSource.securitySide.cpBankPk != null) {	
+				var finInstPkStr : String = xmlSource.cashSide.cpBankPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);				
+				XenosPopupUtils.showFinInstDetails(finInstPkStr,parentApp);	
+	   	 }
+	   }
+	   
+	   /**
+	   * This method is used for loading FinInstPopUp module 
+	   * 
+	   */  
+	   public function showFundBankDetail():void{
+			
+				var finInstPkStr : String = xmlSource.securitySide.ourBankPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				
+				XenosPopupUtils.showFinInstDetails(finInstPkStr,parentApp);
+				
+	   }
+	   
+	   /**
+	    * This method is used for loading FinInstPopUp module 
+	    * 
+	    */  
+	   public function showSecurityPlaceOfSettlementDetail():void {
+			
+			var finInstPkStr : String = xmlSource.securitySide.placeOfSettlementPk;
+			var parentApp :UIComponent = UIComponent(this.parentApplication);
+			
+			XenosPopupUtils.showFinInstDetails(finInstPkStr, parentApp);
+	   }
+	   
+	   /**
+	    * This method is used for loading FinInstPopUp module 
+	    * 
+	    */  
+	   public function showCashPlaceOfSettlementDetail():void {
+			
+			var finInstPkStr : String = xmlSource.cashSide.placeOfSettlementPk;
+			var parentApp :UIComponent = UIComponent(this.parentApplication);
+			
+			XenosPopupUtils.showFinInstDetails(finInstPkStr, parentApp);
+	   }
+	   
+	   /**
+	   * This method is used for loading FinInstPopUp module 
+	   * 
+	   */  
+	   public function showCashFundBankDetail():void{
+			
+				var finInstPkStr : String = xmlSource.cashSide.ourBankPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				
+				XenosPopupUtils.showFinInstDetails(finInstPkStr,parentApp);
+				
+	   }
+	   
+	   /**
+	   * This method is used for loading Account Details popup module
+	   * 
+	   */  
+	   public function showFundSettleAccountDetail():void{
+	   		
+				
+				var accPkStr : String = xmlSource.securitySide.ourAccPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showAccountSummary(accPkStr,parentApp);
+				
+	   }
+	   
+	   /**
+	   * This method is used for loading Account Details popup module
+	   * 
+	   */  
+	   public function showCashFundSettleAccountDetail():void{
+	   		
+				
+				var accPkStr : String = xmlSource.cashSide.ourAccPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showAccountSummary(accPkStr,parentApp);
+				
+	   }
+	   
+	   /**
+	   * This method is used for loading Account Details popup module
+	   * 
+	   */  
+	   public function showFundAccountDetail():void{
+            if (flagforInvAccPk == true && !(xmlSource.detailView.summary.inventoryAccountPk == null ||
+                    xmlSource.detailView.summary.inventoryAccountPk == '0')) {
+                var accPkStr : String = xmlSource.detailView.summary.inventoryAccountPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showAccountSummary(accPkStr,parentApp);	
+            }
+	   }
+	   
+	   /**
+	   * This method is used for loading Broker Account Details popup module
+	   * 
+	   */  
+	   public function showBrokerAccountDetail():void {
+            if (flagforCliAccPk == true && !(xmlSource.detailView.summary.clientAccountPk == null ||
+                    xmlSource.detailView.summary.clientAccountPk == '0')) {
+                var accPkStr : String = xmlSource.detailView.summary.clientAccountPk;           
+		   		var parentApp :UIComponent = UIComponent(this.parentApplication);
+		   		XenosPopupUtils.showAccountSummary(accPkStr, parentApp);
+            }
+	   }
+	   
+	   /**
+	   * This method is used for loading Account Details popup module
+	   * 
+	   */  
+	   public function showCPSettleAccountDetail():void{
+				var accPkStr : String = xmlSource.securitySide.cpAccPk;
+				if(StringUtil.trim(accPkStr) != Globals.EMPTY_STRING){
+					cpStlAcc.styleName = "TextLink";
+					cpStlAcc.useHandCursor = true;
+					cpStlAcc.buttonMode = true;
+					cpStlAcc.mouseChildren = false;
+					var parentApp :UIComponent = UIComponent(this.parentApplication);
+					XenosPopupUtils.showAccountSummary(accPkStr,parentApp);
+				}				
+	   }
+	   
+	   /**
+	   * This method is used for loading Account Details popup module
+	   * 
+	   */  
+	   public function showCashCPSettleAccountDetail():void{
+	   		
+				
+				var accPkStr : String = xmlSource.cashSide.cpAccPk;
+				if(StringUtil.trim(accPkStr) != Globals.EMPTY_STRING){
+					cpCashStlAcc.styleName = "TextLink";
+					cpCashStlAcc.useHandCursor = true;
+					cpCashStlAcc.buttonMode = true;
+					cpCashStlAcc.mouseChildren = false;
+					var parentApp :UIComponent = UIComponent(this.parentApplication);
+					XenosPopupUtils.showAccountSummary(accPkStr,parentApp);
+				}
+				
+	   }
+	   /**
+	   * This method is used for loading Instrument Details popup module
+	   * 
+	   */  
+	   public function showInstrumentDetail():void{
+	   			
+				var InstPkStr : String = xmlSource.detailView.summary.instrumentPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showInstrumentDetails(InstPkStr, parentApp);
+	   }
+	   
+	   /**
+	    * This method is used for loading Fund Details popup module
+	    * 
+	    */  
+	   public function showFundDetail():void{
+	   		var fundPkStr : String = xmlSource.detailView.summary.fundPk;
+			var parentApp :UIComponent = UIComponent(this.parentApplication);
+			XenosPopupUtils.showFundCodeDetails(fundPkStr, parentApp);
+	   }
+	   
+	   /**
+	    * Function to fetch the Settlement Completion History Reference No 
+	    */
+	   private function getCompletionHistoryReferenceNo(item:Object,column : DataGridColumn):String{
+            return item.refNo;
+       }
+	   
+	   /**
+	   * This method is used for loading Trade Details popup module
+	   * 
+	   */  
+	   public function showTradeDetail():void{
+	   		//XenosAlert.info("settlementFor :: "+xmlSource.detailView.settlementFor);
+	   		var sPopup : SummaryPopup;
+			if(xmlSource.detailView.settlementFor == "SECURITY_TRADE"){
+				sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+				
+				sPopup.title = this.parentApplication.xResourceManager.getKeyValue('trd.summaryquery.label.tradedetailsummary');
+				sPopup.width = 650;
+	    		sPopup.height = 420;
+				PopUpManager.centerPopUp(sPopup);		
+				var tradePkStr : String = xmlSource.detailView.summary.tradePk;
+				//XenosAlert.info("tradePk :: "+tradePkStr);
+				sPopup.moduleUrl = Globals.TRADE_DETAILS_SWF+Globals.QS_SIGN+Globals.TRADE_PK+Globals.EQUALS_SIGN+tradePkStr;
+			}
+			if(xmlSource.detailView.settlementFor == "DERIVATIVE_TRADE"){
+	    		sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+	    		
+	    		sPopup.title = this.parentApplication.xResourceManager.getKeyValue('drv.derivativetrade.title') + " " + this.parentApplication.xResourceManager.getKeyValue('inf.title.view');
+	            //set the width and height of the popup
+	            sPopup.width = 975;
+	    		sPopup.height = 550;
+	 
+	    		sPopup.horizontalScrollPolicy="auto";
+	    		sPopup.verticalScrollPolicy="auto";
+	    		PopUpManager.centerPopUp(sPopup);
+	    
+	            var tradePk : String = xmlSource.detailView.summary.tradePk;
+	            var actionMode : String = "query";            
+	    		
+	    		//Setting the Module path with some parameters which will be needed in the module for internal processing.    		
+	    		sPopup.moduleUrl = Globals.DRV_TRADE_DETAILS_SWF + Globals.QS_SIGN + Globals.DRV_TRADE_PK + Globals.EQUALS_SIGN + tradePk + Globals.AND_SIGN + Globals.DRV_ACTION_MODE + Globals.EQUALS_SIGN + actionMode;
+			}
+			if(xmlSource.detailView.settlementFor == "DERIVATIVE_TAX_FEE" && xmlSource.detailView.settlementBasis == "N"){
+				
+	    		sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+	    		
+	    		sPopup.title = this.parentApplication.xResourceManager.getKeyValue('drv.contract.title') + " " + this.parentApplication.xResourceManager.getKeyValue('inf.title.view');
+	            //set the width and height of the popup
+	            sPopup.width = 975;
+	    		sPopup.height = 550;
+	 
+	    		sPopup.horizontalScrollPolicy="auto";
+	    		sPopup.verticalScrollPolicy="auto";
+	    		PopUpManager.centerPopUp(sPopup);
+	    
+	            var contractPk : String = xmlSource.detailView.summary.tradePk;
+	    		
+	    		//Setting the Module path with some parameters which will be needed in the module for internal processing.
+	    		sPopup.moduleUrl = Globals.CONTRACT_DETAILS_SWF + Globals.QS_SIGN + "contractPk" + Globals.EQUALS_SIGN + contractPk;
+			}
+			if(xmlSource.detailView.settlementFor == "DERIVATIVE_TAX_FEE" && xmlSource.detailView.settlementBasis == "E"){
+				
+	    		sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+	    		
+	    		sPopup.title = this.parentApplication.xResourceManager.getKeyValue('drv.derivativetrade.title') + " " + this.parentApplication.xResourceManager.getKeyValue('inf.title.view');
+	            //set the width and height of the popup
+	            sPopup.width = 975;
+	    		sPopup.height = 550;
+	 
+	    		sPopup.horizontalScrollPolicy="auto";
+	    		sPopup.verticalScrollPolicy="auto";
+	    		PopUpManager.centerPopUp(sPopup);
+	    
+	            var tradePk1 : String = xmlSource.detailView.summary.tradePk;
+	            var actionMode1 : String = "query";            
+	    		
+	    		//Setting the Module path with some parameters which will be needed in the module for internal processing.    		
+	    		sPopup.moduleUrl = Globals.DRV_TRADE_DETAILS_SWF + Globals.QS_SIGN + Globals.DRV_TRADE_PK + Globals.EQUALS_SIGN + tradePk1 + Globals.AND_SIGN + Globals.DRV_ACTION_MODE + Globals.EQUALS_SIGN + actionMode1;
+			}
+			if(xmlSource.detailView.settlementFor == "DERIVATIVE_EXPIRY"){
+				
+	    		sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+	    		
+	    		sPopup.title = this.parentApplication.xResourceManager.getKeyValue('drv.contract.title') + " " + this.parentApplication.xResourceManager.getKeyValue('inf.title.view');
+	            //set the width and height of the popup
+	            sPopup.width = 975;
+	    		sPopup.height = 550;
+	 
+	    		sPopup.horizontalScrollPolicy="auto";
+	    		sPopup.verticalScrollPolicy="auto";
+	    		PopUpManager.centerPopUp(sPopup);
+	    
+	            var contractPk1 : String = xmlSource.detailView.summary.tradePk;
+	    		
+	    		//Setting the Module path with some parameters which will be needed in the module for internal processing.
+	    		sPopup.moduleUrl = Globals.CONTRACT_DETAILS_SWF + Globals.QS_SIGN + "contractPk" + Globals.EQUALS_SIGN + contractPk1;
+			}
+			if(xmlSource.detailView.settlementFor == "BANKING_TRADE" ||
+				xmlSource.detailView.settlementFor == "DEPO") {
+				
+	    		sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+	    		
+	    		sPopup.title = this.parentApplication.xResourceManager.getKeyValue('bkg.detail.label');
+	            //set the width and height of the popup
+	            sPopup.width = 975;
+	    		sPopup.height = 550;
+	 
+	    		sPopup.horizontalScrollPolicy="auto";
+	    		sPopup.verticalScrollPolicy="auto";
+	    		PopUpManager.centerPopUp(sPopup);
+	    
+	            var bankingTradePk : String = xmlSource.detailView.summary.tradePk;
+	    		
+	    		//Setting the Module path with some parameters which will be needed in the module for internal processing.
+	    		sPopup.moduleUrl = Globals.BKG_DETAILS_SWF + Globals.QS_SIGN + "bkgTradePk" + Globals.EQUALS_SIGN + bankingTradePk;
+			}
+			if(xmlSource.detailView.settlementFor == "FOREX_TRADE"){
+					
+	    		sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+	    		
+	    		sPopup.title = this.parentApplication.xResourceManager.getKeyValue('frx.label.forextradedetails');
+	            //set the width and height of the popup
+	            sPopup.width = 975;
+	    		sPopup.height = 350;
+	 
+	    		sPopup.horizontalScrollPolicy="auto";
+	    		sPopup.verticalScrollPolicy="auto";
+	    		PopUpManager.centerPopUp(sPopup);
+	    
+	            var forexTradePk : String = xmlSource.detailView.summary.tradePk;
+	    		
+	    		//Setting the Module path with some parameters which will be needed in the module for internal processing.
+	    		sPopup.moduleUrl = Globals.FRX_TRADE_DETAILS_SWF + Globals.QS_SIGN + "frxTradePk" + Globals.EQUALS_SIGN + forexTradePk;
+			}
+            if(xmlSource.detailView.settlementFor == "DERIVATIVE_CLOSEOUT"){
+                sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+                
+                sPopup.title = this.parentApplication.xResourceManager.getKeyValue('drv.label.closeouttradedetails');
+                //set the width and height of the popup
+                sPopup.width = 975;
+                sPopup.height = 350;
+     
+                sPopup.horizontalScrollPolicy="auto";
+                sPopup.verticalScrollPolicy="auto";
+                PopUpManager.centerPopUp(sPopup);
+        
+                var closeOutTradePk : String = xmlSource.detailView.summary.tradePk;
+                
+                //Setting the Module path with some parameters which will be needed in the module for internal processing.
+                sPopup.moduleUrl = Globals.CLOSE_OUT_DETAILS_SWF + Globals.QS_SIGN + "closeOutTradePk" + Globals.EQUALS_SIGN + closeOutTradePk;
+            }
+            if(xmlSource.detailView.settlementFor == "CORPORATE_ACTION" && xmlSource.detailView.detailType != "RIGHTS_EXERCISE"){
+                sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+                
+                sPopup.title = this.parentApplication.xResourceManager.getKeyValue('cax.label.entitlement.detail.view');
+                //set the width and height of the popup
+                sPopup.width = 800;
+                sPopup.height = 500;
+     
+                sPopup.horizontalScrollPolicy="auto";
+                sPopup.verticalScrollPolicy="auto";
+                PopUpManager.centerPopUp(sPopup);
+        
+                var detailPk : String = xmlSource.detailView.summary.tradePk;
+                
+                //Setting the Module path with some parameters which will be needed in the module for internal processing.
+                sPopup.moduleUrl = Globals.CAX_RIGHTS_DETAILS_SWF + Globals.QS_SIGN + Globals.RIGHTS_DETAIL_PK + Globals.EQUALS_SIGN + detailPk;
+            }
+            if(xmlSource.detailView.settlementFor == "CORPORATE_ACTION" && xmlSource.detailView.detailType == "RIGHTS_EXERCISE"){
+                sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+                
+                sPopup.title = this.parentApplication.xResourceManager.getKeyValue('cax.rightsexercise.label.detail.view');
+                //set the width and height of the popup
+                sPopup.width = 800;
+                sPopup.height = 320;
+     
+                sPopup.horizontalScrollPolicy="auto";
+                sPopup.verticalScrollPolicy="auto";
+                PopUpManager.centerPopUp(sPopup);
+        
+                var excercisePk : String = xmlSource.detailView.summary.tradePk;
+                
+                //Setting the Module path with some parameters which will be needed in the module for internal processing.
+                sPopup.moduleUrl = Globals.CAX_RIGHTS_EXERCISE_SWF + Globals.QS_SIGN + Globals.RIGHTS_EXERCISE_PK + Globals.EQUALS_SIGN + excercisePk;
+            }
+	   }
+	   
+	   /**
+	    * This method is used for creating link for tradeRefNo
+	    */ 
+	    public function useLink():void {
+	   	    if(xmlSource.detailView.settlementFor == "DERIVATIVE_TRADE" ||
+		   		 xmlSource.detailView.settlementFor == "SECURITY_TRADE" ||
+		   		 (xmlSource.detailView.settlementFor == "DERIVATIVE_TAX_FEE" && xmlSource.detailView.settlementBasis == "N") ||
+		   		 (xmlSource.detailView.settlementFor == "DERIVATIVE_TAX_FEE" && xmlSource.detailView.settlementBasis == "E") ||
+		   		  xmlSource.detailView.settlementFor == "DERIVATIVE_EXPIRY" ||
+		   		  xmlSource.detailView.settlementFor == "BANKING_TRADE" ||
+		   		  xmlSource.detailView.settlementFor == "DEPO" ||
+		   		  xmlSource.detailView.settlementFor == "FOREX_TRADE" ||
+		   		  xmlSource.detailView.settlementFor == "DERIVATIVE_CLOSEOUT" ||
+		   		  xmlSource.detailView.settlementFor == "CORPORATE_ACTION") {
+		   		trdRefNo.useHandCursor = true;
+				trdRefNo.styleName = "TextLink";
+				trdRefNo.buttonMode = true;
+				trdRefNo.mouseChildren = false;
+		   	}
+
+            flagforInvAccPk =  xmlSource.detailView.summary.hasOwnProperty("inventoryAccountPk") as Boolean;	   	
+            if (flagforInvAccPk == true && !(xmlSource.detailView.summary.inventoryAccountPk == null ||
+                    xmlSource.detailView.summary.inventoryAccountPk == '0')) {
+                fundAcNo.useHandCursor = true;
+                fundAcNo.styleName = "TextLink";
+                fundAcNo.buttonMode = true;
+                fundAcNo.mouseChildren = false;                    
+            } else {
+                fundAcNo.useHandCursor = false;
+                fundAcNo.buttonMode = false;
+            }  
+
+            flagforCliAccPk = xmlSource.detailView.summary.hasOwnProperty("clientAccountPk") as Boolean;               
+            if (flagforCliAccPk == true && !(xmlSource.detailView.summary.clientAccountPk == null ||
+                    xmlSource.detailView.summary.clientAccountPk == '0')) {
+                brokerAcNo.useHandCursor = true;
+                brokerAcNo.styleName = "TextLink";
+                brokerAcNo.buttonMode = true;
+                brokerAcNo.mouseChildren = false;                    
+            }  else {
+                brokerAcNo.useHandCursor = false;
+                brokerAcNo.buttonMode = false;
+            }     
+	    }
+    ]]>
+	</mx:Script>	
+     <mx:Script source = "actionscripts/SettlementDetail.as"/> 
+     
+     <mx:Metadata>
+     	[ResourceBundle("trdResources")]
+     	[ResourceBundle("frxResources")]
+     	[ResourceBundle("drvResources")]
+     	[ResourceBundle("bkgResources")]
+    </mx:Metadata>
+     
+     <mx:XMLListCollection id="stlHistory" source="{xmlSource.detailView.completionHistoryDetailsList.completionHistoryDetails}"/>
+    <!--mx:XMLListCollection id="tax" source="{xmlSource.taxFeeAmounts.taxFeeAmount}"/-->
+    <mx:VBox id="stlDetailView" width="100%" height="100%" styleName="Padding">
+         <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+    	<flexlib:WindowShade id="ws1" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws1" tabChildren="{ws1.opened}" styleName="linkButtonWindowShade" opened="true" label="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.settlementviewheader')}" width="100%" >
+		    <mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.settlementrefno')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.summary.settlementReferenceNo}-{xmlSource.detailView.summary.versionNo}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.senderrefno')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.senderReferenceNo}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.traderefno')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.tradeReferenceNo}" id="trdRefNo" click="showTradeDetail()" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.status')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.summary.status}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.settlementtype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.summary.settlementType} ({xmlSource.detailView.summary.instructionTypeDisplay})" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.transactiontype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.transactionType}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundcode')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.summary.fundCode}" click="showFundDetail()" styleName="TextLink" buttonMode="true" useHandCursor="true" mouseChildren="false" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundname')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.summary.fundName}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.eventtype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.summary.subEventTypeDisplayString}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.wiretype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.wireType}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.brokerbic')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.brokerBic}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.cpcode')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.counterPartyCode}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundaccountno')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label id="fundAcNo" text="{xmlSource.detailView.summary.fundAccountNo}" click="showFundAccountDetail()" useHandCursor="false"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundaccountname')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.summary.shortName}"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.brokerAccount')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label id="brokerAcNo" text="{xmlSource.detailView.accountNo}" click="showBrokerAccountDetail()" useHandCursor="false"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.brokerAccountname')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.accountName}"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<!--mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.localaccount')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.localAccount}" click="showFundAccountDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text=""/>
+					</mx:GridItem>
+				</mx:GridRow-->
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.valuedate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.summary.valueDateStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.tradedate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.tradeDateStr}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.deliverydate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.deliveryDateStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.settlequeryfor')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.summary.settleQueryFor}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.settlementstatus')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{statusStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.settlestandingstatus')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.settlementInfoStatus}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.price')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.priceStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.settlementfor')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.settlementFor}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.tradetype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.tradeType}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.remarks')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.remarks}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_regi_date')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.createDate}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_upd_date')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.updateDate}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.creation_date')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.entryDate}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.update_date')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.lastEntryDate}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.created_by')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.createdBy}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.updated_by')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.updatedBy}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.matchstatus')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.matchStatus}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.blockstatus')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{blockStatusStr}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.pairoffactioncategory')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.pairoffActionCategory}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.stlprohibitedtype')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.settlementProhibitedType}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.prohibitedfromdate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.prohibitedFromDateStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.prohibitedtodate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{xmlSource.detailView.prohibitedToDateStr}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				
+			</mx:Grid>
+    	</flexlib:WindowShade>
+    	
+    	<flexlib:WindowShade id="ws2" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws2" tabChildren="{ws2.opened=false}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.settlementviewsubheader2')}" width="100%" >
+    	<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.inxtransmission')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.detailView.transmissionReqd}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.inxgeneration')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text=""/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.instructionrefno')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.detailView.instructionRefNo}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.transmissionstatus')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{transmissionStatusStr}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.transmissiondate')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.detailView.transmissionDateStr}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.acceptanceStatus')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{acceptanceStatusStr}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.errorCode')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.detailView.errorCode}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.errorDesc')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.detailView.errorDesc}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.cxlacceptanceStatus')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{cxlAcceptanceStatusStr}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.cxlerrorCode')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.detailView.cxlErrorCode}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.cxlerrorDesc')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.detailView.cxlErrorDesc}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.freetexttype')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.detailView.freeField1Type}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.freetext')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.detailView.freeField1Text}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.freefieldtype2')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.detailView.freeField2Type}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.freefieldtext2')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.detailView.freeField2Text}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			
+	    </mx:Grid>
+    	</flexlib:WindowShade>
+    	
+    	<flexlib:WindowShade id="ws3" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws3" tabChildren="{ws3.opened=false}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.settlementviewsubheader3')}" width="100%" visible="false" includeInLayout="false">
+    	<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.securitycode')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.securitySide.securityCode}" click="showInstrumentDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.securityname')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.securitySide.officialName}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.label.alternatesecurityid')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.detailView.summary.altSecurityDisplayString}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.quantitynominal')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.securitySide.quantityStr}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.deliverreceive')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.securitySide.deliverReceiveDisplay}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.form')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.securitySide.deliveryMethod}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.bondtaxexemption')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.securitySide.bondTaxExemption}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.cpbank')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">					
+					<mx:Label id="cpBank" text="{xmlSource.securitySide.cpBank}" click="showCpBankDetail()" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.cpsettlementaccount')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.securitySide.cpSettleAccount}" id="cpStlAcc" click="showCPSettleAccountDetail()" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.localcode')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.securitySide.localCode}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.cpintermediaryinfo')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.securitySide.cpIntermediary}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.beneficiaryname')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.securitySide.beneficiaryName}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.instrqry.label.firmbank')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.securitySide.ourBank}" click="showFundBankDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.oursettlementaccount')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.securitySide.ourSettleAccount}" click="showFundSettleAccountDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.placeofsettlement')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.securitySide.placeOfSettlement}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.participantid')}" styleName="FormLabelHeading"/>
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.securitySide.participantId}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.participantid2')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.securitySide.participantId2}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.description')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="80%" colSpan="3">
+					<mx:Label text="{xmlSource.securitySide.description}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			
+		</mx:Grid>
+    	</flexlib:WindowShade>
+    	
+    	<flexlib:WindowShade id="ws4" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws4" tabChildren="{ws4.opened=false}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.settlementviewsubheader4')}" width="100%" visible="false" includeInLayout="false">
+    	<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.settlementccy')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.detailView.summary.ccyCode}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.wayofpayment')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.cashSide.wayOfPayment}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.netamt')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.cashSide.quantityStr}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.paymentreceive')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.cashSide.deliverReceiveDisplay}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.eligiblebalance')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.cashSide.totalEligibleStr}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.taxamount')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.cashSide.taxAmountStr}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.cpbank')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">										
+					<mx:Label id="cpBankCash" text="{xmlSource.cashSide.cpBank}" click="showCashCpBankDetail()" selectable="true"/>					
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.cpsettlementaccount')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.cashSide.cpSettleAccount}" id="cpCashStlAcc" click="showCashCPSettleAccountDetail()" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.localcode')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.cashSide.localCode}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.furtherCredit')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.cashSide.furtherCredit}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.cpintermediaryinfo')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.cashSide.cpIntermediary}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.beneficiaryname')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.cashSide.beneficiaryName}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.instrqry.label.firmbank')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.cashSide.ourBank}" click="showCashFundBankDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.oursettlementaccount')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.cashSide.ourSettleAccount}" click="showCashFundSettleAccountDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.underlyingsecuritycode')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.detailView.correspondingSecurityId}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.shortnameforunderlyingsecurityid')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.detailView.correspondingSecurityIdShortName}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.placeofsettlement')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.cashSide.placeOfSettlement}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.participantid')}" styleName="FormLabelHeading"/>
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.cashSide.participantId}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.participantid2')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label text="{xmlSource.cashSide.participantId2}" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.description')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="80%" colSpan="3">
+					<mx:Label text="{xmlSource.cashSide.description}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+		</mx:Grid>
+    	</flexlib:WindowShade>
+	    <flexlib:WindowShade id="ws5" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws5" tabChildren="{ws5.opened}" styleName="linkButtonWindowShade" opened="true" label="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.settlementviewsubheader5')}" width="100%" >
+    	<mx:HBox width="100%">
+        	<mx:Box width="100%" paddingLeft="1">
+        	<mx:DataGrid dataProvider="{stlHistory}" width="100%" height="100%">
+				<mx:columns>
+				    <mx:DataGridColumn dataField="" showDataTips="Raw Swift File" itemRenderer="com.nri.rui.stl.renderers.StlDetailSwiftViewRenderer" sortable="false" visible="true" width="20"/>
+					<mx:DataGridColumn headerText="History Ref No" dataField="" labelFunction="getCompletionHistoryReferenceNo" itemRenderer="com.nri.rui.stl.renderers.SettlementHistoryDetailRenderer"/>
+					<mx:DataGridColumn headerText="Serial No" dataField="serialNo"/>
+					<mx:DataGridColumn headerText="History Type" dataField="completionType"/>
+					<mx:DataGridColumn headerText="Effective Date" dataField="effectiveDateStr"/>
+					<mx:DataGridColumn headerText="Quantity" dataField="quantityStr" textAlign="right"/>
+					<mx:DataGridColumn headerText="Amount" dataField="amountStr" textAlign="right"/>
+					<mx:DataGridColumn headerText="CancelledNo" dataField="cancelledNo"/>
+					<mx:DataGridColumn headerText="Quasi Comp By" dataField="quasiCompBy"/>
+					<mx:DataGridColumn headerText="New Obligation For" dataField="newObligationFor"/>
+					<mx:DataGridColumn headerText="Status" dataField="status" itemRenderer="com.nri.rui.core.renderers.CustomizedStatusRenderer"/>
+				</mx:columns>
+			</mx:DataGrid>
+			</mx:Box>
+		</mx:HBox>
+            
+        </flexlib:WindowShade>
+        
+        
+    </mx:VBox>
+</mx:Module>

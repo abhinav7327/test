@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<cont:XenosMDIWindow xmlns="com.nri.rui.core.controls.*" xmlns:cont="com.nri.rui.core.containers.*" xmlns:mx="http://www.adobe.com/2006/mxml" creationComplete="setUp()" horizontalScrollPolicy="off" verticalScrollPolicy="off" tabChildren="true" verticalGap="0" focusStart="focusStartHandler();" focusEnd="focusEndHandler()">
+    <mx:Script>
+        <![CDATA[
+        	import flexlib.scheduling.scheduleClasses.utils.Selection;
+        	import mx.managers.IFocusManager;
+        	import com.nri.rui.core.containers.XenosMDICanvas;
+            import com.nri.rui.core.Globals;
+            import com.nri.rui.core.startup.XenosApplication;
+            import mx.rpc.events.FaultEvent;
+            import mx.rpc.events.ResultEvent;
+            import mx.controls.Alert;
+            import mx.events.ResizeEvent;
+            [Bindable]
+            public var selectedNode:XML;
+            
+             public function setUp():void{
+               this.title="Navigation";
+               this.width=210;
+               //this.percentHeight=100;
+               //this.height = parent.height - 35;
+               this.x = parent.x;
+               this.y = parent.y;
+               app = XenosApplication.getInstance(Globals.DEFAULT_ENTERPRISE);
+               //Set the default x,y co-ordinates 
+               app.winX = this.x+this.width;
+               app.winY = this.y;
+               if(app.cachedItems.menuList == null || app.cachedItems.ccyList == null) {
+                      	nav.send();
+               }
+               tree.addEventListener(KeyboardEvent.KEY_UP,enterHandler);  
+                          
+            } 
+            
+            private function focusEndHandler():void{
+            	/* focusManager.deactivate();
+            	systemManager.stage.focus = null; */
+            	
+            }
+             private function focusStartHandler():void{
+             	
+            	 focusManager.setFocus(tree);
+            	
+            }
+            public function fixLabel(item:XML):String {
+                return unescape(item.@label);
+            }
+            public function resultHandler(event:ResultEvent):void {
+                
+                var httpService:XenosHTTPService = event.target as XenosHTTPService;
+                data = event.result as XML;
+                
+                app.cachedItems.menuList  = data.child(Globals.MENU_NODE);
+                app.cachedItems.ccyList = data.child(Globals.CCY_NODE);
+                app.cachedItems.instrumentTree = data.child(Globals.INSTR_NODE);
+                app.cachedItems.marketTree = data.child(Globals.MARKET_NODE);
+                
+                httpService.removeEventListener(ResultEvent.RESULT,resultHandler); 
+                
+            }
+            public function faultHandler(event:FaultEvent):void {
+                
+                Alert.show(event.fault.faultCode + event.fault.faultString + " Fault Detail" + event.fault.faultDetail);
+            }
+            /* override protected function closeHandler(event:Event):void
+            {
+                minimized = true;
+                dispatchEvent(new Event(MINIMIZE));
+            } */
+            
+            // Event handler for the Tree control click event.
+            public function onClick(event:Event):void {
+                
+                selectedNode=Tree(event.currentTarget).selectedItem as XML;
+                openTree(true);
+              
+            }
+            
+			public function enterHandler(event:KeyboardEvent):void {
+				if(event.keyCode == Keyboard.ENTER)
+			    {
+			        selectedNode=Tree(event.currentTarget).selectedItem as XML;
+			       	openTree(false);
+			    }
+
+			}
+		
+		private function openTree(key:Boolean):void{
+			
+			var compName:String ;
+            compName = selectedNode.attribute("comp");
+            var url:String = selectedNode.attribute("url");
+            var title:String = selectedNode.attribute("title");
+            var menuPk:String = selectedNode.attribute("pk");
+            
+          
+           if(tree.dataDescriptor.isBranch(selectedNode))
+           {	if(key == true)
+            		tree.expandItem(selectedNode, !tree.isItemOpen(selectedNode), true);
+                
+            }else{
+            	XenosMDICanvas(tree.parent.parent).addWindow(compName,title,ModulePanelLoader,url,menuPk);
+            }
+		}	
+		/**
+		 * This method will collapse all the tree nodes
+		 */
+		private function collapseAll(evt:MouseEvent):void {
+           // tree.openItems = [];
+           for(var i :int =0; i < tree.dataProvider.length;i++){
+               	 tree.expandChildrenOf(tree.dataProvider[i],false);
+             }
+          
+        }
+        /**
+		 * This method will open all the tree nodes
+		 */
+	 	private function expandAll(evt:MouseEvent):void {
+             for(var i :int =0; i < tree.dataProvider.length;i++){
+               	 tree.expandChildrenOf(tree.dataProvider[i],true);
+             } 
+        }
+        ]]>
+    </mx:Script>
+
+    <XenosHTTPService id="nav" url="ref/menuLoaderDispatch.action?method=menuLoader" resultFormat="e4x" result="resultHandler(event)" fault="faultHandler(event)"/>
+    <mx:HBox width="100%" styleName="ExCoBgPanel" horizontalAlign="right"> 
+		<mx:Image source="@Embed('../../../../../assets/icon_expand.png')" id="button1" buttonMode="true" toolTip="Expand All" click="expandAll(event);" />
+		<!--mx:Image source="@Embed('../../../../../assets/icon_xc_separator.png')" id="separator" /-->
+        <mx:Image source="@Embed('../../../../../assets/icon_collapse.png')" id="button2" toolTip="Collapse All" click="collapseAll(event);" buttonMode="true"/>
+	</mx:HBox> 
+	<mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    <mx:Tree id="tree" dataProvider="{app.cachedItems.menuList}" labelField="@label" labelFunction="fixLabel" width="100%" height="100%" borderStyle="none" showRoot="false" itemClick="onClick(event)" selectedIndex="0" />
+     
+</cont:XenosMDIWindow>

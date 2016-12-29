@@ -1,0 +1,110 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [
+				{name:"<spring:message code="drv.label.contractreferenceno" htmlEscape="false"/>", field:"contractReferenceNo", id:"contractReferenceNo", sortable: true, width:150,formatter:Slick.Formatters.DrvContractDetailViewFormater},
+				{name:"<spring:message code="drv.label.securitycode" htmlEscape="false"/>", field:"securityId", id:"securityId", sortable: true, width:130,formatter:Slick.Formatters.InstrumentDetailViewFormater},
+				{name:"<spring:message code="drv.label.securityshortname" htmlEscape="false"/>", field:"securityShortName", id:"securityShortName", sortable: true, width:200},
+				{name:"<spring:message code="ref.common.label.alternatesecurityid" htmlEscape="false"/>", field:"alternateSecCodeDisp", id:"alternateSecCodeDisp", sortable: true, width:151},
+				{name:"<spring:message code="drv.label.underlyingshortname" htmlEscape="false"/>", field:"underlyingShortName", id:"underlyingShortName", sortable: true, width:160},
+				{name:"<spring:message code="drv.label.accountno" htmlEscape="false"/>", field:"cpAccountNo", id:"cpAccountNo", sortable: true, width:140,formatter:Slick.Formatters.BrokerAccountDetailFormatter, accountDetailOptions:{pkFieldName:'cpAccountPk'}},
+				{name:"<spring:message code="drv.label.accountname" htmlEscape="false"/>", field:"cpAccountName", id:"cpAccountName", sortable: true, width:151},
+				{name:"<spring:message code="drv.label.fundaccountno" htmlEscape="false"/>", field:"inventoryAccountNo", id:"inventoryAccountNo", sortable: true, width:130,formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'inventoryAccountPk'}},
+				{name:"<spring:message code="drv.label.fundaccountname" htmlEscape="false"/>", field:"inventoryAccountName", id:"inventoryAccountName", sortable: true, width:151},
+				{name:"<spring:message code="drv.label.fundcode" htmlEscape="false"/>", field:"fundCode", id:"fundCode", sortable: true, width:80, formatter:Slick.Formatters.FundDetailViewFormatter},
+				{name:"<spring:message code="drv.label.fundname" htmlEscape="false"/>", field:"fundName", id:"fundName", sortable: true, width:150},
+				{name:"<spring:message code="drv.label.settlementtype" htmlEscape="false"/>", field:"drvSettlementType", id:"drvSettlementType", sortable: true, width:150},
+				{name:"<spring:message code="drv.label.marketprice" htmlEscape="false"/>", field:"marketPriceDisp", id:"marketPriceDisp",cssClass: 'xenos-grid-number', sortable: true, width:150},
+				{name:"<spring:message code="drv.label.openbalqty" htmlEscape="false"/>", field:"openQuantityStr", id:"openQuantityStr",cssClass: 'xenos-grid-number', sortable: true, width:150},
+				{name:"<spring:message code="drv.label.expiredquantity" htmlEscape="false"/>", field:"expiredQuantityStr", id:"expiredQuantityStr",cssClass: 'xenos-grid-number', sortable: true, width:150},
+				{name:"<spring:message code="drv.label.marketvalue" htmlEscape="false"/>", field:"marketValueDisp", id:"marketValueDisp",cssClass: 'xenos-grid-number', sortable: true, width:151},
+				{name:"<spring:message code="drv.label.expiryamount" htmlEscape="false"/>", field:"expiryAmountDisp", id:"expiryAmountDisp",cssClass: 'xenos-grid-number', sortable: true, width:151},
+				{name:"<spring:message code="drv.label.failreason" htmlEscape="false"/>", field:"failReason", id:"failReason", sortable: true, width:151}
+            ];
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,
+					columnPicker:true,
+                    xlsPref:true,					
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+					url: '/secure/drv/trade/expiry/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/drv/trade/expiry/query/result.json?fetch=next',
+					prevPage : '/secure/drv/trade/expiry/query/result.json?fetch=previous',
+					pdfReport: '/secure/drv/trade/expiry/query/report.json?outputType=pdf',
+					xlsReport: '/secure/drv/trade/expiry/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/drv/trade/expiry/query/reportPref.json?outputType=xls'
+				},
+				
+				defaultInvisibleColumns: ["cpAccountName", "inventoryAccountName"]
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				rec.contractReferenceNo= "<c:out value="${dl.contractReferenceNo}" />";
+				rec.contractPk= "<c:out value="${dl.contractPk}" />";
+				rec.instrumentPk= "<c:out value="${dl.instrumentPk}" />";
+				rec.securityId= "<c:out value="${dl.securityId}" />";
+				rec.securityShortName= "<c:out value="${dl.securityShortName}" />";
+				rec.alternateSecCodeDisp= "<c:out value="${dl.alternateSecCodeDisp}" />";
+				rec.underlyingShortName= "<c:out value="${dl.underlyingShortName}" />";
+				rec.cpAccountNo= "<c:out value="${dl.cpAccountNo}" />";
+	            rec.cpAccountPk= "<c:out value="${dl.cpAccountPk}" />";
+				rec.cpAccountName= "<c:out value="${dl.cpAccountName}" />";
+				rec.inventoryAccountNo= "<c:out value="${dl.inventoryAccountNo}" />";
+				rec.inventoryAccountPk= "<c:out value="${dl.inventoryAccountPk}" />";
+				rec.inventoryAccountName= "<c:out value="${dl.inventoryAccountName}" />";
+				rec.fundCode= "<c:out value="${dl.fundCode}" />";
+				rec.fundPk= "<c:out value="${dl.fundPk}" />";
+				rec.fundName= "<c:out value="${dl.fundName}" />";
+				rec.drvSettlementType= "<c:out value="${dl.drvSettlementType}" />";
+				rec.marketPriceDisp= "<c:out value="${dl.marketPriceDisp}" />";
+				rec.openQuantityStr= "<c:out value="${dl.openQuantityStr}" />";
+				rec.expiredQuantityStr= "<c:out value="${dl.expiredQuantityStr}" />";
+				rec.marketValueDisp= "<c:out value="${dl.marketValueDisp}" />";
+				rec.expiryAmountDisp= "<c:out value="${dl.expiryAmountDisp}" />";
+				rec.failReason= "<c:out value="${dl.failReason}" />";
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+
+   <!-- <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/ref/holidayQueryResult.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element> -->
+</jsp:root>

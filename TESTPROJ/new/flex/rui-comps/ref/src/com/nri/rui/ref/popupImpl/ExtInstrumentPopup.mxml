@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+$LastChangedDate$
+$Author: arpitar $
+-->
+<xenos:XPopUp width="700" height="450" title="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.securitysearch')}" 
+    xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:xenos="com.nri.rui.core.popups.*" 
+    xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" 
+    xmlns:cntrls="com.nri.rui.core.controls.*"
+    xmlns:frmtrs="com.nri.rui.core.formatters.*" xmlns:valdtrs="com.nri.rui.core.validators.*" 
+    popUpQueryRequest="{popUpQueryRequestObj}"  mapping="ref/instrumentPopupSearch.action" close="super.closeWindow()">
+     <mx:Script>
+     	<![CDATA[
+     		import com.nri.rui.core.Globals;
+     	]]>
+     </mx:Script>
+        
+     <mx:Script source = "../../../../../../actionscripts/ExtInstrumentPopup.as"/> 
+         
+     <!--Http Service information    -->  
+        
+     <!--The popup Query request HTTPService object-->
+     <cntrls:XenosHTTPService id="popUpQueryRequestObj" result="populatePopUpQuerySummaryPage(event)"
+         showBusyCursor="true"
+         fault="popUpQueryRequestErrorHand(event)"
+         method="POST"
+         resultFormat="xml">
+       <!-- <mx:request>
+            <securityCode>{securityCode.text}</securityCode>
+            <instrumentType>{instrumentType.itemCombo.text}</instrumentType>
+            <instrumentName>{instrumentName.text}</instrumentName>
+            <tradeCcy>{ccyBox.ccyText.text}</tradeCcy>
+            <listedMarket>{listedMarket.itemCombo.text}</listedMarket>
+            <maturityDateFrom>{maturityDateFrom.text}</maturityDateFrom> 
+            <maturityDateTo>{maturityDateTo.text}</maturityDateTo>
+            <rate>{rate.text}</rate>
+    </mx:request>  -->
+    </cntrls:XenosHTTPService>
+	
+	<frmtrs:XenosNumberFormatter id="numberFormatter" 
+        useThousandsSeparator="true" />
+
+ 	<valdtrs:XenosNumberValidator id="numVal" requiredFieldError="" decimalPointCountError="" 
+    	invalidCharError="" exceedsMaxError="" negativeError="" separationError="" source="{rate}" property="text" 
+        allowNegative="true" domain="real" lowerThanMinError="" />
+	
+   
+    <!--Http Service information    -->
+
+<!-- The Instrument Popup Layout -->
+    <mx:VBox width="100%" height="100%">
+        <!-- The Account Query Popup Page Layout -->
+
+        <mx:VBox id="instrumentPopupQueryPnl" width="100%">
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+            <flexlib:WindowShade id="ws1" tabChildren="{ws1.opened}" styleName="linkButtonWindowShade" opened="true" label="{this.parentApplication.xResourceManager.getKeyValue('inf.header.advancedsearch')}" width="100%" >
+			<mx:VBox width="100%" enabled="false">
+				<mx:Grid width="100%">
+					<mx:GridRow width="100%">
+						<mx:GridItem borderThickness="0" width="20%">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.popup.instrumentsearch.label.instrumentcode')}" />
+						</mx:GridItem>
+						<mx:GridItem borderThickness="0" width="30%">
+							<mx:TextInput id="securityCode" text="" restrict="{Globals.INPUT_PATTERN}"/>
+						</mx:GridItem>
+						<mx:GridItem borderThickness="0" width="20%">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.popup.instrumentsearch.label.instrumentname')}" />
+						</mx:GridItem>
+						<mx:GridItem borderThickness="0" width="30%">
+							<mx:TextInput id="instrumentName" text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem borderThickness="0" width="20%">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.market')}" />
+						</mx:GridItem>
+						<mx:GridItem borderThickness="0" width="30%">
+							<cntrls:TreeCombo id="listedMarket" dataSource="{new XML((app.cachedItems.marketTree).toString())}" editMode="true" displayClearIcon="true" labelField="label" treeHeight="200"  x="10" y="10">
+	                   		</cntrls:TreeCombo>
+						</mx:GridItem>
+						<mx:GridItem borderThickness="0" width="20%">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.rate')}" />
+						</mx:GridItem>
+						<mx:GridItem borderThickness="0" width="30%">
+							<mx:TextInput id="rate" text="" focusOut="rateHandler()"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem borderThickness="0" width="20%">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.popup.instrumentsearch.label.instrumenttype')}" />
+						</mx:GridItem>
+						<mx:GridItem borderThickness="0" width="30%">
+							<cntrls:TreeCombo id="instrumentType" dataSource="{new XML((app.cachedItems.instrumentTree).toString())}" editMode="true" displayClearIcon="true" labelField="label" treeHeight="200"  x="10" y="10">
+	                   </cntrls:TreeCombo>
+						</mx:GridItem>
+						<mx:GridItem borderThickness="0" width="20%">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.tradeccy')}" />
+						</mx:GridItem>
+						<mx:GridItem borderThickness="0" width="30%">
+							 <cntrls:CurrencyHBox id="ccyBox"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem borderThickness="0" width="20%">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.maturitydatefromto')}" />
+						</mx:GridItem>
+						<mx:GridItem borderThickness="0" width="30%">
+							<mx:HBox>
+	                            <mx:DateField id="maturityDateFrom"  formatString="YYYYMMDD"/>
+	                            <mx:DateField id="maturityDateTo" formatString="YYYYMMDD"/>
+	                     	</mx:HBox>
+						</mx:GridItem>
+						<mx:GridItem colSpan="2" width="100%" borderThickness="0">
+						</mx:GridItem>
+				</mx:GridRow>
+			</mx:Grid>
+            </mx:VBox>
+            </flexlib:WindowShade>
+            <!-- Nevigation Area-->
+            <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right" enabled="false">
+                <!--<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('ref.stategy.label.search')}" click="submitQuery();ws1.opened = false;pageNo = 1;" styleName="BtnStyle"/>-->
+                <cntrls:XenosButton id="search" label="{this.parentApplication.xResourceManager.getKeyValue('ref.stategy.label.search')}" click="submitQuery();ws1.opened = false;pageNo = 1;" styleName="BtnStyle"/>
+                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.reset')}" click="resetQuery();"  styleName="BtnStyle" />
+            </mx:HBox>             
+        </mx:VBox>
+
+        <!-- The Account Query Popup Result Page Layout -->
+
+        <mx:VBox  id="resultPnl" width="100%" height="100%" label="{this.parentApplication.xResourceManager.getKeyValue('inf.header.queryresultsummary')}">
+
+             <mx:DataGrid id="instrumentSummary" width="100%" height="100%" dataProvider="{summaryResult}"
+               >
+                <mx:columns>            
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.popup.instrumentsearch.label.instrumentcode')}" textAlign="center" dataField="instrumentCode" showDataTips="true" dataTipField="officialName">
+                    	<mx:itemRenderer>
+	                        <mx:Component>
+	                            <mx:LinkButton fontWeight="normal" color="#007ac8" textDecoration="underline" label="{data.instrumentCode}" click="{outerDocument.returnInstrumentId()}" />
+	                        </mx:Component>
+                    	</mx:itemRenderer>                   
+                	</mx:DataGridColumn>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.popup.instrumentsearch.label.instrumenttype')}" textAlign="center" dataField="instrumentType"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.popup.instrumentsearch.label.instrumentname')}" textAlign="center" dataField="officialName"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.tradeccy')}" textAlign="center" dataField="tradingCcyCode"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.status')}" textAlign="center" dataField="status"/>
+                 </mx:columns>
+             </mx:DataGrid>
+            <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+                 <mx:Button id="prevPage" styleName="BtnDatagridPrev" enabled="false" toolTip="Previous" click="doPrevious();"/>
+                 <mx:Button id="nextPage" styleName="BtnDatagridNext" enabled="false" toolTip="Next" click="doNext();"/>
+            	 <mx:Label id="page" color="red" fontWeight="bold" text="{pageNo}" toolTip="Page No"/>
+             </mx:HBox>
+        </mx:VBox>
+
+  </mx:VBox>
+    <!-- The Instrument Popup Layout -->
+    
+</xenos:XPopUp>

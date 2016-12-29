@@ -1,0 +1,136 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:jsp="http://java.sun.com/JSP/Page">
+	 
+<div class="formItemArea entryContainerConfirm paddingFour">
+	 
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>	
+	<div class="canclConf paddingFour">	
+		<div class="content xenosCanclConfBoxBg">
+			<div class="left infoIcon"><spring:message text="" htmlEscape="false"/></div>
+			<div class="left txtInfo">
+				<!-- Warning Msg -->
+				<div class="codeTypeArea" align="center">
+				   
+					<spring:message code="ncm.nostrodelete.confirmation.message" htmlEscape="false"/>
+				</div>
+			</div>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+		<div class="btmShadow"></div>
+	</div>
+<div class="formItemArea">
+	
+    <jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" /> 
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>	     
+		<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+			var context = $xenos$Wizard.$context;
+				var cancelGrid;
+				var cancelResult = [];
+				var rowId = 0;
+				
+				var cancelGridConf = {
+				enableToolbar:false,
+				consolidateActionFlag:false,
+				forceFitColumns:true,
+				buttons:{
+					print:false,	
+					xls:false,	
+					pdf:false,	
+					columnPicker:false,	
+					save:false	
+				},
+				pagingInfo:{
+					isNext : false
+				},
+				urls:{
+				},
+				events:{
+					onDataUpdate: function(data,continueUpdate){
+						for(i in data.value){
+							data.value[i].finInstRolePk = data.value[i].bankPk;
+						}
+						continueUpdate(data);
+					}
+				}
+						};
+
+			var cancelColumns = [		
+				{name:"<spring:message code="ncm.label.referenceno" htmlEscape="false"/>", field:"referenceNo", id:"referenceNo", sortable: true, width:100, formatter:Slick.Formatters.NcmAdjustmentQueryDetailViewFormatter},
+                {name:"<spring:message code="ref.fund.label.fundcode" htmlEscape="false"/>", field:"fundCodeStr", id:"fundCodeStr", sortable: true, width:100,formatter:Slick.Formatters.FundDetailViewFormatter},
+                {name:"<spring:message code="ncm.adjustment.label.bankcode" htmlEscape="false"/>", field:"bankCode",id:"bankCode", width:140, sortable:true,formatter:Slick.Formatters.FinInstDetailViewFormater},
+				{name:"<spring:message code="ncm.label.bankaccountno" htmlEscape="false"/>", field:"accountNo", id:"accountNo", sortable: true, width:100, formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'accountPk'}},
+                {name:"<spring:message code="ncm.label.gleledger" htmlEscape="false"/>", field:"gleLedgerName", id:"gleLedgerName", width:110, sortable: true },
+                {name:"<spring:message code="ncm.adjustment.label.ccycode" htmlEscape="false"/>", field:"currency",id:"currency", width:91, sortable:true},
+                {name:"<spring:message code="ncm.adjustment.label.adjustmentdate" htmlEscape="false"/>", field:"inOutDateStr", id:"inOutDateStr", width:91, sortable:true},
+				{name:"<spring:message code="ncm.adjustment.label.adjustmenttype" htmlEscape="false"/>", field:"adjustmentType", id:"adjustmentType", sortable: true, width:91},
+                {name:"<spring:message code="ncm.label.amount" htmlEscape="false"/>", field:"amountDisplayValue", id:"amountDisplayValue", sortable: true, width:60,cssClass:'xenos-grid-number',formatter:Slick.Formatters.NegetiveBalanceFormatter},
+				{name:"<spring:message code="ncm.label.authorizationstatus" htmlEscape="false"/>", field:"authorizationSuppressFlagDisp", id:"authorizationSuppressFlagDisp", width:60, sortable:true},
+				{name:"<spring:message code="ncm.label.status" htmlEscape="false"/>", field:"status",id:"status", width:60, sortable:true,formatter:Slick.Formatters.CancelRecordFormatter},
+                {name:"<spring:message code="ncm.adjustment.label.groupId" htmlEscape="false"/>", field:"groupId", id:"groupId", width:90, sortable:true}
+            ];
+				var item = {};
+				 <c:forEach items="${commandForm.nostroVO.entryPageList}" var="dl" varStatus="loopStatus"> 
+				item = {};
+					rowId+=1;
+						item.id 			= "xenos_" + rowId;	
+				item.ncmEntryPk = "<c:out value="${dl.ncmEntryPk}" />";
+				item.referenceNo= "<c:out value="${dl.referenceNo}" />";
+				item.fundCodeStr= "<c:out value="${dl.fundCodeStr}"/>";
+				item.fundPk= "<c:out value="${dl.fundPk}"/>";
+                item.bankCode = "<c:out value="${dl.bankCode}" />";
+				item.finInstRolePk = "<c:out value="${dl.bankPk}" />";
+				item.accountNo = "<c:out value="${dl.accountNo}" />";
+				item.accountPk= "<c:out value="${dl.accountPk}" />";
+				item.currency="<c:out value="${dl.currency}"/>";
+				item.gleLedgerName= "<c:out value="${dl.gleLedgerName}"/>";
+                item.inOutDateStr = "<c:out value="${dl.inOutDateStr}" />";
+			<c:if test="${dl.adjustmentType=='CASH_IN'}">;	
+				item.adjustmentType =	"<c:out value="Cash In" />";
+			</c:if>
+			<c:if test="${dl.adjustmentType=='CASH_OUT'}">;		
+				item.adjustmentType =	"<c:out value="Cash Out" />";
+			</c:if>
+                item.amountDisplayValue = "<c:out value="${dl.amountDisplayValue}" />";
+				item.authorizationSuppressFlagDisp = "<c:out value="${dl.authorizationSuppressFlagDisp}" />";
+				item.status = "<c:out value="${dl.status}" />";
+                item.groupId = "<c:out value="${dl.groupId}" />";
+				cancelResult.push(item);
+
+   </c:forEach>
+				cancelGrid = $('#cancelGrid').xenosgrid(cancelResult, cancelColumns, cancelGridConf);
+				};
+        </jsp:body>
+    </jsp:element>
+		<div class="entryBlkArea ">
+		<div class="formItemBlock">	
+			<div class="entryGrid">
+				<div id="cancelGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</div>
+	</div>	
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+	
+</div>
+</jsp:root>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:flexlib="http://code.google.com/p/flexlib/" layout="vertical" width="100%" height="100%" initialize="init()" creationComplete="creationHandler();">
+	<mx:Script>
+		<![CDATA[
+			import mx.core.Application;
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.utils.PrintUtils;
+		]]>
+	</mx:Script>
+	
+	<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+	<mx:Canvas width="100%" height="100%">
+		<mx:VBox  xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%"  paddingBottom="6" paddingLeft="6" paddingRight="6" paddingTop="6" xmlns:tabs="*">
+		    <mx:Script source="actionscripts/InstrumentConfirmTab.as"/>
+		    <mx:HBox id="lb1" width="100%" visible="false" includeInLayout="false">
+		    	<mx:Label id="sconf" text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.sysconfirm')}{new Array(urlModeBind)}" fontWeight="bold" selectable="true"/>
+		    </mx:HBox>
+		     <mx:HBox id="sysConfMessage"  styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" visible="false" verticalAlign="middle" includeInLayout="false">           
+	            <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+	            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.calendar.label.txncomplete')}" fontWeight="bold" selectable="true"/>  
+			</mx:HBox>
+		    <mx:HBox id="lb2" width="100%" visible="true" includeInLayout="true">
+		    	<mx:Label id="uconf" width="80%" text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.userconfirm')}{new Array(urlModeBind)}" fontWeight="bold" selectable="true"/>
+		    	<mx:HBox horizontalAlign="right" width="20%">
+		    		<mx:Button id="Print1" right="10" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetail(tabs.tabModules.selectedChild)"/>
+		    	</mx:HBox>
+		    </mx:HBox>
+		     
+		     <tabs:instrumentTabs id="tabs" width="100%" height="100%" dataProvider="{_confirmInitXML}" mode="{_mode==null?'entry':_mode}">
+		    </tabs:instrumentTabs>
+		    
+		    <mx:HBox id="buttonbar" width="100%" height="40">
+		        <mx:Button id="back" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" styleName="BtnStyle" click="doBack()"  />
+		         <mx:Button id="submit" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="doSubmit()" visible="false" includeInLayout="false" enabled="{_submitEnable}"/>
+		        <mx:Button id="confirm" label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" styleName="BtnStyle"  click="OperationRequest(event)"/>
+		        <mx:Button id="ok" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" visible="false" click="okOperation()"/>
+		    </mx:HBox>
+		    
+		</mx:VBox>
+	</mx:Canvas>
+    <cntrls:XenosHTTPService id="restoreXmlRequest" url="ref/instrument{urlModeBind}Dispatch.action?" fault="{errPage}"  
+             method="POST" useProxy="false" result="OperationResult(event)" showBusyCursor="true"/>	
+   	
+		<cntrls:XenosHTTPService id="submitCxlRequest" 
+         url="ref/instrumentCancelDispatch.action?method=submitInstrumentCancel" 
+         fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         result="submitCxlResult(event)" showBusyCursor="true" resultFormat="xml" />
+    
+	
+</mx:Module>

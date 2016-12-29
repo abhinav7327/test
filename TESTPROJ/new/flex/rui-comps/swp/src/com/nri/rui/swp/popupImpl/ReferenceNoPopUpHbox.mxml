@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" horizontalGap="0" xmlns:xenos="com.nri.rui.core.controls.*" >
+
+    <!-- The reference no auto complete input box-->             
+    <mx:TextInput id="referenceNo" width="100" restrict="{Globals.INPUT_PATTERN}" focusOut="focusHandler()"/>
+
+    <!-- The reference no popup control-->
+    <mx:Image id="referenceNoPopup" source="@Embed('../../../../../../assets/popup_icon.png')" verticalAlign="middle" horizontalAlign="center" click="showPopUp(recContextItem,retContextItem);"/>
+     
+	<mx:Metadata>
+	    [Event(name="preClick",type="flash.events.Event")]
+	    [Event(name="inputEvent", type="flash.events.Event")]
+	</mx:Metadata>
+     
+    <mx:Script>
+        <![CDATA[
+
+import com.nri.rui.core.Globals;        
+import com.nri.rui.core.startup.XenosApplication;
+import com.nri.rui.core.controls.XenosAlert;
+import com.nri.rui.core.controls.XenosButton;
+import com.nri.rui.core.utils.HiddenObject;
+ 
+import mx.core.UIComponent;           
+import mx.managers.PopUpManager;
+import mx.collections.ArrayCollection;
+import com.nri.rui.swp.popupImpl.ReferenceNoPopup;
+
+        
+//Items returning through context - Non display objects
+[Bindable]public var retContextItem:ArrayCollection = new ArrayCollection();
+           
+//Items receiving through context - Non display objects
+[Bindable]public var recContextItem:ArrayCollection = new ArrayCollection();
+[Bindable]private var _mode : String = "";
+           
+//This boolean check whether fund code is empty or not
+[Bindable]public var fundCodeCheck:Boolean = true;
+   
+private var popUpPoint:Point = new Point();    
+private var xApp:XenosApplication = XenosApplication.getInstance(Globals.DEFAULT_ENTERPRISE);    
+
+public function set mode (m : String) : void {
+	_mode = m ;
+}
+           
+/*
+ * Open the Account PopUp Window.
+ * Cast the return value of the createPopUp() method
+ * to AccountPopup, the name of the component containing
+ *  the PopupWindow container
+ */
+private function showPopUp(recCtxItems:ArrayCollection, retCtxItem:ArrayCollection):void
+{
+    dispatchEvent(new Event("preClick"));
+	if(fundCodeCheck == true){
+		if (recCtxItems == null)
+		{
+		    recCtxItems = new ArrayCollection();
+		}                
+		if (retCtxItem == null)
+		{
+		    retCtxItem = new ArrayCollection();
+		}
+		
+	    //create the reference number popup       
+	    
+	    var refPopup:ReferenceNoPopup = ReferenceNoPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication), ReferenceNoPopup, true));
+	    	    
+	    //Center the Popup Window in the Application's container
+	    PopUpManager.centerPopUp(refPopup);
+	
+		/* Pass a reference to the AutoComplete control
+		 * to the PopUpWindow container so that the 
+		 * PopUpWindow container can return data to the main application.
+		 */
+		refPopup.retTxtInput = referenceNo;
+	
+		// Pass a reference to the returnning context items
+		refPopup.returnContextItems = retCtxItem;
+	
+		// Pass a reference to the popup context items
+		refPopup.receiveCtxItems = recCtxItems;
+		
+		// Pass the mode to the popup context items
+		refPopup.mode = _mode;
+	
+	    xApp.submitButtonInstance = refPopup.search;
+	
+		//initialize the reference number popup
+		refPopup.initPopup();
+	}
+}
+            
+private function focusHandler():Boolean
+{   
+    dispatchEvent(new Event("inputEvent"));
+    return true;
+}        
+        
+        ]]>
+        
+    </mx:Script>
+</mx:HBox>

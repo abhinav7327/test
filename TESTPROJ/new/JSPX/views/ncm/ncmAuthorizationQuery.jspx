@@ -1,0 +1,278 @@
+<!--$Id$-->
+<!--$Author: sumitag $-->
+<!--$Date: 2016-12-23 14:24:30 $-->
+<jsp:root version="2.0"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:jsp="http://java.sun.com/JSP/Page">
+
+	 
+     
+     <div class="formItemArea">
+     
+		<spring:eval expression="T(java.lang.System).currentTimeMillis()" var="myId"/>
+		<input type="hidden" id="${myId}"/>
+		<jsp:element name="script">
+			<jsp:attribute name="type">text/javascript</jsp:attribute>
+			<jsp:attribute name="src">
+				<c:url value="/scripts/inf/utilCommons.js" />
+			</jsp:attribute>
+			<jsp:body></jsp:body>
+		</jsp:element>
+		
+		<jsp:element name="script">
+			<jsp:attribute name="type">text/javascript</jsp:attribute>
+			<jsp:attribute name="src">
+				<c:url value="/scripts/inf/datevalidation.js" />
+			</jsp:attribute>
+			<jsp:body>
+				xenos$onReady$Array.push(function() {
+				xenos.loadScript([{path:
+				xenos.context.path + '/scripts/inf/datevalidation.js', async:
+				false}]);
+				xenos.loadLocalizedScript([{path: xenos.context.path +
+				'/scripts/inf/xenos-i18n', async: false}]);
+				});
+			</jsp:body>
+		</jsp:element>
+		
+		<jsp:element name="script">
+			<jsp:attribute name="type">text/javascript</jsp:attribute>
+			<jsp:attribute name="src">
+				<c:url value="/scripts/xenos-treeview.js" />
+			</jsp:attribute>
+			<jsp:body></jsp:body>
+		</jsp:element>
+		<jsp:element name="script">
+			<jsp:attribute name="type">text/javascript</jsp:attribute>
+			<jsp:body>
+				xenos.loadLocalizedScript([
+					{path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+					{path: xenos.context.path + '/scripts/ncm/xenos-ncm-i18n', async: false}
+				]);			
+				//Loading Required scripts before validator is called.
+				xenos.loadScript([
+					{path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},
+					{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+					{path: xenos.context.path + '/scripts/ncm/xenos/ncmAuthorizationQueryValidator.js',async: false}
+				],{
+					success: function() {
+						jQuery('#' + '${myId}').parent().xenosform({
+						beforeSubmit:xenos.ns.views.ncmAuthorizationQueryValidator.validateSubmit,
+						afterRendering : afterRenderFunc
+						});
+						
+						xenos.ns.views.ncmAuthorizationQueryValidator.onChangeFundCode;
+						xenos.ns.views.ncmAuthorizationQueryValidator.onChangeBankCode;
+						
+					}
+				});
+				
+				function
+				afterRenderFunc($context){
+				/**
+				* A common request handler to be used for server communication.
+				*/
+				var xenos$Handler$RequestHandler = xenos$Handler$function({
+				get: {
+					contentType: 'json',
+					requestType: xenos$Handler$default.requestType.asynchronous
+				},
+				settings: {
+					beforeSend: function(request) {
+						request.setRequestHeader('Accept','application/json');
+					},
+					type: 'POST'
+				}
+				});
+				$('#dateFrom', $context).focus();
+				};
+				
+				xenos.ns.views.ncmAuthorizationQueryValidator.onChangeFundCode = function(e){
+					var fundCode = $("#fundCode").val();
+					$('#bankCodePopup').attr('fundCodeContext', fundCode);
+					$('#bankAccountNoPopup').attr('fundCodeContext', fundCode);
+				}
+				
+				xenos.ns.views.ncmAuthorizationQueryValidator.onChangeBankCode = function (e){
+					$('#bankAccountNoPopup').attr('bankCodeContext',$("#bankCode").val());
+				}
+				
+				$('#fundCode').unbind('change').bind('change',xenos.ns.views.ncmAuthorizationQueryValidator.onChangeFundCode);
+				$('#bankCode').unbind('change').bind('change',xenos.ns.views.ncmAuthorizationQueryValidator.onChangeBankCode);
+				
+				
+				
+				
+				
+
+			</jsp:body>
+		  </jsp:element>
+	
+     	
+		
+		<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+		<jsp:output	omit-xml-declaration="yes" />
+		
+		<div class="formItemBlock topitems dottedBg">
+		
+			<!-- Adjustment Date (From - To) -->
+			<div class="formItem">
+				<form:label path="" class="required"><spring:message code="ncm.authorizationqry.label.adjustmentdate" htmlEscape="false"/></form:label> 
+				<span><form:input value="" path="adjustmentDateFrom" class="dateinput"  id="dateFrom" 
+								  onchange ="if(!checkDate(this)) {
+												xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos.i18n.datevalidationmessage.incorrect_date,[this.value]))
+											 } else {
+												xenos.ns.views.ncmAuthorizationQueryValidator.formatDate(this.value,$('#dateFrom'))
+											 };"	
+				/></span>
+				<span><form:input value="" path="adjustmentDateTo" class="dateinput"  id="dateTo" 
+								  onchange ="if(!checkDate(this)) {
+												xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos.i18n.datevalidationmessage.incorrect_date,[this.value]))
+											 } else {
+												xenos.ns.views.ncmAuthorizationQueryValidator.formatDate(this.value,$('#dateTo'))
+											 };"
+				/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		
+		
+		   <!-- Fund Code -->
+			<div class="formItem">
+				<form:label path=""><spring:message code="ncm.authorizationqry.label.fundCode" htmlEscape="false" /></form:label>
+				<span><form:input id="fundCode" value="" path="fundCode" class="textBox" /></span>
+				<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false" /></span>
+				<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="fundCode" popType="fundCode" value="" /></div>
+				<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+			</div>
+			
+			
+			<!-- Bank/Custodian  Code -->
+			<div class="formItem">
+				<form:label path=""><spring:message code="ncm.authorizationqry.label.bankcustodiancode" htmlEscape="false" /></form:label>
+				<span><form:input id="bankCode" value="" path="bankCode" class="textBox" /></span>
+				<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false" /></span>
+				<div class="popupBtn"><input  id="bankCodePopup" type="button" class="popupBtnIco" tgt="bankCode" popType="fininstForFundPopup" value="" /></div>
+				<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+			</div>
+			
+			<!-- Bank Account Code -->
+			<div class="formItem">
+				<form:label path="bankAccountNo"><spring:message code="ncm.label.bankaccountno" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="bankAccountNo"  class="textBox" id="bankAccountNo"/></span>
+				<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+				<div class="popupBtn"><input id="bankAccountNoPopup" type="button" class="popupBtnIco" tgt="bankAccountNo" popType="settleAccFund" value="" /></div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+		
+		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		<div class="formBrdHide"><spring:message text="" htmlEscape="false"/></div>
+		
+		<div class="formItemBlock delFormItems deltopitems" style="display:none;" >
+			<!-- Deleted Item goes here -->
+			<input type="button" class="restoreAllBtn" value="Restore All" />
+			<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>	
+		</div>
+		
+		<div class="moreHandle">
+	    	<h1 class="msgHead">
+	     	 	<spring:message code="xenos.moresection.title" htmlEscape="false"/>
+	  			<div class="handleBlock">
+	  				<span class="handler" id="authQryMoreSection"><spring:message text="" htmlEscape="false"/></span>
+	  			</div>
+	    	</h1>
+		</div>
+		
+		<div class="formItemBlock more">
+		
+			<div class="moreitems dottedBg">
+			
+				<!-- Reference No -->
+				<div class="formItem">
+					<form:label path=""><spring:message code="ncm.label.referenceno" htmlEscape="false"/></form:label> 
+					<span><form:input value="" path="referenceNo" class="textBox" maxlength="16" /></span>			
+					<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- Currency Code  -->
+			    <div class="formItem">
+					<form:label path="currency"><spring:message code="ncm.authorizationqry.label.ccycode" htmlEscape="false"/></form:label> 
+					<span><form:input id="currency" value="" path="currency"  class="textBox" /></span>
+					<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="currency" popType="currency" value="" /></div>
+					<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+       			</div>
+       			
+       			<!-- Security Code -->
+				<div class="formItem">
+					<form:label path="securityCode"><spring:message code="ncm.authorizationqry.label.securitycode" htmlEscape="false"/></form:label>
+					<span><form:input value="" path="securityCode"  class="textBox" id="securityCode" /></span>
+					<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="securityCode" popType="security" value="" /></div>
+					<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!-- GLE Ledger Code -->
+				<div class="formItem">
+					<form:label path="gleLedgerCode" ><spring:message code="ncm.label.gleledgercode" htmlEscape="false"/></form:label>
+					<span>
+					<form:select id="gleLedgerCode" path="gleLedgerCode" class="dropdowninput">
+							<form:option value="" />
+							<form:options items="${commandForm.actionFormList.gleLedgerList}" itemLabel="label" itemValue="value"/>
+					</form:select>
+					</span>
+					<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false" /></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!--  Adjustment Type -->
+				<div class="formItem">
+					<form:label path="adjustmentType"><spring:message code="ncm.authorizationqry.label.adjustmenttype" htmlEscape="false"/></form:label>
+					<span>
+					<form:select id="adjustmentType" path="adjustmentType" class="dropdowninput">
+					       <form:option value="" />
+							<form:options items="${commandForm.adjustmentTypeList}" itemLabel="label" itemValue="value"/>
+					</form:select>
+					</span>
+					<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false" /></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<!--  Adjustment Reason -->
+				<div class="formItem">
+					<form:label path="reasonCode"><spring:message code="ncm.authorizationqry.label.adjustmentreason" htmlEscape="false"/></form:label>
+					<span>
+					<form:select id="adjustmentReason" path="reasonCode" class="dropdowninput">
+							<form:option value="" />
+							<form:options items="${commandForm.actionFormList.reasonCodeList}" itemLabel="label" itemValue="value"/>
+					</form:select>
+					</span>
+					<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false" /></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			
+				<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+				
+			</div>
+	
+		
+		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		<div class="formBrdHide"><spring:message text="" htmlEscape="false"/></div>
+		
+		<div class="formItemBlock delFormItems delmoreitems" style="display:none;" >
+			<!-- Deleted Item goes here -->
+			<input type="button" class="restoreAllBtn" value="Restore All" />
+			<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>	
+		</div>
+		</div>
+		
+			
+		
+   </div>
+</jsp:root>
+			

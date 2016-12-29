@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Item Renderer for displaying the Journal Detail for a specific journal Pk.  -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%">
+    <mx:Script>
+        <![CDATA[
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.Globals;
+            
+            import flash.events.MouseEvent;        
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            import mx.rpc.http.mxml.HTTPService;
+    
+            [Embed(source="../../../../../assets/icon_cancel.png")]
+    		[Bindable]
+    		private var icoSummary:Class;
+    		
+    	/**
+    	 * Mouse Click event handler to open a popup with initialization and passing values.
+    	 * 
+    	 */ 
+        public function handleMouseClick(event:MouseEvent):void {
+        	if(XenosStringUtils.equals(this.parentDocument.actionType,"cancel")){    		
+	    		//XenosAlert.info("Hello "+data.intfPk);
+	    		var sPopup : SummaryPopup;
+				sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+				sPopup.addEventListener("OkSystemConfirm",handleOkSystemConfirm);
+				sPopup.title = "User Confirmation Screen";
+				sPopup.width = parentApplication.width - 100;
+	    		sPopup.height = parentApplication.height - 275;
+				PopUpManager.centerPopUp(sPopup);
+				sPopup.moduleUrl = "assets/appl/rec/UserConfirmationCash.swf"+Globals.QS_SIGN+"trnRefNo"+Globals.EQUALS_SIGN+data.trnRefNo+Globals.AND_SIGN+"intfPk"+Globals.EQUALS_SIGN+data.intfPk;			        		
+        	}
+    	}
+    	
+    	override public function set data(value:Object):void{
+			super.data = value;
+			//visible = (StringUtil.trim(text) == Globals.EMPTY_STRING ) ? false :true;
+			//setVisibleProp();
+		}
+		/**
+    	 * Event Handler for the custom event "OkSystemConfirm"
+    	 */
+    	public function handleOkSystemConfirm(event:Event):void {
+            this.parentDocument.currentState = "";
+            this.parentDocument.initializeCashRawQuery.send();
+        }
+        ]]>
+    </mx:Script>
+    <mx:Image id="cancelView" source="{icoSummary}" width="100%" verticalAlign="middle" horizontalAlign="center" buttonMode="true" useHandCursor="true" click="handleMouseClick(event)" visible="{XenosStringUtils.equals(data.cancelStatus,'Y')}"/>
+    <!--
+    <mx:HTTPService id="cashRawCancelQueryRequest" url="rec/cashReferRawDispatch.action?method=cancelRawFile" showBusyCursor="true">
+    </mx:HTTPService>
+    -->
+</mx:VBox>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" 
+		   width="100%" height="100%" xmlns:tabs="*"
+		   xmlns:cntrls="com.nri.rui.core.controls.*" 
+		   creationComplete="submitQueryResult()">
+
+ 	<mx:Script>
+    	<![CDATA[
+    		import mx.rpc.events.ResultEvent;
+    		import mx.managers.PopUpManager;
+    		import com.nri.rui.core.utils.PrintUtils;
+    		import mx.collections.ArrayCollection;
+    		import com.nri.rui.core.controls.XenosAlert;
+    		import com.nri.rui.core.Globals ;
+    		
+	    	//[Bindable]
+	    	//private var submitResult:ArrayCollection = new ArrayCollection();	
+	    	[Bindable]
+	    	private var urlModeBind : String = "view" ;
+	    	[Bindable]
+	    	private var tradePk : String = "" ;
+		    	
+		    public function submitQueryResult():void{
+		    	parseUrlString();
+		    	var req : Object = new Object();
+		    	req.tradePk=tradePk;
+		    	req.SCREEN_KEY = "12039";
+	        	req.mode = urlModeBind;
+		    	tradeQueryDetailRequest.request=req;
+		    	tradeQueryDetailRequest.send(); 
+			    PopUpManager.centerPopUp(this);
+		    }
+		    
+		    public function parseUrlString():void {
+		        try {
+		            // Remove everything before the question mark, including
+		            // the question mark.
+		            var myPattern:RegExp = /.*\?/; 
+		            var s:String = this.loaderInfo.url.toString();
+		            s = s.replace(myPattern, "");
+		            // Create an Array of name=value Strings.
+		            var params:Array = s.split("&"); 
+		             // Print the params that are in the Array.
+		            var keyStr:String;
+		            var valueStr:String;
+		            var paramObj:Object = params;
+		          
+		            // Set the values of the salutation.
+		            for (var i:int = 0; i < params.length; i++) {
+		                var tempA:Array = params[i].split("=");  
+		                if (tempA[0] == Globals.TRADE_PK) {
+		                    tradePk = tempA[1];
+		                } 
+		                if (tempA[0] == "MODE") {
+		                    urlModeBind = tempA[1];
+		                } 
+		                
+		            } 
+		            
+		        } catch (e:Error) {
+		            trace(e);
+		        }
+		       
+		    }
+    
+    		private function loadResultPage(event:ResultEvent):void
+			{
+				var rs:XML = XML(event.result);
+				if(rs.child("Errors").length() > 0) {
+				    var errorInfoList : ArrayCollection = new ArrayCollection();
+				    //populate the error info list              
+				    for each ( var error:XML in rs.Errors.error ) {
+				       errorInfoList.addItem(error.toString());
+				    }
+				    //Display the error
+				    errPage.showError(errorInfoList);
+				 } else {
+			          confirmTab.dataProvider = rs ;   
+				}
+			}
+			
+			
+    	         
+    	]]>
+    </mx:Script>
+         
+        
+     <!--The popup Query request HTTPService object-->
+     
+     <cntrls:XenosHTTPService id="tradeQueryDetailRequest"
+     	 showBusyCursor="true"
+     	 method="POST" 
+     	 url="swp/swpTradeEntryDispatchForView.action?method=viewTradeDetails" 
+         result="loadResultPage(event)" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>
+    <mx:VBox id="detailView" width="100%" height="100%" styleName="Padding">
+	    <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		<tabs:Tabs id="confirmTab" width="100%" height="100%" />
+	</mx:VBox>
+</mx:Module>

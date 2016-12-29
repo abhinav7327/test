@@ -1,0 +1,106 @@
+<!--$Id$-->
+<!--$Author: amols $-->
+<!--$Date: 2016-12-23 15:27:01 $-->
+<jsp:root xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:form="http://www.springframework.org/tags/form"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:jsp="http://java.sun.com/JSP/Page" version="2.0">
+     
+<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+    <jsp:output omit-xml-declaration="yes" /> 
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>   
+     
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+			  var grid_result_columns = [
+				{name:"<spring:message code="ref.label.empresult.userId" htmlEscape="false"/>", field:"userId", id:"userId", width:280, sortable:true, formatter:Slick.Formatters.EmployeeQueryDetailViewFormater},
+				{name:"<spring:message code="ref.label.empresult.lastName" htmlEscape="false"/>", field:"lastName", id:"lastName", width:330, sortable:true},
+				{name:"<spring:message code="ref.label.empresult.firstName" htmlEscape="false"/>", field:"firstName", id:"firstName", width:330, sortable:true},
+				{name:"<spring:message code="ref.label.empresult.title" htmlEscape="false"/>", field:"title", id:"title", width:136, sortable:true},
+				{name:"<spring:message code="ref.label.empresult.startdatestr" htmlEscape="false"/>", field:"startDateStr", id:"startDateStr", width:150, sortable:true},
+				{name:"<spring:message code="ref.label.emresult.DefaultOffice.account" htmlEscape="false"/>", field:"officeId", id:"officeId", width:150, sortable:true},
+				{name:"<spring:message code="ref.label.emp.locked" htmlEscape="false"/>", field:"displayLocked", id:"displayLocked", width:100, sortable:true},
+				{name:"<spring:message code="ref.label.empresult.Status" htmlEscape="false"/>", field:"status", id:"status", width:100, sortable:true,formatter:Slick.Formatters.CancelRecordFormatter},
+				{name:"<spring:message code="ref.label.emp.lastAccessDate" htmlEscape="false"/>", field:"lastLogDateTimeStr",id:"lastLogDateTimeStr", width:250, sortable:true}
+              ];
+			var grid_result_settings = {
+                enableToolbar:true,
+                consolidateActionFlag:true,
+                buttons:{
+                    xls:true,
+                    pdf:true,
+                    columnPicker:true,
+                    xlsPref:true,  
+                    save:true   
+                },
+                pagingInfo:{
+                    isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+                    url: '/secure/ref/emp/query/count.json'
+                },
+                urls:{
+                    nextPage : '/secure/ref/emp/query/result.json?fetch=next',
+                    prevPage : '/secure/ref/emp/query/result.json?fetch=previous',
+                    pdfReport: '/secure/ref/emp/query/report.json?outputType=pdf',
+                    xlsReport: '/secure/ref/emp/query/report.json?outputType=xls',
+                    xlsCurrent: '/secure/ref/emp/query/reportPref.json?outputType=xls'
+                },
+                moduleParam:"emp",
+                forceFitColumns:false
+            };
+            var row_id = 0;         
+            var rec = {};
+			<xenos:out escapeXml="false">
+				<c:forEach items="${value}" var="dl">
+					rec = {};
+					row_id+=1;
+					rec.id = "xenos_" + row_id;
+					rec.employeePk= "<c:out value="${dl.employeePk}" />";
+					rec.userId= "<c:out value="${xenosfn:escapeJS(dl.userId)}" />"; 
+					rec.lastName= "<c:out value="${xenosfn:escapeJS(dl.lastName)}" />";
+					rec.firstName= "<c:out value="${xenosfn:escapeJS(dl.firstName)}" />";
+					rec.title= "<c:out value="${xenosfn:escapeJS(dl.title)}" />";
+					rec.startDateStr= "<c:out value="${dl.startDateStr}" />";
+					rec.officeId= "<c:out value="${dl.officeId}" />";
+					rec.displayLocked= "<c:out value="${dl.displayLocked}" />";
+					rec.status= "<c:out value="${dl.status}" />";
+					rec.lastLogDateTimeStr= "<c:out value="${dl.lastLogDateTimeStr}" />";
+					grid_result_data.push(rec);
+				 </c:forEach>
+			 </xenos:out>	
+        </jsp:body>
+    </jsp:element>
+    
+    <div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			  <a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'REFEMAM')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-amendIco.png" title="${record.actionName}" id="amend" status="ready" alt="Amend" /></c:when>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'REFEMCX')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}"  id="cancel" status="ready" alt="Cancel" /></c:when>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'REFEMEA')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-reopenIco.png" title="${record.actionName}" id="reopen" status="ready" alt="Reopen" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			  </a>
+		</c:forEach>	  
+	</div>
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/ref/employeeQueryResult.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+</jsp:root>

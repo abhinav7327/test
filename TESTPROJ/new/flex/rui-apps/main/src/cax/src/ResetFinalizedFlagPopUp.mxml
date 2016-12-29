@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:containers="com.nri.rui.core.containers.*" 
+	xmlns:flexlib="http://code.google.com/p/flexlib/" 
+	xmlns:cntrls="com.nri.rui.core.controls.*" 
+	xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+	layout="vertical" 
+	percentWidth="100" 
+	percentHeight ="100" 
+	horizontalScrollPolicy="off" 
+	verticalScrollPolicy="off" 
+	creationComplete="init()">
+    <mx:Script>
+        
+        <![CDATA[
+            import mx.controls.Alert;
+            import com.nri.rui.core.Globals;
+            import mx.controls.CheckBox;        
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.events.DataGridEvent;
+            private function changeCurrentState():void{
+                currentState = "result";
+//                app.submitButtonInstance = null;
+            }
+            
+            /**
+             * Extract the value of the colum cell removing the prefix added at '0'th index.
+             */ 
+            private function extractPrecisionedValue(item:Object, column:DataGridColumn):String{
+                var strData:String = item[column.dataField];
+                if(!XenosStringUtils.isBlank(strData) && strData.charAt(0)=="F"){
+                    if(strData.length == 1)
+                        return XenosStringUtils.EMPTY_STR;
+                    else
+                        return strData.substring(1);
+                }else{
+                    return item[column.dataField];                    
+                }
+            }
+            
+             private function getInstrumentCode(item:Object, column:DataGridColumn):String{
+                return item.instrumentCode;
+            }
+            
+            private function getAllotmentInstCode(item:Object, column:DataGridColumn):String{
+                return item.allotmentInstCode;
+            }
+            private function getAccountNo(item:Object, column:DataGridColumn):String{
+                if(!XenosStringUtils.equals(item.detailType,"NCM_RIGHTS_DETAIL")){
+                    return item.accountNo;
+                }else {
+                    return " ";
+                }               
+            }
+            private function getBankAccountNo(item:Object, column:DataGridColumn):String{
+                return item.bankAccountNo;
+            }
+            
+        ]]>
+    </mx:Script>
+
+    <mx:Script source="actionscripts/ResetFinalizedFlagPopUp.as"/>
+     
+	<cntrls:XenosHTTPService id="revertCxlUconf" 
+         url="cax/resetFinalizedFlagDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         result="LoadUserConfirmPage(event)" 
+         showBusyCursor="true" 
+         method="POST">
+    </cntrls:XenosHTTPService>  
+        <cntrls:XenosHTTPService id="revertCxlSconf" 
+         url="cax/resetFinalizedFlagDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         result="LoadSysConfirmPage(event)" 
+         showBusyCursor="true"
+         method="POST">
+    </cntrls:XenosHTTPService>	
+        <cntrls:XenosHTTPService id="revertCxlOKConfirm" 
+         url="cax/resetFinalizedFlagDispatch.action?method=okSystemConformation" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)" 
+         method="POST" useProxy="false" result="backToQueryResultPage()" showBusyCursor="true"/>	
+   
+    
+        <mx:VBox width="100%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >            
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>            
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.reset.finalized.flag.userconf')}" fontWeight="bold" id="uConfLabel"/>
+
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.reset.finalized.flag.sysconf')}" fontWeight="bold" id="sConfLabel" includeInLayout="false" visible="false"/>
+            <mx:HBox id="hb" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" visible="false" verticalAlign="middle" includeInLayout="false">
+            <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.transaction.completed.successfully')}" fontWeight="bold" selectable="true"/> 
+            </mx:HBox>
+            <cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" editable="false"> 
+            <cntrls:columns>
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.finalizedflag')}" dataField="finalizedFlag" visible="true"  id="finalizedFlag" itemRenderer="com.nri.rui.cax.renderers.FinalizedFlagRenderer"/>
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.rightsdetailrefno')}" dataField="detailReferenceNo" width="120" itemRenderer="com.nri.rui.cax.renderers.RightsDetailViewRenderer"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fundCode')}" dataField="fundCode" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fundName')}" dataField="fundName" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.fundaccountno')}" dataField="accountPk" labelFunction="getAccountNo" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.bankno')}" dataField="bankNo"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.bankname')}" dataField="bankName"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.bankaccountno')}" dataField="bankAccountPk"  labelFunction="getBankAccountNo" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.rightsconditionrefno')}" dataField="conditionReferenceNo" width="120" itemRenderer="com.nri.rui.cax.renderers.RightConditionQueryDetailRenderer"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.eventtype')}" dataField="subEventTypeDescription"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.eventtypename')}" dataField="eventTypeName"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrument')}" dataField="allotmentInstPk" labelFunction="getAllotmentInstCode" itemRenderer="com.nri.rui.core.renderers.AdvInstrumentDetailsRenderer"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allotmentinstrumentname')}" dataField="baseInstrumentName"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.label.alternate.allotedinstrumentcode')}" dataField="alternateAllottedSecurity" width="100"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.instrumentcode')}" dataField="instrumentPk"  labelFunction="getInstrumentCode" itemRenderer="com.nri.rui.core.renderers.AdvInstrumentDetailsRenderer"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.instrumentname')}" dataField="allotedInstrumentName"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.label.alternate.instrumentcode')}" dataField="alternateSecurity" width="100"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.cashrate')}" dataField="allottedAmountStr" textAlign="right" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.couponrate')}" dataField="allotmentPercentage" textAlign="right"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.allottedquantity')}" dataField="allottedQuantityStr" textAlign="right" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.netamount')}" dataField="netAmountStr" textAlign="right" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.taxamount')}" dataField="taxAmountStr" textAlign="right" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.securitybalance')}" dataField="securityBalanceStr" textAlign="right" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.deliverreceiveflag')}" dataField="deliverReceiveFlag"  />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.pricerate')}" dataField="stockRateStr" textAlign="right" />
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.executiondate')}" dataField="executionDateStr"  />
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.paymentdate')}" dataField="paymentDateStr" visible="true"  />
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.inconsistencyflag')}" dataField="inconsistencyFlag" visible="true"  />                    
+                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.status')}" dataField="status" visible="true" itemRenderer="com.nri.rui.core.renderers.StatusRenderer"  />   
+           </cntrls:columns>
+         </cntrls:CustomDataGrid>         
+            <mx:HBox width="100%" styleName="ButtonBackPanel">
+	     		<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uConfSubmit" includeInLayout="true" styleName="BtnStyle" click="this.submitConfirm(event);"/>
+	     		<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="uConfBack" styleName="BtnStyle" includeInLayout="true" click="this.closeHandlerOnError();"/>
+	            <mx:Button  label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.sysconfirm')}" id="sConfSubmit" styleName="BtnStyle" click="this.submitOkConfirm()" includeInLayout="false" visible="false"/>               
+            </mx:HBox>
+        </mx:VBox>     
+</mx:Module>

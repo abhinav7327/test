@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Frx Trade Query Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+
+    <mx:Script>
+        <![CDATA[
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.containers.TitleWindow;
+            import mx.collections.ArrayCollection;
+            import mx.events.CloseEvent;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import mx.controls.CheckBox;
+            import mx.managers.PopUpManager;
+            import mx.events.DataGridEvent;
+            
+            import com.nri.rui.core.controls.XenosAlert;
+            
+            private function changeCurrentState():void{
+                currentState = "result";
+                app.submitButtonInstance = null;
+            }
+            
+            /**
+            * Retrieve and return the Fund Account Number.
+            */
+            private function getFundAccNo(item:Object, column : DataGridColumn):String {
+                return item.prefix+";"+item.fundAccNo;
+            }
+            /**
+             * Retrieve and return the Short Name for CounterParty Number.
+             */
+            private function getShortName(item:Object, column : DataGridColumn):String {
+                return item.shortName;
+            }
+            
+            /**
+ 			*  datagrid header release event handler to handle datagridcolumn sorting
+ 			*/
+			public function dataGrid_headerRelease(evt:DataGridEvent):void {				
+				var dg:DataGrid = DataGrid(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];			
+			}
+        ]]>
+    </mx:Script>
+    
+    <mx:Script source="actionscripts/FrxTrdQuery.as"/>
+   
+    <mx:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+        </mx:State>
+        <mx:State name="">
+        	<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </mx:states>
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+
+    <cntrls:XenosHTTPService id="initializeFrxTrdQuery"
+    	fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString)" 
+        method="POST" 
+        useProxy="false" 
+        result="initPage(event)" 
+        showBusyCursor="true"/>    
+
+    <cntrls:XenosHTTPService id="FrxTrdQueryRequest" 
+         url="frx/forexQueryDispatch.action?" 
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+         result="LoadSummaryPage(event)" showBusyCursor="true" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="FrxTrdResetQueryRequest" 
+    	url="frx/forexQueryDispatch.action?method=resetQuery"
+        result="initPage(event)" 
+        showBusyCursor="true">
+    </cntrls:XenosHTTPService>
+    
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;" />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>    	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+	    <mx:VBox width="100%" height="100%">    
+		    <mx:HDividedBox id="hdbox1" styleName="Padding4" width="100%" height="100%" liveDragging="true" creationComplete="initPageStart()">
+		    <mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		        <mx:VBox label="Query Criteria" width="100%" height="100%" styleName="HDivideStyle" >
+		            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+		            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		            <mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+		                <mx:Grid width="100%" borderThickness="0">
+		                	<mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.fundcode')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<xenospopup:FundPopUpHbox id="fundPopUp"/>
+		                        </mx:GridItem> 
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.inventoryaccountno')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<xenospopup:AccountPopUpHbox id="invActPopUp" retContextItem="{returnContextItem}" recContextItem="{populateInvActContext()}" />
+		                        </mx:GridItem> 
+		                    </mx:GridRow>
+		                    
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.tradetype')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:ComboBox id="tradeType" labelField="label" prompt="Select"/>
+		                        </mx:GridItem> 
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.counterpartycode')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<xenospopup:AccountPopUpHbox id="cpActPopUp" retContextItem="{returnContextItem}" recContextItem="{populateConterPartyActContext()}" />
+		                        </mx:GridItem> 
+		                    </mx:GridRow>
+		                    
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.buysellflag')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:ComboBox id="buySellFlag" labelField="label" prompt="Select"/>
+		                        </mx:GridItem> 
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.cancelreferenceno')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:TextInput id="cancelReferenceNo" restrict="{Globals.INPUT_PATTERN}"/>
+		                        </mx:GridItem> 
+		                    </mx:GridRow>
+		                    
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.tradedatefromto')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:DateField id="trdDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+		                        	<mx:DateField id="trdDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+		                        </mx:GridItem> 
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.valuedatefromto')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:DateField id="valueDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+		                        	<mx:DateField id="valueDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+		                        </mx:GridItem> 
+		                    </mx:GridRow>
+		                    
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.baseccy')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	 <cntrls:CurrencyHBox id="trdCcyBox"/>
+		                        </mx:GridItem> 
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.againstccy')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<cntrls:CurrencyHBox id="counterCcyBox"/>
+		                        </mx:GridItem> 
+		                    </mx:GridRow>
+		                    
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.referenceno')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:TextInput id="referenceNo" restrict="{Globals.INPUT_PATTERN}"/>
+		                        </mx:GridItem> 
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.status')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:ComboBox id="status" labelField="label" prompt="Select"/>
+		                        </mx:GridItem> 
+		                    </mx:GridRow>
+		                    
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.creationdatefromto')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:DateField id="creationDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+		                        	<mx:DateField id="creationDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+		                        </mx:GridItem> 
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.updatedatefromto')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:DateField id="updateDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+		                        	<mx:DateField id="updateDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+		                        </mx:GridItem> 
+		                    </mx:GridRow>
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.spotratestatus')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:ComboBox id="spotRateStatus" labelField="label" prompt="Select"/>
+		                        </mx:GridItem> 
+		                         <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.confirmationstatus')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:ComboBox id="confirmationStatus" labelField="label" prompt="Select"/>
+		                        </mx:GridItem> 
+		                    </mx:GridRow>
+		                </mx:Grid>                
+		            
+		            
+		            <flexlib:WindowShade id="ws3" tabChildren="{ws3.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.sortorder.fields')}" opened="true" width="100%">
+		                <mx:Grid width="100%" borderThickness="0">
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="100%" borderThickness="0">
+		                            <mx:HBox width="100%">
+		                                <mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()"/>
+		                                <mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()"/>
+		                                <mx:ComboBox id="sortField3" labelField="label"/>
+		                            </mx:HBox> 
+		                        </mx:GridItem>                         
+		                    </mx:GridRow>
+		                </mx:Grid>                
+		            </flexlib:WindowShade>
+
+		            <mx:HBox width="100%" styleName="ButtonBackPanel">            
+	       				<cntrls:XenosButton id="submit" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="this.submitQuery();" />
+	           			<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle"  click="this.resetQuery();"/>
+	               </mx:HBox>
+
+		        </mx:VBox>
+		        </mx:Canvas>
+		        <mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >            
+		                             
+			        <cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" width="100%" />
+			        <mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text=""/>
+			        <mx:DataGrid id="movementSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="true" headerRelease="dataGrid_headerRelease(event)" variableRowHeight="true" horizontalScrollPolicy="auto" verticalScrollPolicy="auto" creationComplete="bindDataGrid()">
+			            <mx:columns> 
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.referenceno')}" dataField="referenceNo" itemRenderer="com.nri.rui.frx.renderers.FrxTradeDetailRenderer" sortCompareFunction="sortUtil.sortString" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.fundcode')}" dataField="fundCode" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer" textAlign="left" sortCompareFunction="sortUtil.sortString" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.inventoryaccountno')}" dataField="fundAccountPk" labelFunction="getFundAccNo" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer" sortCompareFunction="sortUtil.sortString" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.tradedate')}" dataField="tradeDateStr" sortCompareFunction="sortUtil.sortString" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.valuedate')}" dataField="valueDateStr" sortCompareFunction="sortUtil.sortString" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.tradetype')}" dataField="tradeType" sortCompareFunction="sortUtil.sortString" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.buysellflag')}" dataField="buySellFlag" sortCompareFunction="sortUtil.sortString" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.baseccy')}" dataField="baseCcy" sortCompareFunction="sortUtil.sortString" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.baseccyamt')}" dataField="baseCcyAmountStr" textAlign="right" sortCompareFunction="sortUtil.sortNumeric" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.againstccy')}" dataField="againstCcy" sortCompareFunction="sortUtil.sortString" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.againstccyamt')}" dataField="againstCcyAmountStr" textAlign="right" sortCompareFunction="sortUtil.sortNumeric" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.exchangerate')}" dataField="exchangeRate" textAlign="right" sortCompareFunction="sortUtil.sortNumeric" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.counterpartyacc')}" dataField="accountPk" labelFunction="getShortName" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer" sortCompareFunction="sortUtil.sortString" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.status')}" dataField="status" itemRenderer="com.nri.rui.core.renderers.StatusRenderer" sortCompareFunction="sortUtil.sortString" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.noexchangeflag')}" dataField="noExchangeFlag" sortCompareFunction="sortUtil.sortString" />
+			               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.confirmationstatus')}" dataField="confirmationStatus" sortCompareFunction="sortUtil.sortString" />
+			            </mx:columns>
+			         </mx:DataGrid>            
+		        </mx:VBox>
+		    </mx:HDividedBox>
+	    </mx:VBox>
+    </mx:Canvas> 
+</mx:Module>

@@ -1,0 +1,159 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+    xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+    xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util"
+    xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"	
+    xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div class="formItemArea">
+  <jsp:directive.page contentType="text/html;charset=UTF-8"/>
+  <jsp:output omit-xml-declaration="yes"/>
+  
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+       
+        <jsp:body></jsp:body>
+    </jsp:element>
+	
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body> 	 
+		    var isNext = <c:out value="${isNext}" />;
+            var grid_result_data = [];
+			var loggedOn ="<c:out value="${commandForm.loggedOnUser}" />";			
+			var compTypeList = [];			
+			
+			
+			
+			compTypeList.push({label:"",value:""});
+								
+			<c:forEach items="${commandForm.authRejectList}" var="dl">
+				compTypeList.push({label:"<c:out value="${dl}" />",value:"<c:out value="${dl}" />"});
+			</c:forEach>
+			
+			var grid_result_columns = [	
+				{name:"<spring:message code="ncm.authorizationqry.label.authorizationstatus" htmlEscape="false"/>", field:"authorizationStatus", id:"authorizationStatus", width: 130, sortable:true, formatter:Slick.Formatters.DropdownReadOnlyFormatter, 
+												editor:Slick.Editors.DropdownCellEditor, options:{data: compTypeList , editableFunction : cellEditableFunc}},
+				{name:"<spring:message code="ncm.label.referenceno" htmlEscape="false"/>", field:"referenceNo",id:"referenceNo", width:150,sortable:true,formatter:Slick.Formatters.NcmAuthAdjustmentQueryDetailViewFormatter},
+		        {name:"<spring:message code="ref.fund.label.fundcode" htmlEscape="false"/>", field:"fundCode",id:"fundCode", width:91,sortable:true,formatter:Slick.Formatters.FundDetailViewFormatter},
+		        {name:"<spring:message code="ref.fund.label.fundName" htmlEscape="false"/>", field:"fundName",id:"fundName", width:91,sortable:true},
+				{name:"<spring:message code="ncm.authorizationqry.label.bankcustodiancode" htmlEscape="false"/>", field:"bankCode",id:"bankCode", width:160,sortable:true,formatter:Slick.Formatters.FinInstDetailViewFormater},
+				{name:"<spring:message code="ncm.authorizationqry.label.bankname" htmlEscape="false"/>", field:"bankName",id:"bankName", width:91,sortable:true},
+				{name:"<spring:message code="ncm.label.bankaccountno" htmlEscape="false"/>", field:"accountDisplayName",id:"accountDisplayName", width:140,sortable:true,formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'accountPk'}},
+				{name:"<spring:message code="ncm.label.bankaccountname" htmlEscape="false"/>", field:"accountName",id:"accountName", width:91,sortable:true},
+				{name:"<spring:message code="ncm.label.gleledgercode" htmlEscape="false"/>", field:"gleLedgerCode",id:"gleLedgerCode", width:112,sortable:true},
+				{name:"<spring:message code="ncm.authorizationqry.label.ccycode" htmlEscape="false"/>", field:"ccy",id:"ccy", width:110,sortable:true},
+				{name:"<spring:message code="ncm.authorizationqry.label.securitycode" htmlEscape="false"/>", field:"securityCode",id:"securityCode", width:110,sortable:true,formatter:Slick.Formatters.InstrumentDetailViewFormater},
+				{name:"<spring:message code="ncm.authorizationqry.label.securityname" htmlEscape="false"/>", field:"securityName",id:"securityName", width:100,sortable:true},
+				{name:"<spring:message code="ncm.label.security.alternatesecurity" htmlEscape="false"/>", field:"alternateSecurity",id:"alternateSecurity", width:140,sortable:true},
+				{name:"<spring:message code="ncm.authorizationqry.label.adjustmentdate" htmlEscape="false"/>", field:"adjustmentInOutDisplayDate",id:"adjustmentInOutDisplayDate", width:180,sortable:true},
+				{name:"<spring:message code="ncm.authorizationqry.label.adjustmenttype" htmlEscape="false"/>", field:"adjustmentTypeDisp",id:"adjustmentTypeDisp", width:120,sortable:true},
+				{name:"<spring:message code="ncm.authorizationqry.label.amountquantity" htmlEscape="false"/>", field:"amountDisplayValue",id:"amountDisplayValue", width:120,sortable:true, cssClass:'xenos-grid-number'},
+				{name:"<spring:message code="ncm.authorizationqry.label.groupid" htmlEscape="false"/>", field:"groupId",id:"groupId", width:91,sortable:true},
+				{name:"<spring:message code="ncm.authorizationqry.label.entryby" htmlEscape="false"/>", field:"createdBy",id:"createdBy", width:91,sortable:true},
+				{name:"<spring:message code="ncm.authorizationqry.label.updatedby" htmlEscape="false"/>", field:"updatedBy",id:"updatedBy", width:91,sortable:true},
+				{name:"<spring:message code="ncm.label.status" htmlEscape="false"/>", field:"status",id:"status", width:100,sortable:true,formatter:Slick.Formatters.CancelRecordFormatter}
+			];
+			
+			
+			 var grid_result_settings = {
+                enableToolbar:true,
+			    emptyColumnCheck:false,					
+                editable:true,               	
+				forceFitColumns:false,
+                consolidateActionFlag:false,
+				pagingInfo:{
+					isNext : isNext,					
+					url: 'secure/ncm/authorization/query/count.json'
+					
+				},
+                buttons:{
+                    print:true, 
+                    xls:true,   
+                    pdf:true,
+					xlsPref:true,					
+                    columnPicker:true,  
+                    save:true   
+					
+                },
+                
+				urls: {
+				nextPage : '/secure/ncm/authorization/query/result.json?fetch=next',
+				prevPage : '/secure/ncm/authorization/query/result.json?fetch=previous',
+				pdfReport: '/secure/ncm/authorization/query/report.json?outputType=pdf',
+				xlsReport: '/secure/ncm/authorization/query/report.json?outputType=xls',
+				xlsCurrent: '/secure/ncm/authorization/query/reportPref.json?outputType=xls'
+				
+				},
+				events:{
+					onDataUpdate: function(data,continueUpdate){
+						for(i in data.value){
+							data.value[i].finInstRolePk = data.value[i].bankPk;
+						}
+						continueUpdate(data);
+					}
+				},
+				defaultInvisibleColumns: ["bankName", "accountName", "groupId","updatedBy","createdBy"]
+		 };
+				 var row_id = 0;         
+                 var rec = {};
+		
+		<xenos:out escapeXml="false">
+			<c:forEach items="${value}" var="dl" varStatus="loop">
+				rec = {};
+				row_id+=1;
+				rec.commandFormId="${requestScope['commandFormId']}";				
+				rec.id                      =   "xenos_" + row_id;
+				rec.itemIndex =row_id;
+				
+				rec.authorizationStatus = "<c:out value="${dl.authorizationStatus}" />";
+				rec.ncmEntryPk = "<c:out value="${dl.ncmEntryPk}" />";
+				rec.referenceNo = "<c:out value="${dl.referenceNo}" />";
+				rec.accountPk  = "<c:out value="${dl.accountPk }" />";
+				rec.fundCode = "<c:out value="${dl.fundCode}" />";
+				rec.fundPk = "<c:out value="${dl.fundPk}" />";
+				rec.finInstRolePk = "<c:out value="${dl.bankPk }" />";
+				rec.instrumentPk = "<c:out value="${dl.instrumentPk}" />";
+				rec.fundName = "<c:out value="${dl.fundName}" />";
+				rec.bankCode = "<c:out value="${dl.bankCode}" />";
+				rec.bankName = "<c:out value="${dl.bankName}" />";
+				rec.accountDisplayName = "<c:out value="${dl.accountDisplayName}" />";
+				rec.accountName = "<c:out value="${dl.accountName}" />";
+				rec.gleLedgerCode = "<c:out value="${dl.gleLedgerCode}" />";
+				rec.ccy = "<c:out value="${dl.ccy}" />";
+				rec.securityCode = "<c:out value="${dl.securityCode}" />";
+				rec.securityName = "<c:out value="${dl.securityName}" />";
+				rec.alternateSecurity = "<c:out value="${dl.alternateSecurity}" />";
+				rec.adjustmentInOutDisplayDate = "<c:out value="${dl.adjustmentInOutDisplayDate}" />";
+				rec.adjustmentTypeDisp = "<c:out value="${dl.adjustmentTypeDisp}" />";
+				rec.amountDisplayValue = "<c:out value="${dl.amountDisplayValue}" />";
+				rec.groupId = "<c:out value="${dl.groupId}" />";
+				rec.createdBy = "<c:out value="${dl.createdBy}" />";
+				rec.updatedBy = "<c:out value="${dl.updatedBy}" />";
+				rec.status = "<c:out value="${dl.status}" />";
+				grid_result_data.push(rec);
+				
+			</c:forEach>
+		</xenos:out>
+		
+				function cellEditableFunc(column , item){		
+			if(loggedOn === item.updatedBy){
+				return false;
+			}
+			return true;
+		   };
+	       </jsp:body>
+    </jsp:element>	
+	
+	
+	
+	</div>
+</jsp:root>

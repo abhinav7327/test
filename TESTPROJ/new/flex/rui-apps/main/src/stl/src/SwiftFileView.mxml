@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml"  xmlns:flexlib="http://code.google.com/p/flexlib/" layout="vertical"
+    xmlns:cntrls="com.nri.rui.core.controls.*" width="100%" height="100%" creationComplete="submitQueryResult()" verticalScrollPolicy="auto" horizontalScrollPolicy="auto" >
+   
+	<mx:Script>
+		<![CDATA[
+			import mx.utils.StringUtil;
+			import com.nri.rui.core.utils.PrintUtils;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.core.containers.SummaryPopup;
+			import mx.managers.PopUpManager;
+			import com.nri.rui.core.utils.XenosPopupUtils;
+			import mx.core.UIComponent;
+			import mx.collections.XMLListCollection;
+	   
+	   public function submitQueryResult():void {
+	    	parseUrlString();
+	    	assignUrl();
+	    	var requestObj :Object = populateRequestParams();
+         	swiftFileDetailRequest.request = requestObj;
+	    	swiftFileDetailRequest.send();
+	    }
+	    public function assignUrl():void {
+	    	switch(mode) {
+				case "MT566"	:
+									swiftFileDetailRequest.url = Globals.SWIFT_FILE_REQUEST_URL_RECEIVENOTICE;
+									break;
+				case "MT54x"	:
+									swiftFileDetailRequest.url = Globals.SWIFT_FILE_REQUEST_URL_INSTRUCTION;
+									break;
+                case "COMP_MT566"    :
+                                    swiftFileDetailRequest.url = Globals.SWIFT_FILE_REQUEST_URL_SETTLEMENT_QUERY;
+                                    break;
+			}
+	    }
+		]]>
+	</mx:Script>
+	
+	<mx:Script source = "actionscripts/SwiftFileView.as"/>
+	
+     <cntrls:XenosHTTPService id="swiftFileDetailRequest"
+					     	  showBusyCursor="true"
+					     	  method="POST" 
+					          result="LoadResultPage(event)" 
+					          fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+					          useProxy="false"
+					          resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" height="100%">
+	    <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+    	 	<mx:Button id="print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetail(this.swiftFileView)"/>
+    	 </mx:HBox>
+	    <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+	    <mx:Canvas id="swiftFileView" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+			 <mx:TextArea width="100%" height="100%" text="{swiftContent}" horizontalScrollPolicy="on" verticalScrollPolicy="on" wordWrap="true" editable="false"/>
+	    </mx:Canvas>
+    </mx:VBox>
+    
+</mx:Module>

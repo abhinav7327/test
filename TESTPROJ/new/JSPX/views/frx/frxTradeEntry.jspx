@@ -1,0 +1,640 @@
+<!--$Id$-->
+<!--$Author: Debojyoti Mukherjee $-->
+<!--$Date: 2016-12-23 19:26:28 $-->
+<jsp:root version="2.0" xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+	xmlns:spring="http://www.springframework.org/tags"
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util"
+	xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:display="http://displaytag.sf.net"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+
+	<div class="entryContainer paddingFour">
+		<!-- Java script include -->
+		<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+			xenos.loadLocalizedScript([
+					{path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+					{path: xenos.context.path + '/scripts/frx/xenos-frx-i18n', async: false},
+					]);
+			
+			xenos.loadScript([
+									{path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},
+									{path: xenos.context.path + '/scripts/inf/utilValidator.js', async: false},
+									{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+									{path: xenos.context.path + '/scripts/inf/fieldvalidator.js', async: false},
+									{path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false},
+									{path: xenos.context.path + '/scripts/frx/xenos/frxEntryValidator.js', async: false}
+									
+						]);
+			
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+					var context = $xenos$Wizard.$context;
+		        	var baseUrl = xenos.context.path + context.find('form').attr('action');
+					var actionType = "<c:out value="${commandForm.actionType}" />";
+					if($.trim(actionType) == 'Entry'){
+						$('#buySell').val('B') ;
+					}
+					
+					/**
+					* A common request handler to be used server communication.
+					*/
+					var xenos$Handler$RequestHandler = xenos$Handler$function({
+						get: {
+							contentType: 'json',
+							requestType: xenos$Handler$default.requestType.asynchronous
+						},	
+						settings: {
+							beforeSend: function(request) {
+								request.setRequestHeader('Accept', 'application/json');
+							},
+							type: 'POST'
+						}
+					});
+
+					loadPopStlRate();
+					enableNDFCloseRate();
+					loadSpotCalcMechanism();					
+					$('#tradeType').unbind('change');
+					$('#tradeType').bind('change', onChangeOperationObjective).trigger('change');
+					$('#baseCcy').unbind('blur');
+					$('#baseCcy').bind('blur', function (){
+						onChangePopulate();
+						loadSpotCalcMechanism();
+					}).trigger('blur');
+					$('#againstCcy').unbind('blur');
+					$('#againstCcy').bind('blur', function (e){
+						onChangePopulate(e);
+						loadPopStlRate();
+						onChangeEnable();
+						loadSpotCalcMechanism();
+					});
+					$('#settleCcy').unbind('blur');
+					$('#settleCcy').bind('blur', function (){
+						loadPopStlRate();
+						onChangeEnable();
+						});
+
+					function onChangeOperationObjective(){
+					
+							if($("#tradeType").val()=="Non Deliverable Forward"){
+								$('.stlccy').show();
+								$('.sellCcy').hide();
+								$('.confirmStatus').hide();
+								$('#baseCcyAmountLbl').addClass('required');
+								$('#exchangeRateLbl').addClass('required');
+							}
+							else{
+								$('.stlccy').hide();
+								$('.sellCcy').show();
+								$('.confirmStatus').show();
+								$('#baseCcyAmountLbl').removeClass('required');
+								$('#exchangeRateLbl').removeClass('required');
+							}		
+					}
+					
+					//populate exchange rate Dropdownlist		
+					function onChangePopulate(e){
+							var temp1 = $('#againstCcy').val().toUpperCase() + '/' + $('#baseCcy').val().toUpperCase();
+							var temp2 = $('#baseCcy').val().toUpperCase() + '/' + $('#againstCcy').val().toUpperCase();
+							var $target = context.find('#calcMechanism');
+							var $option = $('<option />');
+							if($('#tradeType').val() == "Non Deliverable Forward"){
+								if($('#baseCcy').val()!="" <![CDATA[&&]]> $('#againstCcy').val()!="") {
+									$option.attr('value', temp1).text(temp1);							
+									$target.empty();													
+									$target.append($option);
+									$option = $('<option />');
+									$option.attr('value', temp2).text(temp2);
+									$target.append($option);
+									
+								}	else if($('#baseCcy').val()=="" <![CDATA[||]]> $('#againstCcy').val()==""){
+											$option.attr('value', "").text("");							
+											$target.empty();													
+											$target.append($option);
+									}			
+								
+							}
+							else{
+								if($('#baseCcy').val()!="" <![CDATA[&&]]> $('#againstCcy').val()!="") {
+									var requestUrl = baseUrl + "/loadCalcMechanism.json?commandFormId=" + $('[name=commandFormId]').val();
+									xenos$Handler$default.generic(e, {
+																requestUri: requestUrl,
+																requestType: xenos$Handler$default.requestType.asynchronous,
+																settings: {
+																		   type: 'POST',
+																		   	data : context.find('form').serialize()
+																		  },
+																contentType: xenos$Handler$default.contentType.json,
+																onJsonContent: function (e, options, $target, content) {
+																		if(content.success == true){
+																			var $target = context.find('#calcMechanism');
+																			var $option = $('<option />');
+																			if(content.value[0]=="M") {
+																				$option.attr('value', temp1).text(temp1);							
+																				$target.empty();													
+																				$target.append($option);
+																				$option = $('<option />');
+																				$option.attr('value', temp2).text(temp2);
+																				$target.append($option);
+																			} else if (content.value[0]=="D") {
+																				$option.attr('value', temp2).text(temp2);
+																				$target.empty();													
+																				$target.append($option);
+																				$option = $('<option />');
+																				$option.attr('value', temp1).text(temp1);
+																				$target.append($option);
+																			}else if(content.value[0]==""||content.value[0]==null){
+																					var $target = context.find('#calcMechanism');
+																					var $option = $('<option />');
+																					$option.attr('value', temp1).text(temp1);							
+																					$target.empty();													
+																					$target.append($option);
+																					$option = $('<option />');
+																					$option.attr('value', temp2).text(temp2);
+																					$target.append($option);
+																			
+																			
+																			}
+																			
+																		} else {
+																			xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																		}
+																}
+									});
+									
+	
+	
+								}else if($('#baseCcy').val()=="" <![CDATA[||]]> $('#againstCcy').val()==""){
+											$option.attr('value', "").text("");							
+											$target.empty();													
+											$target.append($option);
+									}	
+						}
+					}
+					
+					var submitValidateHook = function() {
+							var flag = false;					
+							if(xenos.ns.views.frxTradeEntry.validateSubmit()){
+								flag = true;
+							}
+							$('#fundAccName').attr('value',$('#placeHolderinventoryAccountNo').text());
+							$('#cpAccName').attr('value',$('#placeHolderaccountNo').text());
+							
+							return flag;		
+					};
+	
+					if($("#mode").attr("value") == 'AMEND') {
+						if($("#tradeType").val()=="Non Deliverable Forward"){
+							$('.referenceNumberNDF').show();
+						}else{
+							$('.referenceNumber').show();
+						}
+						$('.instructionblockflag').hide();
+					}
+					
+					function loadPopStlRate(){
+						if($("#mode").val() == "AMEND" <![CDATA[&&]]> $("#tradeType").val() == "Non Deliverable Forward") {
+							var temp1 = $('#settleCcy').val().toUpperCase() + '/' + $('#againstCcy').val().toUpperCase();
+							var temp2 = $('#againstCcy').val().toUpperCase() + '/' + $('#settleCcy').val().toUpperCase();
+							if($('#againstCcy').val()!="" <![CDATA[&&]]> $('#settleCcy').val()!="") {
+								var $target = context.find('#stlCalcMechanism');
+								var $option = $('<option />');
+								$option.attr('value', temp1).text(temp1);							
+								$target.empty();													
+								$target.append($option);
+								$option = $('<option />');
+								$option.attr('value', temp2).text(temp2);
+								$target.append($option);	
+							}
+						}
+					}
+					
+					function onChangeEnable(){
+						if($("#mode").val() == "AMEND" <![CDATA[&&]]> $("#tradeType").val() == "Non Deliverable Forward") {
+							if($('#againstCcy').val()!="" <![CDATA[&&]]> $('#settleCcy').val()!="") {
+								if( $('#againstCcy').val() == $('#settleCcy').val()){
+									$("#stlCalcMechanism").attr("disabled", "disabled");
+									$("#exchangeRateForStlCcy").attr("disabled", "disabled");
+								} else {
+									$("#stlCalcMechanism").removeAttr("disabled");
+									$("#exchangeRateForStlCcy").removeAttr("disabled");
+								}
+							}
+						}
+					}
+					
+					function enableNDFCloseRate() {
+						if($("#mode").val() == "AMEND" <![CDATA[&&]]> $("#tradeType").val() == "Non Deliverable Forward") {
+							if($('#spotRate').val()!="") {
+								$("#spotDate").removeAttr("disabled");
+								$("#spotRate").removeAttr("disabled");
+								$("#spotCalcMechanism").removeAttr("disabled");
+							} else {
+								$("#spotDate").siblings($(".ui-datepicker-trigger")).hide();
+							}
+						}
+					}
+					
+					function loadSpotCalcMechanism(){
+						$('#spotCalcMechanism').empty();
+						var optionsList = $('#calcMechanism').find('option').clone();
+						optionsList.appendTo('#spotCalcMechanism');
+					}
+					
+					var unloadHook = function(){					
+						//cleanup code
+						$xenos$Wizard.deregister('submit',submitValidateHook);
+						$xenos$Wizard.deregister('unload',unloadHook);
+					};	
+					
+					$xenos$Wizard.register('submit',submitValidateHook);
+					$xenos$Wizard.register('unload',unloadHook);
+					xenos.utils.afterFormRenderScuts();
+			};
+		</jsp:body>
+	</jsp:element>
+		<c:if test="${success =='false'}">
+			<!-- Error message Area -->
+			<ul class="xenosError">
+				<c:forEach items="${value}" var="dl">
+					<li><spring:message text="${dl}" htmlEscape="false" /></li>
+				</c:forEach>
+			</ul>
+		</c:if>
+
+		<spring:message code="form.button.label.add" htmlEscape="false"
+			var="formadd_label" />
+		<spring:message code="form.button.label.save" htmlEscape="false"
+			var="formsave_label" />
+		<spring:message code="form.button.label.cancel" htmlEscape="false"
+			var="formcancel_label" />
+
+		<div class="entryBlkArea">
+			<div class="formItemBlock dottedBg">
+				<span><form:input id="fundAccName" type="hidden" value=""
+						path="commandForm.frxTrdData.fundAccName" /></span> <span><form:input
+						id="cpAccName" type="hidden" value=""
+						path="commandForm.frxTrdData.cpAccName" /> </span> <span><form:input
+						id="buySell" type="hidden" value=""
+						path="commandForm.frxTrdData.buySell" /> </span> <span><form:input
+						id="tradeConfirmReqd" type="hidden" value=""
+						path="commandForm.frxTrdData.tradeConfirmReqd" /></span>
+				<!--<form:input id="calcMechForSpotRate" type="hidden" value="" path="commandForm.frxTrdData.calcMechForSpotRate"/>-->
+				<!-- Inventory Account Number -->
+				<div>
+					<form:hidden id="mode" path="commandForm.frxTrdData.mode"/>
+				</div>
+				<div class="formItem twoCols">
+					<form:label path="commandForm.frxTrdData.inventoryAccountNo"
+						class="required">
+						<spring:message code="frx.label.inventoryaccountno"
+							htmlEscape="false" />
+					</form:label>
+					<util:xenospopup id="inventoryAccountNo"
+						path="commandForm.frxTrdData.inventoryAccountNo"
+						showResolvedName="true" tgt="inventoryAccountNo"
+						popType="cpAccount" actTypeContext="T|S|B"
+						actCPTypeContext="INTERNAL" actContext="TRADING|BOTH"
+						event="change focusout" endpoint="secure/ref/nameresolver/fund" />
+					<div class="clear">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+				</div>
+				<div class="clear clear-block">
+					<spring:message text="" htmlEscape="false" />
+				</div>
+				<!-- CP Account Number -->
+				<div class="formItem twoCols">
+					<form:label path="commandForm.frxTrdData.accountNo"
+						class="required">
+						<spring:message code="frx.label.counterpartycode"
+							htmlEscape="false" />
+					</form:label>
+					<util:xenospopup id="accountNo"
+						path="commandForm.frxTrdData.accountNo" showResolvedName="true"
+						tgt="accountNo" popType="cpAccount" actTypeContext="T|S|B"
+						actCPTypeContext="BROKER|BANK/CUSTODIAN" actContext="TRADING|BOTH"
+						event="change focusout" endpoint="secure/ref/nameresolver/account" />
+					<div class="clear">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+				</div>
+				<div class="clear clear-block">
+					<spring:message text="" htmlEscape="false" />
+				</div>
+				<!-- Trade Type -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.tradeType"
+						class="required">
+						<spring:message code="frx.label.tradetype" htmlEscape="false" />
+					</form:label>
+					<span> <form:select id="tradeType"
+							path="commandForm.frxTrdData.tradeType" class="dropdowninput">
+							<form:options items="${commandForm.scrDisDatas.tradeTypeList}" />
+						</form:select>
+					</span>
+					<div class="clear">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+				</div>
+				<div class="clear clear-block">
+					<spring:message text="" htmlEscape="false" />
+				</div>
+				<!-- Trade Date and Time -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.tradeDate"
+						class="required">
+						<spring:message code="frx.label.tradedatetime" htmlEscape="false" />
+					</form:label>
+					<span><form:input id="tradeDate" value=""
+							path="commandForm.frxTrdData.tradeDate" class="dateinput"
+							onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$FRX$i18n.frxEntry.dateTime.trade_date_format, [this.value]))}
+										else{
+									xenos.ns.views.frxTradeEntry.formatDate(this.value,$('#tradeDate'))
+								  };" /></span>
+					<span><form:input id="tradeTime" value="" class="txtNormal"
+							path="commandForm.frxTrdData.tradeTime"
+							 size="9" onblur="xenos.ns.views.frxTradeEntry.checkTradeTime(this);xenos.ns.views.frxTradeEntry.callTradeTime(this);" /></span> <span
+						class="remove" title="Remove this field" style="display: none;"><spring:message
+							text="" htmlEscape="false" /></span>
+					<div class="clear">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+				</div>
+				<!-- Value Date -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.valueDate"
+						class="required">
+						<spring:message code="frx.label.valuedate" htmlEscape="false" />
+					</form:label>
+					<span><form:input id="valueDate" value=""
+							path="commandForm.frxTrdData.valueDate" class="dateinput"
+							onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$FRX$i18n.frxEntry.dateTime.value_date_format,[this.value]))}
+										else{
+									xenos.ns.views.frxTradeEntry.formatDate(this.value,$('#valueDate'))
+								  };" /></span>
+				</div>
+				<div class="clear">
+					<spring:message text="" htmlEscape="false" />
+				</div>
+				<!-- Base Ccy -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.baseCcy" class="required">
+						<spring:message code="frx.label.baseccy" htmlEscape="false" />
+					</form:label>
+					<span><form:input id="baseCcy" value=""
+							path="commandForm.frxTrdData.baseCcy" class="textBox"  /></span>
+					<div class="popupBtn">
+						<input type="button" class="popupBtnIco" tgt="baseCcy"
+							popType="currency" value="" />
+					</div>
+					<div class="clear">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+				</div>
+				<!-- Base Ccy Amount -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.baseCcyAmount"
+						id="baseCcyAmountLbl">
+						<spring:message code="frx.label.baseccyamount" htmlEscape="false" />
+					</form:label>
+					<span><form:input id="baseCcyAmount" value="" class="txtNormal"
+							path="commandForm.frxTrdData.baseCcyAmount"
+							onchange="return formatAmount($('#baseCcyAmount'),15,3,null,$('#baseCcyAmount').parent().parent().find('label').text())" /></span>
+					<span class="remove" title="Remove this field"
+						style="display: none;"><spring:message text=""
+							htmlEscape="false" /></span>
+					<div class="clear">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+				</div>
+				<div class="clear">
+					<spring:message text="" htmlEscape="false" />
+				</div>
+				<!-- Against Ccy -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.againstCcy"
+						class="required">
+						<spring:message code="frx.label.againstccy" htmlEscape="false" />
+					</form:label>
+					<span><form:input id="againstCcy" value=""
+							path="commandForm.frxTrdData.againstCcy" class="textBox" /></span>
+					<div class="popupBtn">
+						<input type="button" class="popupBtnIco" tgt="againstCcy"
+							popType="currency" value="" />
+					</div>
+					<div class="clear">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+				</div>
+				<!-- Against Ccy Amount -->
+				<div class="sellCcy">
+					<div class="formItem">
+						<form:label path="commandForm.frxTrdData.againstCcyAmount">
+							<spring:message code="frx.label.againstccyamount"
+								htmlEscape="false" />
+						</form:label>
+						<span><form:input id="againstCcyAmount" value="" class="txtNormal"
+								path="commandForm.frxTrdData.againstCcyAmount"
+								onchange="return formatAmount($('#againstCcyAmount'),15,3,null,$('#againstCcyAmount').parent().parent().find('label').text())" /></span>
+						<span class="remove" title="Remove this field"
+							style="display: none;"><spring:message text=""
+								htmlEscape="false" /></span>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+				</div>
+				<div class="clear">
+					<spring:message text="" htmlEscape="false" />
+				</div>
+				<!-- Exchange Rate Dropdownlist -->
+				<div class="formItem">
+					<form:label id="exchangeRateLbl"
+						path="commandForm.frxTrdData.calcMechanism">
+						<spring:message code="frx.label.exchangerate" htmlEscape="false" />
+					</form:label>
+					<span> <form:select id="calcMechanism"
+							path="commandForm.frxTrdData.calcMechanism" class="dropdowninput">
+							<form:option value="" />
+
+						</form:select>
+					</span> <span><form:input id="exchangeRate" value="" class="txtNormal"
+							path="commandForm.frxTrdData.exchangeRate"
+							onchange="return formatRate($('#exchangeRate'),10,10,null,$('#exchangeRate').parent().parent().find('label').text())" /></span>
+					<span class="remove" title="Remove this field"
+						style="display: none;"><spring:message text=""
+							htmlEscape="false" /></span>
+					<div class="clear">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+				</div>
+				<!-- Settlement Ccy -->
+				<div class="stlccy" style="display: none;">
+					<div class="formItem">
+						<form:label path="commandForm.frxTrdData.settleCcy">
+							<spring:message code="frx.label.settleccy" htmlEscape="false" />
+						</form:label>
+						<span><form:input id="settleCcy" value=""
+								path="commandForm.frxTrdData.settleCcy" class="textBox" /></span>
+						<div class="popupBtn">
+							<input type="button" class="popupBtnIco" tgt="settleCcy"
+								popType="currency" value="" />
+						</div>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+				</div>
+				<div class="clear">
+					<spring:message text="" htmlEscape="false" />
+				</div>
+				<div class="referenceNumber" style="display: none;">
+					<!-- Reference Number -->
+					<div class="formItem">
+						<form:label path="commandForm.frxTrdData.referenceNo">
+							<spring:message code="frx.label.referenceno" htmlEscape="false" />
+						</form:label>
+						<span class="detailTxtVal">${commandForm.frxTrdData.referenceNo}</span>
+					</div>
+					<div class="clear">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.frxTrdData.status">
+							<spring:message code="frx.label.status" htmlEscape="false" />
+						</form:label>
+						<span class="detailTxtVal">${commandForm.frxTrdData.status}</span>
+					</div>
+					<div class="clear">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+				</div>
+				<div class="referenceNumberNDF" style="display: none;">
+					<!-- Stl Exchange Rate -->
+					<div class="formItem">
+						<form:label id="exchangeRateStl"
+							path="commandForm.frxTrdData.calcMechForStlCcy">
+							<spring:message code="frx.label.ExchangeRateForStlCcy" htmlEscape="false" />
+						</form:label>
+						<span> <form:select id="stlCalcMechanism" disabled="true"
+								path="commandForm.frxTrdData.calcMechForStlCcy" class="dropdowninput">
+								<form:option value="" />
+							</form:select>
+						</span> <span><form:input id="exchangeRateForStlCcy" value=""
+								path="commandForm.frxTrdData.exchangeRateForStlCcy"
+								class="txtNormal"
+								onchange="return formatRate($('#exchangeRateForStlCcy'),10,10,null,$('#exchangeRateForStlCcy').parent().parent().find('label').text())" disabled="true"/></span>
+						<span class="remove" title="Remove this field"
+							style="display: none;"><spring:message text=""
+								htmlEscape="false" /></span>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false"/>
+						</div>
+					</div>
+					<!-- NDF Close Date -->
+					<div class="formItem">
+						<form:label path="commandForm.frxTrdData.spotDate">
+							<spring:message code="frx.label.ptaxdate" htmlEscape="false" />
+						</form:label>
+						<span><form:input id="spotDate" value=""
+								path="commandForm.frxTrdData.spotDate" class="dateinput" disabled="true" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$FRX$i18n.frxEntry.dateTime.trade_date_format, [this.value]))}
+										else{
+									xenos.ns.views.frxTradeEntry.formatDate(this.value,$('#spotDate'))
+								  };" /></span>
+					</div>
+					<!-- Reference Number -->
+					<div class="formItem">
+						<form:label path="commandForm.frxTrdData.referenceNo">
+							<spring:message code="frx.label.referenceno" htmlEscape="false" />
+						</form:label>
+						<span class="detailTxtVal">${commandForm.frxTrdData.referenceNo}</span>
+					</div>
+					<!-- NDF Close Rate -->
+					<div class="formItem">
+						<form:label id="exchangeRateSpot"
+							path="commandForm.frxTrdData.calcMechForSpotRate">
+							<spring:message code="frx.label.spotrate" htmlEscape="false" />
+						</form:label>
+						<span> <form:select id="spotCalcMechanism" disabled="true"
+								path="commandForm.frxTrdData.calcMechForSpotRate" class="dropdowninput">
+								<form:option value="" />
+							</form:select>
+						</span> <span><form:input id="spotRate" value=""
+								path="commandForm.frxTrdData.spotRate"
+								class="txtNormal"
+								onchange="return formatRate($('#spotRate'),10,10,null,$('#spotRate').parent().parent().find('label').text())" disabled="true"/></span>
+						<span class="remove" title="Remove this field"
+							style="display: none;"><spring:message text=""
+								htmlEscape="false" /></span>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+					<!-- Status -->
+					<div class="formItem">
+						<form:label path="commandForm.frxTrdData.status">
+							<spring:message code="frx.label.status" htmlEscape="false" />
+						</form:label>
+						<span class="detailTxtVal">${commandForm.frxTrdData.status}</span>
+					</div>
+					<!-- Profit/Loss -->
+					<div class="formItem">
+						<form:label path="commandForm.frxTrdData.status">
+							<spring:message code="frx.label.swappl" htmlEscape="false" />
+						</form:label>
+						<span class="detailTxtVal">${commandForm.frxTrdData.swapPl}</span>
+					</div>
+				</div>
+				<!-- Confirmation Status -->
+				<div class="confirmStatus">
+					<div class="formItem">
+						<form:label path="commandForm.frxTrdData.confirmationStatus"
+							class="required">
+							<spring:message code="frx.label.confirmationstatus"
+								htmlEscape="false" />
+						</form:label>
+						<span> <form:select id="confirmationStatus"
+								path="commandForm.frxTrdData.confirmationStatus"
+								class="dropdowninput">
+								<form:options
+									items="${commandForm.scrDisDatas.confirmationStatusList}"
+									itemLabel="label" itemValue="value" />
+							</form:select>
+						</span>
+
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+				</div>
+				<div class="clear">
+					<spring:message text="" htmlEscape="false" />
+				</div>
+				<div class="instructionblockflag">
+					<!-- Instruction Block Flag -->
+					<div class="formItem">
+						<form:label path="commandForm.frxTrdData.instructionBlockFlag">
+							<spring:message code="frx.label.instructionblockflag"
+								htmlEscape="false" />
+						</form:label>
+						<span> <form:select id="instructionBlockFlag"
+								path="commandForm.frxTrdData.instructionBlockFlag"
+								class="dropdowninput">
+								<form:option value="" />
+								<form:options
+									items="${commandForm.scrDisDatas.instructionBlockFlagList}"
+									itemLabel="Label" itemValue="value" />
+							</form:select>
+						</span>
+					</div>
+					<div class="clear">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</jsp:root>

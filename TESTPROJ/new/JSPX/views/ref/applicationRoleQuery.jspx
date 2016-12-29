@@ -1,0 +1,147 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles"
+     xmlns:xenos="http://www.nri.co.jp/xenos"
+     xmlns:jsp="http://java.sun.com/JSP/Page">
+	 
+<div class="formItemArea"> 
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+	<div class="formItemBlock topitems dottedBg">
+		
+		<div class="formItem">
+			<form:label path="officeId"><spring:message code="ref.applrole.label.officeID" htmlEscape="false"/></form:label>
+			<span>
+			<form:select path="officeId" class="dropdowninput" id="officeId">
+					<form:option value=""/>
+                    <form:options items="${commandForm.officeIds}"/>
+				
+			</form:select>
+			</span>
+			<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+        
+        <div class="formItem">
+			<form:label path="applicationRoleName" ><spring:message code="ref.applrole.label.applrolename" htmlEscape="false"/></form:label>
+			<span>
+			<form:select path="applicationRoleName" class="dropdowninput" id="applicationRoleName">
+					<form:option value=""/>
+                    <form:options items="${commandForm.applicationRoleNames}"/>
+				
+			</form:select>
+			</span>
+			<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+		
+		
+		<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	<div class="formBrdHide"><spring:message text="" htmlEscape="false"/></div>
+	<div class="formItemBlock delFormItems deltopitems" style="display:none;" >
+		<!-- Deleted Item goes here -->
+		<input type="button" class="restoreAllBtn" value="Restore All" />
+		<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	
+
+  
+
+  
+	<spring:eval expression="T(java.lang.System).currentTimeMillis()" var="myId"/>
+    <input type="hidden" id="${myId}"/>
+    <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+            var xenos$Handler$RequestHandler = xenos$Handler$function({
+                get : {
+                    requestType : xenos$Handler$default.requestType.asynchronous,
+                    contentType: 'json'
+                    
+                },
+                settings : {
+                    beforeSend : function(request) {
+                        request.setRequestHeader('Accept', 'application/json');
+                        
+                    },
+                    type: 'POST'
+                }
+            });
+
+			xenos.loadLocalizedScript([
+				{path: xenos.context.path + '/scripts/ref/xenos-ref-i18n', async: false}
+			]);	
+			//Loading Required scripts before validator is called.
+			xenos.loadScript([
+				{path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false}
+			],{
+				success: function() {
+					jQuery('#' + '${myId}').parent().xenosform({
+						
+					});
+				}
+			});
+            var baseUrl = xenos.context.path + "/secure/ref/applicationrole/query";
+           /**
+			*   Event handlers for the different  events like change
+			*/
+			            
+            /**
+			* Populate Address ID list.
+			*/
+			function populateApplicationRoleName(data){
+				if(data){
+						
+					var applicationRoleNameList = data.applicationRoleNames;
+					$('#applicationRoleName option').remove();
+					var option = $('<option/>');
+					option.attr('value', "").attr('selected','selected').text("");
+					$('#applicationRoleName').append(option);
+					$.each(applicationRoleNameList, function(index, item){
+						option = $('<option/>');
+						option.attr('value', item).text(item);
+						$('#applicationRoleName').append(option);
+					});
+				}
+			}
+            
+            var xenos$onReady = function(){
+                    if($('#officeId').val()=="" &amp;&amp; $('#applicationRoleName').val()=="") {
+                        onChangeOfficeId();
+                    }
+                };
+			
+			function onChangeOfficeId(){
+				var selectedValue = $('#officeId').val();
+                var form = $('#queryForm','#content');
+                var requestUrl = baseUrl + "/getApplRoleNames/"+selectedValue+".json?commandFormId=" + $('[name=commandFormId]').val();
+				xenos$Handler$RequestHandler.generic(undefined, 
+                                                    {	requestUri: requestUrl,
+                                                        settings: {data :form.serialize()},
+														onJsonContent :  function(e, options, $target, content) {	
+                                                            if (content.success == true) {
+                                                                populateApplicationRoleName(content.value[0]);
+                                                            }
+														 }
+                                                    }
+											);
+            }
+            
+            
+            
+            $('#officeId').unbind('change').bind('change',onChangeOfficeId);
+			
+		</jsp:body>
+	</jsp:element>
+</div>
+</jsp:root>

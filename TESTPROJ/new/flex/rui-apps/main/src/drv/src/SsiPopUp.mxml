@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<xenos:XPopUp width="700" height="450" title="Our Bank List" 
+    xmlns:mx="http://www.adobe.com/2006/mxml" 
+    xmlns:xenos="com.nri.rui.core.popups.*" 
+    xmlns:containers="com.nri.rui.core.containers.*" 
+    xmlns:flexlib="http://code.google.com/p/flexlib/" 
+    xmlns:cntrls="com.nri.rui.core.controls.*"
+    popUpQueryRequest="{ssiInfo}"  
+    mapping="drv/drvOurBankListPopup.action" close="super.closeWindow()">
+
+    <mx:Script>
+	
+        <![CDATA[
+
+        	import mx.events.ListEvent;
+        	import mx.events.DataGridEvent;
+        	import mx.collections.ArrayCollection;
+        	import mx.rpc.events.ResultEvent;       
+        	import mx.managers.PopUpManager;
+            import mx.controls.TextInput;
+            import mx.controls.Alert;
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.utils.HiddenObject;
+	
+	    	[Bindable]
+	        public var selectedItem:Object;
+	      
+	         [Bindable]
+	         public var retSettlementMode:TextInput= new TextInput();
+	         [Bindable]
+	         public var retOurBankStr:TextInput= new TextInput();
+			[Bindable]
+	         public var retOurSettleAccountStr:TextInput= new TextInput();
+			[Bindable]
+	         public var retInstructionReqdStr:TextInput= new TextInput();
+	         [Bindable]
+	         public var retAutoTransmissionReqdStr:TextInput= new TextInput();
+	          [Bindable]
+	         public var retSettlementAcPkStr:TextInput= new TextInput();
+	          [Bindable]
+	         public var retBankPkStr:TextInput= new TextInput();
+			
+ 		     [Bindable]
+           //Items returning through context - Non display objects
+          	 public var retContextItem:ArrayCollection = new ArrayCollection();
+           
+       
+           
+	    /**
+         * Populate the query result information to the SSI Info list.
+         * @param ResultEvent the result set event object.
+         */      
+         public override function populatePopUpQueryPage(event:ResultEvent):void {
+          
+         	 var rs:XML = XML(event.result);
+	           if (null != event) {
+				if(rs.summary.noOfRecords!='0') {
+					errPage.clearError(event);
+		            summaryResult.removeAll();
+					try {
+					    for each ( var rec:XML in rs.summary.data ) {
+		 				    summaryResult.addItem(rec);
+					    }
+					//    changeCurrentState();
+			            setPrevNextVisibility((rs.prevTraversable == "true")?true:false,(rs.nextTraversable == "true")?true:false );
+		            	summaryResult.refresh();
+					}catch(e:Error){
+					    //XenosAlert.error(e.toString() + e.message);
+					    XenosAlert.error("No result found");
+				    }
+				} else {
+				 	XenosAlert.info("No Result Found!");
+				 	summaryResult.removeAll(); // clear previous data if any as there is no result now.
+				 	errPage.removeError(); //clears the errors if any
+				}
+	          }
+         }
+         
+       /**
+         * It sets the enable property of the Next and Previous button
+         * depending on the result set, whether available or not
+         */
+        public function setPrevNextVisibility(prev:Boolean, next:Boolean):void{
+
+              /*   this.prevPage.enabled = prev;
+                this.nextPage.enabled = next; */
+        }
+        
+        
+           public function  returnValue(): void {
+           if (ssiList.selectedItem != null){
+            
+              retSettlementMode.text  = ssiList.selectedItem.settlementMode;
+          	  retOurBankStr.text = ssiList.selectedItem.settlementBank;
+          	  retOurSettleAccountStr.text = ssiList.selectedItem.settlementAcc;
+          	  retInstructionReqdStr.text  = ssiList.selectedItem.instructionReqd;
+          	  retAutoTransmissionReqdStr.text = ssiList.selectedItem.autoTransmissionReqd;
+          	  retSettlementAcPkStr.text = ssiList.selectedItem.settlementAcPkStr;
+          	  retBankPkStr.text = ssiList.selectedItem.bankPkStr;
+          	  
+          	  super.closeWindow();
+          }
+        }
+            
+        ]]>
+    </mx:Script>
+       
+
+   
+     <cntrls:XenosHTTPService id="ssiInfo" fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultDetail)" url="drv/drvOurBankListPopup.action?method=load"
+             result="populatePopUpQueryPage(event)" method="POST" showBusyCursor="true" resultFormat="xml" />   
+	 <cntrls:XenosErrors id="errPage" width="100%" height="8%" color="#FF0000" borderStyle="none"/>
+	 
+           <mx:VBox width="100%" height="100%">            
+            <mx:DataGrid id="ssiList" rowCount="2" backgroundColor="0xCCCCCC" width="100%" height="100%" dataProvider="{summaryResult}">
+            	<mx:columns>
+	          	 <mx:DataGridColumn  textAlign="center" >
+	            		<mx:itemRenderer>
+	                        <mx:Component>
+	                            <mx:LinkButton fontWeight="normal" color="#007ac8" textDecoration="underline" label="Select" click="{outerDocument.returnValue()}" />
+	                        </mx:Component>
+                    	</mx:itemRenderer> 
+	            	</mx:DataGridColumn>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.settlementbank')}"  headerWordWrap="true" wordWrap="true" dataField="settlementBank" sortable="true"/>
+            		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.bankname')}" headerWordWrap="true" dataField="bankName" wordWrap="true" sortable="true"/>
+            		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.settleaccount')}" headerWordWrap="true" wordWrap="true" dataField="settlementAcc" sortable="true"/>
+            		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.accName')}" headerWordWrap="true" wordWrap="true" dataField="accName" sortable="true"/>
+            		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.priority')}" headerWordWrap="true" wordWrap="true" dataField="priority" sortable="true"/>
+            	</mx:columns>
+            </mx:DataGrid>
+    </mx:VBox>
+   
+    
+</xenos:XPopUp>

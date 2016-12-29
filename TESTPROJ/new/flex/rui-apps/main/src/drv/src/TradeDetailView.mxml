@@ -1,0 +1,532 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+
+
+-->
+
+<!--Mxml file for Derivative Trade Query Trade Detail View -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" 
+    xmlns:cntrls="com.nri.rui.core.controls.*"
+    xmlns:flexlib="http://code.google.com/p/flexlib/"  
+    width="100%" height="100%" creationComplete="init()"
+    updateComplete="com.nri.rui.core.controls.AutoScroll.currentObjContainer = this.cvTradeDetailView;com.nri.rui.core.controls.AutoScroll.updateDisplayList(event);">
+    
+    <mx:Script>
+        <![CDATA[
+        	import mx.core.UIComponent;
+        	import com.nri.rui.core.utils.XenosPopupUtils;
+        	import com.nri.rui.core.utils.PrintUtils;
+            import mx.collections.XMLListCollection;
+            import mx.controls.Alert;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import com.nri.rui.core.controls.XenosAlert;
+            import mx.managers.PopUpManager;
+            import com.nri.rui.core.Globals;
+            import mx.rpc.events.FaultEvent;
+            import mx.rpc.events.ResultEvent;
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.controls.AutoScroll;
+            
+            [Bindable]
+            private var summaryResult:ArrayCollection = new ArrayCollection;
+            [Bindable]
+            private var contractDetails:ArrayCollection = new ArrayCollection();
+            [Bindable]
+            private var contractDetailsObj:Object = new Object();
+            [Bindable]
+            private var tradePk : String = "";
+            [Bindable]
+            private var actionMode : String = "";
+            
+            [Bindable]
+            private var xmlData:XML = new XML();
+            [Bindable]
+            private var taxFeeColl:XMLListCollection = new XMLListCollection();
+            [Bindable]
+            private var marginColl:XMLListCollection = new XMLListCollection();
+            /**
+             * Extracts the parameters and set them to some variables for query criteria from the Module Loader Info.
+             * 
+             */ 
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if (tempA[0] == "tradePk") {
+                            tradePk = tempA[1];
+                        } else if(tempA[0] == "actionMode"){
+                            actionMode = tempA[1];
+                        }
+                    }
+                } catch (e:Error) {
+                    trace(e);
+                }
+               
+            }
+            
+              /**
+		   * This method is used for loading Fund Details popup module
+		   * 
+		   */  
+		   public function showFundDetail():void{
+		   			
+		   			var fundPkStr : String = xmlData.contractVo.otherAttributes.entry.(@key=='fundPk').value;
+					var parentApp :UIComponent = UIComponent(this.parentApplication);
+					XenosPopupUtils.showFundCodeDetails(fundPkStr,parentApp);
+		   }
+            /**
+             * Initializes the module and send the submit request.
+             * 
+             */     
+            private function init():void{
+                
+                parseUrlString();
+                
+                var rndNo:Number = Math.random();
+                httpService.url= "drv/drvTradeDetailsView.action?rnd=" + rndNo;
+                
+                var req : Object = new Object();
+                req.method="doView";
+                req.tradePk=this.tradePk;
+                req.mode=this.actionMode;      
+                httpService.request=req;
+                
+                httpService.send();
+                PopUpManager.centerPopUp(this);
+            }
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function httpService_fault(evt:FaultEvent):void {
+                XenosAlert.error(evt.fault.faultDetail);
+            }
+            /**
+             * Result handler for the submit Request. 
+             * 
+             */ 
+            private function httpService_result(event:ResultEvent):void { 
+                xmlData = event.result as XML;
+                taxFeeColl = new XMLListCollection(xmlData.taxFeeList); 
+                marginColl = new XMLListCollection(xmlData.marginList);                             
+            }
+            
+            /**
+             * Retrieve and return the Reference No With Version as Labelfunction.
+             */
+            private function referenceNoWithVersion(item:Object, column:DataGridColumn):String{
+                return item.tradeReferenceNo + "-" + item.versionNo;
+            } 
+            
+            /**
+		   * This method is used for loading Instrument Details popup module
+		   * 
+		   */  
+		   public function showInstrumentDetail():void{		   			
+				var InstPkStr : String = xmlData.contractVo.instrumentPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showInstrumentDetails(InstPkStr, parentApp);
+		   }
+		   
+		   /**
+		   * This method is used for loading Account Details popup module
+		   * 
+		   */  
+		   public function showAccountDetail():void{		   			
+				var AccPkStr : String = xmlData.contractVo.cpAccountPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showAccountSummary(AccPkStr, parentApp);
+		   }
+		   
+		   /**
+		   * This method is used for loading Inventory Account Details popup module
+		   * 
+		   */  
+		   public function showInventoryAccountDetail():void{		   			
+				var invAccPkStr : String = xmlData.contractVo.inventoryAccountPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showAccountSummary(invAccPkStr, parentApp);
+		   }
+        ]]>
+    </mx:Script>
+    <cntrls:XenosHTTPService id="httpService" 
+            useProxy="false"
+            fault="httpService_fault(event);"
+            result="httpService_result(event)" showBusyCursor="true" resultFormat="e4x" >
+           <!-- <mx:request >
+                <method>doView</method>
+                <tradePk>{this.tradePk}</tradePk>
+                <mode>{this.actionMode}</mode>                                
+            </mx:request> -->
+    </cntrls:XenosHTTPService>
+    <!--mx:XMLListCollection id="taxFeeColl" source="{xmlData.taxFeeList}"/-->
+
+    <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+     <mx:Button id="Print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getkeyvalue('inf.form.button.lable.print')}" click="PrintUtils.printDetail(this.tradedetailsview)"/>
+    </mx:HBox>     
+     
+     
+    <mx:Canvas id="cvTradeDetailView" width="100%" height="100%">
+        <mx:VBox id="tradedetailsview" width="100%" height="100%">
+		
+        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>
+        
+        <!--mx:Label width="100%" id="lblHeader" text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.generalinfo')}"/-->
+        <flexlib:WindowShade id="ws1" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws1" tabChildren="{ws1.opened}" styleName="linkButtonWindowShade" opened="true" label="{this.parentApplication.xResourceManager.getKeyValue('drv.label.generalinfo')}" width="100%" >
+        <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.referenceno')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.tradeReferenceNo + '-' + xmlData.tradeVo.versionNo}" />
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.accountbalancetype')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='accountBalanceType').value}" />
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securitycode')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlData.contractVo.otherAttributes.entry.(@key=='securityId').value}" click="showInstrumentDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.opencloseposition')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='openCloseFlagStr').value}" />
+                </mx:GridItem>
+            </mx:GridRow>
+            
+            <mx:GridRow width="100%" >
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securityshortname')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.contractVo.otherAttributes.entry.(@key=='securityShortName').value}" />
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.underlyingshortname')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.contractVo.otherAttributes.entry.(@key=='underlyingShortName').value}" />
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradedate')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='tradeDate').value}" />
+                </mx:GridItem>
+                 <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.valuedate')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%" >
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='valueDate').value}" />
+                </mx:GridItem>                    
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                 <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundaccountno')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%" >
+                    <mx:Label text="{xmlData.contractVo.otherAttributes.entry.(@key=='inventoryAccountNo').value}" click="showInventoryAccountDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">      
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.label.alternatesecurityid')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%" >
+                	<mx:Text text="{xmlData.contractVo.otherAttributes.entry.(@key=='alternateSecurityId').value}" />               
+                </mx:GridItem>                    
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.exebrokeraccountno')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlData.tradeVo.otherAttributes.entry.(@key=='executionBrokerAccountNo').value}" click="showAccountDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.accountno')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Label text="{xmlData.contractVo.otherAttributes.entry.(@key=='cpAccountNo').value}" click="showAccountDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false"/>
+                </mx:GridItem>                                    
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.price')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='price').value}" />
+                </mx:GridItem>
+                 <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.quantity')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%" >
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='tradeQuantity').value}" />
+                </mx:GridItem>                    
+            </mx:GridRow> 
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.executionmarket')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='executionMarket').value}" />
+                </mx:GridItem>
+                 <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradecurrency')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%" >
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='tradingCcy').value}" />
+                </mx:GridItem>                    
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.exchangerate')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='exchangeRate').value}" />
+                </mx:GridItem>
+                 <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.calculationtype')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%" >
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='calculationType').value}" />
+                </mx:GridItem>                    
+            </mx:GridRow>      
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.externalreferenceno')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.externalReferenceNo}" />
+                </mx:GridItem>
+                 <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundcode')}" styleName="FormLabelHeading"  />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.contractVo.otherAttributes.entry.(@key=='fundCode').value}" click="showFundDetail()" styleName="TextLink" buttonMode="true" useHandCursor="true" mouseChildren="false"/>
+                </mx:GridItem>                    
+            </mx:GridRow>              
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.datasource')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.dataSource}" />
+                </mx:GridItem>
+                 <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.status')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%" >
+                    <mx:Text text="{xmlData.tradeVo.status}" />
+                </mx:GridItem>                    
+            </mx:GridRow>              
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.remarks')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="80%" colSpan="3">
+                    <mx:Text text="{xmlData.tradeVo.remarks}" />
+                </mx:GridItem>                   
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.entrydate')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='appRegiDate').value}" />
+                </mx:GridItem>
+                 <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.lastentrydate')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%" >
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='appUpdDate').value}" />
+                </mx:GridItem>                    
+            </mx:GridRow>      
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.entryby')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.createdBy}" />
+                </mx:GridItem>
+                 <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.lastentryby')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%" >
+                    <mx:Text text="{xmlData.tradeVo.updatedBy}" />
+                </mx:GridItem>                    
+            </mx:GridRow>      
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.entrydatesystem')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='creationDate').value}" />
+                </mx:GridItem>
+                 <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.lastentrydatesystem')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%" >
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='updateDate').value}" />
+                </mx:GridItem>                    
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.executionoffice')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='executionOffice').value}" />
+                </mx:GridItem>
+                 <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.inxsuppressflag')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%" >
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='instructionSuppressFlag').value}" />
+                </mx:GridItem>                    
+            </mx:GridRow>           
+        </mx:Grid>
+        </flexlib:WindowShade>
+        
+        <!--mx:Label width="100%" id="lbltaxInfo" text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.taxfeeinfo')}"/-->
+        <!--<flexlib:WindowShade id="ws2" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws2" tabChildren="{ws2.opened}" styleName="linkButtonWindowShade" opened="false" label="{this.parentApplication.xResourceManager.getKeyValue('drv.label.taxfeeinfo')}" width="100%" >-->
+        <flexlib:WindowShade id="ws2" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws2" tabChildren="{ws2.opened=false}" styleName="linkButtonWindowShade"  label="{this.parentApplication.xResourceManager.getKeyValue('drv.label.taxfeeinfo')}" width="100%" >
+        
+        <mx:DataGrid id="taxInfoResult" dataProvider="{this.taxFeeColl}" rowCount="4" width="100%" height="100%" sortableColumns="false" variableRowHeight="true">
+            <mx:columns>  
+               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.taxfeeid')}" dataField="taxFeeId"/>
+               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.taxfeeamount')}" dataField="taxFeeAmountStr" textAlign="right"/>               
+            </mx:columns>
+        </mx:DataGrid>
+        </flexlib:WindowShade>
+        <flexlib:WindowShade id="ws5" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws5" tabChildren="{ws5.opened=false}" styleName="linkButtonWindowShade"  label="{this.parentApplication.xResourceManager.getKeyValue('drv.label.margininfo')}" width="100%" >
+        <mx:DataGrid id="marginInfoResult" dataProvider="{this.marginColl}" rowCount="4" width="100%" height="100%" sortableColumns="false" variableRowHeight="true">
+            <mx:columns>  
+               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.margin.basedate')}" dataField="baseDateStr"/>
+               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.margin.type')}" dataField="marginTypeStr"/>
+               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.margin.currency')}" dataField="marginCcyStr"/>
+               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.margin.amount')}" dataField="marginAmountStr" textAlign="right"/>
+               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.margin.refno')}" dataField="referenceNo"/>               
+            </mx:columns>
+        </mx:DataGrid>
+        </flexlib:WindowShade>
+        <!--mx:Spacer/-->
+        <flexlib:WindowShade id="ws3" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws3" tabChildren="{ws3.opened=false}" styleName="linkButtonWindowShade"  label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.lessimportant.fields')}" width="100%" >
+        <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.exposure')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='principalAmount').value}" />
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.exposureinissueccy')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='principalAmountInIssueCcy').value}" />
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.netamount')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.tradeVo.otherAttributes.entry.(@key=='netAmount').value}" />
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.settlementtype')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.contractVo.otherAttributes.entry.(@key=='drvSettlementType').value}" />
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">                
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.settlementbasis')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.contractVo.otherAttributes.entry.(@key=='settlementBasis').value}" />
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="" />
+                </mx:GridItem>                
+            </mx:GridRow>
+        </mx:Grid>
+        </flexlib:WindowShade>
+        <!--mx:Label width="100%" id="lblSsiInfo" text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.ssiinfo')}"/-->    
+        <flexlib:WindowShade id="ws4" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws4" tabChildren="{ws4.opened=false}" styleName="linkButtonWindowShade"  label="{this.parentApplication.xResourceManager.getKeyValue('drv.label.ssiinfo')}" width="100%" >
+        <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.settlementmode')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.ssiInfo.settlementMode}" />
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="" />
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.oursettlementbank')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.ssiInfo.ourBankStr}" />
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.oursettlementaccount')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.ssiInfo.ourSettleAccountStr}" />
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">                
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.instructionreqd')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.ssiInfo.instructionReqdStr}" />
+                </mx:GridItem>
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.autotransmissionreqd')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="30%">
+                    <mx:Text text="{xmlData.ssiInfo.autoTransmissionReqdStr}" />
+                </mx:GridItem>                
+            </mx:GridRow>
+        </mx:Grid>       
+        </flexlib:WindowShade>
+     </mx:VBox>
+    </mx:Canvas>
+</mx:Module>

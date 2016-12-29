@@ -1,0 +1,384 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles"
+	 xmlns:util="urn:jsptagdir:/WEB-INF/tags/util">
+
+		<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+		<jsp:output	omit-xml-declaration="yes" />
+	
+		<jsp:element name="script">
+			<jsp:attribute name="type">text/javascript</jsp:attribute>
+			<jsp:attribute name="src"><c:url value="/scripts/inf/fieldvalidator.js"/></jsp:attribute>
+			<jsp:body></jsp:body>
+	    </jsp:element>
+		<jsp:element name="script">
+			<jsp:attribute name="type">text/javascript</jsp:attribute>
+			<jsp:attribute name="src"><c:url value="/scripts/inf/datevalidation.js"/></jsp:attribute>
+			<jsp:body></jsp:body>
+	    </jsp:element>
+		<jsp:element name="script">
+			<jsp:attribute name="type">text/javascript</jsp:attribute>
+			<jsp:attribute name="src">
+				<c:url value="/scripts/inf/utilCommons.js"/>
+			</jsp:attribute>
+			<jsp:body></jsp:body>
+		</jsp:element>
+	<!-- Java script include -->
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>		
+        <jsp:body>
+			if(typeof xenos != 'undefined' ){
+				xenos.loadLocalizedScript([
+					{path: xenos.context.path + '/scripts/bkg/xenos-bkg-i18n', async: false}
+				]);
+            }
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+					var context = $xenos$Wizard.$context;
+		        	var baseUrl = xenos.context.path + context.find('form').attr('action');
+					
+					/**
+					* A common request handler to be used server communication.
+					*/
+					var xenos$Handler$RequestHandler = xenos$Handler$function({
+						get: {
+							contentType: 'json',
+							requestType: xenos$Handler$default.requestType.asynchronous
+						},	
+						settings: {
+							beforeSend: function(request) {
+								request.setRequestHeader('Accept', 'application/json');
+							},
+							type: 'POST'
+						}
+					});
+				   /**
+					* Function to update net amount
+					*/
+					function updateCalculatedFields(data){
+						if(data){
+							$('#accruedDays').val(data.bkgTrdData.accruedDays);
+							$('#netAmount').val(data.bkgTrdData.netAmount);
+							$('#interestAmount').val(data.bkgTrdData.interestAmount);
+							$('#referenceNo').text("");
+						}
+					}
+					 
+					/**
+					* Validate Banking Trade Entry Mandatory attributes.
+					*/
+					function validateMandatoryAttributes(){		
+						var validationMessages = [];
+						
+						var tradeType = $.trim($('#tradeType',context).val());
+						var startDate = $.trim($('#startDate',context).val());
+						var tradeDate = $.trim($('#tradeDate',context).val());
+						var maturityDate = $.trim($('#maturityDate',context).val());
+						var accountNo = $.trim($('#tgtaccountNoId',context).val());
+						var inventoryAccountNo = $.trim($('#tgtinventoryAccountNoId',context).val());
+						var currencyCode = $.trim($('#currencyCode',context).val());
+						var cpAccountName = $.trim($('#cpAccountName',context).val());
+						var principalAmount = $.trim($('#principalAmount',context).val());
+						var interestRate = $.trim($('#interestRate',context).val());  
+						var interestAmount =  $.trim($('#interestAmount').val());
+						
+						if(VALIDATOR.isNullValue(tradeType)){
+							validationMessages.push(xenos$BKG$i18n.bankingTrade.entry.trade_type_empty);
+						}
+						if(VALIDATOR.isNullValue(startDate)){
+							validationMessages.push(xenos$BKG$i18n.bankingTrade.entry.start_date_empty);
+						}else if(isDateCustom(startDate)==false){
+							validationMessages.push(xenos.utils.evaluateMessage(xenos$BKG$i18n.bankingTrade.entry.date_format_check, [startDate]));
+						}else{
+						  formatDate(startDate,$('#startDate',context));
+						}
+						if(VALIDATOR.isNullValue(tradeDate)){
+							validationMessages.push(xenos$BKG$i18n.bankingTrade.entry.trade_date_empty);
+						}else if(isDateCustom(tradeDate)==false){
+							validationMessages.push(xenos.utils.evaluateMessage(xenos$BKG$i18n.bankingTrade.entry.date_format_check, [tradeDate]));
+						}else{
+						  formatDate(tradeDate,$('#tradeDate',context));
+						}
+					    if(VALIDATOR.isNullValue(maturityDate)){
+							validationMessages.push(xenos$BKG$i18n.bankingTrade.entry.maturity_date_empty);
+						}else if(isDateCustom(maturityDate)==false){
+							validationMessages.push(xenos.utils.evaluateMessage(xenos$BKG$i18n.bankingTrade.entry.date_format_check, [maturityDate]));
+						}else{
+						  formatDate(maturityDate,$('#maturityDate',context));
+						}
+						if(VALIDATOR.isNullValue(accountNo)){
+							validationMessages.push(xenos$BKG$i18n.bankingTrade.entry.cp_acc_no_empty);
+						}
+						if(VALIDATOR.isNullValue(inventoryAccountNo)){
+							validationMessages.push(xenos$BKG$i18n.bankingTrade.entry.fund_acc_no_empty);
+						}
+						if(VALIDATOR.isNullValue(currencyCode)){
+							validationMessages.push(xenos$BKG$i18n.bankingTrade.entry.ccy_code_empty);
+						}
+						if(VALIDATOR.isNullValue(principalAmount)){
+							validationMessages.push(xenos$BKG$i18n.bankingTrade.entry.principal_amt_empty);
+						}else {
+							formatAmount($('#principalAmount'),15,3,validationMessages,$('#principalAmount').parent().parent().find('label').text());
+						}
+						if(VALIDATOR.isNullValue(interestRate)){
+							validationMessages.push(xenos$BKG$i18n.bankingTrade.entry.interest_rate_empty);
+						}else {
+							formatAmount($('#interestRate'),10,9,validationMessages,$('#interestRate').parent().parent().find('label').text());
+						}
+						if(!VALIDATOR.isNullValue(interestAmount)){
+							formatAmount($('#interestAmount'),15,3,validationMessages,$('#interestAmount').parent().parent().find('label').text());
+						}
+						if (validationMessages.length > 0){
+							 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+							 return false;
+						}else {
+	                           xenos.utils.clearGrowlMessage();
+						}
+						return true;
+					}
+						var submitValidateHook = function() {
+							var flag = false;					
+							if(validateMandatoryAttributes()){
+								flag=true;
+							}
+						$('#accountName').attr('value',$('#placeHolderinventoryAccountNoId').text());
+						$('#cpAccountName').attr('value',$('#placeHolderaccountNoId').text());
+						return flag;		
+					};
+					
+					
+				   /*
+					*	Calculate Net Amount Handler
+					*
+				    */
+					function calculateHandler(e){
+					    if(submitValidateHook()){
+						var requestUrl = baseUrl + "/calculateamount.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl, 
+															  settings :{data: $("#commandForm").serialize()}, 					
+															  onJsonContent :  function(e, options, $target, content) {
+																if(content.success == true){
+																	updateCalculatedFields(content.commandForm);
+																} else {
+																	xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																}
+															}
+														}
+												);
+						}
+					}
+					
+					function clearComma(str){
+					   return str!=null?str.replace(/\,/g,""):str;
+					}
+					
+				    function clearCalculatedFields(){
+					    var prev = $.trim($(this).data('val'));
+						var current = $.trim($(this).val());
+						if(clearComma(prev)!=clearComma(current)){
+							$('#accruedDays').val("");
+							$('#netAmount').val("");
+							$('#interestAmount').val("");
+						}
+					}
+					
+					function saveData(){
+						$(this).data('val', $(this).val());
+					}
+					
+				    /**
+					*
+					*/		
+					function clearNetAmountOnIntAmtChange(){
+					    var prev = $.trim($(this).data('val'));
+						var current = $.trim($(this).val());
+						if(clearComma(prev)!=clearComma(current)){
+							$('#netAmount').val("");
+						}
+					}
+					
+					$('#calculateAmtBtn').unbind('click');
+					$('#calculateAmtBtn').bind('click',calculateHandler);
+					
+					$('#currencyCode').unbind('focusin');
+					$('#currencyCode').bind('focusin',saveData);
+					
+					$('#currencyCode').unbind('change');
+					$('#currencyCode').bind('change',clearCalculatedFields);
+					
+					$('#startDate').unbind('focusin');
+					$('#startDate').bind('focusin',saveData);
+					
+					$('#startDate').unbind('change');
+					$('#startDate').bind('change',clearCalculatedFields);
+
+					$('#maturityDate').unbind('focusin');
+					$('#maturityDate').bind('focusin',saveData);
+		
+                    $('#maturityDate').unbind('change');
+					$('#maturityDate').bind('change',clearCalculatedFields);
+					
+					$('#principalAmount').unbind('focusin');
+					$('#principalAmount').bind('focusin',saveData);
+					
+					$('#principalAmount').unbind('change');
+					$('#principalAmount').bind('change',clearCalculatedFields); 
+					
+					$('#interestRate').unbind('focusin');
+					$('#interestRate').bind('focusin',saveData);
+					$('#interestRate').unbind('change');
+					$('#interestRate').bind('change',clearCalculatedFields); 
+					
+					$('#interestAmount').unbind('focusin');
+					$('#interestAmount').bind('focusin',saveData);
+					
+					$('#interestAmount').unbind('change');
+					$('#interestAmount').bind('change',clearNetAmountOnIntAmtChange);
+					
+					var unloadHook = function(){
+						$xenos$Wizard.deregister('submit',submitValidateHook);
+						$xenos$Wizard.deregister('unload',unloadHook);
+					}
+					
+				    $xenos$Wizard.register('submit',submitValidateHook);
+				    $xenos$Wizard.register('unload',unloadHook);
+					xenos.utils.afterFormRenderScuts();
+		    }
+			
+		</jsp:body>
+    </jsp:element>
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+	<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+	<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+	<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+	
+			<div class="entryBlkArea" id="bkgBankingTrade">
+				<div class="formItemBlock dottedBg">
+					<!-- Fund Account Number -->
+					<div class="formItem twoCols">
+						<form:label path="commandForm.bkgTrdData.inventoryAccountNo" class="required"><spring:message code="bkg.trade.entry.label.fundaccountno" htmlEscape="false"/></form:label>
+						<util:xenospopup id="inventoryAccountNoId" path="commandForm.bkgTrdData.inventoryAccountNo" showResolvedName="true"  
+						tgt="inventoryAccountNo" popType="cpAccount" actTypeContext="T|S|B" actCPTypeContext="INTERNAL" actContext="TRADING|BOTH" event="change focusout" 
+						endpoint="secure/ref/nameresolver/fund"/>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- CP Account Number -->
+					<div class="formItem twoCols">
+						<form:label path="commandForm.bkgTrdData.accountNo" class="required"><spring:message code="bkg.trade.entry.label.counterpartyaccountno" htmlEscape="false"/></form:label>
+						<util:xenospopup id="accountNoId" path="commandForm.bkgTrdData.accountNo" showResolvedName="true"  
+						tgt="accountNo" popType="cpAccount" actTypeContext="T|S|B" actCPTypeContext="BROKER|BANK/CUSTODIAN" actContext="TRADING|BOTH" event="change focusout" 
+						endpoint="secure/ref/nameresolver/account"/>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.bkgTrdData.tradeType" class="required"><spring:message code="bkg.trade.entry.label.tradetype" htmlEscape="false"/></form:label> 
+						<span>
+							<form:select id="tradeType" path="commandForm.bkgTrdData.tradeType" class="dropdowninput">
+								<form:options items="${commandForm.scrDisDatas.tradeTypeList}"/>
+							</form:select>
+						</span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				   </div>
+			       <div class="formItem">
+					   <form:label path="commandForm.bkgTrdData.takenPlacedFlag"><spring:message code="bkg.trade.entry.label.takenorplaced" htmlEscape="false"/></form:label>
+				       <span><form:input id="takenPlacedFlag" style="background-color:lightgrey" readOnly="true" value="PLACED" path="commandForm.bkgTrdData.takenPlacedFlag" class="textBox txtNormal"></form:input>
+					   </span>
+					   <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				  </div>
+				 <div class="formItem">
+					<form:label path="commandForm.bkgTrdData.currencyCode" class="required">
+						<spring:message code="bkg.trade.entry.label.currencycode" htmlEscape="false"/>
+					</form:label> 
+					<span>
+						<form:input id="currencyCode" value="" path="commandForm.bkgTrdData.currencyCode"  class="textBox"/>
+				   </span>
+					<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="currencyCode" popType="currency" value="" /></div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>			
+				<div class="formItem">
+					<form:label path="commandForm.bkgTrdData.tradeDate" class="required"><spring:message code="bkg.trade.entry.label.tradedatetime" htmlEscape="false"/></form:label> 
+					<span><form:input id="tradeDate" value="" path="commandForm.bkgTrdData.tradeDate"  class="dateinput" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$BKG$i18n.bankingTrade.entry.date_format_check, [this.value]))}else{formatDate(this.value,$('#tradeDate','#bkgBankingTrade'))};"/></span>
+					<form:label path="commandForm.bkgTrdData.tradeTime"></form:label>
+					<form:input id="tradeTime" value="" path="commandForm.bkgTrdData.tradeTime" class="textBox" maxlength="8" size="9"/>
+				</div>
+			    <div class="formItem">
+					<form:label path="commandForm.bkgTrdData.startDate" class="required"><spring:message code="bkg.trade.entry.label.startdate" htmlEscape="false"/></form:label> 
+					<span><form:input id="startDate" value="" path="commandForm.bkgTrdData.startDate"  class="dateinput" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$BKG$i18n.bankingTrade.entry.date_format_check, [this.value]))}else{formatDate(this.value,$('#startDate','#bkgBankingTrade'))};"/></span>
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>					
+				</div>
+				<div class="formItem">
+					<form:label path="commandForm.bkgTrdData.maturityDate" class="required"><spring:message code="bkg.trade.entry.label.maturitydate" htmlEscape="false"/></form:label> 
+					<span><form:input id="maturityDate" value="" path="commandForm.bkgTrdData.maturityDate"  class="dateinput" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$BKG$i18n.bankingTrade.entry.date_format_check, [this.value]))}else{formatDate(this.value,$('#maturityDate','#bkgBankingTrade'))};"/></span>
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>					
+				</div>
+				<div class="formItem">
+					<form:label path="commandForm.bkgTrdData.principalAmount" class="required"><spring:message code="bkg.trade.entry.label.principalamount" htmlEscape="false"/></form:label> 
+					<span><form:input id="principalAmount" value="" path="commandForm.bkgTrdData.principalAmount" class="txtNormal" onchange="return formatPrincipalAmount($('#principalAmount'),15,3,null,$('#principalAmount').parent().parent().find('label').text())"/></span>			
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					<form:label path="commandForm.bkgTrdData.interestRate" class="required"><spring:message code="bkg.trade.entry.label.interestrate" htmlEscape="false"/></form:label> 
+					<span><form:input id="interestRate" value="" path="commandForm.bkgTrdData.interestRate"  class="txtNormal" onchange="return formatRate($('#interestRate'),10,9,null,$('#interestRate').parent().parent().find('label').text())"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					<form:label path="commandForm.bkgTrdData.accruedDays"><spring:message code="bkg.trade.entry.label.accrueddays" htmlEscape="false"/></form:label> 
+					<span><form:input id="accruedDays" readOnly="true" style="background-color:lightgrey" path="commandForm.bkgTrdData.accruedDays"  class="textBox txtNormal"/></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					<form:label path="commandForm.bkgTrdData.interestAmount"><spring:message code="bkg.trade.entry.label.interestamount" htmlEscape="false"/></form:label> 
+					<span><form:input id="interestAmount" value="" path="commandForm.bkgTrdData.interestAmount"  class="txtNormal" onchange="return formatAmount($('#interestAmount'),null,null,null,$('#interestAmount').parent().parent().find('label').text())"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					<form:label path="commandForm.bkgTrdData.netAmount"><spring:message code="bkg.trade.entry.label.netamount" htmlEscape="false"/></form:label> 
+					<span><form:input id="netAmount" readOnly="true" style="background-color:lightgrey" path="commandForm.bkgTrdData.netAmount"  class="textBox txtNormal"/></span>			
+					<div class="btnWrapStyle calAmtBtnBtn calcBtn" style="margin-top:0;">
+						<span class="calculateAmt"><input class="calcBtnIco" id="calculateAmtBtn" type="button" title="Calculate Net Amount"/></span>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				<div class="formItem twoCols">
+					<form:label path="commandForm.bkgTrdData.remarks"><spring:message code="bkg.trade.entry.label.remarks" htmlEscape="false"/></form:label> 
+					<form:input id="remarks" value="" path="commandForm.bkgTrdData.remarks"  class="txtNormal" maxlength="255" size="84"/>		
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				<c:if test="${commandForm.screenId=='BAMEN'}">
+				<div class="formItem">
+					<form:label path="commandForm.bkgTrdData.referenceNo"><spring:message code="bkg.trade.entry.label.referenceno" htmlEscape="false"/></form:label>
+					<form:label id="referenceNo" path="commandForm.bkgTrdData.referenceNo">${commandForm.bkgTrdData.referenceNo}</form:label>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				</c:if> 
+				<!-- Fund Account Name-->
+				
+					<span><form:hidden id="accountName" value="" path="commandForm.bkgTrdData.accountName"/></span>
+					<span><form:hidden id="cpAccountName" value="" path="commandForm.bkgTrdData.cpAccountName"/></span>					
+					
+				
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		   <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>	
+</jsp:root>	

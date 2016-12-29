@@ -1,0 +1,616 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0" xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+	xmlns:spring="http://www.springframework.org/tags"
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util"
+	xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:display="http://displaytag.sf.net"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	xmlns:tiles="http://tiles.apache.org/tags-tiles"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+
+	<div class="entryContainer">
+		<jsp:directive.page contentType="text/html;charset=UTF-8" />
+		<jsp:output omit-xml-declaration="yes" />
+
+		<c:if test="${success =='false'}">
+			<!-- Error message Area -->
+			<ul class="xenosError">
+				<c:forEach items="${value}" var="dl">
+					<li><spring:message text="${dl}" htmlEscape="false" /></li>
+				</c:forEach>
+			</ul>
+		</c:if>
+
+		<spring:message code="form.button.label.add" htmlEscape="false"
+			var="formadd_label" />
+
+
+
+		<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		
+			xenos.loadLocalizedScript([
+                  {path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+                  {path: xenos.context.path + '/scripts/cax/xenos-cax-i18n', async: false}
+              ]);
+			//Loading Required scripts before validator is called.
+              xenos.loadScript([
+                  {path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false}, 
+                  {path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false}
+              ]);
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+			
+			var unloadHook = function(){
+				$xenos$Wizard.deregister('submit',validateHook);
+				$xenos$Wizard.deregister('unload',unloadHook);
+			};
+			
+			$xenos$Wizard.register('submit',validateHook);
+			$xenos$Wizard.register('unload',unloadHook);
+			var actionType = '${commandForm.actionType}';
+			<c:forEach items="${commandForm.stockEntryArray}" var="dl" step="1"
+					begin="0" varStatus="count">
+			 
+			var hiddenCashInLieuFlag = $.trim($('#hiddenCashInLieuFlag${count.index}').val());
+			 if(hiddenCashInLieuFlag == "Y") {
+				$('#allottedQuantityStr${count.index}').val('');
+				$('#allottedQuantityStr${count.index}').attr('readonly',true);
+				$('#allottedAmountStr${count.index}').attr('readonly',false);
+			} else {
+				$('#allottedQuantityStr${count.index}').attr('readonly',false);
+				$('#allottedAmountStr${count.index}').attr('readonly',true);
+				$('#allottedAmountStr${count.index}').val('');
+			}
+					$('#calculateAmtBtn${count.index}').unbind('click');
+					$('#calculateAmtBtn${count.index}').bind('click',calculateHandler);
+					$('#getSecurityBalanceBtn${count.index}').unbind('click');
+					$('#getSecurityBalanceBtn${count.index}').bind('click', getSecurityBalanceHandler);
+					
+			</c:forEach>
+			if(actionType == 'entry'){
+						$xenos$Wizard.apply({ navigations : {
+															okHandler : 'backToQuerySummary',
+															backHandler:'backToQuerySummary'
+														}
+			});
+			}
+			
+			};
+
+		var validateHook = function() {
+				return validateSubmitEntitlementAdjust();
+			};
+			
+			/**
+			* Validate TaxFee Entry attributes.
+			*/
+			function validateSubmitEntitlementAdjust(){
+			
+			var validationMessages = [];
+			<c:forEach items="${commandForm.stockEntryArray}" var="dl" step="1"
+					begin="0" varStatus="count">
+				var securityBalance = $.trim($('#securityBalanceStr${count.index}').val());
+					var paymentDate = $.trim($('#paymentDate${count.index}').val());
+					var fundAccount = $.trim($('#tgtaccountNo${count.index}').val());
+				var availableDate = $.trim($('#availableDate${count.index}').val());
+				console.log(securityBalance);
+					if(VALIDATOR.isNullValue(securityBalance)){
+						validationMessages.push(xenos.utils.evaluateMessage(xenos$CAX$i18n.entitlementAdjustmentEntry.stockMergerInfo.security_balance_empty, [${count.index}+1]));
+					}
+					else {
+						if(!formatSignedQuantity($('#securityBalanceStr${count.index}'),15,3,null,$('#securityBalanceStr${count.index}').parent().parent().find('label').text())) { 
+							return false;
+						}
+					}
+					if(VALIDATOR.isNullValue(fundAccount)){
+						validationMessages.push(xenos.utils.evaluateMessage(xenos$CAX$i18n.entitlementAdjustmentEntry.stockMergerInfo.accountno_blank,  [${count.index}+1]));
+					}
+					if(VALIDATOR.isNullValue(paymentDate)){
+						validationMessages.push(xenos.utils.evaluateMessage(xenos$CAX$i18n.entitlementAdjustmentEntry.stockMergerInfo.payment_date_empty,  [${count.index}+1]));
+					}
+					else {
+						if(paymentDate.length > 0 <![CDATA[&&]]> isDateCustom(paymentDate)==false) {
+							validationMessages.push(xenos.utils.evaluateMessage(xenos$CAX$i18n.entitlementAdjustmentEntry.stockMergerInfo.paymentDate_format_invalid,  [${count.index}+1]) + paymentDate);
+						}
+					}
+					if(!VALIDATOR.isNullValue(availableDate)){
+						if(availableDate.length > 0 <![CDATA[&&]]> isDateCustom(availableDate)==false) {
+							validationMessages.push(xenos.utils.evaluateMessage(xenos$CAX$i18n.entitlementAdjustmentEntry.stockMergerInfo.availableDate_format_invalid,  [${count.index}+1]) + availableDate);
+						}
+					}
+			</c:forEach>
+					if(validationMessages.length > 0) {
+						xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+						return false;
+					}else{
+						xenos.utils.clearGrowlMessage();
+					}
+					return true;
+			}	
+				/**
+				 * A common request handler to be used server communication.
+				 */
+				var xenos$Handler$RequestHandler = xenos$Handler$function({
+						get: {
+							contentType: 'json',
+							requestType: xenos$Handler$default.requestType.asynchronous
+						},	
+						settings: {
+							beforeSend: function(request) {
+								request.setRequestHeader('Accept', 'application/json');
+							},
+							type: 'POST'
+						}
+					});
+			/**
+			  * Method to call the getCalculatedAmount method to calculate the allotted attributes for the entitlement.
+			  * It fills the request object with the index of detailTaxFeeList to be deleted (i.e the rowNUm)  before sending the request.
+			  */
+			  function calculateHandler(e) {
+
+				var id = e.target.id;
+				var index = id.substring(id.length - 1);
+				var rowIndex = index;
+				var securityBalance = $('#securityBalanceStr' + index).val();
+				if(VALIDATOR.isNullValue(securityBalance)) {
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, xenos$CAX$i18n.entitlementAdjustmentEntry.security_balance_empty);
+				}else{
+					var baseUrl = xenos.context.path + "/secure/cax/entitlement/adjustment";
+					var requestUrl = baseUrl + "/entry/getCalculatedAmount/" + rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+						
+							xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																	settings: {
+																		data: $("#commandForm").serialize()
+																	},
+																	onJsonContent :  function(e, options, $target, content) {
+																		if(content.success == true){
+																			console.log(content);
+																			updateCalculatedFields(content.value[0] , rowIndex);
+																		} else {
+																			console.log(content.value);
+																			xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																		}
+																	}
+																 }
+							);
+					}
+				};
+
+				/**
+				* Function to update allotted amount
+				*/
+				function updateCalculatedFields(data , index){
+					if(data){
+						console.log(data.stockEntryList[index].allottedQuantityStr);
+						console.log(data.stockEntryList[index].fractionalShareStr);
+						$('#allottedQuantityStr' + index).val(data.stockEntryList[index].allottedQuantityStr);
+						$('#fractionalShareStr' + index).val(data.stockEntryList[index].fractionalShareStr);
+					}
+				};	
+
+				/**
+				  * Method to call the getSecurityBalance method to calculate the security balance for the account.
+				  */
+ 				  function getSecurityBalanceHandler(e) {
+					console.log(e);
+					var id = e.target.id;
+					var index = id.substring(id.length - 1);
+					console.log(index);
+					var fundAccount = $('#tgtaccountNo' + index).val();
+					var rowIndex = index;
+				   if(fundAccount == '') { 
+				  	xenos.utils.displayGrowlMessage(xenos.notice.type.error, xenos$CAX$i18n.entitlementAdjustmentEntry.accountno_blank);
+				  }
+				  else {
+					var baseUrl = xenos.context.path + "/secure/cax/entitlement/adjustment";
+						var requestUrl = baseUrl + "/entry/getSecurityBalanceForAccountNo/" + rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+								
+								xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																		settings: {
+																			data: $("#commandForm").serialize()
+																		},
+																		onJsonContent :  function(e, options, $target, content) {
+																			if(content.success == true){
+																				
+																				updateSecurityBalanceField(content.value[0], rowIndex);
+																			} else {
+																				xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																			}
+																		}
+																	 }
+								);
+						}
+					};
+					
+					/**
+					* Function to update security balance
+					*/
+					function updateSecurityBalanceField(data, index){
+						if(data){
+							console.log(index);
+							console.log(data.stockEntryList[index].securityBalanceStr);
+							$('#securityBalanceStr' + index).val(data.stockEntryList[index].securityBalanceStr);
+						}
+					}	 			
+		</jsp:body>
+    </jsp:element>
+
+		<div id="generalEntry">
+			<div class="entryBlkArea" style="overflow: hidden">
+				<div class="formItemBlock topitems dottedBg"
+					style="overflow: hidden">
+
+					<!-- Rights Condition Reference No.-->
+					<div class="formItem twoCols">
+						<form:label path="commandForm.rcReferenceNo">
+							<spring:message code="cax.entitlement.label.eventRefNo"
+								htmlEscape="false" />
+						</form:label>
+						<span class="rcReferenceNo">${commandForm.rcReferenceNo}</span>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<!-- Corporate Action Id -->
+					<div class="formItem">
+						<form:label path="commandForm.subEventTypeDescription">
+							<spring:message code="cax.entitlement.label.eventType"
+								htmlEscape="false" />
+						</form:label>
+						<span class="subEventTypeDescription">${commandForm.corporateActionId}</span>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<!-- Event Status -->
+					<div class="formItem">
+						<form:label path="commandForm.conditionStatus">
+							<spring:message code="cax.entitlement.label.eventStatus"
+								htmlEscape="false" />
+						</form:label>
+						<span class="conditionStatus">${commandForm.conditionStatus}</span>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<!-- Allotted Instrument -->
+					<div class="formItem">
+						<form:label path="commandForm.allottedInstrument">
+							<spring:message code="cax.entitlement.label.allottedSecurityCode"
+								htmlEscape="false" />
+						</form:label>
+						<span class="allottedInstrument">${commandForm.allottedInstrument}</span>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<!-- Allotted Instrument Name -->
+					<div class="formItem">
+						<form:label path="commandForm.allottedInstrumentName">
+							<spring:message code="cax.entitlement.label.allottedSecurityName"
+								htmlEscape="false" />
+						</form:label>
+						<span class="allottedInstrumentName">${commandForm.allottedInstrumentName}</span>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<input type="hidden" id="isIncome" value="${commandForm.isIncome}" />
+				</div>
+
+				<c:forEach items="${commandForm.stockEntryArray}" var="dl" step="1"
+					begin="0" varStatus="count">
+					<div class="moreHandle">
+						<h1 class="msgHead">
+							<spring:message code="cax.adjustment.entry.stockmergerinfo" arguments="${count.index+1}"
+								htmlEscape="false" />
+							<div class="handleBlock">
+								<span class="handler collapse" id="caxMoreSection"><spring:message
+										text="" htmlEscape="false" /></span>
+							</div>
+						</h1>
+					</div>
+					<div class="formItemBlock dottedBg">
+
+						<h1>
+							<spring:message code="cax.adjustment.entry.stockmergerinfo" arguments="${count.index+1}"
+								htmlEscape="false" />
+						</h1>
+						<!-- Detail Reference No -->
+						<div class="formItem" id="rdReferenceNoDiv" style="display: none">
+							<form:label path="commandForm.rdReferenceNo">
+								<spring:message text="Detail Reference No" htmlEscape="false" />
+							</form:label>
+							<span class="detailReferenceNo">${dl.detailReferenceNo}</span>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+						<!-- Event Reference No -->
+						<div class="formItem">
+							<form:label path="commandForm.rcReferenceNo">
+								<spring:message code="cax.entitlement.label.eventRefNo"
+									htmlEscape="false" />
+							</form:label>
+							<span class="conditionReferenceNo">${dl.conditionReferenceNo}</span>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- Fund Account No.-->
+						<div class="formItem">
+							<form:label
+								path="commandForm.stockEntryArray[${count.index}].accountNo"
+								class="required">
+								<spring:message code="cax.entitlement.label.fundAccount"
+									htmlEscape="false" />
+							</form:label>
+							<util:xenospopup id="accountNo${count.index}"
+								path="commandForm.stockEntryArray[${count.index}].accountNo"
+								showResolvedName="true" popType="invAccount"
+								invActTypeContext="T|B" invCPTypeContext="INTERNAL"
+								actStatusContext="OPEN" event="change focusout"
+								endpoint="secure/ref/nameresolver/fund" />
+							<!-- Calculate Button -->
+							<div class="btnWrapStyle calAmtBtnBtn calcBtn"
+								style="margin-top: 0;">
+								<span class="calculateAmt${count.index}"><input
+									class="calcBtnIco" id="getSecurityBalanceBtn${count.index}"
+									type="button" title="Get Security Balance For AccountNo" /></span>
+							</div>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- Security Code -->
+						<div class="formItem">
+							<form:label path="commandForm.instrumentCode">
+								<spring:message code="cax.entitlement.label.securityCode"
+									htmlEscape="false" />
+							</form:label>
+							<span class="instrumentCode">${dl.instrumentCode}</span>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- Security Name -->
+						<div class="formItem">
+							<form:label path="commandForm.instrumentName">
+								<spring:message code="cax.entitlement.label.securityName"
+									htmlEscape="false" />
+							</form:label>
+							<span class="instrumentName">${dl.instrumentName}</span>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- Security Balance -->
+						<div class="formItem">
+							<form:label path="commandForm.securityBalanceStr"
+								class="required">
+								<spring:message code="cax.entitlement.label.securityBalance"
+									htmlEscape="false" />
+							</form:label>
+							<span><form:input id="securityBalanceStr${count.index}"
+									value=""
+									path="commandForm.stockEntryArray[${count.index}].securityBalanceStr"
+									class="txtNormal"
+									onchange="return formatSignedQuantity($('#securityBalanceStr${count.index}'),15,3,null,$('#securityBalanceStr${count.index}').parent().parent().find('label').text())" /></span>
+							<div class="btnWrapStyle calAmtBtnBtn calcBtn"
+								style="margin-top: 0;">
+								<span class="calculateAmt"><input class="calcBtnIco"
+									id="calculateAmtBtn${count.index}" type="button"
+									title="Calculate Alloted Amount" /></span>
+							</div>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- Finalized Flag -->
+						<div class="formItem">
+							<form:label path="commandForm.finalizedFlag">
+								<spring:message code="cax.entitlement.label.finalizedFlag"
+									htmlEscape="false" />
+							</form:label>
+							<span> <form:select
+									path="commandForm.stockEntryArray[${count.index}].finalizedFlag"
+									class="dropdowninput" id="finalizedFlag${count.index}">
+									<form:options items="${commandForm.finalizedFlagDropdownList}"
+										itemLabel="label" itemValue="value" />
+								</form:select>
+							</span>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- Allotted Quantity Str -->
+						<div class="formItem" id="allottedQuantityStrDiv">
+							<form:label
+								path="commandForm.stockEntryArray[${count.index}].allottedQuantityStr"
+								id="allottedQuantityStrL">
+								<spring:message code="cax.entitlement.label.allottedQuantity"
+									htmlEscape="false" />
+							</form:label>
+							<span><form:input value=""
+									path="commandForm.stockEntryArray[${count.index}].allottedQuantityStr"
+									class="txtNormal" id="allottedQuantityStr${count.index}"
+									onchange="return formatSignedQuantity($('#allottedQuantityStr${count.index}'),15,3,null,$('#allottedQuantityStr${count.index}').parent().parent().find('label').text())" /></span>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- Allotted Amount Str-->
+						<div class="formItem" id="allottedAmountStrDiv">
+							<form:label
+								path="commandForm.stockEntryArray[${count.index}].allottedAmountStr"
+								id="allottedAmountStrL">
+								<spring:message code="cax.entitlement.label.allottedAmount"
+									htmlEscape="false" />
+							</form:label>
+							<span><form:input value=""
+									path="commandForm.stockEntryArray[${count.index}].allottedAmountStr"
+									class="txtNormal" id="allottedAmountStr${count.index}"
+									onchange="return formatSignedQuantity($('#allottedAmountStr${count.index}'),15,3,null,$('#allottedAmountStr${count.index}').parent().parent().find('label').text())" /></span>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- Fractional Share Str -->
+						<div class="formItem" id="fractionalShareStrDiv">
+							<form:label
+								path="commandForm.stockEntryArray[${count.index}].fractionalShareStr">
+								<spring:message code="cax.entitlement.label.fractionalShare"
+									htmlEscape="false" />
+							</form:label>
+							<span><form:input value=""
+									path="commandForm.stockEntryArray[${count.index}].fractionalShareStr"
+									class="txtNormal" id="fractionalShareStr${count.index}"
+									onchange="return formatSignedQuantity($('#fractionalShareStr${count.index}'),15,3,null,$('#fractionalShareStr${count.index}').parent().parent().find('label').text())" /></span>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- CashInLieu Flag -->
+						<div class="formItem" id="cshLieuFlagD">
+							<form:label
+								path="commandForm.stockEntryArray[${count.index}].cashInLieuFlag"
+								id="cshLieuFlagL">
+								<spring:message code="cax.entitlement.label.cashInLieuFlag"
+									htmlEscape="false" />
+							</form:label>
+							<span><form:checkbox value="" disabled="true"
+									selected="true"
+									path="commandForm.stockEntryArray[${count.index}].cashInLieuFlag"
+									id="cshLieuFlag${count.index}" /></span>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- Payment Date -->
+						<div class="formItem">
+							<form:label
+								path="commandForm.stockEntryArray[${count.index}].paymentDate"
+								class="required">
+								<spring:message code="cax.rightsdetail.label.paymentdate"
+									htmlEscape="false" />
+							</form:label>
+							<span><form:input value=""
+									path="commandForm.stockEntryArray[${count.index}].paymentDate"
+									class="dateinput" id="paymentDate${count.index}"
+									onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, 
+								xenos.utils.evaluateMessage(xenos$CAX$i18n.entitlementAdjustmentEntry.stockMergerInfo.paymentDate_format_invalid, [${count.index+1}]) + [this.value])}" /></span>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- Available Date -->
+						<div class="formItem" id="availableDateDiv">
+							<form:label
+								path="commandForm.stockEntryArray[${count.index}].availableDate"
+								id="availableDateL">
+								<spring:message
+									code="cax.entitlement.adjustment.entry.availableDate"
+									htmlEscape="false" />
+							</form:label>
+							<span><form:input value=""
+									path="commandForm.stockEntryArray[${count.index}].availableDate"
+									class="dateinput" id="availableDate${count.index}"
+									onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, 
+								xenos.utils.evaluateMessage(xenos$CAX$i18n.entitlementAdjustmentEntry.stockMergerInfo.availableDate_format_invalid, [${count.index+1}]) + [this.value])}" /></span>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- Remarks -->
+						<div class="formItem twoCols" id="remarksD">
+							<form:label
+								path="commandForm.stockEntryArray[${count.index}].remarks">
+								<spring:message code="cax.entitlement.label.remarks"
+									htmlEscape="false" />
+							</form:label>
+							<form:input value=""
+								path="commandForm.stockEntryArray[${count.index}].remarks"
+								class="txtNormal fullWidthInput" id="remarks${count.index}"
+								maxlength="300" />
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- Hidden CashInLieu Flag -->
+						<div class="formItem twoCols" id="hiddenCashInLieuFlagDiv"
+							style="display: none">
+							<form:label
+								path="commandForm.stockEntryArray[${count.index}].hiddenCashInLieuFlag">
+								<spring:message text="HiddenCashInLieuFlag" htmlEscape="false" />
+							</form:label>
+							<span><form:input value=""
+									path="commandForm.stockEntryArray[${count.index}].hiddenCashInLieuFlag"
+									class="txtNormal fullWidthInput"
+									id="hiddenCashInLieuFlag${count.index}" maxlength="300" /></span>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+					<div class="lineHide">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+				</c:forEach>
+			</div>
+		</div>
+		<!-- end of general entry-->
+
+		<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src">
+			<c:url value="/scripts/xenos-treeview.js" />
+		</jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+
+		<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src">
+			<c:url value="/scripts/ref/xenos-counterparty-code.js" />
+		</jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+
+		<spring:eval expression="T(java.lang.System).currentTimeMillis()"
+			var="myId" />
+		<input type="hidden" id="${myId}" />
+		<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			
+		</jsp:body>
+	</jsp:element>
+	</div>
+</jsp:root>

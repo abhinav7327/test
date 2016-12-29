@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="utf-8"?>
+<containers:XenosQueryModule xmlns:mx="http://www.adobe.com/2006/mxml" 
+							 xmlns:containers="com.nri.rui.core.containers.*" 
+							 xmlns:flexlib="http://code.google.com/p/flexlib/" 
+							 xmlns:cntrls="com.nri.rui.core.controls.*" 
+							 xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+							 xmlns:frmtrs="com.nri.rui.core.formatters.*"
+            				 xmlns:valdtrs="com.nri.rui.core.validators.*"
+							 layout="vertical" percentWidth="100" percentHeight ="100" 
+							 horizontalScrollPolicy="off" verticalScrollPolicy="off">
+    <mx:Script>
+    	<![CDATA[
+    		import com.nri.rui.core.Globals;
+    		import mx.resources.ResourceBundle;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.RendererFectory;
+			import com.nri.rui.core.renderers.ImgSummaryRenderer;
+			
+			 private function selectColor(item:Object, color:uint):uint {
+            		if (XenosStringUtils.equals(item.grey, "true")) {
+            		return 0xB0B0B0 ;
+	            	}
+					if(XenosStringUtils.equals(item.white, "true")){
+						return 0xFFFFFF;
+            	}
+            	
+				return color; 
+			}
+			
+			/**
+			 * Returns the Fund Account No display string
+			 */ 
+			private function getFundAccountNoDisplayStr(item:Object, column:AdvancedDataGridColumn):String {
+                return item.fundAccountNo;
+            }
+            
+            /**
+			 * Returns the Broker Account No display string
+			 */ 
+            private function getBrokerAccountNoDisplayStr(item:Object, column:AdvancedDataGridColumn):String {
+                return item.brokerAccountNo;
+            }
+            
+             private function dispQuantity(item:Object,column : AdvancedDataGridColumn):String{
+            	return item.btQuantityStr;
+            }
+            
+             private function dispRate(item:Object,column : AdvancedDataGridColumn):String{
+            	return item.btRateStr;
+            }
+            	
+            private function dispOutstandingQty(item:Object,column : AdvancedDataGridColumn):String{
+            	return item.btOutstandingBorrowQuantityStr;
+            } 
+            	
+            private function dispRtQty(item:Object,column : AdvancedDataGridColumn):String{
+            	return item.rtQuantityStr;
+            } 
+            	
+            private function dispMatchQty(item:Object,column : AdvancedDataGridColumn):String{
+            	return item.matchQuantityStr;
+            } 
+            	
+            
+            	 
+            	 
+    	]]>
+    </mx:Script>
+    <mx:Metadata>
+     	[ResourceBundle("slrResources")]
+    </mx:Metadata>
+	<mx:Script source="actionscripts/BorrowReturnMatchingQuery.as"/>
+	
+	<containers:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+        </mx:State>
+        <mx:State name="">
+        	<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+   <containers:transitions>
+    	<!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions> 
+    
+     <cntrls:XenosHTTPService id="borrowRtrnMatchRequest" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' ' + event.fault.faultString)"
+         result="loadSummaryPage(event)" showBusyCursor="true" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+
+    <frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true"  /> 
+        
+	<mx:VBox width="100%" verticalGap="0" horizontalGap="0" id="screenNavigater">    
+	    <mx:HBox width="100%" styleName="ExCoBgPanel">
+	    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState=''; app.submitButtonInstance = submit;"/> 
+    		<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result';"/>
+    		<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres';"/>    	
+	    </mx:HBox>
+    </mx:VBox>
+    
+<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%">
+		<mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="{this.loadAll()}"  >
+			<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+			  <mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" width="100%" height="100%" styleName="HDivideStyle" >
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+				<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		        <!--<mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />-->
+
+				<!-- Basic Information -->
+		        <mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('match.label.criteriagrp.borrowtradeinfo')}" width="100%" height="15%" styleName="HDivideStyle" borderColor="#d2d9dc" borderThickness="2">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('match.label.criteriagrp.basicinfo')}" fontWeight="bold"/>
+		        <mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+               		 	<mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.fundcode')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:FundPopUpHbox id="fundPopUp" />                            
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+	                         <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.fundacno')}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="0">
+	                         <xenospopup:AccountPopUpHbox id="inventoryAccountNo" retContextItem="{returnContextItem}" recContextItem="{populateInvActContext()}"/> 
+	                    </mx:GridItem> 
+               		</mx:GridRow>
+               		<mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.securitycode')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:InstrumentPopUpHbox id="security"/>    
+                        </mx:GridItem>
+               		</mx:GridRow>
+               		</mx:Grid>
+               		</mx:VBox>
+  
+               		<!-- Borrow Trade Information -->
+               		<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('match.label.criteriagrp.borrowtradeinfo')}" width="100%" height="15%" styleName="HDivideStyle" borderColor="#d2d9dc" borderThickness="2">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('match.label.criteriagrp.borrowtradeinfo')}" fontWeight="bold"/>
+               		<mx:Grid width="100%" borderThickness="0">
+               		<mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.borrowtradedatefromto')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox>
+                       			<mx:DateField id="borrowtrddateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                       			<mx:DateField id="borrowtrddateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+            				</mx:HBox>                        
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.borrowvaluedatefromto')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox>
+                       			<mx:DateField id="borrowvadateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                       			<mx:DateField id="borrowvaldateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+            				</mx:HBox>                           
+                        </mx:GridItem>
+                    </mx:GridRow>
+	               </mx:Grid>
+	               </mx:VBox>
+	               
+	               <!-- Return Trade Information -->
+	               <mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('match.label.criteriagrp.returntradeinfo')}" width="100%" height="15%" styleName="HDivideStyle" borderColor="#d2d9dc" borderThickness="2">
+				   <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('match.label.criteriagrp.returntradeinfo')}" fontWeight="bold"/>
+	               <mx:Grid width="100%" borderThickness="0">
+	               <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.returntradedatefromto')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox>
+                       			<mx:DateField id="returntrddateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                       			<mx:DateField id="returntrddateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+            				</mx:HBox>                        
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.returnvaluedatefromto')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox>
+                       			<mx:DateField id="returnvaldateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                       			<mx:DateField id="returnvaldateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+            				</mx:HBox>                           
+                        </mx:GridItem>
+                    </mx:GridRow>
+	               </mx:Grid>
+	               </mx:VBox>
+	               
+	                <!-- Reference No Information -->
+	               <mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('match.label.criteriagrp.refnoinfo')}" width="100%" height="15%" styleName="HDivideStyle" borderColor="#d2d9dc" borderThickness="2">
+				   <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('match.label.criteriagrp.refnoinfo')}" fontWeight="bold"/>
+	               <mx:Grid width="100%" borderThickness="0">
+	               <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.borrowreferenceno')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="borrowreferenceno" restrict="{Globals.INPUT_PATTERN}"/>                        
+                        </mx:GridItem>                     
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.returnreferenceno')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="returnreferenceno" restrict="{Globals.INPUT_PATTERN}"/>                        
+                        </mx:GridItem>
+                    </mx:GridRow>
+	               </mx:Grid>
+	               </mx:VBox>
+	              
+	               
+	                <!-- Match Status Information -->
+	               <mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('match.label.criteriagrp.matchstatus')}" width="100%" height="20%" styleName="HDivideStyle" borderColor="#d2d9dc" borderThickness="2">
+				   <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('match.label.criteriagrp.matchstatus')}" fontWeight="bold"/>
+	               <mx:Grid width="100%" borderThickness="0">
+                   <mx:GridRow width="100%">
+            			<mx:GridItem width="21%" borderThickness="0" >
+            				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('match.label.matchstatus')}"/>
+            			</mx:GridItem>
+            			<mx:GridItem width="32%" borderThickness="0" >
+                   			<mx:CheckBox id="msmatch" label="{this.parentApplication.xResourceManager.getKeyValue('match.label.matched')}"  selected="true" click="clickMatchStatus()"/>
+            			</mx:GridItem>
+            			<mx:GridItem width="20%" borderThickness="0" >
+            				<mx:Label id="matchDatelbl" text="{this.parentApplication.xResourceManager.getKeyValue('match.label.matchingdate')}"/>
+            			</mx:GridItem>
+            			<mx:GridItem width="27%" borderThickness="0" >
+                       			<mx:DateField id="matchdate"  formatString="YYYYMMDD" editable="true" width="90"/>
+            			</mx:GridItem>
+                   </mx:GridRow>
+                   
+                   <mx:GridRow width="100%">
+                   <mx:GridItem borderThickness="0" width="20%">
+                   
+                   </mx:GridItem>
+                   <mx:GridItem borderThickness="0" >
+                   		<mx:CheckBox id="msoutstand"  label="{this.parentApplication.xResourceManager.getKeyValue('match.label.outstanding')}" selected="true"/>
+                   </mx:GridItem>
+                   </mx:GridRow>
+                    
+                   <mx:GridRow width="100%">
+                   <mx:GridItem borderThickness="0" width="20%">
+                   
+                   </mx:GridItem>
+                   <mx:GridItem borderThickness="0" >
+                   		<mx:CheckBox id="msmarkmatch"   label="{this.parentApplication.xResourceManager.getKeyValue('match.label.markasmatched')}" selected="true"/>
+                   </mx:GridItem>
+                   </mx:GridRow>
+                   
+	               <mx:GridRow width="100%">
+            			<mx:GridItem borderThickness="0" width="20%">
+            				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('match.label.tradestatus')}"/>
+            			</mx:GridItem>
+            			<mx:GridItem borderThickness="0" width="80%" colSpan="3">
+            				<mx:RadioButtonGroup id="trdstatusRadio" />
+                   			<mx:RadioButton id="trdsAll" groupName="trdstatusRadio" label="{this.parentApplication.xResourceManager.getKeyValue('match.label.selectall')}" value="ALL" />
+                   			<mx:RadioButton id="trdsNormal" groupName="trdstatusRadio" label="{this.parentApplication.xResourceManager.getKeyValue('match.label.status.normal')}" value="NORMAL" selected="true"/>
+                   			<mx:RadioButton id="trdsCancel" groupName="trdstatusRadio" label="{this.parentApplication.xResourceManager.getKeyValue('match.label.status.cancel')}" value="CANCEL"/>
+            			</mx:GridItem>
+	               </mx:GridRow>
+               </mx:Grid>
+               </mx:VBox>
+               
+                <!-- Sort Order -->
+				<flexlib:WindowShade id="ws3" tabChildren="{ws3.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.sortorder.fields')}" opened="true" width="100%">
+		                <mx:Grid width="100%" borderThickness="0">
+		                    <mx:GridRow width="100%">
+		                        <mx:GridItem width="100%" borderThickness="0">
+		                            <mx:HBox width="100%">
+										<mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()"></mx:ComboBox>
+										<mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()"> </mx:ComboBox>
+										<mx:ComboBox id="sortField3" labelField="label" change="sortOrder3Update()"> </mx:ComboBox>
+										<mx:ComboBox id="sortField4" labelField="label" change="sortOrder4Update()"> </mx:ComboBox>
+		                            </mx:HBox> 
+		                        </mx:GridItem>                         
+		                    </mx:GridRow>
+		                </mx:Grid>
+		       </flexlib:WindowShade>
+               <mx:HBox width="100%" styleName="ButtonBackPanel">
+   	           		<cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="{this.dispatchEvent(new Event('querySubmit'))}" />
+               		<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="{this.dispatchEvent(new Event('queryReset'))}" />
+	           </mx:HBox>
+    		  </mx:VBox>
+			</mx:Canvas>
+			
+			<!--Result Page Start-->
+			<mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >			
+	         <cntrls:XenosErrors id="errPage1" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>
+	         <cntrls:QueryResultHeaderForAdvancedDataGrid id="qh" pdfFunction="dispatchPdfEvent" xlsFunction="dispatchXlsEvent"  printFunction="dispatchPrintEvent" previousFunction="dispatchPrevEvent" nextFunction="dispatchNextEvent"  startIndex="{this.mode == 'query' ? 1 : 2}" />
+	    	  <cntrls:XenosAdvancedDataGrid selectable="true" id="resultSummary"  sortExpertMode="true" dataProvider="{queryResult}" width="100%" height="100%"  variableRowHeight="true" wordWrap="false" creationComplete="bindDataGrid()" 
+	    	  	horizontalScrollPolicy="auto" verticalScrollPolicy="auto" headerRelease="dataGrid_headerRelease(event)" rowColorFunction="selectColor">
+		            <cntrls:groupedColumns>
+		            	<mx:AdvancedDataGridColumn id="idCheckBox" headerText="" itemRenderer="com.nri.rui.slr.renderers.BorrowReturnMatchingSelectRenderer"  width="20" sortable="false"/>
+		            	<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('sbr.match.label.basic.information')}" >
+		            	<mx:AdvancedDataGridColumn dataField="matchStatus"  id="idMatchStatus" headerText="{this.parentApplication.xResourceManager.getKeyValue('match.label.matchstatus')}" width="120"  sortable="true"/>
+		            	<mx:AdvancedDataGridColumn dataField="fundCode" id="idFundCode" headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.fundcode')}" itemRenderer="com.nri.rui.core.renderers.FundDetailsRendererAdg" width="120" sortable="true" visible="false"/>
+		            	<mx:AdvancedDataGridColumn dataField="fundName" id="idFundName" headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.fundname')}"  width="100"  sortable="true" visible="false" />
+		            	<mx:AdvancedDataGridColumn dataField="fundAccountPk" headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.fundacno')}" width="120"  sortable="true" labelFunction="getFundAccountNoDisplayStr" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRendererAdg"/>
+		            	<mx:AdvancedDataGridColumn dataField="fundAccountName"  headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.fundacname')}" sortable="true" sortCompareFunction="sortUtil.sortString" />
+		            	<mx:AdvancedDataGridColumn dataField="securityId"  headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.securitycode')}" sortable="true" itemRenderer="com.nri.rui.core.renderers.SecurityDetailsRendererAdg"/>
+		            	<mx:AdvancedDataGridColumn dataField="securityName"  headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.securityname')}"  sortable="true" />
+		            	<mx:AdvancedDataGridColumn dataField="alternateSecurityId"  headerText="{this.parentApplication.xResourceManager.getKeyValue('sbr.match.label.alternate.security.id')}"  sortable="true" />
+		            	<mx:AdvancedDataGridColumn dataField="brokerAccountPk"  headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.brokeracno')}" sortable="true" labelFunction="getBrokerAccountNoDisplayStr" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRendererAdg" />
+		            	<mx:AdvancedDataGridColumn dataField="brokerAccountName"  headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.brokeracname')}"  sortable="true" visible="false"/>
+		            </mx:AdvancedDataGridColumnGroup>
+		            	
+		               <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('sbr.match.label.borrow.trade.information')}" >
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.borrowreferenceno')}" dataField="borrowReferenceNo" sortable="true" itemRenderer="com.nri.rui.slr.renderers.Sbr_TradeDetailsRenderer"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.tradedate')}" width="80" dataField="btTradeDateStr"  sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.valuedate')}" width="80" dataField="btValueDateStr" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.quantity')}" width="80" dataField="btQuantity" textAlign="right" sortable="true" sortCompareFunction="sortUtil.sortNumeric" labelFunction="dispQuantity"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.rate')}" width="60" dataField="btRate" textAlign="right" sortable="true" sortCompareFunction="sortUtil.sortNumeric" labelFunction="dispRate"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.cnc')}" width="60" dataField="btCallableFlag" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.callabledate')}" width="100" dataField="btCallableDateStr" sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.putthroughflag')}" width="100" dataField="btPutThroughFlag" sortable="true" visible="false" />
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.lendingdesk')}" dataField="btLendingDesk" sortable="true" />
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.corporateactionflag')}" width="80" dataField="btCaFlag" sortable="true" visible="false"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.modifiedcontractflag')}" width="80" dataField="btModifiedContractFlag" sortable="true" visible="false"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.extrefno')}" width="100" dataField="btExternalRefNo" sortable="true" />
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('slr.sbr.outstandingborrowquantity')}" width="100" dataField="btOutstandingBorrowQuantity" textAlign="right" sortable="true" sortCompareFunction="sortUtil.sortNumeric" wordWrap="false" labelFunction="dispOutstandingQty"/>
+		                	<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.status')}" width="100" dataField="btStatus" itemRenderer="com.nri.rui.core.renderers.StatusRenderer"  sortable="true"/>
+		                </mx:AdvancedDataGridColumnGroup>
+		                
+		                <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('sbr.match.label.return.trade.information')}" >
+		                	<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.returnreferenceno')}" dataField="returnReferenceNo" sortable="true" itemRenderer="com.nri.rui.slr.renderers.Sbr_ReturnTradeDetailsRenderer"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.tradedate')}" width="80" dataField="rtTradeDateStr"  sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.valuedate')}" width="80" dataField="rtValueDateStr"  sortable="true"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.quantity')}" width="80" dataField="rtQuantity" textAlign="right" sortable="true" sortCompareFunction="sortUtil.sortNumeric" wordWrap="false" labelFunction="dispRtQty"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.corporateactionflag')}" width="60" dataField="rtCaFlag" sortable="true" visible="false"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.extrefno')}" width="100" dataField="rtExternalRefNo"  sortable="true" />
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.status')}" width="100" dataField="rtStatus" itemRenderer="com.nri.rui.core.renderers.StatusRenderer"  sortable="true"/>
+		                </mx:AdvancedDataGridColumnGroup>
+		                
+		                <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('sbr.match.label.match.log.information')}" >
+		                	<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.matchreferenceno')}" dataField="matchLogReferenceNo"  sortable="true" visible="false"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('match.label.match.quantity')}" width="80" dataField="matchQuantity"  sortable="true" textAlign="right" sortCompareFunction="sortUtil.sortNumeric" wordWrap="false" labelFunction="dispMatchQty"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('match.label.matchdate')}" width="80" dataField="matchDateStr"  sortable="true"/>
+		                </mx:AdvancedDataGridColumnGroup>
+		                
+		            </cntrls:groupedColumns>
+        	</cntrls:XenosAdvancedDataGrid>
+        	<mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="left">            
+            	<mx:VBox width="70%">
+                	<mx:HBox width="100%">
+	                	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.button.match')}" styleName="BtnStyle" click="doMatch(event)" />
+	                	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.button.unmatch')}" styleName="BtnStyle" click="doUnMatch(event)" />
+	                	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.button.mark.as.match')}" styleName="BtnStyle" click="doMarkAsMatch(event)"/>
+	                	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('borrow.label.button.cxl.mark.as.match')}" styleName="BtnStyle" click="doCxlMarkAsMatch(event)"/>
+                	</mx:HBox>
+            	</mx:VBox>
+        	</mx:HBox>
+			</mx:VBox> 
+		
+			
+		</mx:HDividedBox>
+	</mx:VBox>
+	<!--Result Page End-->
+</mx:Canvas> 
+</containers:XenosQueryModule>
+
+

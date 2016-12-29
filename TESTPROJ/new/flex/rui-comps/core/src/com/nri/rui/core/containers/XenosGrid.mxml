@@ -1,0 +1,436 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="400" height="300" xmlns:xenos="com.nri.rui.core.controls.*">
+<!--<mx:Script>
+		<![CDATA[
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.controls.CheckBox;
+			import mx.managers.PopUpManager;
+			import mx.containers.TitleWindow;
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.ItemClickEvent;
+			import mx.events.CloseEvent;
+			import mx.effects.WipeLeft;
+			import mx.effects.WipeRight;
+			import mx.events.DropdownEvent;
+			
+			import mx.collections.IViewCursor;
+			
+			public var SourceData:ArrayCollection;
+			[Bindable]
+			public var VerticalPaging:Boolean = false;
+			private var filterData:ArrayCollection = new ArrayCollection();
+			private var pagingControlColl:ArrayCollection = new ArrayCollection();
+			private var index:uint = 0;
+			public var NoOfPages:uint = 5;
+			public var PageSize:uint = 2;
+			/* [Embed(source="search.gif")]
+			[Bindable]
+			private var icoSearch:Class; */
+			[Embed(source="../../../../../assets/xenosdg_addcolunm.png")]
+			[Bindable]
+			private var icoColumns:Class;
+			[Embed(source="../../../../../assets/xenosdg_copy.png")]
+			[Bindable]
+			private var copyButtonIcon:Class;
+			private var tWin:TitleWindow;
+			private var visibleColumns:Array=new Array();
+			private var _columns:Array;
+			[Bindable]
+			public var EnableSearch:Boolean = false;
+			public var DefaultColumns:ArrayCollection;			
+			private var Hits:Array = new Array();
+
+			public function LoadGrid():void
+			{
+				this.displayDefaultColumns();	
+				this.grid.ColumnListArray = this._columns; 
+				if(this.SourceData != null)
+				{	
+					 this.refreshDataProvider(this.index);
+					 if(this._columns !=null)
+					 	this.grid.DataBind(this.filterData);						
+					 else
+						this.grid.dataProvider = this.filterData;
+			 		this.loadDataGridWithPaginationControl(0);
+				}
+				else
+					this.grid.DataBind(null);
+				this.createWindowContents();
+				
+			}
+			
+			private function displayDefaultColumns():void
+			{
+				if(DefaultColumns != null)
+				{
+					for(var i:int = 0; i < _columns.length; i++)	
+					{			
+						for(var j:int = 0; j < DefaultColumns.length; j++)
+						{
+			 				if(_columns[i].headerText.toLowerCase() == DefaultColumns[j].colname.toLocaleLowerCase())
+								_columns[i].visible = false;
+						}
+					}
+				}
+			}
+			
+			private function refreshDataProvider(start:uint):void
+			{
+				this.filterData = new ArrayCollection( this.SourceData.source.slice((start * PageSize),(start * PageSize) + PageSize));
+			}
+			
+			private function loadDataGridWithPaginationControl(set:uint):void
+			{
+				this.pagingControlColl.removeAll();
+				if(this.VerticalPaging)
+				{
+		        	if(set > 0)
+					{
+						this.pagingControlColl.addItem({label:"<",data:set - 1});
+						this.btnPrev.enabled = true;
+					}
+					else
+					{
+						this.pagingControlColl.addItem({label:"<",data:0});
+						this.btnPrev.enabled = false;
+					}
+					this.spacerLeft.width = this.spacerRight.width = 40;
+		        	this.btnPrev.dataProvider = this.pagingControlColl;
+		        	this.btnPrev.addEventListener(ItemClickEvent.ITEM_CLICK, navigatePage);	
+		        	
+					this.pagingControlColl = new ArrayCollection();
+					this.pagingControlColl.addItem({label:">",data:set+1});				
+					if(Math.ceil(this.SourceData.length/this.PageSize) < set + 2)
+						this.btnNext.enabled = false;
+					else
+						this.btnNext.enabled = true;					
+					this.btnNext.addEventListener(ItemClickEvent.ITEM_CLICK, navigatePage);
+					this.btnNext.dataProvider = this.pagingControlColl;
+				}
+				else
+				{
+	        		this.createNavBar(Math.ceil(this.SourceData.length/this.PageSize));
+					this.horizontalPaging.dataProvider = this.pagingControlColl;
+					this.horizontalPaging.addEventListener(ItemClickEvent.ITEM_CLICK, navigatePage);
+				}
+			}
+			
+			private function createWindowContents():void
+			{
+  				var cbk:CheckBox;
+  				var dgc:DataGridColumn;  				
+  				tWin = new TitleWindow();
+  				tWin.showCloseButton=true;
+				tWin.alpha=1;
+				tWin.styleName="PopupTitleWindow";
+				tWin.minWidth=150;
+				tWin.percentWidth=100;
+				tWin.percentHeight=100;
+				tWin.title="Select Columns";
+  				tWin.addEventListener(CloseEvent.CLOSE,windowClose_handler);
+  				
+  				for(var i:int=0;i<this.grid.columnCount;i++)
+  				{
+  					dgc=this.grid.columns[i];
+  					cbk=new CheckBox();
+  					cbk.label=dgc.headerText;
+  					cbk.selected=dgc.visible;
+  					cbk.addEventListener(MouseEvent.CLICK,checkBoxClick_handler);
+  					tWin.addChild(cbk);
+  					visibleColumns.push(cbk);
+  				}
+  			}
+  			
+  			private function windowClose_handler(evt:CloseEvent):void
+  			{
+				PopUpManager.removePopUp(tWin);
+			}	
+			
+			private function checkBoxClick_handler(evt:MouseEvent):void
+			{
+	  			var dgc:DataGridColumn;
+	  			var cbk:CheckBox;
+	  			if(this.visibleColumns.length > 0)
+	  			{
+					for(var i:int=0;i<this.visibleColumns.length;i++)
+					{
+						cbk=CheckBox(visibleColumns[i]);
+						for(var j:int=0;j<grid.columnCount;j++)
+						{
+							dgc=grid.columns[j];
+							if(cbk.label==dgc.headerText)
+							{
+							  if(!cbk.selected)
+							    dgc.visible=false;
+							  else	
+							  	dgc.visible=true;
+							}		  	  	
+						}
+					}
+	  			}			
+			}				
+			
+			private function handleSearch():void
+			{
+	         	Hits.length = 0;
+	         	var myCursor:IViewCursor = this.SourceData.createCursor();	         	
+	         	//use cursor to search for string
+	         	if(criteria.text.length > 1)
+		        {
+		         	while(!myCursor.afterLast)
+		         	{
+		         		for each (var c:DataGridColumn in this._columns)
+		         		{
+		         			if(myCursor.current[c.dataField] != null)
+		         			{
+		         				if(myCursor.current[c.dataField].toString().toLowerCase().indexOf(criteria.text.toLowerCase()) > -1)
+		         	 				Hits.push(myCursor.current);  //add any hit to Hits Array
+		         	 		}
+		         	 	}	         			
+		         		myCursor.moveNext();
+		         	}
+		 		}
+		       	//force redraw of grid rows
+	         	this.grid.invalidateDisplayList();         
+   			}
+			
+			 private function getSearchHits(item:Object, color:uint):uint
+	         {
+	        	if(Hits.indexOf(item) > -1)
+		        	return 0xEBEF80;
+	            return color;
+	         }         	
+			
+			
+		
+			private function doEffect(event:ItemClickEvent):void{
+				var wipeLeft:WipeLeft = new WipeLeft();
+				var wipeRight:WipeRight = new WipeRight();
+				wipeLeft.target = null;
+				wipeRight.target = null;
+				if(!this.VerticalPaging)
+				{
+					wipeLeft.target=this.grid;
+					wipeLeft.duration=1000;		
+					wipeLeft.end();
+	        		wipeLeft.play();  
+	        		return;	
+				}
+				if(event.label=='<')
+				{
+					wipeLeft.target=this.grid;
+					if(event.item.data == -1 || (event.item.data == Math.ceil(this.SourceData.length/this.PageSize)))
+						wipeLeft.duration=0;            
+					else
+						wipeLeft.duration=1000;
+		           	wipeLeft.end();
+	        		wipeLeft.play();   
+				}
+				else
+				{
+					wipeRight.target = this.grid;
+					if(event.item.data == -1 || (event.item.data == Math.ceil(this.SourceData.length/this.PageSize)))
+						wipeRight.duration=0;            
+					else
+						wipeRight.duration=1000;  
+		           	wipeRight.end();
+	        		wipeRight.play(); 
+				}
+			}
+		
+			private function navigatePage(event:ItemClickEvent):void
+			{
+				this.refreshDataProvider(event.item.data);
+				
+				if(this._columns.length > 0)
+					this.grid.DataBind(this.filterData);
+				else
+					this.grid.dataProvider = this.filterData;	
+				
+				this.doEffect(event);
+				
+	            if(!this.VerticalPaging)
+	            {
+					var lb:String = event.item.label.toString();
+					if( lb.indexOf("<") > -1 || lb.indexOf(">") > -1 )
+					{
+						this.createNavBar(Math.ceil(this.SourceData.length/PageSize),event.item.data);
+						if( event.item.data == 0 )
+							this.horizontalPaging.selectedIndex = 0;
+						else
+							this.horizontalPaging.selectedIndex = 2;
+					}				
+	            }
+	            else
+					this.loadDataGridWithPaginationControl(event.item.data);	
+				this.renderColumns();			
+			}
+		
+			private function renderColumns():void
+			{
+				var dgc:DataGridColumn;
+				var cbk:CheckBox;
+				for(var i:int=0;i<this.visibleColumns.length;i++)
+				{
+					cbk=CheckBox(visibleColumns[i]);
+					for(var j:int=0;j<grid.columnCount;j++)
+					{
+						dgc=grid.columns[j];
+						if(cbk.label==dgc.headerText)
+						  if(!cbk.selected)
+						    dgc.visible=false;
+						  else
+						  	dgc.visible=true;  	
+					}
+				}			
+			}
+		
+			private function createNavBar(pages:uint = 1,set:uint = 0):ArrayCollection
+			{
+				this.pagingControlColl.removeAll();
+				if( pages > 1 )
+				{
+					if( set != 0 )
+					{
+						this.pagingControlColl.addItem({label:"<<",data:0});
+						
+						if( (set - this.PageSize ) >= 0 )
+							this.pagingControlColl.addItem({label:"<",data:set - this.NoOfPages});
+						else
+							this.pagingControlColl.addItem({label:"<",data:0});
+					}
+					for( var x:uint = 0; x < this.NoOfPages; x++)
+					{
+						var pg:uint = x + set;
+					
+						if((Math.ceil(this.SourceData.length/PageSize)) == pg)
+							break;
+						this.pagingControlColl.addItem({label: pg+1,data: pg});
+					}
+					if( pg < pages - 1 )
+					{
+						this.pagingControlColl.addItem({label:">",data:pg + 1});
+						var i:int=0;
+						while(i<pages)
+							i+=this.NoOfPages;
+						this.pagingControlColl.addItem({label:">>",data:i-this.NoOfPages});
+					}
+				}
+				return this.pagingControlColl;			
+			}
+			
+			public function set DataProvider(value:ArrayCollection):void
+			{
+				if(value.length > 0)
+				{
+					this.SourceData = value;
+					if(this.VerticalPaging)
+						this.btnNext.visible = this.btnPrev.visible = true;
+					else
+						this.horizontalPaging.visible = true;	
+				}
+				else
+				{
+					this.SourceData.removeAll();
+					if(this.VerticalPaging)
+						this.btnNext.visible = this.btnPrev.visible = false;
+					else
+						this.horizontalPaging.visible = false;
+				}
+				this.LoadGrid();
+			}
+		
+			
+		
+			private function imageClick_handler(evt:MouseEvent):void
+			{
+		    	var SPACING_X : int = 0;
+				var SPACING_Y : int = 0;			
+				var rect:Rectangle = this.imgShowHide.getRect(this.imgShowHide);
+				var pt:Point = this.imgShowHide.localToGlobal(rect.bottomRight);
+				if((pt.x + SPACING_X + tWin.minWidth) > root.width){
+					// show side
+					tWin.x = pt.x - SPACING_X-tWin.minWidth;
+					tWin.y = pt.y - SPACING_Y;
+				}
+				else {
+					// show below
+					tWin.x = pt.x + SPACING_X - 85;
+					tWin.y = pt.y + SPACING_Y;
+				}
+		       PopUpManager.removePopUp(tWin);	
+		       PopUpManager.addPopUp(tWin,this.imgShowHide,true);	
+		    }
+		    
+			private function copyClicked_handler(evt:MouseEvent):void
+			{
+				this.copyToClipboard();
+			}
+		
+			private function copyToClipboard():void
+			{
+				var columns:Array=this.grid.columns;
+				var dataArray:Array=this.grid.selectedItems;
+				var txtData:String="";
+				
+				if(dataArray.length > 0)
+				{
+					for each(var it:Object in dataArray)
+					{
+					 for each(var dgc:DataGridColumn in columns)
+					  txtData += it[dgc.dataField] + "\t";
+					  txtData +="\n";
+					}
+					if(txtData.length > 0)
+					{	
+						flash.system.System.setClipboard(txtData);
+						Alert.show("Selected rows copied to clipboard");	  
+					}
+				}			
+			}
+		
+			public function set columns(value:Array):void
+	    	{
+				this._columns = value;
+	    	}	
+	    		    	
+		]]>
+	</mx:Script>-->
+			
+
+	<!--<mx:VBox id="vBox" width="100%" height="100%" verticalGap="0" horizontalGap="0">	
+	
+		<mx:HBox width="100%" paddingLeft="0" paddingRight="0" horizontalGap="0" verticalGap="0">
+		<mx:Spacer width="0" id="spacerLeft" />
+			<mx:ApplicationControlBar width="100%" height="30">
+			
+				<mx:HBox id="hBoxleftHeader" width="100%" height="20" horizontalAlign="left" verticalGap="0" horizontalGap="0" visible="{this.EnableSearch}">
+					
+					
+					<mx:Label text="Search" width="50" />
+					<mx:TextInput id="criteria" styleName="searchText" change="handleSearch();"/>
+				</mx:HBox>
+				<mx:HBox id="hBoxRightHeader" width="100%" horizontalAlign="right" verticalGap="0" horizontalGap="0">
+					<mx:Image id="imgShowHide" source="{icoColumns}" toolTip="Show/Hide Columns" click="imageClick_handler(event);">
+					</mx:Image>
+					<mx:Image id="imgCopy" source="{copyButtonIcon}" toolTip="Copy selected rows" click="copyClicked_handler(event);">
+					</mx:Image>
+					
+				</mx:HBox>		
+			
+			</mx:ApplicationControlBar>
+		<mx:Spacer width="0" id="spacerRight" />
+		</mx:HBox>
+		
+		<mx:Spacer id="Blank" width="100%" height="8" />
+		
+		<mx:HBox id="hBoxBody" width="100%" height="100%" verticalGap="0" horizontalGap="0">
+			<mx:ToggleButtonBar id="btnPrev" visible="{this.VerticalPaging}"></mx:ToggleButtonBar>
+			<xenos:XenosDataGrid rowColorFunction="getSearchHits" variableRowHeight="true" wordWrap="true" id="grid" width="100%" height="100%" />
+			<mx:ToggleButtonBar id="btnNext" visible="{this.VerticalPaging}"></mx:ToggleButtonBar>
+		</mx:HBox>
+		<mx:ToggleButtonBar id="horizontalPaging" width="100%" visible="{!this.VerticalPaging}"></mx:ToggleButtonBar>
+		
+	</mx:VBox>	-->
+</mx:Canvas>

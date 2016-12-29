@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:control="*" 
+	xmlns:cntrls="com.nri.rui.core.controls.*" 
+	xmlns:flexlib="http://code.google.com/p/flexlib/" 
+	layout="vertical" width="100%" height="100%" 
+	updateComplete="com.nri.rui.core.controls.AutoScroll.updateDisplayList(event);">
+	<mx:Script>
+			<![CDATA[
+				import com.nri.rui.core.utils.XenosStringUtils;
+				import com.nri.rui.core.controls.XenosAlert;
+				import mx.utils.ArrayUtil;
+				import mx.collections.ArrayCollection;
+				import mx.binding.utils.BindingUtils;
+				import mx.controls.Label;
+				import com.nri.rui.core.controls.AutoScroll;
+				
+				
+				[Bindable]
+				private var xmlSource:XML;
+				
+				[Bindable]
+				private var salesRoleReqd:Boolean = false;
+								
+				
+				private function displayAccountNoType( row:Object, column:DataGridColumn ):String {
+	         		return row.entry.(@key=='accountNoType').value;
+	      		}
+	      		
+	      		private function displayAccountNo( row:Object, column:DataGridColumn ):String {
+	         		return row.entry.(@key=='accountNo').value;
+	      		}		
+			
+				private function displayOfficeId( row:Object, column:DataGridColumn ):String {
+	         		return row.entry.(@key=='accessUserDefaultOffice').value;
+	      		}
+	      		
+	      		private function displayUserId( row:Object, column:DataGridColumn ):String {
+	         		return row.entry.(@key=='accessUserId').value;
+	      		}
+	      		
+      			private function displaySalesRole( row:Object, column:DataGridColumn ):String {
+	         		return row.entry.(@key=='salesRole').value;
+	      		}
+	      		
+	      		private function displayName( row:Object, column:DataGridColumn ):String {
+	         		return row.entry.(@key=='userName').value;
+	      		}
+	      		
+	      		private function displayCharsetCode( row:Object, column:DataGridColumn ):String {
+	         		return row.entry.(@key=='charsetCode').value;
+	      		}
+	      		
+	      		private function displayShortName( row:Object, column:DataGridColumn ):String {
+	         		return row.entry.(@key=='shortName').value;
+	      		}
+	      		
+	      		private function displayOfficialName1( row:Object, column:DataGridColumn ):String {
+	         		return row.entry.(@key=='officialName1').value;
+	      		}
+	      		
+	      		private function displayOfficialName2( row:Object, column:DataGridColumn ):String {
+	         		return row.entry.(@key=='officialName2').value;
+	      		}
+	      		
+	      		private function displayOfficialName3( row:Object, column:DataGridColumn ):String {
+	         		return row.entry.(@key=='officialName3').value;
+	      		}
+	      		
+	      		private function displayOfficialName4( row:Object, column:DataGridColumn ):String {
+	         		return row.entry.(@key=='officialName4').value;
+	      		}
+	      		
+				private function displayBrokerOGCode(row:Object, column:DataGridColumn):String{
+					return row.entry.(@key=='brokerOgCode').value;
+				}
+				
+				
+				public function set setXml(value:XML):void
+				{
+					this.xmlSource = value;	
+					if(this.xmlSource!=null)
+					{
+						showorhideBrokerOgCodeInfo();
+						checkSalesRoleReqd();
+					}
+				}
+				
+				/**
+				 * This method checks whether sales role is required for Account Access Info Block.
+				 */ 
+				private function checkSalesRoleReqd():void {
+					
+					if (xmlSource.hasOwnProperty("salesRoleReqd")) {
+						salesRoleReqd = (XenosStringUtils.equals(xmlSource.salesRoleReqd.toString(), "true"))? true:false;
+					}
+					
+				}
+				
+				
+				
+				//private function displayAccInfoDetails(evt:MouseEvent):void
+				//{
+					//this.vbAccInfo.includeInLayout = !this.vbAccInfo.includeInLayout;
+					//this.vbAccInfo.visible = !this.vbAccInfo.visible;
+					//this.vbAccInfo.includeInLayout = !this.vbAccInfo.includeInLayout;
+				//}
+				
+				private function getDefaultAccountButtonName():String
+				{
+					//if (xmlSource.viewOption == "VIEW")
+	                      return "Submit";
+	               //	return null;                     
+				}
+				
+				public function AccNameInfoDetails():void{
+    	
+			    	if(DgDetails.visible==false){			    	    
+			    		DgDetails.visible=true;
+			    	}else{
+			    		DgDetails.visible=false;    		
+			    	}
+			    }
+			    
+			    private function showorhideBrokerOgCodeInfo():void{
+			    	if(this.xmlSource.counterPartyDetailTypeExp=="BROKER"){
+			    		this.wsBrokerOgCodeInfo.visible=true;
+			    		this.wsBrokerOgCodeInfo.includeInLayout=true;
+			    	}
+			      	else{
+			      		this.wsBrokerOgCodeInfo.visible=false;
+			    		this.wsBrokerOgCodeInfo.includeInLayout=false;
+			      	}
+			    			
+			    }
+			
+			]]>
+		</mx:Script>
+		<mx:XMLListCollection id="salesInfoColl" source="{xmlSource.otherAttributes.accountSalesDynaBeansWrapper.item}" />
+		<mx:XMLListCollection id="accInfoColl" source="{xmlSource.otherAttributes.accountXrefDynaBeansWrapper.item}" />
+		<mx:XMLListCollection id="accInfoDetailsColl" source="{xmlSource.otherAttributes.accountNameXrefDynaBeansWrapper.item}" />	
+		<mx:XMLListCollection id="brokerOgCodeInfo" source="{xmlSource.otherAttributes.brokerOgCodeDynaBeansWrapper.item}"/>
+		<control:accountDisplayPageHeaderInc id="accountDisplayPageHeaderInc1" setXml="{xmlSource}" styleName="LabelHeading" subTitle="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.generalinfo')}" />
+		<mx:HBox id="pnlGeneralInfo" width="100%" height="100%" styleName="Padding">
+			<mx:VBox width="100%" height="100%" verticalGap="0" horizontalGap="0">
+				<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.accountno')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{xmlSource.accountNoExp}" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.accountname')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{xmlSource.shortNameExp}" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+				</mx:Grid>
+				
+				<mx:Spacer height="10" />	
+				
+				<flexlib:WindowShade id="ws1" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws1" tabChildren="{ws1.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.accountcodeinfo')}" width="100%" >				
+						<cntrls:CustomDataGrid id="gridAccountCodeInfo" width="100%" dataProvider="{accInfoColl}">
+							<cntrls:columns>
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.accountnotype')}" labelFunction="displayAccountNoType" />
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.accountno')}" labelFunction="displayAccountNo" />																				
+							</cntrls:columns>
+						</cntrls:CustomDataGrid>
+				</flexlib:WindowShade>	
+				
+				<flexlib:WindowShade id="wsBrokerOgCodeInfo" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.wsBrokerOgCodeInfo" tabChildren="{wsBrokerOgCodeInfo.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.brokerogcodeinfo')}" width="100%" >				
+						<cntrls:CustomDataGrid id="gridBrokerOgCodeInfo" width="100%" dataProvider="{brokerOgCodeInfo}">
+							<cntrls:columns>
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.brokerogcode')}" labelFunction="displayBrokerOGCode" />
+							</cntrls:columns>
+						</cntrls:CustomDataGrid>
+				</flexlib:WindowShade>
+										
+				<mx:Spacer height="10" />
+					
+				<flexlib:WindowShade id="ws2" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws2" tabChildren="{ws2.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.salesinfo')}" width="100%" >				
+						<cntrls:CustomDataGrid id="gridSalesInfo" width="100%" dataProvider="{salesInfoColl}">
+							<cntrls:columns>
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.salescode')}" labelFunction="displayUserId"/>
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.defaultoffice')}" labelFunction="displayOfficeId"/>
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.salesrole')}" labelFunction="displaySalesRole" visible="{salesRoleReqd}"/>						
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.salesname')}" labelFunction="displayName"/>
+							</cntrls:columns>
+						</cntrls:CustomDataGrid>
+				</flexlib:WindowShade>	
+							
+				<mx:Spacer height="10" />
+				
+				<flexlib:WindowShade id="ws3" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws3" tabChildren="{ws3.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.defaultaccountnameinfo')}" width="100%" >
+							
+					<mx:VBox width="100%" height="100%">
+					<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+				
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.languagecode')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.otherAttributes.defaultCharsetCode}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.shortname')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.account.shortName}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.officialname1')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.account.officialName1}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.officialname2')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.account.officialName2}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.officialname3')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.account.officialName3}" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.officialname4')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text="{xmlSource.account.officialName4}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+					</mx:Grid>
+					
+					<mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+						<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.btn.label.details')}" click="AccNameInfoDetails()" styleName="BtnStyle"/>
+					</mx:HBox>
+										
+					<!--flexlib:WindowShade id="ws4" autoLayout="true" tabChildren="{ws4.opened=false}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.accountnameinfo')}" width="100%" -->
+					
+					<mx:VBox id="DgDetails" visible="false" includeInLayout="{this.DgDetails.visible}" width="100%">
+						<cntrls:CustomDataGrid id="gridAccInfoDetails" width="100%" dataProvider="{accInfoDetailsColl}">
+							<cntrls:columns>
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.langcode')}" labelFunction="displayCharsetCode"/>
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.shortname')}" labelFunction="displayShortName"/>						
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.offname1')}" labelFunction="displayOfficialName1"/>
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.offname2')}" labelFunction="displayOfficialName2"/>
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.offname3')}" labelFunction="displayOfficialName3"/>
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.offname4')}" labelFunction="displayOfficialName4"/>
+							</cntrls:columns>
+						</cntrls:CustomDataGrid>	
+					</mx:VBox>
+					<!--/flexlib:WindowShade-->				
+				</mx:VBox>								
+			</flexlib:WindowShade>				
+						
+				<mx:Spacer height="10" />
+				<flexlib:WindowShade click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws5" id="ws5" tabChildren="{ws5.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.basicattributes')}" width="100%" >				
+						<control:accountGeneralAttrConfirmationInc setXml="{this.xmlSource}" width="100%" verticalScrollPolicy="off" horizontalScrollPolicy="auto" />				
+				</flexlib:WindowShade>				
+				<mx:Spacer height="10" />			
+				<flexlib:WindowShade click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws6" id="ws6" tabChildren="{ws6.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.accounthistory.label.hisory')}" width="100%" >
+					<control:accountDisplayPageFooterInc setXml="{this.xmlSource}" />	
+				</flexlib:WindowShade>			
+			
+	
+			</mx:VBox>	
+		</mx:HBox>
+</mx:Module>

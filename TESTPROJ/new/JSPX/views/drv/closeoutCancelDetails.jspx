@@ -1,0 +1,143 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core"
+    xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:display="http://displaytag.sf.net"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div class="formItemArea entryContainerConfirm paddingFour">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" /> 
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		  <c:choose>
+				<c:when test="${commandForm.options.mode =='NONINTERACTIVE'}">
+					var xenos$Dialog$Detail$Hook = function (container, btnContainer) {
+					var details$View$print$Handler = function printHandler(e){
+						e.preventDefault();
+						container.printArea(xenos.utils.defaultPrintOption);
+					};
+					// show print button
+					var $btn2 = jQuery('.btn2', btnContainer);
+					$btn2.children().first().html(xenos.title.printInfo);
+					$btn2.show();
+					$btn2.click(details$View$print$Handler);
+				};
+				</c:when>
+				<c:otherwise>
+					var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+					// row color handling
+ 					var context = $xenos$Wizard.$context;
+ 					var cached = xenos$Cache.get('globalPrefs');
+ 					var evenRowColor = cached.zebraColorEven ? cached.zebraColorEven:'#F9F9F9';
+ 					var oddRowColor = cached.zebraColorOdd ?cached.zebraColorOdd:'#E5E9ED';
+ 					$('tr.evenRowColor',context).css('background-color',evenRowColor);
+ 					$('tr.oddRowColor',context).css('background-color',oddRowColor);
+					
+					
+				      $('.toggleHandle').xenosmore();
+			          var warningMsg = [];
+				    <c:forEach items="${commandForm.softMsg}" var="dl">
+					  warningMsg.push("<c:out value="${dl}" />");
+				    </c:forEach>
+				    if(warningMsg.length > 0){
+					  xenos.utils.displayGrowlMessage(xenos.notice.type.warning, warningMsg);
+					} 
+                  }
+				</c:otherwise>
+			</c:choose>
+        </jsp:body>
+    </jsp:element>
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+		<form:form id="queryForm" modelAttribute="commandForm">
+			<div class="detailBlock entrySingleCol dtlInfoBlock " style="padding-bottom:7px; padding-top:5px; font-weight:900;">
+				<spring:message code="drv.label.contractinformation" htmlEscape="false"/> ${"["} 
+				<spring:message code="drv.label.contractreferenceno" htmlEscape="false"/> ${"-"} 
+				${commandForm.detailContractView.contractReferenceNo} ${"]"}
+			</div>
+			<div class="detailBlock entrySingleCol dtlInfoBlock">
+				<table class="tableStyle sixCol">
+					<tr>
+						<td><form:label path=""><spring:message code="drv.label.fundcode" htmlEscape="false"/></form:label></td>
+						<td><span class="detailTxtVal">${commandForm.detailContractView.fundCode}</span></td>
+						<td><form:label path=""><spring:message code="drv.label.fundaccountno" htmlEscape="false"/></form:label></td>
+						<td><span class="detailTxtVal">${commandForm.detailContractView.fundAccountNo}</span></td>
+				 	</tr>
+				 	<tr>	
+						<td><form:label path=""><spring:message code="drv.label.brokeraccountno" htmlEscape="false"/></form:label></td>
+						<td><span class="detailTxtVal">${commandForm.detailContractView.cpAccountNo}</span></td>
+						<td><form:label path=""><spring:message code="drv.label.securitycode" htmlEscape="false"/></form:label></td>
+						<td><span class="detailTxtVal">${commandForm.detailContractView.securityCode}</span></td>
+				 	</tr>
+				 	<tr>
+						<td><form:label path=""><spring:message code="drv.label.securityshortname" htmlEscape="false"/></form:label></td>
+						<td><span class="detailTxtVal">${commandForm.detailContractView.securityName}</span></td>
+						<td><form:label path=""><spring:message code="drv.label.underlyingshortname" htmlEscape="false"/></form:label></td>
+						<td><span class="detailTxtVal">${commandForm.detailContractView.underLyingSecurityName}</span></td>
+					</tr>
+				 	<tr>
+						<td><form:label path=""><spring:message code="drv.label.status" htmlEscape="false"/></form:label></td>
+						<td><span class="detailTxtVal">${commandForm.detailContractView.contractStatus}</span></td>
+						<td></td>
+						<td></td>
+				 	</tr>
+				</table>
+				<form:label path=""><br></br></form:label>
+			</div>
+			<div class="detailBlock entrySingleCol dtlInfoBlock">
+				<table class="reportTbl">
+					<tr>
+						<!-- <th rowspan="2" style="text-align:center;"></th> -->
+						<th rowspan="2" style="text-align:center;"><spring:message code="drv.label.closeoutreferenceno" htmlEscape="false" /></th>
+						<th colspan="3" class="mixedHeader" style="text-align:center;"><spring:message code="drv.label.opentrade" htmlEscape="false" /></th>
+						<th colspan="3" class="mixedHeader" style="text-align:center;"><spring:message code="drv.label.closetrade" htmlEscape="false" /></th>
+						<th rowspan="2" style="text-align:center;"><spring:message code="drv.label.pl" htmlEscape="false" /></th>
+						<th rowspan="2" style="text-align:center;"><spring:message code="drv.label.status" htmlEscape="false" /></th>
+					</tr>
+					<tr>
+						<!-- <th style="text-align:center;"><spring:message htmlEscape="false" /></th> -->
+						<th style="text-align:center;"><spring:message code="drv.label.tradereferenceno" htmlEscape="false" /></th>
+						<th style="text-align:center;"><spring:message code="drv.label.closeoutqty" htmlEscape="false" /></th>
+						<th style="text-align:center;"><spring:message code="drv.label.price" htmlEscape="false" /></th>
+						<th style="text-align:center;"><spring:message code="drv.label.tradereferenceno" htmlEscape="false" /></th>
+						<th style="text-align:center;"><spring:message code="drv.label.closeoutqty" htmlEscape="false" /></th>
+						<th style="text-align:center;"><spring:message code="drv.label.price" htmlEscape="false" /></th>
+					</tr>
+					<c:forEach items="${commandForm.cancelViewList}" var="dl" varStatus="loopStatus">
+						<tr	class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">
+							<td >${dl.referenceNo}</td>
+							<td align="right">${dl.openTradeDetails[0].tradeReferenceNo}</td>
+							<td align="right">${dl.openTradeDetails[0].quantityStr}</td>
+							<td align="right">${dl.openTradeDetails[0].priceStr}</td>
+							<td align="right">${dl.closeTradeDetails[0].tradeReferenceNo}</td>
+							<td align="right">${dl.closeTradeDetails[0].quantityStr}</td>
+							<td align="right">${dl.closeTradeDetails[0].priceStr}</td>
+							<td>${dl.realizedPL}</td>
+							<td>${null}</td>
+						</tr>
+					</c:forEach>
+				</table>
+			</div>
+		</form:form>
+		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	<div class="clear clear-block">
+		<spring:message text="" htmlEscape="false" />
+	</div>
+
+</div>
+</jsp:root>

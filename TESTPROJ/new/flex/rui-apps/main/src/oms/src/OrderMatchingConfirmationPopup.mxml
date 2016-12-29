@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Account Summary Implementation for Displaying the account information in brief -->
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:controls="*" layout="vertical" styleName="PopupTitleWindow" creationComplete="setErrors();">
+<mx:Script>
+		<![CDATA[
+			import mx.binding.utils.BindingUtils;
+		
+		import mx.utils.StringUtil;
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.collections.ArrayCollection;
+			import mx.managers.PopUpManager;
+			import mx.events.CloseEvent;
+			import mx.events.ResourceEvent;
+			import mx.rpc.events.ResultEvent;
+			[Bindable]	
+			public var dProvider:ArrayCollection;
+			[Bindable]
+			public var errorInfoList : ArrayCollection; 
+			
+			[Bindable]
+			public var formData : XML;
+			[Bindable]
+ 			public var trxNoLbl:String = XenosStringUtils.EMPTY_STR;
+			private function removeTrxPop(event:Event):void {
+				 this.dispatchEvent(new Event("enableButton"));
+       			 PopUpManager.removePopUp(this);
+ 			}
+ 			private function removeAndRefresh(event:Event):void {
+				 this.dispatchEvent(new Event("OkSystemConfirm"));
+       			 PopUpManager.removePopUp(this);
+ 			}
+ 			private function setErrors():void{
+ 				if(dProvider != null){
+ 					if(dProvider.length == 0){
+ 						XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+ 					   	cancelButton.addEventListener(MouseEvent.CLICK,removeAndRefresh);
+ 			   			okButton.enabled = false;
+ 					}
+ 				}
+ 				 else if(errorInfoList != null ){
+ 					if(errorInfoList.length > 0){
+	 					cancelButton.addEventListener(MouseEvent.CLICK,removeAndRefresh);
+	 					okButton.enabled = false;
+ 					}
+ 				}
+ 				errPage.showError(errorInfoList);
+ 			}
+ 			
+ 			private function  confirmData(event:Event):void{
+  	 
+  	 			 okButton.enabled = false;
+			  	 var reqObj : Object = new Object();
+ 				 reqObj.SCREEN_KEY = 11064;
+			  	 orderMatchConfirm.request = reqObj;
+			  	 orderMatchConfirm.send();
+			}	
+			  
+		  /**
+		    * This method is the resultHandler for confirm action. This is required for the 
+		    * User Confirmation Screen to show the values in non editable form.
+		    */
+		     private function okResult(event:ResultEvent):void{
+		     	var rs:XML = XML(event.result);
+		     	if (null != event) {
+		     		if(rs.child("Errors").length()>0) {
+		                //some error found
+					 	var errorInfoList : ArrayCollection = new ArrayCollection();
+		                //populate the error info list 			 	
+					 	for each ( var error:XML in rs.Errors.error ) {
+			 			   errorInfoList.addItem(error.toString());
+						}
+					 	errPage.showError(errorInfoList);//Display the error
+					 	cancelButton.addEventListener(MouseEvent.CLICK, removeAndRefresh);
+					 	okButton.enabled = false;
+					 }else {
+				     	hb.visible=true;
+				     	hb.includeInLayout=true;
+				     	btn1.visible=false;
+				     	btn1.includeInLayout=false;
+				     	btn2.visible=true;
+				     	btn2.includeInLayout=true;
+				     	this.title = this.parentApplication.xResourceManager.getKeyValue("oms.order.label.sysconfirm");
+					 }
+		    	 }
+		     } 
+			
+		]]>
+	</mx:Script>
+	
+	<cntrls:XenosHTTPService id="orderMatchConfirm" 
+         url="oms/orderMatching.action?method=doCommitOrderMatching" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('ref.comp.label.error') + event.fault.faultDetail)"
+         result="okResult(event)" showBusyCursor="true" resultFormat="xml"/>
+	
+	
+	<mx:VBox width="100%" height="100%" id="uconfirm" >
+		<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		<mx:HBox id="hb" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" visible="false" verticalAlign="middle" includeInLayout="false">
+    		<mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+    		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.msg.txn.complete')}" fontWeight="bold" selectable="true"/>	
+		</mx:HBox>
+ 			<cntrls:XenosAdvancedDataGrid id="resultConfirmSummary"  sortExpertMode="true" dataProvider="{dProvider}" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" wordWrap="true"  horizontalScrollPolicy="auto" verticalScrollPolicy="auto" headerWordWrap="true">
+	            <cntrls:groupedColumns>
+	            	<mx:AdvancedDataGridColumn dataField="matchStatus" id="idMatchStatus" headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.matchStatus')}" width="90"/>
+	            	<mx:AdvancedDataGridColumn dataField="executionNumericStatus" id="idNumericStatus" headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.numericStatus')}" width="45" />
+	            	<mx:AdvancedDataGridColumn dataField="tstarSendFlag" id="idTstarSendFlagSys" headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.tstarsend.flag')}"  width="50"/>
+	            	<mx:AdvancedDataGridColumn dataField="senderReferenceNoOfMT502" headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.sender.refno.mt502')}"  />
+	            	<mx:AdvancedDataGridColumn dataField="executingParty"  headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.order.bicCode')}" />
+	            	
+	                <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.order.header.label')}" >
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.order.reference.no')}" dataField="orderReferenceNoVersion" itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" />
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.label.officeid')}" width="30" dataField="orderOfficeId" />
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.fund.code.label.tstar')}" width="80" dataField="orderFundCode" />
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.buysellflag')}" width="40" dataField="orderBuySellFlag"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" />
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.tradedate')}" width="60" dataField="orderTradeDateDisp"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" />
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.valuedate')}" width="60" dataField="orderValueDateDisp"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" />
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.sec.code.label.tstar')}" width="100" dataField="orderInstrumentCode"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" />
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.ordered.amt')}" dataField="orderPrincipalAmountStr"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" textAlign="right"/>
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.order.noofunits')}" dataField="orderNumberOfUnitsStr"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" textAlign="right"/>
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.status')}" width="60" dataField="orderStatus"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" />
+	                </mx:AdvancedDataGridColumnGroup>
+	                
+	                <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.execution.header.label')}" >
+	                	<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.label.exerefno')}" dataField="executionReferenceNoVersion" itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer"  />
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.order.matching.label.officeid')}" width="30" dataField="executionOfficeId" />
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.fund.code.label.tstar')}" width="80" dataField="executionFundCode" />
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.buysellflag')}" width="40" dataField="executionBuySellFlag"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" />
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.tradedate')}" width="60" dataField="executionTradeDateDisp"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer"/>
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.valuedate')}" width="60" dataField="executionValueDateDisp"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" />
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.sec.code.label.tstar')}" width="100" dataField="executionInstrumentCode"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" />
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.executed.amt')}" dataField="executionPrincipalAmountStr"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" textAlign="right"/>
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.executed.noofunits')}" dataField="executionNumberOfUnitsStr"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" textAlign="right"/>
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('oms.label.status')}" width="60" dataField="executionStatus"  itemRenderer="com.nri.rui.oms.renderers.OmsDataCompareRenderer" />
+	            	</mx:AdvancedDataGridColumnGroup>
+	        	</cntrls:groupedColumns>
+    		</cntrls:XenosAdvancedDataGrid>
+
+   		<mx:HBox width="100%" styleName="ButtonBackPanel" id="btn1"> 
+		 	<mx:Button id="okButton" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" click="confirmData(event)" styleName="BtnStyle" enabled="true"/>
+	    	<mx:Button id="cancelButton" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.cancel')}" click="removeTrxPop(event)" styleName="BtnStyle"/>
+		</mx:HBox>
+		<mx:HBox width="100%" styleName="ButtonBackPanel" id="btn2" visible="false"> 
+		 	<mx:Button id="okBtn" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" click="removeAndRefresh(event)" styleName="BtnStyle"/>
+		</mx:HBox> 
+	</mx:VBox>	     
+</mx:TitleWindow>

@@ -1,0 +1,122 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [
+				{name:"<spring:message code="bkg.trade.query.label.fundcode" htmlEscape="false"/>", field:"fundCode", id:"fundCode", sortable: true, width:100, formatter:Slick.Formatters.FundDetailViewFormatter},
+                {name:"<spring:message code="bkg.trade.query.label.fundname" htmlEscape="false"/>", field:"fundName", id:"fundName", sortable: true, width:100},
+                {name:"<spring:message code="bkg.trade.query.label.fundaccountno" htmlEscape="false"/>", field:"fundAccNo", id:"fundAccNo", width:100, sortable: true,formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'fundAccountPk'} },
+                {name:"<spring:message code="bkg.trade.query.label.fundaccountname" htmlEscape="false"/>", field:"fundAccName", id:"fundAccName", width:100, sortable: true },
+                {name:"<spring:message code="bkg.trade.query.label.counterpartyaccountno" htmlEscape="false"/>", field:"cpAccountNo", id:"cpAccountNo", width:100, sortable: true , formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'cpAccountPk'}},
+                {name:"<spring:message code="bkg.trade.query.label.counterpartyaccountname" htmlEscape="false"/>", field:"cpAccountName", id:"cpAccountName", width:100, sortable: true },
+                {name:"<spring:message code="bkg.trade.query.label.ccy" htmlEscape="false"/>", field:"tradingCcy", id:"tradingCcy", width:100, sortable: true },
+                {name:"<spring:message code="bkg.trade.query.label.tradedate" htmlEscape="false"/>", field:"tradeDateStr", id:"tradeDateStr", width:100, sortable: true },
+                {name:"<spring:message code="bkg.trade.query.label.startdate" htmlEscape="false"/>", field:"startDateStr", id:"startDateStr", width:100, sortable: true },
+                {name:"<spring:message code="bkg.trade.query.label.maturitydate" htmlEscape="false"/>", field:"maturityDateStr", id:"maturityDateStr", width:100, sortable: true },
+                {name:"<spring:message code="bkg.trade.query.label.principalamount" htmlEscape="false"/>", field:"principalAmountStr", id:"principalAmountStr", cssClass: 'xenos-grid-number', width:100, sortable: true },
+                {name:"<spring:message code="bkg.trade.query.label.netamount" htmlEscape="false"/>", field:"netAmountStr", id:"netAmountStr", cssClass: 'xenos-grid-number', width:100, sortable: true },
+                {name:"<spring:message code="bkg.trade.query.label.interestrate" htmlEscape="false"/>", field:"interestRateStr", id:"interestRateStr", cssClass: 'xenos-grid-number', width:100, sortable: true },
+                {name:"<spring:message code="bkg.trade.query.label.interestamount" htmlEscape="false"/>", field:"interestAmountStr", id:"interestAmountStr", cssClass: 'xenos-grid-number', width:100, sortable: true },
+				{name:"<spring:message code="bkg.trade.query.label.referenceno" htmlEscape="false"/>", field:"referenceNo", id:"referenceNo", width:145, sortable: true, formatter:Slick.Formatters.BkgTradeDetailViewFormatter},
+				{name:"<spring:message code="bkg.trade.query.label.tradetype" htmlEscape="false"/>", field:"tradeType", id:"tradeType", width:100, sortable: true },
+				{name:"<spring:message code="bkg.trade.query.label.maturitystatus" htmlEscape="false"/>", field:"maturityStatus", id:"maturityStatus", width:100, sortable: true },
+				{name:"<spring:message code="bkg.trade.query.label.status" htmlEscape="false"/>", field:"status", id:"status", width:100, sortable: true, formatter:Slick.Formatters.CancelRecordFormatter }
+            ];
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:true,
+				emptyColumnCheck : false,
+				forceFitColumns:true,
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,
+					xlsPref:true,
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+					url: '/secure/bkg/banking/trade/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/bkg/banking/trade/query/result.json?fetch=next',
+					prevPage : '/secure/bkg/banking/trade/query/result.json?fetch=previous',
+					pdfReport: '/secure/bkg/banking/trade/query/report.json?outputType=pdf',
+					xlsReport: '/secure/bkg/banking/trade/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/bkg/banking/trade/query/reportPref.json?outputType=xls'
+				},
+				defaultInvisibleColumns: ["fundAccName","cpAccountName","interestRateStr","interestAmountStr"]	
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				
+				rec.fundCode = "<c:out value="${dl.fundCode}" />";
+				rec.fundName = "<c:out value="${dl.fundName}" />";
+				rec.fundAccNo = "<c:out value="${dl.fundAccNo}" />";
+				rec.fundAccName = "<c:out value="${dl.fundAccName}" />";
+				rec.cpAccountNo = "<c:out value="${dl.cpAccountNo}" />";
+				rec.cpAccountName = "<c:out value="${dl.cpAccountName}" />";
+				rec.tradingCcy = "<c:out value="${dl.tradingCcy}" />";
+				rec.tradeDateStr = "<c:out value="${dl.tradeDateStr}" />";
+				rec.startDateStr = "<c:out value="${dl.startDateStr}" />";
+				rec.maturityDateStr = "<c:out value="${dl.maturityDateStr}" />";
+				rec.principalAmountStr = "<c:out value="${dl.principalAmountStr}" />";
+				rec.netAmountStr = "<c:out value="${dl.netAmountStr}" />";
+				rec.interestRateStr = "<c:out value="${dl.interestRateStr}" />";
+				rec.interestAmountStr = "<c:out value="${dl.interestAmountStr}" />";
+				rec.referenceNo = "<c:out value="${dl.referenceNo}" />";
+				rec.tradeType = "<c:out value="${dl.tradeType}" />";
+				rec.maturityStatus = "<c:out value="${dl.maturityStatus}" />";
+				rec.status = "<c:out value="${dl.status}" />";
+				rec.fundPk = "<c:out value="${dl.fundPk}" />";
+				rec.bankingTradePk = "<c:out value="${dl.bankingTradePk}" />";
+				rec.fundAccountPk = "<c:out value="${dl.fundAccountPk}" />";
+				rec.cpAccountPk = "<c:out value="${dl.cpAccountPk}" />";
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+    <div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			  <a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'BKGBTAM')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-amendIco.png" title="${record.actionName}" id="amend" status="ready" alt="Amend" /></c:when>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'BKGBTCX')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}"  id="cancel" status="ready" alt="Cancel" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			  </a>
+		</c:forEach>	  
+	</div>
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/bkg/bankingTradeQueryResult.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+</jsp:root>

@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:flexlib="http://code.google.com/p/flexlib/" layout="vertical" 
+	xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:controls="*" width="100%" height="100%" creationComplete="submitQueryResult()">
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.utils.PrintUtils;
+			import mx.core.UIComponent;
+			import com.nri.rui.core.utils.XenosPopupUtils;
+			import mx.managers.PopUpManager;
+    		import mx.collections.ArrayCollection;
+    		import com.nri.rui.core.controls.XenosAlert;
+			
+			 public function submitQueryResult():void{
+		    	parseUrlString();
+		    	var requestObj :Object = populateRequestParams();
+		    	requestObj.SCREEN_KEY = "11087";
+	         	bkgQueryDetailRequest.request = requestObj; 
+		    	bkgQueryDetailRequest.send();
+			    PopUpManager.centerPopUp(this);
+		    }
+		    
+		     /**
+			   * This method is used for loading Account Details popup module
+			   * 
+			   */  
+			   public function showAccountDetail():void{						
+					var accPkStr : String = queryResult.bkgTrdData.accountPk;
+					var parentApp :UIComponent = UIComponent(this.parentApplication);
+					XenosPopupUtils.showAccountSummary(accPkStr,parentApp);
+						
+			   }
+			   /**
+			   * This method is used for loading Account Details popup module
+			   * 
+			   */  
+			   public function showInventoryAccountDetail():void{					
+					var accPkStr : String = queryResult.bkgTrdData.inventoryAccountPk;
+					var parentApp :UIComponent = UIComponent(this.parentApplication);
+					XenosPopupUtils.showAccountSummary(accPkStr,parentApp);
+						
+			   }
+			   
+			  /**
+			   * This method is used for loading Account Details popup module
+			   * 
+			   */  
+			   public function showFundDetail():void{
+			   		var fundPkStr : String = queryResult.bkgTrdData.fundPk;
+					var parentApp :UIComponent = UIComponent(this.parentApplication);
+					XenosPopupUtils.showFundCodeDetails(fundPkStr,parentApp);
+					
+			   }
+		]]>
+	</mx:Script>
+	<mx:Script source = "actionscripts/BkgTradeDetail.as"/>  
+	 <cntrls:XenosHTTPService id="bkgQueryDetailRequest"
+     	 showBusyCursor="true"
+     	 method="POST" 
+     	 url="bkg/bkgTrdDetailsDispatch.action?method=bkgTrdDetailsQueryExecute" 
+         result="LoadResultPage(event)" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>
+	<mx:Canvas height="100%" width="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%" styleName="Padding">
+		<mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+			<mx:Button id="Print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetail(this.bkgDetailsVbox)"/>
+		</mx:HBox>
+	    <mx:VBox id="bkgDetailsVbox" width="100%" height="100%" styleName="Padding"> 
+	    	<flexlib:WindowShade id="ws1" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws1" tabChildren="{ws1.opened=true}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.startlegtrade')}" width="100%" >
+			    <mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.referenceno')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.referenceNo}" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.cancelreferenceno')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.cancelReferenceNo}" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>			    
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.fundcode')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.fundCode}" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" click="showFundDetail()" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.fundname')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.fundName}" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.inventoryaccountno')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.inventoryAccountNo}" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" click="showInventoryAccountDetail()" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.fundaccountname')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<cntrls:XenosLabel text="{queryResult.bkgTrdData.accountName}" selectable="true" isWrapReq="true" width="280"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.counterpartyaccountno')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.accountNo}" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" click="showAccountDetail()" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.counterpartyaccountname')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<cntrls:XenosLabel text="{queryResult.bkgTrdData.cpAccountName}" selectable="true" isWrapReq="true" width="280"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.tradetype')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.tradeType}" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.currencycode')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.currencyCode}" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.tradedatetime')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.tradeDate}|{queryResult.bkgTrdData.tradeTime}" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.status')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.status}" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.startdate')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.startDate}" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.maturitydate')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.maturityDate}" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.principalamount')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.principalAmount}" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.netamount')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.netAmount}" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.interestrate')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.interestRate}" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.accintcalctype')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.accIntCalcType}" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.stlstdg')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="80%" colSpan="3">
+							<mx:Label text="{queryResult.bkgTrdData.settlementStanding}" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.remarks')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="80%" colSpan="3">
+							<cntrls:XenosLabel text="{queryResult.bkgTrdData.remarks}" selectable="true" isWrapReq="true" width="280"/>
+						</mx:GridItem>
+					</mx:GridRow>			
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.createdatetime')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.creationDateStr}" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.createdby')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.createdBy}" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.updatedatetime')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.updateDateStr}" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.updatedby')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="30%">
+							<mx:Label text="{queryResult.bkgTrdData.updatedBy}" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+				</mx:Grid>
+	    	</flexlib:WindowShade>
+	    	
+	    	<flexlib:WindowShade id="ws2" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws2" tabChildren="{ws2.opened=false}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.endlegtrade')}" width="100%" >
+	    	<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.interestamount')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.bkgTrdData.interestAmount}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.netamount')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.bkgTrdData.netAmount}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.accrueddays')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.bkgTrdData.accruedDays}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.maturitydate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.bkgTrdData.maturityDate}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('bkg.label.startdate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.bkgTrdData.startDate}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+				
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+	
+					</mx:GridItem>
+				</mx:GridRow>
+		    </mx:Grid>
+	      </flexlib:WindowShade>
+	      </mx:VBox>
+	      <mx:HBox id = "button" width="100%" styleName="ButtonBackPanel">
+		     <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('bkg.button.settlementinfo')}" styleName="BtnStyle" click="showSettlementInfo()"/>
+		  </mx:HBox>
+		  </mx:VBox>
+	</mx:Canvas>
+</mx:Module>

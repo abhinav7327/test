@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for FeedFileQuery Implementation -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="loadAll()">
+    
+    <mx:Script>
+        <![CDATA[
+        	import mx.events.DataGridEvent;
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.containers.TitleWindow;
+            import mx.collections.ArrayCollection;
+            import mx.events.CloseEvent;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import mx.controls.CheckBox;
+            import mx.managers.PopUpManager;
+            import mx.events.ListEvent;
+            
+            import com.nri.rui.core.controls.XenosAlert;
+            
+            public var trxpop : FeedFileResend;
+            public var trxpopnew : FeedFileResendForNew;
+            
+            /**
+            * 
+            */
+            private function changeCurrentState():void{
+                currentState = "result";
+            }
+ 
+        
+        private function hideIconRefNo(event:ListEvent):void {
+        	var strValue: String = feedStatus.selectedItem.value;
+        	//XenosAlert.info("123 "+strValue);
+        	if(feedStatus.selectedItem.value == "NEW" ||feedStatus.selectedItem.value == "ALL"){
+        		icnref1.visible=false;
+        		icnref1.includeInLayout=false;
+        		icnref2.visible=false;
+        		icnref2.includeInLayout=false;
+        		
+        	}else{
+        		icnref1.visible=true;
+        		icnref1.includeInLayout=true;
+        		icnref2.visible=true;
+        		icnref2.includeInLayout=true;
+        	}
+				     
+        }
+                               
+        ]]>
+    </mx:Script>
+    <mx:Script source="actionscripts/FeedFileResendQuery.as"/>
+    
+	 <mx:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{btnNew}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+        	<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </mx:states>
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+    
+      <cntrls:XenosHTTPService id="initializeFeedQuery" fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString)" 
+             method="POST" useProxy="false" result="initPage(event)" showBusyCursor="true"/>    
+
+    <cntrls:XenosHTTPService id="feedQueryRequest" 
+         url="icn/feedResendQueryDispatch.action?" 
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+         result="loadSummaryPage(event)" showBusyCursor="true" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="feedStatusRequest" 
+         url="icn/feedStatusDispatchAction.action?" 
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+         result="loadSummaryPageForNew(event)" showBusyCursor="true" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="feedResetQueryRequest" url="icn/feedResendQueryDispatch.action?method=resetQuery"
+        result="initPage(event)" showBusyCursor="true">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="feedRecordResendForNew" 
+         url="icn/feedStatusDispatchAction.action?" 
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+         result="confirmHandlerForNew(event)" showBusyCursor="true" resultFormat="xml" method="POST">
+    </cntrls:XenosHTTPService>
+    
+     <cntrls:XenosHTTPService id="feedRecordResend" 
+         url="icn/feedStatusDispatchAction.action?" 
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+         result="confirmHandler(event)" showBusyCursor="true" resultFormat="xml" method="POST">
+    </cntrls:XenosHTTPService>
+    
+    <!--mx:Validator source="{officeId}" required="true" property="value" /-->
+    <mx:Validator source="{applDate}" required="true" property="text" />
+   
+    
+    
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" id="qryImage">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance =submit;" />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>    	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+
+
+
+	<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		<mx:VBox width="100%" height="100%" id="resendQuery"> 
+        	<mx:HDividedBox id="hdbox1" width="100%" height="100%" liveDragging="true" styleName="Padding4" creationComplete="initPageStart()">
+        		<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        		<mx:VBox label="Query Criteria" width="100%" height="100%" styleName="HDivideStyle" >
+        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+        			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+        			<mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+        			
+        			<mx:Grid width="100%" borderThickness="0">
+        					<mx:GridRow width="100%">
+                        		<mx:GridItem width="20%" borderThickness="0">
+                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.applicationdate')}" styleName="ReqdLabel"/>
+                        		</mx:GridItem>
+                        		<mx:GridItem width="30%" borderThickness="0">
+                            		<mx:DateField id="applDate"  formatString="YYYYMMDD" editable="true" width="90"/>
+                        		</mx:GridItem> 
+                        		<mx:GridItem width="20%" borderThickness="0">
+                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.officeid')}" styleName="ReqdLabel"/>
+                        		</mx:GridItem>
+                        		<mx:GridItem width="30%" borderThickness="0">
+                            		<mx:ComboBox id="officeId" labelField="label" />
+                        		</mx:GridItem>
+                    		</mx:GridRow>
+                    		<mx:GridRow width="100%">
+                        		<mx:GridItem width="20%" borderThickness="0">
+                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.interfacegroup')}" styleName="ReqdLabel" />
+                        		</mx:GridItem>
+                        		<mx:GridItem width="30%" borderThickness="0">
+                            		<mx:ComboBox id="interfacegroup" labelField="label"/>
+                        		</mx:GridItem> 
+                        		<mx:GridItem width="20%" borderThickness="0">
+                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.fundcode')}" />
+                        		</mx:GridItem>
+                        		<mx:GridItem width="30%" borderThickness="0">
+                            		<xenospopup:FundPopUpHbox id="fundPopUp"/>
+                        		</mx:GridItem>
+                    		</mx:GridRow>
+                            <mx:GridRow width="100%">
+                        		<mx:GridItem width="20%" borderThickness="0">
+                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.assetcode')}" />
+                        		</mx:GridItem>
+                        		<mx:GridItem width="30%" borderThickness="0">
+                            		<xenospopup:InstrumentPopUpHbox id="instPopUp"/>
+                        		</mx:GridItem>
+                        		<mx:GridItem width="20%" borderThickness="0">
+                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.status')}" />
+                        		</mx:GridItem>
+                        		<mx:GridItem width="30%" borderThickness="0">
+                            		<mx:ComboBox id="feedStatus" labelField="label" change="hideIconRefNo(event)"/>
+                        		</mx:GridItem> 
+                    		</mx:GridRow>
+                    		<mx:GridRow width="100%">
+                        		<mx:GridItem width="20%" borderThickness="0">
+                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.xnsrefno')}" />
+                        		</mx:GridItem>
+                        		<mx:GridItem width="30%" borderThickness="0">
+                            		<mx:TextInput id="xenosRefNo" text="" restrict="{Globals.INPUT_PATTERN}"/>
+                        		</mx:GridItem>
+                        		<mx:GridItem width="20%" borderThickness="0" id="icnref1">
+                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.icnrefno')}" />
+                        		</mx:GridItem>
+                        		<mx:GridItem width="30%" borderThickness="0" id="icnref2">
+                            		<mx:TextInput id="icnRefNo" text="" restrict="{Globals.INPUT_PATTERN}"/>
+                        		</mx:GridItem> 
+                    		</mx:GridRow>
+                        </mx:Grid>           
+            
+            
+         	<mx:HBox width="100%" styleName="ButtonBackPanel">			
+				<cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="this.submitQuery()" />
+	            <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="this.resetQuery()"/>					
+			</mx:HBox>
+        </mx:VBox>
+        </mx:Canvas> 
+        		<mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >
+                <cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" startIndex="2"/>
+                <cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()" >
+                    <cntrls:columns>
+                       <mx:DataGridColumn textAlign="center" headerText="" id="dgColumnCb2" editable="false" dataField="rowNoArray" sortable="false" headerRenderer="com.nri.rui.icn.renderers.SelectAllRecords" itemRenderer="com.nri.rui.icn.renderers.SelectRecord"  width="20"/> 
+                       <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.xnsrefno')}" dataField="xnsRefNoWithVersion" sortable="true" visible="true" itemRenderer="com.nri.rui.icn.renderers.DetailRenderer"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.icnrefno')}" dataField="xnsIconRefNo" sortable="true" visible="true" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.fundcode')}" dataField="fundCode" showDataTips="true"  sortable="true"  itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.fundname')}" dataField="fundName" showDataTips="true"  sortable="true"/>                       
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.assetcode')}" dataField="assetCode"  showDataTips="true" sortable="true" minWidth="140" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.interfacename')}" dataField="interfaceName" showDataTips="true" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.applicationdate')}" dataField="creationDateStr" sortable="true" visible="true" />
+                       <!-- Record Dump should not come in the query result screen 
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.recorddump')}" dataField="recordDump" sortable="true" />
+                       -->
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.relatedRefNo')}" dataField="relatedRefNo" sortable="true" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.status')}" dataField="statusDisplay" sortable="true" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.officeId')}" dataField="officeId" sortable="true" />
+                    </cntrls:columns>
+                 </cntrls:CustomDataGrid>
+                 <mx:HBox width="100%" styleName="ButtonBackPanel" id="resendBtn">			
+	            	<mx:Button id="btnResend" enabled="true" label="{this.parentApplication.xResourceManager.getKeyValue('icn.form.button.label.resend')}" styleName="BtnStyle" click="this.resendQry()"/>					
+				</mx:HBox>
+                <cntrls:QueryResultHeader id="qh1" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrevForNew" nextFunction="doNextForNew" startIndex="2"/> 
+                 <cntrls:CustomDataGrid id="resultSummaryNew" width="100%" height="100%" dataProvider="{summaryResult1}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGridNew()">
+                    <cntrls:columns>
+                    	<mx:DataGridColumn textAlign="center" headerText="" id="dgColumnCb2New" editable="false" dataField="rowNoArray" sortable="false" headerRenderer="com.nri.rui.icn.renderers.SelectAllRecords" itemRenderer="com.nri.rui.icn.renderers.SelectRecordForNew"  width="20"/> 
+                       <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.xnsrefno')}" dataField="xnsRefNoWithVersion" sortable="true" visible="true" itemRenderer="com.nri.rui.icn.renderers.DetailRenderer"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.icnrefno')}" dataField="iconReferenceNo" sortable="true" visible="true" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.fundcode')}" dataField="fundCode" showDataTips="true"  sortable="true"  itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.fundname')}" dataField="fundName" showDataTips="true"  sortable="true"/>                       
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.assetcode')}" dataField="assetCodeForDisplay"  showDataTips="true" sortable="true" minWidth="140" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.interfacename')}" dataField="interfaceName" showDataTips="true" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.applicationdate')}" dataField="feedCreationDate" sortable="true" visible="true" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.relatedRefNo')}" dataField="relatedRefNo" sortable="true" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.status')}" dataField="statusDisplay" sortable="true" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.officeId')}" dataField="officeId" sortable="true" />
+                    </cntrls:columns>
+                 </cntrls:CustomDataGrid>
+                 <mx:HBox width="100%" styleName="ButtonBackPanel" id="sendBtnNew">			
+	            	<cntrls:XenosButton id="btnNew" enabled="true" styleName="BtnStyle" click="this.resendQryForNew()"/>					
+				</mx:HBox>
+			 </mx:VBox>       		        		        		 
+        	</mx:HDividedBox>
+        </mx:VBox>
+	</mx:Canvas>
+</mx:Module>

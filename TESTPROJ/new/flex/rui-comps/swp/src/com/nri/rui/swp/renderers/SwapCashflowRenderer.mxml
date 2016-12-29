@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Item Renderer for Trade Amend/Cancel.  -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" textAlign="center" verticalAlign="middle" horizontalAlign="center" width="100%" height="100%">
+    <mx:Script>
+        <![CDATA[
+            import mx.core.Application;
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.events.CloseEvent;            
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.Globals;
+            
+            import flash.events.MouseEvent;        
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            
+            [Bindable] public var _mode:String = "ENTRY";
+            private var sPopup : SummaryPopup;
+            /**
+             * Mouse Click event handler to open a popup with initialization and passing values.
+             * 
+             */ 
+            public function handleMouseClick(event:MouseEvent):void {
+            	
+            	if( _mode == "AMEND" ){
+                	
+                        sPopup = SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true)); 
+                        sPopup.title = this.parentApplication.xResourceManager.getKeyValue('swp.cashflow.info.cashflowResetAmend');
+                        sPopup.addEventListener(CloseEvent.CLOSE,closeHandler,false,0,true);
+                        sPopup.width = 960;
+                        sPopup.height = 400;            
+                        PopUpManager.centerPopUp(sPopup);                       
+                        sPopup.moduleUrl = "assets/appl/swp/cashFlowResetEntry.swf" + Globals.QS_SIGN + "modeOfOperation" + Globals.EQUALS_SIGN + this._mode + Globals.AND_SIGN + "method"+ Globals.EQUALS_SIGN + "doView" + Globals.AND_SIGN + "cashflowPk" + Globals.EQUALS_SIGN + data.cashflowPk;
+                    
+                }else if(_mode == "CANCEL"){
+                        
+                        sPopup = SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+                        sPopup.title = this.parentApplication.xResourceManager.getKeyValue('swp.cashflow.info.cashflowResetCancel');
+                        sPopup.addEventListener(CloseEvent.CLOSE,closeHandler,false,0,true);
+                        sPopup.width = 960;
+                        sPopup.height = 400;            
+                        PopUpManager.centerPopUp(sPopup);
+                        sPopup.moduleUrl = "assets/appl/swp/cashFlowResetEntry.swf" + Globals.QS_SIGN + "modeOfOperation" + Globals.EQUALS_SIGN + this._mode + Globals.AND_SIGN + "method"+ Globals.EQUALS_SIGN + "doView" + Globals.AND_SIGN + "cashflowPk" + Globals.EQUALS_SIGN + data.cashflowPk;
+                }
+            }
+            
+            /**
+             * Event Handler for the custom event "OkSystemConfirm"
+             */
+            public function closeHandler(event:Event):void {
+                if(_mode == "AMEND")
+                  this.parentDocument.dispatchEvent(new Event("amendSubmit"));
+                else if(_mode == "CANCEL")
+                  this.parentDocument.dispatchEvent(new Event("cancelSubmit"));                  
+                  sPopup.removeMe();
+            }
+        ]]>
+    </mx:Script>
+    
+    <mx:Button id="editRemarks" styleName="{_mode == 'AMEND' ? 'BtnEdit' : 'BtnDelete'}" width="18" height="18" label="{_mode == 'AMEND' ? Application.application.xResourceManager.getKeyValue('swp.tooltip.edit') : Application.application.xResourceManager.getKeyValue('swp.tooltip.cxl')}" click="handleMouseClick(event)"/>
+</mx:VBox>

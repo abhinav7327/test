@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<containers:XenosQueryModule xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:frmtrs="com.nri.rui.core.formatters.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" xmlns:valdtrs="com.nri.rui.core.validators.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" >
+	<mx:Script>
+		<![CDATA[
+			import mx.events.ValidationResultEvent;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import mx.utils.StringUtil;
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.renderers.StatusRenderer;
+			import com.nri.rui.core.RendererFectory;
+			import com.nri.rui.ref.renderers.MarketAmendQueryRenderer;
+			import com.nri.rui.core.renderers.ImgSummaryRenderer;
+			import mx.core.Application;
+			    
+    /**
+	 * This method should be called on creationComplete of the datagrid 
+	 */ 
+	 private function bindDataGrid():void {
+		qh.dgrid = resultSummary;
+	}
+	
+        /**
+	     * Method to Format and validate numbers(B,M,T)
+	     */
+	     private function numberHandler(numVal:XenosNumberValidator):void{
+	     	//The source textinput control
+	     	var source:Object=numVal.source; 
+	     	    	
+	     	var vResult:ValidationResultEvent;
+	     	var tmpStr:String = source.text; 
+	     	if(XenosStringUtils.isBlank(source.text)){
+	     		return;
+	     	}
+	     	else{
+				vResult = numVal.validate();
+		        
+		        if (vResult.type==ValidationResultEvent.VALID) {
+		     		source.text=numberFormatter.format(source.text);     		
+		        }else{
+		        	source.text = tmpStr;        	
+		        }
+		        
+		        if(vResult != null && vResult.type ==ValidationResultEvent.INVALID){
+	             var errorMsg:String=vResult.message;
+	             XenosAlert.error(errorMsg);
+		        }else{
+		        	var digitsAfterDecimalArray:Array = price.text.split(".");
+		        	var digitsAfterDecimal:String = digitsAfterDecimalArray[1];
+		        	if(Number(digitsAfterDecimal) > 9999999){
+		        		source.text = "";
+		        		XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('ref.instrument.msg.error.afterpointlimit', new Array('7')));
+		        	}
+		        }
+		     }
+	        
+	     }
+
+		]]>
+	</mx:Script>
+	<mx:Script source="actionscripts/MarketPriceQueryModule.as"/>
+	
+    
+     <containers:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+        	<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State> 
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions> 
+    
+    <frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+	<valdtrs:XenosNumberValidator id="numVal1" requiredFieldError="" 
+		decimalPointCountError="{Application.application.parentApplication.xResourceManager.getKeyValue('ref.marketprice.msg.error.invalid.value', new Array('Price'))}" 
+    	invalidCharError="{Application.application.parentApplication.xResourceManager.getKeyValue('ref.marketprice.msg.error.invalid.value', new Array('Price'))}" 
+    	exceedsMaxError="{Application.application.parentApplication.xResourceManager.getKeyValue('ref.marketprice.msg.error.beforepointlimit', new Array('9'))}" 
+    	negativeError="{Application.application.parentApplication.xResourceManager.getKeyValue('ref.marketprice.msg.error.invalid.value', new Array('Rate'))}" 
+    	separationError="" source="{price}" property="text" 
+        allowNegative="false" domain="real" lowerThanMinError="" maxValue="999999999" 
+        minValue="" required="false" invalidFormatCharsError="{Application.application.parentApplication.xResourceManager.getKeyValue('ref.marketprice.msg.error.invalid.value', new Array('Price'))}" />
+     <valdtrs:XenosNumberValidator id="numVal2" requiredFieldError=""
+    	invalidCharError="{Application.application.parentApplication.xResourceManager.getKeyValue('ref.marketprice.msg.error.invalid.value', new Array('Input Price'))}" 
+    	exceedsMaxError="{Application.application.parentApplication.xResourceManager.getKeyValue('ref.marketprice.msg.error.beforepointlimit', new Array('9'))}" 
+    	negativeError="{Application.application.parentApplication.xResourceManager.getKeyValue('ref.marketprice.msg.error.invalid.value', new Array('Input Price'))}" 
+    	separationError="" source="{inputPrice}" property="text" 
+        allowNegative="false" domain="real" lowerThanMinError="" maxValue="999999999" 
+        minValue="" invalidFormatCharsError="{Application.application.parentApplication.xResourceManager.getKeyValue('ref.marketprice.msg.error.invalid.value', new Array('Input Price'))}" 
+        decimalPointCountError="{Application.application.parentApplication.xResourceManager.getKeyValue('ref.marketprice.msg.error.invalid.value', new Array('Input Price'))}" precision="9" 
+        precisionError="{Application.application.parentApplication.xResourceManager.getKeyValue('ref.marketprice.msg.error.afterpointlimit', new Array('9'))}" required="false"/>   
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" id="screenNavigater">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;"  />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres';app.submitButtonInstance = submit;"/>    	
+    </mx:HBox>
+    </mx:VBox>
+	
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%">
+	<mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="{this.loadAll()}"  >
+	<!--<containers:CollapsibleHDividedBox id="hdbox1" width="100%" height="100%" x="0" y="0" liveDragging="true" creationComplete="{}" paddingBottom="6" paddingLeft="6" paddingRight="6" paddingTop="6" >-->
+		
+		<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('core.query.criteria')}" width="100%" height="100%" styleName="HDivideStyle" >
+			<mx:Label text="Query Criteria" fontWeight="bold"/>
+			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		
+               <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+			<!--<flexlib:WindowShade id="ws1" tabChildren="{ws1.opened=false}" styleName="linkButtonWindowShade" label="Optional Fields - Group 1" width="100%">-->
+			<mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.baseDate')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:DateField id="baseDate"  formatString="YYYYMMDD" editable="true" width="90"/>
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.market')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="30%" borderThickness="0">
+	                           <cntrls:TreeCombo id="executionMarket" dataSource="{new XML((app.cachedItems.marketTree).toString())}" editMode="true" width="153"  displayClearIcon="true"  labelField="label" treeHeight="200"  x="10" y="10"/>
+	                        </mx:GridItem>                         
+                    </mx:GridRow>	
+               	 	<mx:GridRow width="100%">
+	                        <mx:GridItem width="20%" borderThickness="0">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.securityCode')}" />
+	                        </mx:GridItem>
+	                        <mx:GridItem width="30%" borderThickness="0">
+	                            <xenospopup:InstrumentPopUpHbox id="security"/>                          
+	                        </mx:GridItem>
+	                        <mx:GridItem width="20%" borderThickness="0">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.ccy')}" />
+	                        </mx:GridItem>
+	                        <mx:GridItem width="30%" borderThickness="0">
+	                           <cntrls:CurrencyHBox id="currancy"/>
+	                        </mx:GridItem>                         
+                    </mx:GridRow>
+                   <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.dataSource')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="dataSource" labelField="label" prompt="Select"/>                            
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.priceType')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                             <mx:ComboBox id="priceType" labelField="label" prompt="Select"/>                             
+                        </mx:GridItem>
+                    </mx:GridRow>
+                   <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.price')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="price" focusOut="numberHandler(numVal1)"/>                            
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label id="lblStatus" text="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.status')}" includeInLayout="false" visible="false"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="status" labelField="label" prompt="Select" includeInLayout="false" visible="false"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                     <mx:GridRow width="100%">
+                       <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.inputprice')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">							
+							<mx:TextInput id="inputPrice" focusOut="numVal2.handleNumericField(numberFormatter)"/> 
+                        </mx:GridItem>   
+                         <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.inputpriceformat')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="inputPriceFormat" labelField="label" prompt="Select"/>                           
+                        </mx:GridItem> 
+                    </mx:GridRow>
+	                </mx:Grid>
+
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="{this.mode == 'query' ?  this.dispatchEvent(new Event('querySubmit')) : (this.mode == 'amend' ? this.dispatchEvent(new Event('amendSubmit')) : this.dispatchEvent(new Event('cancelSubmit')))}" />
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="{this.mode == 'query' ?  this.dispatchEvent(new Event('queryReset')) : (this.mode == 'amend' ? this.dispatchEvent(new Event('amendReset')) : this.dispatchEvent(new Event('cancelReset')))}" />
+	        </mx:HBox>
+
+		</mx:VBox>
+		
+		</mx:Canvas>
+				
+		<mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >			
+	         <cntrls:QueryResultHeader id="qh" printFunction="dispatchPrintEvent" pdfFunction="dispatchPdfEvent" xlsFunction="dispatchXlsEvent" previousFunction="dispatchPrevEvent" nextFunction="dispatchNextEvent" startIndex="{this.mode == 'query' ? 1 : 2}"/>
+		
+		<cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()" headerRelease="dataGrid_headerRelease(event)"> 
+		     <cntrls:columns> 		    	   
+		    	   <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" id="imgRenderer" itemRenderer="{mode == 'query' ? new RendererFectory(ImgSummaryRenderer) : new RendererFectory(MarketAmendQueryRenderer,mode)}" />
+		    	   <!--mx:DataGridColumn visible="{ mode == 'query' ? false : true}" headerText="" width="40" draggable="false" resizable="false" id="imgRenderer" itemRenderer="{new RendererFectory(ImgSummaryRenderer)}" /-->
+		    	   <!--mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" visible="false" id="amendRenderer" itemRenderer="com.nri.rui.ref.renderers.MarketAmendQueryRenderer" /-->
+		    	   <!--mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" id="cancelRenderer" itemRenderer="com.nri.rui.core.renderers.MarketCancelQueryRenderer" /-->
+		    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.baseDate')}" dataField="baseDateStr" width="80"/>
+		    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.market')}" dataField="finInstRoleCode" width="80"/>
+		    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.securityCode')}" dataField="securityCode" width="130"/>
+		    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.securityName')}" dataField="officialName" wordWrap="true" width="200"/>
+		    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.alternate.securityCode')}" dataField="alternateSecurityCode" width="130"/>
+		    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.ccy')}" dataField="currency" width="80"/>
+		    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.dataSource')}" dataField="dataSource" width="80"/>
+		    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.priceType')}" dataField="priceType" width="80"/>
+		    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.price')}" dataField="priceStr" width="130" textAlign="right" sortCompareFunction="sortUtil.sortNumeric"/>
+		    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.remarks')}" dataField="remarks" wordWrap="true" width="200"/>
+		    	   <mx:DataGridColumn id="statusCol" headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.marketPrice.label.status')}" dataField="status" itemRenderer="{new ClassFactory(StatusRenderer)}" width="80"/>
+            </cntrls:columns> 
+         </cntrls:CustomDataGrid>
+		</mx:VBox>
+	</mx:HDividedBox>
+    </mx:VBox>
+    
+    </mx:Canvas>  
+		 
+</containers:XenosQueryModule>

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" 
+	xmlns:cntrls="com.nri.rui.core.controls.*" 		
+	creationComplete="submitQueryResult()" width="100%" height="100%" >
+    
+    <mx:Script>
+        <![CDATA[
+            import com.nri.rui.oms.fileio.FormPrintView;
+            import mx.printing.FlexPrintJob;
+        	import mx.collections.ArrayCollection;
+        	import mx.managers.PopUpManager;        	
+            import com.nri.rui.core.controls.XenosAlert;                
+            import mx.rpc.events.ResultEvent;                                               
+           
+            [Bindable]
+		    private var rs:XML = new XML();            
+            /**
+             *  Handler for creation complete event
+             */
+            private function submitQueryResult():void {               
+                
+				var req : Object = new Object();
+		    	req.rnd=Math.random();
+		    	req.forSave="false"; // This parameter will indicate that the result will be for display/Save&Print
+		    	orderMsgRequest.request=req;
+		    	orderMsgRequest.send();	            
+		    	
+			    PopUpManager.centerPopUp(this);			    
+            }
+            /**
+             * Result Handler for the HttpService
+             */ 
+            private function initPage(event:ResultEvent):void {
+                errPage.clearError(event);
+                
+                rs = XML(event.result);
+        
+		        if (null != event) {
+		            if(null == rs){ 
+		                if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+		                       errPage.clearError(event); //clears the errors if any		                      
+		                     }
+		                else{ // Must be error
+		                     errPage.displayError(event);		                     		                     
+		                }
+		        	}else if(rs.child("Errors").length()>0) {		                
+					 	var errorInfoList : ArrayCollection = new ArrayCollection();
+		                //populate the error info list 			 	
+					 	for each ( var error:XML in rs.Errors.error ) {
+			 			   errorInfoList.addItem(error.toString());
+						}
+					 	errPage.showError(errorInfoList);//Display the error
+					 } else {
+					 	XenosAlert.info("No Result Found!");					 	
+					 	errPage.removeError(); //clears the errors if any
+					 }
+		        }
+		        //Enable/Disable print and download buttons
+                if(errPage.isError())  {
+                    print.enabled = true;
+                    startDownload.enabled = true;
+                }else {
+                    print.enabled = false;
+                    startDownload.enabled = false;
+                }                
+            }           
+            // The function to print the output.
+        	public function doPrint():void {
+            	// Create a FlexPrintJob instance.
+            	var printJob:FlexPrintJob = new FlexPrintJob();
+            	// Start the print job.
+            	if (printJob.start() == true) {
+            		// Create a FormPrintView control
+            		// as a child of the application.
+            		var thePrintView:FormPrintView = new FormPrintView();
+            		addChild(thePrintView);
+            		// Set the print view properties.
+            		thePrintView.width=printJob.pageWidth;
+            		thePrintView.height=printJob.pageHeight;            
+            		// Set the data provider of the FormPrintView
+            		// component's DataGrid to be the data provider of
+            		// the displayed DataGrid.
+            		thePrintView.myDataGrid.dataProvider =	errPage.dataProvider;
+            		// Create a single-page image.
+            		thePrintView.showPage("single");
+            		// If the print image's DataGrid can hold all the
+            		// data provider's rows, add the page to the print job.
+            		if(!thePrintView.myDataGrid.validNextPage)
+            		{
+            			printJob.addObject(thePrintView);
+            		}
+            		// Otherwise, the job requires multiple pages.
+            		else
+            		{
+            			// Create the first page and add it to the print job.
+            			thePrintView.showPage("first");
+            			printJob.addObject(thePrintView);
+            			thePrintView.pageNumber++;
+            			// Loop through the following code
+            			// until all pages are queued.
+            			while(true)
+            			{
+            				// Move the next page of data to the top of
+            				// the PrintDataGrid.
+            				thePrintView.myDataGrid.nextPage();
+            				// Try creating a last page.
+            				thePrintView.showPage("last");
+            				// If the page holds the remaining data, or if
+            				// the last page was completely filled by the last
+            				// grid data, queue it for printing.
+            				// Test if there is data for another
+            				// PrintDataGrid page.
+            				if(!thePrintView.myDataGrid.validNextPage)
+            				{
+            					// This is the last page;
+            					// queue it and exit the print loop.
+            					printJob.addObject(thePrintView);
+            					break;
+            				}
+            				else
+            				// This is not the last page. Queue a middle page.
+            				{
+            					thePrintView.showPage("middle");
+            					printJob.addObject(thePrintView);
+            					thePrintView.pageNumber++;
+            				}
+            			}
+            		}
+            		// All pages are queued; remove the FormPrintView
+            		// control to free memory.
+            		removeChild(thePrintView);
+            	
+            		// Send the job to the printer.
+            		printJob.send();
+        		}
+        		else {
+        			XenosAlert.info("Print Cancelled!");
+        		}
+        	
+        	}
+        ]]>
+    </mx:Script>
+    
+    <cntrls:XenosHTTPService id="orderMsgRequest" url="oms/orderUploadDispatch.action?method=viewOrderMessages"
+        result="initPage(event)" showBusyCursor="true" method="POST" useProxy="false"
+        fault="XenosAlert.error('Error getting result :: '+event.fault.faultString);" resultFormat="xml">
+    </cntrls:XenosHTTPService> 
+    
+   
+	<mx:VBox id="MessageBox" width="100%" height="100%" verticalGap="0" horizontalGap="0" >	    
+        <cntrls:XenosErrors id="errPage" width="100%" height="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+        <cntrls:FileDownload id="fileDownload" 
+                              creationComplete="fileDownload.init(downloadProgress, cancelDownload);"
+                              downloadUrl="oms/orderUploadDispatch.action?method=viewOrderMessages"
+                              downloadFileName="OmsErrorList.txt"
+                              onIOError="XenosAlert.error('IO Error in downloading file.');" />
+        
+        <mx:Panel width="100%" title="{this.parentApplication.xResourceManager.getKeyValue('oms.order.popup.button.downloadfile')}" paddingTop="10" paddingBottom="10" paddingLeft="10" paddingRight="10">
+			<mx:ProgressBar id="downloadProgress" label="" mode="manual" width="100%"/>
+			<mx:ControlBar width="100%">
+			    <mx:HBox horizontalAlign="left" width="50%">
+                    <mx:Button id="print" width="28" height="28" styleName="PrintBtnStyle" click="doPrint()" toolTip="Print Errors"/>
+			    </mx:HBox>
+			    <mx:HBox horizontalAlign="right" width="50%">
+                    <mx:Button id="startDownload" label="{this.parentApplication.xResourceManager.getKeyValue('oms.order.popup.button.download')}" click="fileDownload.startDownload();"/>
+				    <mx:Button id="cancelDownload" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.cancel')}" click="fileDownload.cancelDownload();" enabled="false" />
+			    </mx:HBox>
+			</mx:ControlBar>
+		</mx:Panel>        
+    </mx:VBox>    
+</mx:Module>

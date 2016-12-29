@@ -1,0 +1,305 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:jsp="http://java.sun.com/JSP/Page">
+	 
+<div class="formItemArea"> 
+       
+	 <jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	 <jsp:output	omit-xml-declaration="yes" />
+	 <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body> 
+		
+			$( document ).ready(function()
+			{
+			
+				var batchId="<c:out value="${commandForm.batchId}"/>";
+				if(batchId)
+				{
+					// If the Page is loaded again after getting some error on Submit or by clicking Back.
+					// The command Form Contains Previously Set Data.
+					$('#officeSection').show();
+					$('#proceed').hide();
+					$('.submitBtn').show();
+					$('.resetBtn').show();
+					$('.backBtn').hide();
+				}
+				else
+				{	
+					// The Page is loaded initially.
+					hideOfficeSection();
+				}
+				$('#proceed').unbind('click');
+				$('#proceed').bind('click',proceedAlong);
+				
+				
+				var baseUrl="<c:out value="${commandForm.baseUrl}"/>";
+				var xenos$Handler$RequestHandler = xenos$Handler$function({
+					get: {
+						contentType: 'json',
+						requestType: xenos$Handler$default.requestType.asynchronous
+					},  
+					settings: {
+						beforeSend: function(request) {
+							request.setRequestHeader('Accept', 'application/json');
+						},
+						type: 'POST'
+					}
+				});
+				
+			
+				// AJAX call to the server side.
+				function proceedAlong(e){
+					// Check weather the Proceed button should be clicked or not.
+					var doProceed = proceedClickValidation();
+					if(doProceed){
+						var requestUrl = xenos.context.path + baseUrl + "/proceed.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, 
+							{   requestUri: requestUrl,
+								settings: {data : {batchId:$('#batchId').val()}},
+								onJsonContent :  function(e, options, $target, content) {
+									if(content.success == true){
+										var validationMessages = [];
+										validationMessages = showOfficeSection(content.value[0]);
+										if(validationMessages.length>0)
+										{
+											// If during the office section loading any error happens.
+											$('.formHeader').find('.formTabErrorIco').css('display', 'block');
+											$('.formHeader').find('.formTabErrorIco').off('click');
+											$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+										}
+										else
+										{
+											$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+										}
+									} else {
+										$('.formHeader').find('.formTabErrorIco').css('display', 'block')
+																				 .on('click', xenos.postNotice(xenos.notice.type.error, content.value[0], true));
+									}
+								}
+							}
+						);
+					}
+				};
+				
+				
+				// Onchange Batch ID Dropdown.
+				$('#batchId').change(function()
+				{
+					hideOfficeSection();
+				});
+				
+				
+				function showOfficeSection(data)
+				{
+					var officeList = data.officeList;
+					var validationMessages = [];
+					if(officeList)
+					{
+						var select = document.getElementById("office"); 
+						while (select.hasChildNodes())
+							select.removeChild(select.lastChild);
+						for(var i in officeList)
+						{
+							var el = document.createElement("option");
+							el.textContent = officeList[i].label;
+							el.value = officeList[i].value;
+							select.appendChild(el);
+						}
+					}
+					else
+					{
+						validationMessages.push(xenos$REF$i18n.batch.execution.officeloadingproblem);
+					}
+				
+				
+					var batchId = $.trim($('#batchId').val());
+					var _CTM_CONF_DWNLD_BATCH = "CTM_CONF_DWNLD_BATCH";
+					var _DRVAUTOCLOSEOUT_BT = "DRVAUTOCLOSEOUT_BT";
+					var _NDFCLOSETRANSNETTING = "NDFCLOSETRANSNETTING";
+					var _BWRTMTCH_BATCH = "BWRTMTCH_BATCH";
+					var _BRRTREFNOMTCH_BATCH = "BRRTREFNOMTCH_BATCH";
+					var lmImFlagList = data.lmImList;
+					if(lmImFlagList)
+					{
+						var select = document.getElementById("lmImFlag"); 
+						while (select.hasChildNodes())
+							select.removeChild(select.lastChild);
+						for(var i in lmImFlagList)
+						{
+							var el = document.createElement("option");
+							el.textContent = lmImFlagList[i].label;
+							el.value = lmImFlagList[i].value;
+							select.appendChild(el);
+						}
+					}
+					if(batchId == _CTM_CONF_DWNLD_BATCH <![CDATA[||]]> batchId == _DRVAUTOCLOSEOUT_BT <![CDATA[||]]> batchId == _BWRTMTCH_BATCH <![CDATA[||]]> batchId == _NDFCLOSETRANSNETTING <![CDATA[||]]> batchId == _BRRTREFNOMTCH_BATCH)
+					{
+						$("#lmImFlag").val("im");
+					}
+					$('#officeSection').show();
+					$('#proceed').hide();
+					$('.submitBtn').show();
+					$('.resetBtn').show();
+					$('.backBtn').hide();
+					return validationMessages;
+				}
+			
+			function proceedClickValidation()
+			{
+				var validationMessages = [];
+				var batchId = $.trim($('#batchId').val());
+				if(VALIDATOR.isNullValue(batchId))
+				{
+					// If the batch Id is not yet selected.
+					validationMessages.push(xenos$REF$i18n.batch.execution.specifybatchid);
+				}
+				if (validationMessages.length > 0)
+				{
+					$('.formHeader').find('.formTabErrorIco').css('display', 'block');
+					$('.formHeader').find('.formTabErrorIco').off('click');
+					$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.info, validationMessages, true));
+					return false;
+				}
+				else
+				{
+					$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+					return true;
+				}
+			}
+			
+			function hideOfficeSection()
+			{
+				$('#officeSection').hide();			// Hide Office Section
+				$('#proceed').show();				// Show the Proceed Button
+				$('.backBtn').hide();				// Hide the Back Button
+				$('.submitBtn').hide();				// Hide the Submit Button
+				$('.resetBtn').hide();				// Hide Reset Button
+			}
+		
+		
+			});
+		
+		
+		
+		
+		
+	 </jsp:body>
+    </jsp:element>
+	<div class="entryBlkArea">
+		<div class="formItemBlock dottedBg">
+			<!-- Batch ID -->
+			<div class="formItem twoCols">
+				<form:label path="batchId" class="required"><spring:message code="ref.batchreport.label.batchid" htmlEscape="false" /></form:label>
+				<span> 
+					<form:select path="batchId" class="dropdowninput noWidth" id="batchId">
+						<form:option value="" />
+						<form:options items="${commandForm.batchIdList}" itemLabel="label" itemValue="value"/>
+					</form:select>
+				</span> 
+			</div>
+			<div id="officeSection">
+				<!-- Office -->
+				<div class="formItem">
+					<form:label path="office" class="required"><spring:message code="ref.batchreport.label.officeid" htmlEscape="false" /></form:label>
+					<span>
+						<form:select id="office" path="office" class="dropdowninput noWidth">
+							<form:options items="${commandForm.officeList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+					</span>
+				</div>
+				<!-- LM/IM -->
+				<div class="formItem">
+					<form:label path="lmImFlag" class="required"><spring:message code="ref.batchreport.label.lmim" htmlEscape="false" /></form:label>
+					<span> 
+						<form:select id="lmImFlag" path="lmImFlag" class="dropdowninput noWidth">
+							<form:options items="${commandForm.lmImList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+					</span> 
+				</div>
+			</div>
+			<!-- Proceed Button -->
+			<div class="formBtnBlock">
+				<spring:message code="ref.batchreport.label.proceed" htmlEscape="false" var="form_proceed_label"/>
+				<div class="btnWrapStyle qrySubmitBtn">
+					<input id="proceed" type="button" value="${form_proceed_label}" style="float:left;"/>
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</div>
+	</div>
+	<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+	
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	<div class="formBrdHide"><spring:message text="" htmlEscape="false"/></div>
+
+	<spring:eval expression="T(java.lang.System).currentTimeMillis()" var="myId"/>
+   <input type="hidden" id="${myId}"/>
+    <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			function submitValidateHookBatchExecutionSelect()
+			{
+				var validationMessages = [];
+				
+				var _BWRTMTCH_BATCH = "BWRTMTCH_BATCH";
+				var _BRRTREFNOMTCH_BATCH = "BRRTREFNOMTCH_BATCH";
+				
+				var lmImValue = $.trim($('#lmImFlag').val());
+				var batchId = $.trim($('#batchId').val());
+				
+				// Setting the Batch Description from the selected batch label.
+				var batchDescription = $.trim($('#batchId option:selected').text());
+				var lm = "lm";
+				var batchDescriptionArray = [];
+				batchDescriptionArray.push(batchDescription);
+				
+				
+				if(VALIDATOR.isNullValue(batchId))
+				{
+					validationMessages.push(xenos$REF$i18n.batch.execution.specifybatchid);
+				}
+				else if( batchId == _BWRTMTCH_BATCH)
+				{
+					if(lmImValue == lm)
+					{
+						// The Batch is Borrow Return Matching Batch and LM IM value is lm.
+						validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.batch.execution.modeproblem,batchDescriptionArray));
+					}
+				}
+				else if( batchId == _BRRTREFNOMTCH_BATCH)
+				{
+					if(lmImValue == lm)
+					{
+						//The Batch is Borrow Return Reference Number Matching Batch and LM and IM value is lm.
+						validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.batch.execution.modeproblem,batchDescriptionArray));
+					}
+				}
+				if (validationMessages.length > 0)
+				{
+					$('.formHeader').find('.formTabErrorIco').css('display', 'block');
+					$('.formHeader').find('.formTabErrorIco').off('click');
+					$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+					return false;
+				}
+				else
+				{
+					$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+					return true;
+				}
+			}
+			jQuery('#' + '${myId}').parent().xenosform({
+				beforeSubmit : function(context){
+					var submitFlag = submitValidateHookBatchExecutionSelect();
+					return submitFlag;
+				}
+			});
+		</jsp:body>
+	</jsp:element>
+</div>
+</jsp:root>

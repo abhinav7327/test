@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Interest Rate Swap Query Implementation -->
+
+<containers:XenosQueryModule xmlns:mx="http://www.adobe.com/2006/mxml" 
+                            xmlns:containers="com.nri.rui.core.containers.*" 
+                            xmlns:flexlib="http://code.google.com/p/flexlib/" 
+                            xmlns:cntrls="com.nri.rui.core.controls.*" 
+                            xmlns:frmtrs="com.nri.rui.core.formatters.*" 
+                            xmlns:valdtrs="com.nri.rui.core.validators.*" 
+                            xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"
+    			    xmlns:swppopup="com.nri.rui.swp.popupImpl.*"
+                            layout="vertical" 
+                            percentWidth="100" 
+                            percentHeight ="100" 
+                            horizontalScrollPolicy="off" 
+                            verticalScrollPolicy="off" >
+    <mx:Script>
+        <![CDATA[
+            import com.nri.rui.core.Globals;
+            import com.nri.rui.core.RendererFectory;
+            import com.nri.rui.core.renderers.ImgSummaryRenderer;
+            import mx.containers.TitleWindow;
+            import mx.collections.ArrayCollection;
+            import mx.events.CloseEvent;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import mx.controls.CheckBox;
+            import mx.managers.PopUpManager;
+            
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.controls.CustomDataGrid;
+            import mx.events.DataGridEvent;
+                        
+                        
+            [Embed(source="../../assets/img/inf/addcolunm.png")]
+                
+            
+            [Bindable]private var icoColumns:Class;
+            public static var popupColumns:TitleWindow = null;
+            public var gridColumns:ArrayCollection = new ArrayCollection();
+            private function changeCurrentState():void{
+                currentState = "result";
+                app.submitButtonInstance = null;
+            }
+            /**
+            * Retrieve and return the Security Name for dataTip.
+            */
+            private function getSecurityName(item:Object):String {
+                return item.officialName;
+            }
+            /**
+            * Retrieve and return the Fund Account Number for dataTip.
+            */
+            private function getFundAccountNo(item:Object):String {
+                return item.fundAccountNo;
+            }
+            
+            
+            private function displayVersionNo(item:Object,column : DataGridColumn):String{
+                return item.referenceNo+"-"+item.versionNoStr;
+                
+            }
+            
+           /**
+            *  datagrid header release event handler to handle datagridcolumn sorting
+            */
+            public function dataGrid_headerRelease(evt:DataGridEvent):void {                
+                var dg:CustomDataGrid = CustomDataGrid(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];       
+            }
+            
+            /**
+             * This method should be called on creationComplete of the datagrid 
+             */ 
+             private function bindDataGrid():void {
+                qh.dgrid = resultSummary;
+            }
+            
+        ]]>
+    </mx:Script>
+    
+    <mx:Script source="actionscripts/SwapUnrealizedPLQuery.as"/>
+    
+    <!--<frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+    
+    <valdtrs:XenosNumberValidator id="numValNotionalAmountFrom" 
+									requiredFieldError=""
+    								invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('swp.invalid.notamnt.error')}" 
+							    	exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('swp.allowed.notamnt.digit.error')}" 
+    								negativeError="{this.parentApplication.xResourceManager.getKeyValue('swp.invalid.negative.notamnt.error')}" 
+							    	separationError="" 
+							    	source="{notionalAmountFrom}" 
+							    	property="text" 
+        							allowNegative="false" 
+        							domain="real" 
+        							lowerThanMinError="" 
+        							maxValue="999999999999999" 
+        							minValue="" 
+        							invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('swp.invalid.notamnt.error')}" 
+        							decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('swp.invalid.notamnt.error')}" 
+        							precision="3" 
+        							precisionError="{this.parentApplication.xResourceManager.getKeyValue('swp.allowed.notamnt.precision.error')}" />
+        							
+    <valdtrs:XenosNumberValidator id="numValNotionalAmountTo" 
+									requiredFieldError=""
+    								invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('swp.invalid.notamnt.error')}" 
+							    	exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('swp.allowed.notamnt.digit.error')}" 
+    								negativeError="{this.parentApplication.xResourceManager.getKeyValue('swp.invalid.negative.notamnt.error')}" 
+							    	separationError="" 
+							    	source="{notionalAmountTo}" 
+							    	property="text" 
+        							allowNegative="false" 
+        							domain="real" 
+        							lowerThanMinError="" 
+        							maxValue="999999999999999" 
+        							minValue="" 
+        							invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('swp.invalid.notamnt.error')}" 
+        							decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('swp.invalid.notamnt.error')}" 
+        							precision="3" 
+        							precisionError="{this.parentApplication.xResourceManager.getKeyValue('swp.allowed.notamnt.precision.error')}" />-->
+    
+    <containers:states>
+        <mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions>
+        
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" id="screenNavigater">    
+        <mx:HBox width="100%" styleName="ExCoBgPanel">
+            <mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="{this.parentApplication.xResourceManager.getKeyValue('swp.tooltip.query')}" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;"  />      
+            <mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="{this.parentApplication.xResourceManager.getKeyValue('swp.tooltip.result')}" buttonMode="true" click="currentState='result'" />
+            <mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="{this.parentApplication.xResourceManager.getKeyValue('swp.tooltip.qryrslt')}" buttonMode="true" click="currentState='qryres';app.submitButtonInstance = submit;"/>     
+        </mx:HBox>
+        <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    <mx:VBox width="100%" height="100%">
+    <mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="{this.loadAll()}"  >   
+        
+        <mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        <mx:VBox label="Query Criteria" width="100%" height="100%" styleName="HDivideStyle" >
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>         
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+                
+            <mx:Grid width="100%" borderThickness="0">
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.baseDate')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                    	<mx:HBox>
+                    		<mx:DateField id="baseDateFrom" formatString="YYYYMMDD" editable="true" width="90"/>
+                    		<mx:DateField id="baseDateTo" formatString="YYYYMMDD" editable="true" width="90"/>	
+                    	</mx:HBox>
+                    </mx:GridItem>                        
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.currency')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <cntrls:CurrencyHBox id="currency"/>                           
+                    </mx:GridItem>      
+                </mx:GridRow>
+        
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.fundCode')}" />
+                    </mx:GridItem>                        
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:FundPopUpHbox id="fundPopUp"/>
+                    </mx:GridItem>                        
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.fundAccountNo')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:AccountPopUpHbox id="inventoryAccountNo" retContextItem="{returnContextItem}" recContextItem="{populateInvActContext()}"/>
+                    </mx:GridItem>                                                
+                </mx:GridRow>
+                  
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.referenceNo')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:TextInput id="referenceNo"/>
+                    </mx:GridItem>                        
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.contractReferenceNo')}" />
+                    </mx:GridItem>                        
+                    <mx:GridItem width="30%" borderThickness="0">
+						<swppopup:ReferenceNoPopUpHbox  id="contractReferenceNo" 
+														retContextItem="{returnContextItem}" 
+														recContextItem="{populateContractRefNoContext()}"
+														mode="{mode}"/>                           
+                    </mx:GridItem>                            
+                </mx:GridRow>
+                
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.marketValueNotFound')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:ComboBox id="marketValueNotFound" width="30%" labelField="label" />
+                    </mx:GridItem>                        
+                    <mx:GridItem width="20%" borderThickness="0" />
+                    <mx:GridItem width="30%" borderThickness="0" />
+                </mx:GridRow>
+                 
+             </mx:Grid>
+             
+             <flexlib:WindowShade id="ws1" tabChildren="{ws1.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('swp.swap.label.trade')}" opened="true" width="100%">
+            	<mx:Grid width="100%" borderThickness="0">
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.productType')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:ComboBox id="productType" labelField="label"/>
+                    </mx:GridItem>                    
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.officeId')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:ComboBox id="officeIdList" prompt="Select"/>
+                    </mx:GridItem>                                  
+                </mx:GridRow>
+                    
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.accountNo')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:AccountPopUpHbox id="accountNo" retContextItem="{returnContextItem}" recContextItem="{populateActContext()}"/> 
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.externalReferenceNo')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:TextInput id="externalReferenceNo"/>
+                    </mx:GridItem>                    
+                </mx:GridRow>
+                
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.tradeDateEntry')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                    	<mx:HBox>
+                    		<mx:DateField id="tradeDateFrom" formatString="YYYYMMDD" editable="true" width="90"/>
+                    		<mx:DateField id="tradeDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                    	</mx:HBox>                                                      
+                    </mx:GridItem>                        
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.maturityDateEntry')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                    	<mx:HBox>
+                    		<mx:DateField id="maturityDateFrom" formatString="YYYYMMDD" editable="true" width="90"/>
+                    		<mx:DateField id="maturityDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                    	</mx:HBox>                                                  
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <mx:GridRow width="100%">                                                
+                    <mx:GridItem width="20%" borderThickness="0">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.terminationDateEntry')}" />
+				   </mx:GridItem>
+				   <mx:GridItem width="30%" borderThickness="0">
+				   		<mx:HBox>
+				   			<mx:DateField id="terminationDateFrom" formatString="YYYYMMDD" editable="true" width="90"/>
+				   			<mx:DateField id="terminationDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+				   		</mx:HBox>						   
+				   </mx:GridItem>
+				   <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.status')}" id="tradeStatusLabel"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:ComboBox id="tradeStatusCombo" width="30%" labelField="label" itemRenderer="mx.controls.Label" />
+                    </mx:GridItem>
+                </mx:GridRow>            
+                
+             </mx:Grid>
+            </flexlib:WindowShade>
+            
+            <!--<flexlib:WindowShade id="ws2" tabChildren="{ws2.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('swp.swap.label.stream')}" opened="true" width="100%">
+                <mx:Grid width="100%" borderThickness="0">                    
+                   <mx:GridRow width="100%">                                                
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.deliveryReceiveFlag')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="deliveryReceiveFlag" labelField="label"/>                           
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.notionalAmount')}" /> <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.query.label.fromto')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        	<mx:HBox>
+                        		<mx:TextInput id="notionalAmountFrom" width="100" focusOut="numValNotionalAmountFrom.handleNumericField(numberFormatter)" />
+                        		<mx:TextInput id="notionalAmountTo" width="100" focusOut="numValNotionalAmountTo.handleNumericField(numberFormatter)" />	
+                        	</mx:HBox>                                                       
+                        </mx:GridItem>
+                   </mx:GridRow>
+                                      
+                   <mx:GridRow width="100%"> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.paymentCurrency')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <cntrls:CurrencyHBox id="payemntCurrency"/>                           
+                        </mx:GridItem>                        
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.paymentFrequency')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:ComboBox id="paymentFrequency" labelField="label"/>                           
+                        </mx:GridItem>                    
+                   </mx:GridRow>                
+                </mx:Grid>
+            </flexlib:WindowShade>-->
+            
+            <mx:HBox width="100%" styleName="ButtonBackPanel">
+               <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="{this.mode == 'QUERY' ?  this.dispatchEvent(new Event('querySubmit')) : (this.mode == 'AMEND'? this.dispatchEvent(new Event('amendSubmit')) : this.dispatchEvent(new Event('cancelSubmit')) )}" />
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="{this.mode == 'QUERY' ?  this.dispatchEvent(new Event('queryReset')) : (this.mode == 'AMEND' ? this.dispatchEvent(new Event('amendReset')) : this.dispatchEvent(new Event('cancelReset')))}" />
+            </mx:HBox>
+            
+        </mx:VBox>      
+        </mx:Canvas>
+                
+        <mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >          
+            <cntrls:QueryResultHeader id="qh" printFunction="dispatchPrintEvent" pdfFunction="dispatchPdfEvent" xlsFunction="dispatchXlsEvent" previousFunction="dispatchPrevEvent" nextFunction="dispatchNextEvent" startIndex="{this.mode == 'QUERY' ? 1 : 2}"/>
+            <cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="true" headerRelease="dataGrid_headerRelease(event)" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()">
+                <cntrls:columns> 
+					<mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" id="imgRenderer" itemRenderer="{new RendererFectory(ImgSummaryRenderer)}" />                   
+					<mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" sortCompareFunction="sortUtil.sortString" dataField="referenceNo" headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.referenceNo')}"/>                   
+					<mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" sortCompareFunction="sortUtil.sortString" dataField="contractReferenceNo" headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.contractReferenceNo')}" itemRenderer="com.nri.rui.swp.renderers.TradeDetailRenderer"/>
+					<mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" sortCompareFunction="sortUtil.sortString" dataField="fundCode" headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.fundCode')}"  dataTipFunction="getFundAccountNo" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer" />                   
+					<mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" sortCompareFunction="sortUtil.sortString" dataField="fundName" headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.fundName')}" />                   
+					<mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" sortCompareFunction="sortUtil.sortString" dataField="fundAccountNoExp" headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.fundAccountNo')}" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRenderer" />                   
+					<mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" sortCompareFunction="sortUtil.sortString" dataField="fundAccountName" headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.fundAccountName')}" />                  
+					<mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" sortCompareFunction="sortUtil.sortString" dataField="baseDateStr" headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.baseDate')}" />                   
+					<mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" sortCompareFunction="sortUtil.sortString" dataField="securityId" headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.currency')}" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer"/>                                      
+					<mx:DataGridColumn textAlign="right" sortable="true" visible="true" showDataTips="true" sortCompareFunction="sortUtil.sortString" dataField="unrealizedPlStr" headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.unrealizedPl')}"/>                   
+					<mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" sortCompareFunction="sortUtil.sortString" dataField="marketValueNotFound" headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.marketValueNotFound')}"/>                                                     
+					<mx:DataGridColumn textAlign="left" sortable="true" visible="true" showDataTips="true" sortCompareFunction="sortUtil.sortString" dataField="status" headerText="{this.parentApplication.xResourceManager.getKeyValue('swp.unrealizedplquery.label.status')}" itemRenderer="com.nri.rui.core.renderers.StatusRenderer" />
+                </cntrls:columns> 
+            </cntrls:CustomDataGrid>
+        </mx:VBox>
+            
+    </mx:HDividedBox>
+    </mx:VBox>
+    
+    </mx:Canvas>
+    
+</containers:XenosQueryModule>

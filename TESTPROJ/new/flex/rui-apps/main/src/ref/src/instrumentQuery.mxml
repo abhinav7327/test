@@ -1,0 +1,632 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Instrument Query Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" 
+    xmlns:containers="com.nri.rui.core.containers.*" 
+    xmlns:flexlib="http://code.google.com/p/flexlib/" 
+    xmlns:cntrls="com.nri.rui.core.controls.*" 
+    xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"
+    xmlns:frmtrs="com.nri.rui.core.formatters.*" 
+    xmlns:valdtrs="com.nri.rui.core.validators.*" 
+    percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" 
+    verticalScrollPolicy="off">
+    
+    <mx:Script>
+        <![CDATA[
+            
+            import mx.utils.StringUtil;
+			import mx.containers.TitleWindow;
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.controls.CheckBox;
+			import mx.managers.PopUpManager;
+			
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.RendererFectory;
+			import com.nri.rui.core.renderers.ImgSummaryRenderer;
+			import com.nri.rui.ref.renderers.InstrumentAmendCancelRenderer;
+			
+			import mx.controls.DataGrid;
+            import mx.events.DataGridEvent;
+            import mx.core.Application;
+            
+			
+            /**
+            * 
+            */           
+            
+			private function changeCurrentState():void{
+				currentState = "result";
+				app.submitButtonInstance = null;
+			}		
+			
+			/**
+			 *  datagrid header release event handler to handle datagridcolumn sorting
+			 */
+			public function dataGrid_headerRelease(evt:DataGridEvent):void {				
+				var dg:CustomDataGrid = CustomDataGrid(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];		
+			}			
+
+
+        ]]>
+    </mx:Script>
+    
+    <mx:Script source="actionscripts/instrumentQuery.as"/>
+
+	<mx:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+        	<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+	</mx:states>
+	
+	<!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+    <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+        <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+            <!-- Define a Move and Resize effect.-->
+            	<mx:Move  duration="400"/>
+            <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+    
+    <cntrls:XenosHTTPService id="initializeInstrumentQuery" 
+    	fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))" 
+        method="POST" useProxy="false" result="initPage(event)" showBusyCursor="true"/>	
+        
+    <cntrls:XenosHTTPService id="initializeCategoryIds" 
+    	fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))" 
+        useProxy="false" result="populateCategoryIds(event)" showBusyCursor="true"/>	
+          
+	<cntrls:XenosHTTPService id="instrumentQueryRequest" 
+         url="ref/instrumentQueryDispatch.action?" 
+         fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         result="loadSummaryPage(event)" showBusyCursor="true" resultFormat="xml">
+    
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="instrumentResetQueryRequest" url="ref/instrumentQueryDispatch.action?method=resetQuery"
+        result="initPage(event)" showBusyCursor="true">
+    </cntrls:XenosHTTPService>
+    
+    <frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+	<valdtrs:XenosNumberValidator id="numVal1" requiredFieldError="" decimalPointCountError="" 
+    	invalidCharError="" exceedsMaxError="" negativeError="" separationError="" source="{tickValue}" property="text" 
+        allowNegative="true" lowerThanMinError="" domain="real" />
+    <valdtrs:XenosNumberValidator id="numVal2" requiredFieldError="" decimalPointCountError="" 
+    	invalidCharError="" exceedsMaxError="" negativeError="" separationError="" source="{couponRateFrom}" property="text" 
+        allowNegative="true" lowerThanMinError="" domain="real" />
+ 	<valdtrs:XenosNumberValidator id="numVal3" requiredFieldError="" decimalPointCountError="" 
+    	invalidCharError="" exceedsMaxError="" negativeError="" separationError="" source="{couponRateTo}" property="text" 
+        allowNegative="true" lowerThanMinError="" domain="real" />
+ 	<valdtrs:XenosNumberValidator id="numVal4" requiredFieldError="" decimalPointCountError="" 
+    	invalidCharError="" exceedsMaxError="" negativeError="" separationError="" source="{qtyPerUnit}" property="text" 
+        allowNegative="true" lowerThanMinError="" domain="real" />
+    
+	<mx:VBox width="100%" verticalGap="0" horizontalGap="0">    
+	    <mx:HBox width="100%" styleName="ExCoBgPanel">
+	    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;" />    	
+	    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+	    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>    	
+	    </mx:HBox>
+    	<mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    
+	<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    	<mx:VBox width="100%" height="100%"> 
+			<mx:HDividedBox id="hdbox1" styleName="Padding4" width="100%" height="100%" liveDragging="true" creationComplete="initPageStart()">
+				<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">	
+					<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('core.query.criteria')}" width="100%" height="100%" styleName="HDivideStyle" >
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+						<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+						<mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+						<mx:Grid width="100%" borderThickness="0">
+						
+                    		<mx:GridRow width="100%">
+                        		<mx:GridItem width="20%" borderThickness="0" >
+                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.securitycode')}"  />
+                        		</mx:GridItem>	
+							 	<mx:GridItem width="30%"    borderThickness="0">
+                        			 <xenospopup:InstrumentPopUpHbox id="instPopUp"/>  
+							 	</mx:GridItem>
+				                <mx:GridItem width="20%" borderThickness="0" >
+                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.securitytype')}"  />
+                        		</mx:GridItem>	
+							 	<mx:GridItem width="30%"      borderThickness="0">	
+							 		<cntrls:TreeCombo id="instrumentType" dataSource="{new XML((app.cachedItems.instrumentTree).toString())}" editMode="true" width="153"  displayClearIcon="true"  labelField="label" treeHeight="200"  x="10" y="10">
+									</cntrls:TreeCombo> 
+							 	</mx:GridItem>
+                        	</mx:GridRow>
+                        	
+                        	<mx:GridRow width="100%">
+                        		<mx:GridItem width="20%" borderThickness="0"   >
+                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.securityname')}"  />
+                        		</mx:GridItem>	
+							 	<mx:GridItem width="30%"         borderThickness="0" >
+                        			<mx:TextInput id="instrumentName" restrict="{Globals.INPUT_PATTERN}" />
+							 	</mx:GridItem>
+				                <!-- Issue Date -->
+				                <mx:GridItem width="22%" borderThickness="0"   >
+                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.issuedatefromto')}"  />
+                        		</mx:GridItem>	
+							 	<mx:GridItem width="28%"         borderThickness="0">
+                        			 <mx:HBox width="100%">
+	                                   <mx:DateField id="issueDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+	                                   <mx:DateField id="issueDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                            		</mx:HBox>
+							 	</mx:GridItem>
+                        	</mx:GridRow>
+                        	
+                        	<mx:GridRow width="100%">
+				                <mx:GridItem width="22%" borderThickness="0" >
+                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.maturitydatefromto')}"  />
+                        		</mx:GridItem>	
+							 	<mx:GridItem width="28%"         borderThickness="0" >	
+							 		<mx:HBox width="100%">
+	                                   <mx:DateField id="maturityDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+	                                   <mx:DateField id="maturityDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                            		</mx:HBox> 
+							 	</mx:GridItem>
+							 	<mx:GridItem width="20%" borderThickness="0"   >
+                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.countrycode')}"  />
+                        		</mx:GridItem>	
+							 	<mx:GridItem width="30%"         borderThickness="0">
+                        			 <xenospopup:CountryPopUpHbox id="countryPopUp" />
+							 	</mx:GridItem>
+                        	</mx:GridRow>
+                        	
+                        	<mx:GridRow width="100%">
+	                    		<mx:GridItem width="20%" borderThickness="0"   >
+	                        		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.issueccy')}"/>
+	                    		</mx:GridItem>	                    		
+	                    		<mx:GridItem width="30%"         borderThickness="0">
+	                    			 <cntrls:CurrencyHBox id="issueCcyBox"/>	                    		   	 
+	                            </mx:GridItem>
+	                            
+	                            <mx:GridItem width="20%" borderThickness="0"   >
+	                    		</mx:GridItem>	                    		
+	                    		<mx:GridItem width="30%"         borderThickness="0">
+	                            </mx:GridItem>
+	                            
+                        	</mx:GridRow>
+                        	
+                        </mx:Grid>	
+                        	
+						<flexlib:WindowShade id="ws2" tabChildren="{ws2.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.lessimportant.fields')}" opened="false" width="100%">
+							<mx:Grid width="100%" borderThickness="0">
+							
+	                    		<mx:GridRow width="100%">	
+	                        		<mx:GridItem width="22%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.coupondatefromto')}"/>
+	                        		</mx:GridItem>
+	                        		<mx:GridItem width="28%"         borderThickness="0">
+	                        		   <mx:DateField id="couponDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+	                                   <mx:DateField id="couponDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+	                        		</mx:GridItem> 
+	                        		<mx:GridItem width="25%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.couponrate.fromto')}"/>
+	                        		</mx:GridItem>
+	                        		<mx:GridItem width="25%"      borderThickness="0">
+	                        		    <mx:TextInput id="couponRateFrom" width="90" focusOut="numberHandler(numVal2)" restrict="{Globals.INPUT_PATTERN}" />
+	                                   	<mx:TextInput id="couponRateTo" width="90" focusOut="numberHandler(numVal3)" restrict="{Globals.INPUT_PATTERN}" />
+	                        		</mx:GridItem>
+	                   			</mx:GridRow> 
+	                   			
+	                   			<mx:GridRow width="100%">
+	                        		<mx:GridItem width="22%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.listeddatefromto')}"/>
+	                        		</mx:GridItem>
+	                        		<mx:GridItem width="28%"         borderThickness="0">
+	                        		   <mx:DateField id="listedDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+	                                   <mx:DateField id="listedDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+	                           		</mx:GridItem> 
+	                        		<mx:GridItem width="22%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.ipopaymentdatefromto')}"/>
+	                        		</mx:GridItem>
+	                        		<mx:GridItem width="28%"         borderThickness="0" >
+	                        		    <mx:DateField id="ipoPaymentDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+	                                    <mx:DateField id="ipoPaymentDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+	                           		</mx:GridItem>
+	                   			</mx:GridRow>
+	                   			
+	                   			<mx:GridRow width="100%">
+	                        		<mx:GridItem width="22%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.conversionstartdatefromto')}"/>
+	                        		</mx:GridItem>
+	                        		<mx:GridItem width="28%"         borderThickness="0">
+	                        		   <mx:DateField id="conversionStartDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+	                                   <mx:DateField id="conversionStartDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+	                           		</mx:GridItem> 
+	        	                    <mx:GridItem width="22%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.conversionenddatefromto')}"/>
+	                        		</mx:GridItem>
+	                        		<mx:GridItem width="28%"         borderThickness="0">
+	                        		    <mx:DateField id="conversionEndDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+	                                   <mx:DateField id="conversionEndDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+	                           		</mx:GridItem>
+	                   			</mx:GridRow> 
+	                   				
+	                   			<mx:GridRow width="100%">
+	                        		<mx:GridItem width="22%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.publicofferstartdatefromto')}"/>
+	                        		</mx:GridItem>
+	                        		<mx:GridItem width="28%"         borderThickness="0">
+	                        			<mx:DateField id="publicOfferStartDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+	                                    <mx:DateField id="publicOfferStartDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+	                           		</mx:GridItem> 
+	                        		<mx:GridItem width="22%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.publicofferenddatefromto')}"/>
+	                        		</mx:GridItem>
+	                        		<mx:GridItem width="28%"         borderThickness="0">
+	                        		    <mx:DateField id="publicOfferEndDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+	                                    <mx:DateField id="publicOfferEndDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+	                           		</mx:GridItem>
+	                   			</mx:GridRow> 
+	                   			
+	                   			<mx:GridRow width="100%">
+	                        		<mx:GridItem width="22%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.contractstartdate')}"/>
+	                        		</mx:GridItem>
+	                        		<mx:GridItem width="28%"         borderThickness="0">
+	                        		   <mx:DateField id="contractStartDate"  formatString="YYYYMMDD" editable="true" width="90"/>
+	                                </mx:GridItem> 
+	                        		<mx:GridItem width="22%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.contractexpirydate')}"/>
+	                        		</mx:GridItem>
+	                        			<mx:GridItem width="28%"         borderThickness="0">
+	                        		    <mx:DateField id="contractExpiryDate"  formatString="YYYYMMDD" editable="true" width="90"/>
+	                                </mx:GridItem>
+	                   			</mx:GridRow> 
+	                   			
+	                   			<mx:GridRow width="100%">
+	                        		<mx:GridItem width="22%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_regi_date.from_to')}"/>
+	                        		</mx:GridItem>
+	                        		<mx:GridItem width="28%"         borderThickness="0">
+	                        			<mx:DateField id="appRegiDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+	                                    <mx:DateField id="appRegiDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+	                           		</mx:GridItem> 
+	                        		<mx:GridItem width="22%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.update_date.from_to')}"  />
+	                        		</mx:GridItem>
+	                        		<mx:GridItem width="28%"         borderThickness="0">
+	                        		    <mx:DateField id="appUpdDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+	                                    <mx:DateField id="appUpdDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+	                           		</mx:GridItem>
+	                   			</mx:GridRow> 
+	               
+	                   			<mx:GridRow width="100%">
+	                        		
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.optiontype')}"/>
+	                        		</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="30%"         borderThickness="0">
+	                        		   <mx:ComboBox id="optionTypeValues" labelField="label" prompt=""/>	
+	                                </mx:GridItem> 
+	                        		
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.pooltype')}"/>
+	                        		</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="30%"         borderThickness="0">
+	                        		    <mx:ComboBox id="poolTypeValues" labelField="label" prompt="" />
+	                                </mx:GridItem>
+	                   			
+	                   			</mx:GridRow> 
+	                   		
+	                   			
+	                   			<mx:GridRow width="100%">
+	                        		
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.whenissuedflag')}"/>
+	                        		</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="30%"         borderThickness="0">
+	                        		   <mx:ComboBox id="whenIssuedFlagValues" labelField="label" prompt=""/>	
+	                                </mx:GridItem> 
+	                        		
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.tipsflag')}"  />
+	                        		</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="30%"         borderThickness="0">
+	                        		    <mx:ComboBox id="tipsFlagValues" labelField="label" prompt=""/>
+	                                </mx:GridItem>
+	                   			
+	                   			</mx:GridRow> 
+	                   			
+	                   			<mx:GridRow width="100%">
+	                        		
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.redemptionccy')}"/>
+	                        		</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="30%"         borderThickness="0">
+	                        			<cntrls:CurrencyHBox id="redemptionCcyBox"/>
+	                                </mx:GridItem> 
+	                        		
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.subscriptioncode')}"  />
+	                        		</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="30%"         borderThickness="0">
+	                        		    
+	                        		    <xenospopup:InstrumentPopUpHbox id="subscriptionCodeInstPopUp"/>  
+	                                </mx:GridItem>
+	                   			
+	                   			</mx:GridRow> 
+	                   			
+	                   			<mx:GridRow width="100%">
+	                   				
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.categorytype')}"  />
+	                        		</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="30%"         borderThickness="0">
+	                        		    <mx:ComboBox id="categoryTypes" labelField="label" prompt="" change="setCategoryIds()" />
+	                                </mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.categoryid')}"/>
+	                        		</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="30%"         borderThickness="0">
+	                        		   <mx:ComboBox id="categoryIds" labelField="label" prompt=""/>
+	                                </mx:GridItem> 
+	                        		
+	                   			
+	                   			</mx:GridRow> 
+	                   			
+	                   			
+	                   			<mx:GridRow width="100%">
+	                        		
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.ratetype')}"/>
+	                        		</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="30%"         borderThickness="0">
+	                        		   <mx:ComboBox id="floatingFixFlagValues" labelField="label" prompt=""/>
+	                                </mx:GridItem> 
+	                        		
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.cmotype')}"  />
+	                        		</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="30%"         borderThickness="0">
+	                        		    <mx:ComboBox id="cmoTypeValues" labelField="label" prompt="" />
+	                                </mx:GridItem>
+	                   			
+	                   			</mx:GridRow> 
+	                   			
+	                   			
+	                   			<mx:GridRow width="100%">
+	                        		
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.duallistedflag')}"/>
+	                        		</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="30%"         borderThickness="0">
+	                        		   <mx:ComboBox id="dualListedFlagValues" labelField="label" prompt=""/>
+	                                </mx:GridItem> 
+	                        		
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.callputflag')}"  />
+	                        		</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="30%"         borderThickness="0">
+	                        		    <mx:ComboBox id="callPutFlagValues" labelField="label" prompt=""/>
+	                                </mx:GridItem>
+	                   			
+	                   			</mx:GridRow> 
+	                   			
+	                   			
+	                   			<mx:GridRow width="100%">
+	                        		
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.transferagent')}"/>
+	                        		</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="30%"         borderThickness="0">
+	                        			 <xenospopup:FinInstitutePopUpHbox id="transferAgentFinInstitutePopUpHbox" recContextItem="{populateFinInstRole()}"/>
+	                        		   	 
+	                                </mx:GridItem> 
+	                        		
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.defaultform')}"  />
+	                        		</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="30%"         borderThickness="0">
+	                        		    <mx:ComboBox id="defaultDeliveryMethodList" labelField="label" prompt=""/>
+	                                </mx:GridItem>
+	                   			
+	                   			</mx:GridRow> 
+	                   			
+	                   			<mx:GridRow width="100%">
+							 	
+								 	<!--Bond Type  -->
+								 	<mx:GridItem width="20%" borderThickness="0"   >
+	                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.bondtype')}"  />
+	                        		</mx:GridItem>	
+								 	<mx:GridItem width="30%"         borderThickness="0" >
+								 		<mx:ComboBox id="discountCouponTypeValues" labelField="label" prompt=""/>	 
+								 	</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.couponccy')}"  />
+	                        		</mx:GridItem>
+	                        		
+	                        		<mx:GridItem width="30%"         borderThickness="0">
+	                        		    <cntrls:CurrencyHBox id="couponCcyBox"/>
+	                                </mx:GridItem>
+	                   			
+	                   			</mx:GridRow> 
+	                   			
+	                   			<mx:GridRow width="100%">
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.couponfrequency')}"  />
+	                        		</mx:GridItem>	
+								 	<mx:GridItem width="30%"         borderThickness="0" >
+								 		<mx:ComboBox id="couponPaymentFreqValues" labelField="label" prompt=""/>	 
+	                        			<!--<mx:TextInput id="instrumentName" />-->
+								 	</mx:GridItem>
+					                <mx:GridItem width="20%" borderThickness="0"   >
+	                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.defaultsettlementlocation')}"  />
+	                        		</mx:GridItem>	
+								 	<mx:GridItem width="30%"         borderThickness="0" >
+								 		<mx:ComboBox id="defaultSettlementLocationList" labelField="label" prompt=""/>	 
+								 	</mx:GridItem>
+                        		</mx:GridRow>
+                        		<mx:GridRow width="100%">
+	                        		<mx:GridItem width="20%" borderThickness="0">
+	                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.tickvalue')}"  />
+	                        		</mx:GridItem>	
+								 	<mx:GridItem width="30%" borderThickness="0">
+								 		<mx:TextInput id="tickValue" focusOut="numberHandler(numVal1)"/>	
+								 	</mx:GridItem>
+								 	<mx:GridItem width="20%" borderThickness="0">
+	                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.positions')}"  />
+	                        		</mx:GridItem>	
+								 	<mx:GridItem width="30%" borderThickness="0">
+								 		<mx:ComboBox id="posXenos" labelField="label" prompt=""/>
+								 		<mx:ComboBox id="posTx" labelField="label" prompt=""/>
+								 		<mx:ComboBox id="posPx" labelField="label" prompt=""/>	
+								 	</mx:GridItem>
+                        		</mx:GridRow>
+                        		<mx:GridRow width="100%">
+	                        		<mx:GridItem width="20%" borderThickness="0">
+	                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.positionsstartdatefromto')}"  />
+	                        		</mx:GridItem>	
+								 	<mx:GridItem width="30%" borderThickness="0">
+		                                   <mx:DateField id="posStartDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+		                                   <mx:DateField id="posStartDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+	                            	</mx:GridItem>
+								 	<mx:GridItem width="20%" borderThickness="0">
+	                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.positionsenddatefromto')}"  />
+	                        		</mx:GridItem>	
+								 	<mx:GridItem width="30%" borderThickness="0">
+		                                   <mx:DateField id="posEndDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+		                                   <mx:DateField id="posEndDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+	                            	</mx:GridItem>
+                        		</mx:GridRow>
+                        		<mx:GridRow width="100%">
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.updated_by')}"  />
+	                        		</mx:GridItem>	
+								 	<mx:GridItem width="30%"         borderThickness="0" >
+								 		<mx:TextInput id="updatedBy" />	
+								 	</mx:GridItem>
+					                <mx:GridItem width="20%" borderThickness="0"   >
+	                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.created_by')}"  />
+	                        		</mx:GridItem>	
+								 	<mx:GridItem width="30%"         borderThickness="0" >
+								 		<mx:TextInput id="createdBy" />	 
+								 	</mx:GridItem>
+                        		</mx:GridRow>
+                        		
+                        		<mx:GridRow width="100%" visible="{this.mode=='query'}" includeInLayout="{this.mode=='query'}">
+					                <mx:GridItem width="20%" borderThickness="0">
+	                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.status')}"  />
+	                        		</mx:GridItem>	
+								 	<mx:GridItem width="30%" borderThickness="0">
+								 		<mx:ComboBox id="statusValues" labelField="label" prompt=""/>	
+								 	</mx:GridItem>	
+                        		</mx:GridRow>
+                        		
+                        		<mx:GridRow width="100%" >
+	                        		<mx:GridItem width="20%" borderThickness="0"   >
+	                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.quantityperunit')}"  />
+	                        		</mx:GridItem>	
+								 	<mx:GridItem width="30%" borderThickness="0" >
+								 		<mx:TextInput id="qtyPerUnit" focusOut="numberHandler(numVal4)" />	
+								 	</mx:GridItem>
+								 	<mx:GridItem width="20%" borderThickness="0"   >
+	                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.datasource')}"  />
+	                        		</mx:GridItem>	
+								 	<mx:GridItem width="30%" borderThickness="0">
+								 		<mx:ComboBox id="dataSourceValues" labelField="label" prompt=""/>	
+								 	</mx:GridItem>	
+                        		</mx:GridRow>
+	                   			 <mx:GridRow width="100%">
+		            				<mx:GridItem width="20%" borderThickness="0">
+										<mx:Label id="fixedCouponDaysFlagLbl" text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.fixeddayscpnflag')}"/>
+		            				</mx:GridItem>
+		            				<mx:GridItem width="30%" borderThickness="0">
+		            					<mx:ComboBox id="fixedCouponDayFlag" labelField="label" prompt=""/>
+		            				</mx:GridItem>	
+		            			</mx:GridRow>	
+	                   		</mx:Grid>
+						</flexlib:WindowShade>	
+						<!-- Sort Order -->
+						<flexlib:WindowShade id="ws3" tabChildren="{ws3.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.sortorder.fields')}" opened="true" width="100%">
+			                <mx:Grid width="100%" borderThickness="0">
+			                    <mx:GridRow width="100%">
+			                        <mx:GridItem width="100%" borderThickness="0">
+			                            <mx:HBox width="100%">
+			                                <mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()"/>
+			                                <mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()"/>
+			                                <mx:ComboBox id="sortField3" labelField="label"/>
+			                            </mx:HBox> 
+			                        </mx:GridItem>                         
+			                    </mx:GridRow>
+			                </mx:Grid>
+			            </flexlib:WindowShade>
+						
+						
+						<mx:HBox width="100%" styleName="ButtonBackPanel">
+		           			<cntrls:XenosButton id="submit" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="this.submitQuery();" />
+	           				<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="this.resetQuery();" />
+		        		</mx:HBox>
+					</mx:VBox>
+					</mx:Canvas>
+					<mx:VBox width="0%" height="100%" id="rslt" styleName="HDivideStyle" horizontalScrollPolicy="off" verticalScrollPolicy="off" >		        		
+						<cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" startIndex="{mode == 'query' ?1:2}" />
+						<cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" verticalScrollPolicy="auto" headerRelease="dataGrid_headerRelease(event)" creationComplete="bindDataGrid()">
+							<cntrls:columns>
+								<mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" textAlign="center" id="imgRenderer" itemRenderer="{mode == 'query' ? new RendererFectory(ImgSummaryRenderer) : new RendererFectory(InstrumentAmendCancelRenderer, mode)}" />
+								<!--<mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" />-->
+			            		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.instrumentcode')}" dataField="instrumentCode" width="120" textAlign="left"  showDataTips="true" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer" sortCompareFunction="sortUtil.sortString"/> 
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.securityname')}" dataField="shortName" width="120" sortCompareFunction="sortUtil.sortString"/>
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.alternate.securitycode')}" dataField="alternateSecurityCode" width="120" sortCompareFunction="sortUtil.sortString"/> 
+								<!--<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.officialname')}" dataField="officialName" sortCompareFunction="sortUtil.sortString" />-->
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.sedolcode')}" dataField="sedolCode" sortCompareFunction="sortUtil.sortString" />
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.isincode')}" dataField="isInCode" sortCompareFunction="sortUtil.sortString" />								
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.instrumenttype')}" dataField="instrumentType" sortCompareFunction="sortUtil.sortString" />
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.countrycode')}" dataField="countryCode" sortCompareFunction="sortUtil.sortString" />
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.issueccy')}" dataField="tradingCcyCode" sortCompareFunction="sortUtil.sortString" />
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.bondtype')}" dataField="discountCouponType" sortCompareFunction="sortUtil.sortString" />
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.issuedate')}" dataField="issueDateStr" sortCompareFunction="sortUtil.sortString" />
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.maturitydate')}" dataField="maturityDateStr" sortCompareFunction="sortUtil.sortString" />
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.linkedtype')}" dataField="linkType" sortCompareFunction="sortUtil.sortString" />
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.couponrate')}" dataField="ratestr" sortCompareFunction="sortUtil.sortNumeric" />
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.tickvalue')}" dataField="tickvaluestr" sortCompareFunction="sortUtil.sortNumeric" />
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.quantityperunit')}" dataField="quantityPerUnitStr" sortCompareFunction="sortUtil.sortNumeric" textAlign="right" />
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.status')}" dataField="status" visible="true" sortCompareFunction="sortUtil.sortString" itemRenderer="com.nri.rui.core.renderers.StatusRenderer"/>
+								
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.posxenos')}" dataField="posXenos" visible="false" />
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.postx')}" dataField="posTx" visible="false" />
+								<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.pospx')}" dataField="posPx" visible="false" />
+							
+							</cntrls:columns>
+							
+						</cntrls:CustomDataGrid>	   
+					</mx:VBox> 
+			</mx:HDividedBox>    
+   		</mx:VBox>
+ 	</mx:Canvas> 
+</mx:Module>

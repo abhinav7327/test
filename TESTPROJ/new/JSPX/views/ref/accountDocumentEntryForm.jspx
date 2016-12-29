@@ -1,0 +1,621 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+
+	<div class="entryContainer paddingFour">
+		
+		<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+		<jsp:output	omit-xml-declaration="yes" /> 
+		
+		<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>		
+			<jsp:body>
+
+				var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+						
+						xenos.loadScript([
+							{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+							{path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false}
+						]);
+						
+						if("${commandForm.account.counterPartyDetailType}" == "INTERNAL"){
+                            $("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','block');
+                            $("#formActionArea > div > div > .wizPrev > .inputBtnStyle").css('display','block');
+                        }
+						
+						var context = $xenos$Wizard.$context;
+						var baseUrl = xenos.context.path + "/secure/ref/account/entry";
+						var serviceContractEntryResult = [],
+							rowId = 0,		
+							item = {},
+							serviceContractEntryGrid = null,
+							serviceContractEntryList = [];
+							
+							
+						var legalAggrementEntryResult = [],
+							rowId = 0,		
+							item = {},
+							legalAggrementEntryGrid = null,
+							legalAggrementEntryList = [];
+							
+				
+				/**
+					* A common request handler to be used server communication.
+					*/
+					var xenos$Handler$RequestHandler = xenos$Handler$function({						
+						get: {
+							contentType: 'json',
+							requestType: xenos$Handler$default.requestType.asynchronous
+						},	
+						settings: {
+							beforeSend: function(request) {
+								request.setRequestHeader('Accept', 'application/json');
+							},
+							type: 'POST'
+						}
+					});
+					
+					
+					var serviceContractEntryColumns = [		
+						{name:"<spring:message code="ref.account.label.servicename" htmlEscape="false"/>",   	field:"serviceName",		id:"serviceName", 	   sortable:false},
+						{name:"<spring:message code="ref.account.label.servicestatus" htmlEscape="false"/>", 	field:"serviceStatus",		id:"serviceStatus",	   sortable:false},
+						{name:"<spring:message code="ref.account.label.contractdate" htmlEscape="false"/>", 	field:"contractDateStr",	id:"contractDateStr",  sortable:false}
+							
+					];
+						
+					var serviceContractEntryGridConf = {
+						editMode 					: 	'both',	
+						editCallback 				: 	editServiceContractEntryHandler,
+						deleteCallback			    :	deleteServiceContractEntryHandler,						
+						forceFitColumns				:	true
+					};
+					rowId=0;
+
+					<xenos:out escapeXml="false">
+						<c:forEach items="${commandForm.otherAttributes.serviceContractDynaBeans}" var="dl">
+							item = {};
+							rowId+=1;
+							item.id 				= "xenos_" + rowId;
+							item.serviceName 		= "<c:out value="${dl.map.serviceIdAndNameExp}" />";
+							item.serviceStatus   	= "<c:out value="${dl.map.serviceStatusExp}" />";
+							item.contractDateStr   	= "<c:out value="${dl.map.contractDateStr}" />";
+							serviceContractEntryResult.push(item);
+						</c:forEach>
+					</xenos:out>
+									
+					serviceContractEntryGrid = $('#serviceContractEntryGrid',context).xenoseditablegrid(serviceContractEntryResult, serviceContractEntryColumns, serviceContractEntryGridConf);
+					
+					
+					
+					var legalAggrementEntryColumns = [		
+						{name:"<spring:message code="ref.account.label.documentid" htmlEscape="false"/>",   			field:"documentDispName",			id:"documentDispName", 	   		sortable:false},
+						{name:"<spring:message code="ref.account.label.requesteddate" htmlEscape="false"/>", 			field:"agreementDateStr",			id:"agreementDateStr",	   		sortable:false, editor: Slick.Editors.xenosDate},
+						{name:"<spring:message code="ref.account.label.receiveddate" htmlEscape="false"/>", 			field:"receivedDateStr",			id:"receivedDateStr",  			sortable:false, editor: Slick.Editors.xenosDate},
+						{name:"<spring:message code="ref.account.label.documentexecutiondate" htmlEscape="false"/>", 	field:"documentExecutionDateStr",	id:"documentExecutionDateStr",  sortable:false, editor: Slick.Editors.xenosDate},
+						{name:"<spring:message code="ref.account.label.expirydate" htmlEscape="false"/>", 				field:"expiryDateStr",				id:"expiryDateStr",  			sortable:false, editor: Slick.Editors.xenosDate}
+							
+					];
+						
+					var legalAggrementEntryGridConf = {
+						editable: true,
+						editMode 					: 	'delete',	
+						deleteCallback			    :	deleteLegalAggrementEntryHandler,						
+						forceFitColumns				:	true
+					};
+					rowId=0;
+
+					<xenos:out escapeXml="false">
+						<c:forEach items="${commandForm.legalAgreementDisp}" var="dl">
+							item = {};
+							rowId+=1;
+							item.id 							= "xenos_" + rowId;
+							item.documentDispName 				= "<c:out value="${dl.documentDispName}" />";
+							item.agreementDateStr   			= "<c:out value="${dl.agreementDateStr}" />";
+							item.receivedDateStr   				= "<c:out value="${dl.receivedDateStr}" />";
+							item.documentExecutionDateStr   	= "<c:out value="${dl.documentExecutionDateStr}" />";
+							item.expiryDateStr   				= "<c:out value="${dl.expiryDateStr}" />";
+							item.documentName   				= "<c:out value="${dl.documentName}" />";
+							legalAggrementEntryResult.push(item);
+						</c:forEach>
+					</xenos:out>
+									
+					legalAggrementEntryGrid = $('#legalAggrementEntryGrid',context).xenoseditablegrid(legalAggrementEntryResult, legalAggrementEntryColumns, legalAggrementEntryGridConf);
+					
+					
+					/**
+					* Validate Account No Entry attributes.
+					*/
+					function validateAttributes(){
+						var validationMessages = [];
+						var serviceName = $.trim($('#serviceName',context).val());
+						var serviceStatus = $.trim($('#serviceStatus',context).val());
+												
+					    if(VALIDATOR.isNullValue(serviceName)){
+							validationMessages.push(xenos$REF$i18n.account.docinfo.servicename_empty);
+						}
+						if(VALIDATOR.isNullValue(serviceStatus)){
+							validationMessages.push(xenos$REF$i18n.account.docinfo.servicestatus_empty);
+						}
+						if (validationMessages.length > 0){
+							 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+							 return false;
+						}else {
+	                           xenos.utils.clearGrowlMessage();
+						}
+						return true;
+					}
+					
+					
+				/**
+				* Populate Service Contract request parameters.
+				*/
+				function populateServiceContractEntryRequestParam(){
+					var reqObj = {
+					              "serviceContractXref.serviceId"			:	$.trim($('#serviceName',context).val()),
+								  "serviceContractXref.serviceStatus"		:	$.trim($('#serviceStatus',context).val()),
+								  "serviceContractXref.contractDateStr"		:	$.trim($('#contractDateStr',context).val()),
+								  "serviceContractXref.description"			:	$.trim($('#description',context).val())
+								};
+					return reqObj;
+				}
+				
+				
+				/**
+				* Populate Service Contract form.
+				*/
+				function populateServiceContractEntryForm(result){
+					if(result.serviceContractXref){
+						$('#serviceName',context).val(result.serviceContractXref.serviceId);
+						$('#serviceStatus',context).val(result.serviceContractXref.serviceStatus);
+						$('#contractDateStr',context).val(result.serviceContractXref.contractDateStr);
+						$('#description',context).val(result.serviceContractXref.description);
+						$('input[type=text],textarea,select', 'div.formItemBlock').filter(':enabled:visible:first').focus();
+					}
+				} 
+				
+				
+				/**
+				* New Generated Service Contract add handler.
+				*/
+				function addServiceContractEntryHandler(e){
+				var valid = validateAttributes();
+					if(valid){
+						var requestUrl = baseUrl + "/addServiceContract.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateServiceContractEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertServiceContractEntry( content.value[0]);
+																		upsertLegalAggrementEntry( content.value[0]);
+																		xenos.utils.clearGrowlMessage();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+					}
+				}
+				
+				
+				/**
+				* Service Contract edit handler.
+				*/
+				function editServiceContractEntryHandler(rowIndex, dataContext){
+					
+					var requestUrl = baseUrl + "/editServiceContract.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																settings: {data : {"editIndexServiceContractXref" : rowIndex}},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		populateServiceContractEntryForm(content.value[0]);
+																		$('.editBtnServiceContractEntry',context).css('display','block'); 
+																		$('.addServiceContractEntry',context).css('display','none'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function deleteServiceContractEntryHandler(rowIndex, dataContext){
+					var requestUrl = baseUrl + "/deleteServiceContract/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertServiceContractEntry( content.value[0]);
+																		upsertLegalAggrementEntry( content.value[0]);
+																		$('.editBtnServiceContractEntry',context).css('display','none'); 
+																		$('.addServiceContractEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function updateServiceContractEntryHandler(e){
+					var valid = validateAttributes();
+					if(valid){
+						var requestUrl = baseUrl + "/updateServiceContract.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateServiceContractEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertServiceContractEntry( content.value[0]);
+																		upsertLegalAggrementEntry( content.value[0]);
+																		$('.editBtnServiceContractEntry',context).css('display','none'); 
+																		$('.addServiceContractEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+					}
+				}
+				
+				/**
+				* New Account No add handler.
+				*/
+				function cancelServiceContractEntryHandler(e){
+					var requestUrl = baseUrl + "/cancelServiceContract.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertServiceContractEntry( content.value[0]);
+																		upsertLegalAggrementEntry( content.value[0]);
+																		$('.editBtnServiceContractEntry',context).css('display','none'); 
+																		$('.addServiceContractEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* Insert/ Update Service Contract
+				*/
+				function upsertServiceContractEntry(data){
+					
+					var result = data.otherAttributes.serviceContractDynaBeans;
+					if(result){
+						serviceContractEntryGrid.clearData();
+						for(var i in result){
+							item = {};
+							rowId+=1;
+							item.id 					    = "xenos_" + rowId;
+							item.serviceName 		   		= $.trim(result[i].map.serviceIdAndNameExp);
+							item.serviceStatus 				= $.trim(result[i].map.serviceStatusExp);
+							item.contractDateStr 		    = $.trim(result[i].map.contractDateStr);
+							
+							serviceContractEntryGrid.addOrUpdateRow(item,{});
+						}
+						populateServiceContractEntryForm(data);
+					}
+				}
+				
+				
+				/**
+				* Delete Legal Aggrement handler.
+				*/
+				function deleteLegalAggrementEntryHandler(rowIndex, dataContext){
+					var requestUrl = baseUrl + "/deleteLegalAggrement/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																settings: {data : populateLegalAggrementEntryRequestParam(rowIndex)},
+																onJsonContent :  function(undefined, options, $target, content) {
+																	if(content.success == true){
+																		deleteLegalAggrementEntry(content.value[0]);
+																		$('.editBtnServiceContractEntry',context).css('display','none'); 
+																		$('.addServiceContractEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* Insert Legal Aggrement
+				*/
+				function upsertLegalAggrementEntry(data){
+					var result = data.legalAgreementDisp;
+					if(result){
+						legalAggrementEntryGrid.clearData();
+						for(var i in result){
+							item = {};
+							rowId+=1;
+							item.id 					   	    = "xenos_" + rowId;
+							item.documentDispName 		   		= $.trim(result[i].documentDispName);
+							item.agreementDateStr 				= $.trim(result[i].agreementDateStr);
+							item.receivedDateStr 		        = $.trim(result[i].receivedDateStr);
+							item.documentExecutionDateStr 		= $.trim(result[i].documentExecutionDateStr);
+							item.expiryDateStr 		  		    = $.trim(result[i].expiryDateStr);
+							item.documentName					= $.trim(result[i].documentName);
+							
+							legalAggrementEntryGrid.addOrUpdateRow(item,{});
+							
+						}
+					}
+				}
+				
+				
+				/**
+				* Delete Legal Aggrement
+				*/
+				function deleteLegalAggrementEntry(data){
+					var result = data.legalAgreementDisp;
+					if(result){
+						legalAggrementEntryGrid.clearData();
+						for(var i in result){
+							item = {};
+							rowId+=1;
+							item.id 					   	    = "xenos_" + rowId;
+							item.documentDispName 		   		= $.trim(result[i].documentDispName);
+							item.agreementDateStr 				= $.trim(result[i].agreementDateStr);
+							item.receivedDateStr 		        = $.trim(result[i].receivedDateStr);
+							item.documentExecutionDateStr 		= $.trim(result[i].documentExecutionDateStr);
+							item.expiryDateStr 		  		    = $.trim(result[i].expiryDateStr);
+							item.documentName					= $.trim(result[i].documentName);
+							
+							legalAggrementEntryGrid.addOrUpdateRow(item,{});
+							
+							$("#documentName").val("");
+						}
+					}
+				}
+				
+				
+				function populateLegalAggrementEntryRequestParam(rowIndex){
+					var reqObj = {
+					              "documentName":legalAggrementEntryGrid.getData()[rowIndex].documentName
+								 };
+					return reqObj;
+				}
+
+				
+				var submitChecked=false;
+				var submitValidateHook = function() {	
+					if(!submitChecked) {
+						$xenos$Wizard.setLegalAggrementRelatedDate('submit');
+					}
+					return submitChecked;
+				}
+				
+				var nextChecked=false;
+				var nextValidateHook = function() {
+					if(!nextChecked) {
+						$xenos$Wizard.setLegalAggrementRelatedDate('next');
+					}
+					return nextChecked;
+				}
+				
+				var prevChecked=false;
+				var preValidateHook = function() {
+					if(!prevChecked) {
+						$xenos$Wizard.setLegalAggrementRelatedDate('previous');
+					}
+					return prevChecked;
+				}
+				
+				$xenos$Wizard.switchTabChecked = false;
+				
+				$xenos$Wizard.setLegalAggrementRelatedDate = function(btn){
+					var result = legalAggrementEntryGrid.getData();
+					var reqObj = {
+					              "legalAgreementDisp"			:	result
+								 };
+					var requestUrl = baseUrl + "/updateLegalAggrimentInLine.json?commandFormId=" + $('[name=commandFormId]').val();
+					xenos$Handler$RequestHandler.generic(undefined, { requestUri : requestUrl,
+														settings : {data : JSON.stringify(reqObj),
+														beforeSend: function(request) {
+																	request.setRequestHeader('Accept', 'application/json');
+																	request.setRequestHeader('Content-Type', 'application/json');
+																}
+															
+														},
+														onJsonContent : function(undefined, options,$target,content) {
+															if (content.success == true) {
+																xenos.utils.clearGrowlMessage();
+																if(btn=='next') {
+																	nextChecked=true;
+																	$('.wizNext').find('.inputBtnStyle').trigger('click');
+																} else if(btn=='previous') {
+																	prevChecked=true;
+																	$('.wizPrev').find('.inputBtnStyle').trigger('click');
+																} else if(btn=='submit') {
+																	submitChecked=true;
+																	$('.wizSubmit').find('.inputBtnStyle').trigger('click');
+																} else {
+																	nextChecked=true;
+																	prevChecked=true;
+																	$xenos$Wizard.switchTabChecked = true;
+																	$('#wizardNavigation').find('#wizStep').find('[pageid=page'+btn+']').find('a').trigger('click');
+																}
+																
+															} else {
+																xenos.utils.displayGrowlMessage(xenos.notice.type.error,content.value);
+																prevChecked=false;
+																nextChecked=false;
+																submitChecked=false;
+															}
+														}
+													});
+				
+				}
+				
+				
+				$('#addServiceContractEntryBtn',context).bind('click',addServiceContractEntryHandler);
+				$('#updateServiceContractEntryBtn',context).bind('click',updateServiceContractEntryHandler);
+				$('#cancelServiceContractEntryBtn',context).bind('click',cancelServiceContractEntryHandler);
+				
+				var unloadHook = function(){
+					$('#addServiceContractEntryBtn',context).unbind('click',addServiceContractEntryHandler);
+					$('#updateServiceContractEntryBtn',context).unbind('click',updateServiceContractEntryHandler);
+					$('#cancelServiceContractEntryBtn',context).unbind('click',cancelServiceContractEntryHandler);
+					
+					$xenos$Wizard.deregister('submit',submitValidateHook);
+					$xenos$Wizard.deregister('next',nextValidateHook);
+					$xenos$Wizard.deregister('previous',preValidateHook);
+					$xenos$Wizard.deregister('unload',unloadHook);
+					
+					serviceContractEntryGrid.destroy();
+					legalAggrementEntryGrid.destroy();
+				}
+				
+				$xenos$Wizard.register('next',nextValidateHook);
+				$xenos$Wizard.register('previous',preValidateHook);
+				$xenos$Wizard.register('submit',submitValidateHook);
+				$xenos$Wizard.register('unload',unloadHook);
+				xenos.utils.afterFormRenderScuts();
+			}
+		
+			var Xenos$SwitchTab$PreHook = function(wizard,target) {
+						if(!wizard.switchTabChecked) {
+							wizard.setLegalAggrementRelatedDate(target);
+						}
+						return wizard.switchTabChecked;
+				}
+			function formatDate(target){
+				var value=target.value;
+				if(value.length == 7){
+					$("#"+target.id).val(value.substr(0,6)+"0"+value.substr(6));
+				}
+			}
+			</jsp:body>
+		</jsp:element>
+		
+		
+		<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+		<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+		<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+		
+		<c:if test="${success =='false'}">
+			<ul class="xenosError">
+				<c:forEach items="${value}" var="dl">		
+				<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+				</c:forEach>
+			</ul>	
+		</c:if>
+	
+		<div>
+			<h1 class="msgHead"><spring:message code="ref.account.entry.label.documentcontrol.title" htmlEscape="false"/></h1>
+		</div>
+		
+		<table class="tableStyle sixCol">
+            <tr>
+                <td><label><spring:message code="ref.account.label.accountno" htmlEscape="false"/></label></td>
+                <td>${commandForm.accountNoExp}</td>
+                <td><label><spring:message code="ref.account.entry.label.shortname" htmlEscape="false"/></label></td>
+                <td>${commandForm.shortNameExp}</td>	
+            </tr>
+        </table>
+		
+			<div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.account.label.servicecontractinfo" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>
+				<div class="entryBlkArea dottedBg">
+				<input type="hidden" path="commandForm.legalAgreementDisp" id= "legalAgreementDispGrid"/>
+								<div class="formItem">
+									<form:label path="commandForm.serviceContractXref.serviceId" class="required"><spring:message code="ref.account.label.servicename" htmlEscape="false"/></form:label>
+									<form:select id="serviceName" path="commandForm.serviceContractXref.serviceId" class="dropdowninput" >
+											<form:option value=""/>
+											<form:options items="${commandForm.dropDownListValues.serviceNameList}" itemLabel="label" itemValue="value"/>
+									</form:select>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+								<div class="formItem">
+									<form:label path="commandForm.serviceContractXref.serviceStatus" class="required"><spring:message code="ref.account.label.servicestatus" htmlEscape="false"/></form:label>
+									<form:select id="serviceStatus" path="commandForm.serviceContractXref.serviceStatus" class="dropdowninput" >
+											<form:option value=""/>
+											<form:options items="${commandForm.dropDownListValues.serviceStatusList}" itemLabel="label" itemValue="value" />
+									</form:select>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+								<div class="formItem">
+									<form:label path="commandForm.serviceContractXref.contractDateStr"><spring:message code="ref.account.label.contractdate" htmlEscape="false"/></form:label>
+									<span><form:input value="" path="commandForm.serviceContractXref.contractDateStr" id="contractDateStr" class="dateinput" onblur="if(!checkDate(this))
+																										{xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage
+																										(xenos.i18n.datevalidationmessage.incorrect_date,[this.value]))}else{formatDate(this)};"/></span>
+									<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>			
+								<div class="formItem">
+									<form:label path="commandForm.serviceContractXref.description"><spring:message code="ref.account.label.description" htmlEscape="false"/></form:label>
+									<span><form:input id="description" value="" path="commandForm.serviceContractXref.description" class="txtNormal" maxlength="255"/></span>
+									<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+								<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								<div id="formActionArea" class="gridBtnMargin AddBtnformActionAreaBg">
+									<div class="right">
+										<div class="btnWrapStyle submitBtn gridAddBtn">
+											<span class="addServiceContractEntry" style="display:block"><input id="addServiceContractEntryBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+										</div>
+										<span class="editBtnServiceContractEntry" style="display:none">
+											<div class="btnWrapStyle submitBtn"><input id="updateServiceContractEntryBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+											<div class="btnWrapStyle resetBtn"><input id="cancelServiceContractEntryBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+										</span>
+									</div>
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+							  <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+							  <div class="entryGrid">
+								<div id="serviceContractEntryGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+							  </div>
+							</div>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+
+		<!-- Account Contract Address Info Block Start -->
+			<div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.account.label.documentinfo" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>
+		
+			<div class="entryBlkArea dottedBg">
+								<div class="entryGrid">
+								<div id="legalAggrementEntryGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+							  </div>
+							</div>
+			
+			<div id="Appender">
+			</div>
+			<input id="documentName" type="hidden" />
+
+	</div>
+</jsp:root>

@@ -1,0 +1,679 @@
+<?xml version="1.0" encoding="utf-8"?>
+<containers:XenosQueryModule xmlns:mx="http://www.adobe.com/2006/mxml" 
+							 xmlns:containers="com.nri.rui.core.containers.*" 
+							 xmlns:frmtrs="com.nri.rui.core.formatters.*" 
+							 xmlns:flexlib="http://code.google.com/p/flexlib/" 
+							 xmlns:cntrls="com.nri.rui.core.controls.*" 
+							 xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+							 xmlns:valdtrs="com.nri.rui.core.validators.*" 
+							 layout="vertical" 
+							 percentWidth="100" 
+							 percentHeight ="100" 
+							 horizontalScrollPolicy="off" 
+							 verticalScrollPolicy="off" >
+							 
+	<mx:Script>
+		<![CDATA[
+			import mx.events.ValidationResultEvent;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import mx.utils.StringUtil;
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.renderers.StatusRenderer;
+			import com.nri.rui.core.RendererFectory;
+			import com.nri.rui.core.renderers.ImgSummaryRenderer;
+			import com.nri.rui.drv.rendrers.DrvTradeQueryDetailsRenderer;
+			import mx.managers.PopUpManager;
+						    
+		    /**
+			 * This method should be called on creationComplete of the datagrid 
+			 */ 
+			 private function bindDataGrid():void {
+				qh.dgrid = resultSummary;
+			 } 
+			 
+			/**
+             * Retrieve and return the Reference No With Version as Labelfunction.
+             */
+            private function referenceNoWithVersion(item:Object, column:DataGridColumn):String{
+                return item.tradeReferenceNo + "-" + item.versionNo;
+            }
+            
+           /**
+            * Retrieve and return the Fund Account Number.
+            */
+            private function getFundAccNo(item:Object,column : DataGridColumn):String {
+                return item.inventoryAccountNo;
+            }  
+            
+            /**
+            * Retrieve and return the Broker Account Number.
+            */
+            private function  getBrokerAccNo (item:Object,column : DataGridColumn):String {
+                return item.cpAccountNo;
+            } 
+                       
+            
+           /**
+            * Retrieve and return the Execution Broker Account Number.
+            */
+            private function  getExeBrokerAccNo (item:Object,column : DataGridColumn):String {
+                return item.executionBrokerAccount;
+            }                   
+            
+            public function formatQty(event:FocusEvent):void{
+		        var targetObj:TextInput = TextInput(event.currentTarget);
+		        qtyVal.source = targetObj;
+		        qtyVal.handleNumericField(numberFormatter);
+		    }
+		    
+		   /*  public function formatPrice(event:FocusEvent):void{
+		        var targetObj:TextInput = TextInput(event.currentTarget);
+		        priceVal.source = targetObj;
+		        priceVal.handleNumericField(numberFormatter);
+		    } */
+		    public function formatCommission(event:FocusEvent):void{
+		        var targetObj:TextInput = TextInput(event.currentTarget);
+		        commVal.source = targetObj;
+		        commVal.handleNumericField(numberFormatter);
+		    }
+		    public function formatTax(event:FocusEvent):void{
+		        var targetObj:TextInput = TextInput(event.currentTarget);
+		        taxVal.source = targetObj;
+		        taxVal.handleNumericField(numberFormatter);
+		    }
+		    public function formatTax02(event:FocusEvent):void{
+		        var targetObj:TextInput = TextInput(event.currentTarget);
+		        taxVal02.source = targetObj;
+		        taxVal02.handleNumericField(numberFormatter);
+		    }
+		   
+			]]>
+		</mx:Script>
+		
+	<mx:Script source="actionscripts/DrvBulkCloseoutEntry.as"/>
+     <containers:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+        </mx:State>
+        <mx:State name="">
+        	<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions> 
+    <cntrls:XenosHTTPService id="loadUserConf" 
+         					 url="drv/drvBulkCloseoutDispatch.action?" 
+         					 fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize')   + event.fault.faultString)" 
+             				 method="POST" 
+             				 useProxy="false" 
+             				 result="loadUserConfPage(event)" 
+             				 resultFormat="xml"
+             				 showBusyCursor="true"/>
+    
+    <frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+    <valdtrs:XenosNumberValidator id="qtyVal"
+        						  invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidqty')}" 
+        						  negativeError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidqty')}" 
+        						  property="text" 
+        						  allowNegative="false" 
+        						  domain="real" 
+        						  invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidqty')}" 
+        						  decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidqty')}" 
+        						  precision="3" 
+        						  precisionError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.3digitsafterdecimal')}"/>
+        						  
+    <valdtrs:XenosNumberValidator id="priceValFut" 
+								  requiredFieldError=""
+        						  invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidprice')}" 
+        						  exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.9digitsbeforedecimal')}" 
+        						  negativeError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidprice')}" 
+        						  separationError="" 
+        						  property="text" 
+        						  allowNegative="false" 
+        						  domain="real" 
+        						  lowerThanMinError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.price.less.or.equal.zero.future')}" 
+        						  maxValue="999999999" 
+        						  minValue="0.000000001"
+        						  invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidprice')}" 
+        						  decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidprice')}" 
+        						  precision="9" 
+        						  precisionError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.9digitsafterdecimal')}"/>
+        						  
+     <valdtrs:XenosNumberValidator id="priceValOpt" 
+								  requiredFieldError=""
+        						  invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidprice')}" 
+        						  exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.9digitsbeforedecimal')}" 
+        						  negativeError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidprice')}" 
+        						  separationError="" 
+        						  property="text" 
+        						  allowNegative="false" 
+        						  domain="real" 
+        						  lowerThanMinError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.price.less.or.equal.zero.option')}" 
+        						  maxValue="999999999" 
+        						  minValue="0"
+        						  invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidprice')}" 
+        						  decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidprice')}" 
+        						  precision="9" 
+        						  precisionError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.9digitsafterdecimal')}"/>   						  
+        						  
+    <valdtrs:XenosNumberValidator id="commVal" 
+    							  requiredFieldError=""
+        						  invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidcomm')}" 
+        						  exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.15digitsbeforedecimal')}" 
+        						  negativeError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidcomm')}" 
+        						  property="text" 
+        						  allowNegative="false" 
+        						  domain="real"
+        						  maxValue="999999999999999"
+        						  invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidcomm')}" 
+        						  decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidcomm')}" 
+        						  precision="3" 
+        						  precisionError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.3digitsafterdecimal')}"/>
+        						  
+    <valdtrs:XenosNumberValidator id="taxVal"
+    							  requiredFieldError=""
+        						  invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidtax')}" 
+        						  exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.15digitsbeforedecimal')}" 
+        						  negativeError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidtax')}" 
+        						  property="text" 
+        						  allowNegative="false" 
+        						  domain="real" 
+        						  maxValue="999999999999999"
+        						  invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidtax')}" 
+        						  decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidtax')}" 
+        						  precision="3" 
+        						  precisionError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.3digitsafterdecimal')}"/>
+        						  
+     <valdtrs:XenosNumberValidator id="taxVal02"
+    							  requiredFieldError=""
+        						  invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidtax02')}" 
+        						  exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.15digitsbeforedecimal')}" 
+        						  negativeError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidtax02')}" 
+        						  property="text" 
+        						  allowNegative="false" 
+        						  domain="real" 
+        						  maxValue="999999999999999"
+        						  invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidtax02')}" 
+        						  decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.invalidtax02')}" 
+        						  precision="3" 
+        						  precisionError="{this.parentApplication.xResourceManager.getKeyValue('drv.validation.error.3digitsafterdecimal')}"/>   						  
+       
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" id="screenNavigater">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;"  />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres';app.submitButtonInstance = submit;"/>    	
+    </mx:HBox>
+    </mx:VBox>
+	
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%">
+	<mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="{this.loadAll()}"  >
+		<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" width="100%" height="100%" styleName="HDivideStyle" >
+			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		
+               <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+			      <mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundcode')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:FundPopUpHbox id="fundCode"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundaccountno')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:AccountPopUpHbox id="fundAccountNo" retContextItem="{returnContextItem}" recContextItem="{populateContext()}"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.accountno')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:AccountPopUpHbox id="brkAccountNo"  retContextItem="{returnContextItem}" recContextItem="{populateInvActContext()}"/>                           
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.exebrokeraccountno')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:AccountPopUpHbox id="exeBrkAccountNo"  retContextItem="{returnContextItem}" recContextItem="{populateInvActContext()}"/>                           
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securitycode')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:InstrumentPopUpHbox id="securityId"/>
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.underlyingsecuritycode')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <xenospopup:InstrumentPopUpHbox id="underlyingSecurityId"/>
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.executionoffice')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        	<mx:ComboBox id="executionOffice" labelField="label" />
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                </mx:Grid>                
+            
+            <flexlib:WindowShade id="ws2" tabChildren="{ws2.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.lessimportant.fields')}" opened="false" width="100%">
+                <mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradedate.fromto')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox>
+                       			<mx:DateField id="trddateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                       			<mx:DateField id="trddateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+            				</mx:HBox>                         
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.valuedate.fromto')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox>
+                       			<mx:DateField id="valuedateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                       			<mx:DateField id="valuedateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+            				</mx:HBox>                         
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradereferenceno')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="referenceNo" restrict="{Globals.INPUT_PATTERN}"/>
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.contractreferenceno')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:TextInput id="contractReferenceNo" restrict="{Globals.INPUT_PATTERN}"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.executionmarket')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <cntrls:TreeCombo id="executionMarket" dataSource="{new XML((app.cachedItems.marketTree).toString())}" editMode="true" displayClearIcon="true"  labelField="label" treeHeight="200"  x="10" y="10">
+                            </cntrls:TreeCombo>
+                        </mx:GridItem>                    
+                        <mx:GridItem width="20%" borderThickness="0"/>
+                        <mx:GridItem width="30%" borderThickness="0"/>                        
+                    </mx:GridRow>
+                </mx:Grid> 
+            </flexlib:WindowShade>
+			<flexlib:WindowShade id="ws3" tabChildren="{ws3.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('drv.label.sortorder')}" opened="true" width="100%">
+				<mx:Grid width="100%" borderThickness="0">
+					<mx:GridRow width="100%">
+						<mx:GridItem width="100%" borderThickness="0">
+							<mx:HBox width="100%">
+								<mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()"/>
+								<mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()"/>
+								<mx:ComboBox id="sortField3" labelField="label"/>					
+							</mx:HBox>						
+						</mx:GridItem>
+					</mx:GridRow>
+				</mx:Grid>
+			</flexlib:WindowShade>
+
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="submitQuery()" />
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" id="btnResetQry" styleName="BtnStyle" click="submitReset()" />
+	        </mx:HBox>
+
+		</mx:VBox>
+		
+		</mx:Canvas>
+				
+		<mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle">			
+	        <cntrls:QueryResultHeader id="qh" printFunction="dispatchPrintEvent" pdfFunction="dispatchPdfEvent" xlsFunction="dispatchXlsEvent" previousFunction="dispatchPrevEvent" nextFunction="dispatchNextEvent" startIndex="5" />
+	        <cntrls:XenosErrors id="summaryErrPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+            <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+			      <mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradedate')}" styleName="ReqdLabel" />
+                            <mx:DateField id="trddate"  formatString="YYYYMMDD" editable="true" width="90"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.valuedate')}" styleName="ReqdLabel" />
+                            <mx:DateField id="valdate"  formatString="YYYYMMDD" editable="true" width="90"/>
+                        </mx:GridItem>
+                      
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.executionoffice')}" styleName="ReqdLabel" />
+                            <mx:ComboBox id="closeExecutionOffice" labelField="label" width="90" />
+                        </mx:GridItem>                        
+                    </mx:GridRow>
+                  </mx:Grid>
+             <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />       
+            <cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="false"  variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()" headerRelease="dataGrid_headerRelease(event)" editable="true">
+                <cntrls:columns>                        
+                   <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" id="imgRenderer" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" editable="false" />
+                   <mx:DataGridColumn  headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.quantity')}" textAlign="center" resizable="false" draggable="false" visible="true" dataField="openBalanceQty" editable="true" rendererIsEditor="true" width="120">
+							<mx:itemRenderer>
+	                            <mx:Component>
+	                            	<!--<mx:HBox  paddingLeft="5" horizontalScrollPolicy="off">-->
+										<mx:TextInput editable="true" textAlign="right" focusOut="takeInput(event)" width="100">
+											<mx:Script>
+			                                    <![CDATA[
+			                                    	import mx.events.ValidationResultEvent;
+			                                    	import mx.events.FlexEvent;
+			                                    	import com.nri.rui.core.controls.XenosAlert;
+			                                    	import com.nri.rui.core.utils.XenosStringUtils;
+			                                         public override function set data(value:Object):void {
+			                                            super.data = value;
+			                                            if(XenosStringUtils.isBlank(this.text)){
+			                                            	this.text = data.openBalanceQty;
+			                                            }else{
+			                                            	if(this.text != data.openBalanceQty){
+			                                            		this.text = data.openBalanceQty;
+			                                            	}else {
+				                                            	parentDocument.invalidateDisplayList();
+				                                            }
+			                                            }
+			                                         }
+			                                         private function takeInput(event:Event):void {
+		                                         		outerDocument.qtyVal.source = this;
+		                                         		if(!outerDocument.isEvaluated){
+			        										outerDocument.qtyVal.handleNumericField(outerDocument.numberFormatter);
+			        										if(KeyboardEvent(event).keyCode == Keyboard.ENTER){
+			        											outerDocument.isEvaluatedByFocus = true;
+			        										}
+		                                         		}
+		        										data.openBalanceQty = this.text;
+			                                        }
+			                                    ]]>
+			                                </mx:Script>
+										</mx:TextInput>	                            		
+	                            	<!--</mx:HBox>-->
+	                            </mx:Component>
+	                        </mx:itemRenderer>
+				   </mx:DataGridColumn>
+				   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.price')}" textAlign="center" resizable="false" draggable="false" visible="true" dataField="price" editable="true" rendererIsEditor="true" width="120">
+							<mx:itemRenderer>
+	                            <mx:Component>
+	                            	<!--<mx:HBox paddingLeft="5" horizontalScrollPolicy="off">-->
+										<mx:TextInput text="{data.price}" editable="true" textAlign="right" focusOut="takeInput(event)" width="100">
+											<mx:Script>
+			                                    <![CDATA[
+			                                    	import mx.utils.StringUtil;
+			                                    	import com.nri.rui.core.controls.XenosAlert;
+			                                    	import com.nri.rui.core.utils.XenosStringUtils;
+			                                    	
+			                                    	[Bindable]public var parentString : String = "";
+			                                        public override function set data(value:Object):void {
+			                                      
+			                                            super.data = value;
+			                                            //XenosAlert.info("Data "+ data );
+			                                            if(XenosStringUtils.isBlank(this.text)){
+			                                            	this.text = data.price;
+			                                             }else{
+			                                             	parentString = data.parentInstrumentType;
+			                                            	if(this.text != data.price){
+			                                            		this.text = data.price;
+			                                            	}else {
+			                                            	    parentDocument.invalidateProperties();
+				                                            	parentDocument.invalidateDisplayList();
+				                                            }
+			                                            } 
+			                                        }
+			                                         
+			                                        private function takeInput(event:Event):void {
+			                                        	if(parentString == 'OPT'){
+		                                        			outerDocument.priceValOpt.source = this;
+				                                         	if(!outerDocument.isEvaluated){
+				        										outerDocument.priceValOpt.handleNumericField(outerDocument.numberFormatter);
+				        										if(KeyboardEvent(event).keyCode == Keyboard.ENTER){
+				        											outerDocument.isEvaluatedByFocus = true;
+				        										}
+				                                         	}
+			                                        	}else if(parentString == 'FUT'){
+			                                        		outerDocument.priceValFut.source = this;
+				                                         	if(!outerDocument.isEvaluated){
+				        										outerDocument.priceValFut.handleNumericField(outerDocument.numberFormatter);
+				        										if(KeyboardEvent(event).keyCode == Keyboard.ENTER){
+				        											outerDocument.isEvaluatedByFocus = true;
+				        										}
+				                                         	}
+			                                        	}
+			                                         	
+		        										data.price = this.text;
+			                                        }
+			                                        
+			                                    ]]>
+			                                </mx:Script>
+										</mx:TextInput>	                            		
+	                            	<!--</mx:HBox>-->
+	                            </mx:Component>
+	                        </mx:itemRenderer>
+				   </mx:DataGridColumn>
+				   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.comm')}" textAlign="center" resizable="false" draggable="false" visible="true" dataField="commission" editable="false" rendererIsEditor="true" width="150">
+							<mx:itemRenderer>
+	                            <mx:Component>
+	                            	<mx:HBox paddingLeft="5" horizontalScrollPolicy="off">
+	                            		<cntrls:XenosHTTPService id="calculateCommission" 
+									         					 url="drv/drvBulkCloseoutDispatch.action?" 
+									         					 fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize')   + event.fault.faultString)" 
+									             				 method="POST" 
+									             				 useProxy="false" 
+									             				 result="loadCalculatedCommission(event)" 
+									             				 resultFormat="xml"
+									             				 showBusyCursor="true"/>
+										<mx:TextInput id="commissionTxt" editable="true" textAlign="right" change="setField()" focusOut="takeInput(event)" width="100">
+											<mx:Script>
+			                                    <![CDATA[
+			                                    	import mx.collections.ArrayCollection;
+			                                    	import com.nri.rui.core.controls.XenosAlert;
+			                                    	import mx.rpc.events.ResultEvent;
+			                                    	import mx.utils.StringUtil;
+			                                    	import com.nri.rui.core.utils.XenosStringUtils;
+			                                        public override function set data(value:Object):void {
+			                                            super.data = value;
+			                                            if(XenosStringUtils.isBlank(commissionTxt.text)){
+			                                            	commissionTxt.text = data.commission;
+			                                            }else{
+			                                            	if(commissionTxt.text != data.commission){
+			                                            		commissionTxt.text = data.commission;
+			                                            	}else {
+				                                            	parentDocument.invalidateDisplayList();
+				                                            }
+			                                            }
+			                                        }
+			                                        private function setField():void {
+			                                        	data.commission = commissionTxt.text;
+			                                        }
+			                                        private function takeInput(event:Event):void {
+			                                         	outerDocument.commVal.source = commissionTxt;
+			                                         	if(!outerDocument.isEvaluated){
+			        										outerDocument.commVal.handleNumericField(outerDocument.numberFormatter);
+			        										if(KeyboardEvent(event).keyCode == Keyboard.ENTER){
+			        											outerDocument.isEvaluatedByFocus = true;
+			        										}
+			                                         	}
+			                                         	outerDocument.isEvaluated = true;
+		        										data.commission = commissionTxt.text;
+			                                        }
+			                                        private function calculateComm():void{
+			                                        	var reqObj:Object = new Object();
+												    	reqObj.method = "calculateCommission";
+												    	reqObj.rnd = Math.random()+"";
+												    	reqObj.tradePk = data.tradePk;
+												    	reqObj.closeQty = data.openBalanceQty;
+												    	calculateCommission.request = reqObj;
+												    	calculateCommission.send();
+			                                        }
+			                                      
+			                                        
+			                                        private function loadCalculatedCommission(event:ResultEvent):void {
+													       	if(event != null){
+																if(event.result != null){
+																	var rs:XML = XML(event.result);
+																	 if(rs.child("commissionStr").length()>0){
+																		outerDocument.summaryErrPage.removeError();
+																		commissionTxt.text = rs.commissionStr;
+																		data.commission = commissionTxt.text;
+																	}else if(rs.child("Errors").length()>0){
+																		var errorInfoList : ArrayCollection = new ArrayCollection();
+																		for each ( var error:XML in rs.Errors.error ) {
+															 			   errorInfoList.addItem(error.toString());
+																		}
+																		outerDocument.summaryErrPage.showError(errorInfoList);
+																	}else{
+																		XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+																	}
+																}else{
+																	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+																}
+															}else{
+																XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+															}
+												       }
+			                                    ]]>
+			                                </mx:Script>
+										</mx:TextInput>
+										<mx:Image source="@Embed('../../assets/img/drv/icn_calculator.png')" toolTip="{this.parentApplication.xResourceManager.getKeyValue('drv.label.calccomm')}" buttonMode="true" click="calculateComm()"/>                            		
+	                            	</mx:HBox>
+	                            </mx:Component>
+	                        </mx:itemRenderer>
+				   </mx:DataGridColumn>
+				   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tax')}" textAlign="center" resizable="false" draggable="false" visible="true" dataField="tax" editable="true" rendererIsEditor="true" width="120">
+							<mx:itemRenderer>
+	                            <mx:Component>
+	                            	<!--<mx:HBox paddingLeft="5" horizontalScrollPolicy="off">-->
+										<mx:TextInput editable="true" textAlign="right" focusOut="takeInput(event)" width="100">
+											<mx:Script>
+			                                    <![CDATA[
+			                                    	import mx.utils.StringUtil;
+			                                    	import com.nri.rui.core.utils.XenosStringUtils; 
+			                                         public override function set data(value:Object):void {
+			                                            super.data = value;
+			                                            if(XenosStringUtils.isBlank(this.text)){
+			                                            	this.text = data.tax;
+			                                            }else{
+			                                            	if(this.text != data.tax){
+			                                            		this.text = data.tax;
+			                                            	}else {
+				                                            	parentDocument.invalidateDisplayList();
+				                                            }
+			                                            }
+			                                         }
+			                                         
+			                                         private function takeInput(event:Event):void {
+			                                         	outerDocument.taxVal.source = this;
+			                                         	if(!outerDocument.isEvaluated){
+		        										outerDocument.taxVal.handleNumericField(outerDocument.numberFormatter);
+			        										if(KeyboardEvent(event).keyCode == Keyboard.ENTER){
+			        											outerDocument.isEvaluatedByFocus = true;
+			        										}
+			                                         	}
+			                                         	data.tax = this.text;
+			                                         }
+			                                         
+			                                    ]]>
+			                                </mx:Script>
+										</mx:TextInput>	                            		
+	                            	<!--</mx:HBox>-->
+	                            </mx:Component>
+	                        </mx:itemRenderer>
+				   </mx:DataGridColumn>
+				   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tax02')}" textAlign="center" resizable="false" draggable="false" visible="true" dataField="tax02" editable="true" rendererIsEditor="true" width="120">
+							<mx:itemRenderer>
+	                            <mx:Component>
+	                            	<!--<mx:HBox paddingLeft="5" horizontalScrollPolicy="off">-->
+										<mx:TextInput editable="true" textAlign="right" focusOut="takeInput(event)" width="100">
+											<mx:Script>
+			                                    <![CDATA[
+			                                    	import mx.utils.StringUtil;
+			                                    	import com.nri.rui.core.utils.XenosStringUtils; 
+			                                         public override function set data(value:Object):void {
+			                                            super.data = value;
+			                                            if(XenosStringUtils.isBlank(this.text)){
+			                                            	this.text = data.tax02;
+			                                            }else{
+			                                            	if(this.text != data.tax02){
+			                                            		this.text = data.tax02;
+			                                            	}else {
+				                                            	parentDocument.invalidateDisplayList();
+				                                            }
+			                                            }
+			                                         }
+			                                         
+			                                         private function takeInput(event:Event):void {
+			                                         	outerDocument.taxVal02.source = this;
+			                                         	if(!outerDocument.isEvaluated){
+		        										outerDocument.taxVal02.handleNumericField(outerDocument.numberFormatter);
+			        										if(KeyboardEvent(event).keyCode == Keyboard.ENTER){
+			        											outerDocument.isEvaluatedByFocus = true;
+			        										}
+			                                         	}
+			                                         	data.tax02 = this.text;
+			                                         }
+			                                         
+			                                    ]]>
+			                                </mx:Script>
+										</mx:TextInput>	                            		
+	                            	<!--</mx:HBox>-->
+	                            </mx:Component>
+	                        </mx:itemRenderer>
+				   </mx:DataGridColumn>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.referenceno')}" dataField="tradeReferenceNo" itemRenderer="com.nri.rui.drv.rendrers.TradeDetailsRenderer" id="colRefNo" sortCompareFunction="sortUtil.sortString" editable="false" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundcode')}" dataField="fundCode" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer" visible="true" sortCompareFunction="sortUtil.sortString" editable="false" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundname')}" dataField="fundName"  visible="false" sortCompareFunction="sortUtil.sortString" editable="false" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securitycode')}" dataField="securityId" showDataTips="true" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer" visible="true" sortCompareFunction="sortUtil.sortString" editable="false" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securityshortname')}" dataField="securityShortName" visible="false" sortCompareFunction="sortUtil.sortString" editable="false" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.longorshort')}" dataField="longShort" visible="true" sortCompareFunction="sortUtil.sortString" editable="false" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradedate')}" dataField="tradeDateStr" sortCompareFunction="sortUtil.sortString" editable="false" />                       
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.exebrokeraccountno')}" dataField="executionBrokerPk" labelFunction="getExeBrokerAccNo" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer" sortCompareFunction="sortUtil.sortString" editable="false" />                       
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.exebrokeraccountname')}" visible="false" dataField="executionBrokerName" sortCompareFunction="sortUtil.sortString" editable="false" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.openbalqty')}" textAlign="right" dataField="openBalanceQuantityStr" sortCompareFunction="sortUtil.sortNumeric" editable="false" />
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.origprice')}" textAlign="right" dataField="priceStr" sortCompareFunction="sortUtil.sortNumeric" editable="false" />
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.executionoffice')}" dataField="openExecutionOffice"  visible="false" sortCompareFunction="sortUtil.sortString" editable="false" />
+               </cntrls:columns>
+         </cntrls:CustomDataGrid>
+         <mx:HBox width="100%" styleName="ButtonBackPanel">
+   	         <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="btnConfirm" styleName="BtnStyle" click="confirm()" />
+             <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" id="btnResetConfirm" styleName="BtnStyle" click="resetConfirm()" />
+	     </mx:HBox>
+        </mx:VBox>
+	</mx:HDividedBox>
+    </mx:VBox>
+    </mx:Canvas>  
+		 
+</containers:XenosQueryModule>

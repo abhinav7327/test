@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:Module  xmlns:mx="http://www.adobe.com/2006/mxml" 
+            xmlns:tabs="*" 
+            xmlns:containers="com.nri.rui.core.containers.*" 
+            xmlns:flexlib="http://code.google.com/p/flexlib/" 
+            xmlns:cntrls="com.nri.rui.core.controls.*" 
+            layout="vertical" 
+            percentWidth="100" 
+            percentHeight ="100" 
+            horizontalScrollPolicy="off" 
+            verticalScrollPolicy="off" 
+            creationComplete="init()">
+            
+    <mx:Script>
+        <![CDATA[
+            import com.nri.rui.core.controls.XenosHTTPService;
+            import mx.collections.ArrayCollection;
+            import mx.rpc.events.ResultEvent;
+            import mx.rpc.events.FaultEvent;
+            import com.nri.rui.core.controls.CustomChangeEvent;
+            import mx.events.ChildExistenceChangedEvent;
+            import flash.utils.getQualifiedClassName;
+            import flash.utils.getDefinitionByName;
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.controls.WizardPage;
+            import mx.events.IndexChangedEvent;
+            import mx.events.FlexEvent;
+            import mx.resources.ResourceBundle;
+            import com.nri.rui.core.Globals;
+            import mx.core.Application;
+            
+            [Bindable] public var submitResult:XML;
+            [Bindable] public var mode:String;
+            [Bindable] public var initUrl:String;
+            private var tradePk:String;
+            
+            
+            /**
+             * Initialize the module.
+             */
+            private function init():void {
+
+                parseLoaderUrl();
+                addEventListener("confirmOk",confirmOkHandler);
+                var rndNo:int = Math.random();
+                var initRequest:XenosHTTPService = new XenosHTTPService();
+                initRequest.url = "swp/swpTradeCancelDispatch.action?method=loadEntryPage&modeOfOperation=CANCEL&tradePk=" + tradePk + "&rnd=" + rndNo;
+                initRequest.addEventListener(FaultEvent.FAULT, handleError);
+                initRequest.addEventListener(ResultEvent.RESULT, handleResult);
+                initRequest.showBusyCursor = true;
+                initRequest.resultFormat = "xml";
+                initRequest.method = "POST";
+                initRequest.send();             
+                
+            }
+            private function confirmOkHandler(event:CustomChangeEvent):void{                
+                parentDocument.dispatchEvent(new Event("OkSystemConfirm"));
+            }
+            /**
+             * This is the handler of HTTPService for tab population.
+             */             
+            private function handleResult(event:ResultEvent):void{
+                var rs:XML = XML(event.result);
+                if(rs.child("Errors").length() > 0) {
+                    var errorInfoList : ArrayCollection = new ArrayCollection();
+                    //populate the error info list              
+                    for each ( var error:XML in rs.Errors.error ) {
+                       errorInfoList.addItem(error.toString());
+                    }
+                    //Display the error
+                    errPage.showError(errorInfoList);
+                    
+                    //confirmTab.submitEnable = false;
+                    
+                } else {
+                    
+                    var visibleTabs:Array;
+                    if (rs.tabArray) {
+                        visibleTabs = new Array();
+                        for each(var obj:Object in rs.tabArray.item) {
+                            visibleTabs.push(obj);
+                        }
+                    }
+                    
+                    //confirmTab.submitEnable = true;
+                    
+                    confirmTab.confirmInitXML = rs;             
+                    confirmTab.dispatchEvent(new CustomChangeEvent("visibleTabsEvent", visibleTabs));
+                }
+            }
+            
+            /**
+            * This is the fault handler of HTTPService
+            */ 
+            private function handleError(event:FaultEvent):void{
+                XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', 
+                				 new Array(event.fault.faultDetail)));
+            }           
+            
+            /**
+             * Extracts the mode and entity PK.
+             */ 
+            public function parseLoaderUrl():void {
+                
+                try {
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    
+                    s = s.replace(myPattern, "");
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                    
+                    var entityPkName:String;
+                    var entityPkValue:String;
+                  
+                    if(params != null){
+                        for (var i:int = 0; i < params.length; i++) {
+                            var temp:Array = params[i].split("=");  
+                            if (temp[0] == "modeOfOperation") {
+                                this.mode = temp[1];
+                            } else if (temp[0] == "tradePk") {
+                                this.tradePk = temp[1];
+                            }
+                        }                       
+                    }         
+
+                } catch (e:Error) {
+                    trace(e);
+                }
+            }            
+            
+        ]]>
+    </mx:Script>    
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        <mx:VBox width="100%" height="100%" styleName="Padding">
+            <cntrls:XenosErrors id="errPage" width="100%" height="55" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+            <mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+            <mx:ViewStack width="100%" height="100%" id="vstack" creationPolicy="auto" >
+                <!--tabs:InstrumentConfirmTab id="confirmTab"  confirmInitXML="{submitResult}" mode="cancel"/-->      
+                <tabs:ConfirmTab id="confirmTab" width="100%" height="100%" confirmInitXML="{submitResult}" 
+						          mode="cancel" urlModeBind="Cancel"/>   
+            </mx:ViewStack>
+        </mx:VBox>
+    </mx:Canvas>
+</mx:Module>

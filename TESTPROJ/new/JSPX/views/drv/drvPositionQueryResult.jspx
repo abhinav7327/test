@@ -1,0 +1,139 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+		<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+			
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [
+				
+				{name:"<spring:message code="drv.label.contractreferenceno" htmlEscape="false"/>", field:"contractReferenceNo", id:"contractReferenceNo", sortable: true, width:150,formatter:Slick.Formatters.DrvContractDetailViewFormater},
+                {name:"<spring:message code="drv.label.fundcode" htmlEscape="false"/>", field:"fundCode", id:"fundCode", sortable: true, width:100, formatter:Slick.Formatters.FundDetailViewFormatter},
+                {name:"<spring:message code="drv.label.fundname" htmlEscape="false"/>", field:"fundName", id:"fundName", width:130, sortable: true },
+                {name:"<spring:message code="drv.label.securitycode" htmlEscape="false"/>", field:"securityId", id:"securityId", width:130, sortable:true, formatter:Slick.Formatters.InstrumentDetailViewFormater},
+                {name:"<spring:message code="drv.label.securityshortname" htmlEscape="false"/>", field:"securityShortName", id:"securityShortName", width:200, sortable:true},
+                
+                {name:"<spring:message code="ref.common.label.alternatesecurityid" htmlEscape="false"/>", field:"alternateSecCodeDisp", id:"alternateSecCodeDisp", sortable: true, width:140},
+                {name:"<spring:message code="drv.label.underlyingshortname" htmlEscape="false"/>", field:"underlyingShortName", id:"underlyingShortName", sortable: true, width:200},
+                {name:"<spring:message code="drv.label.openlongbalance" htmlEscape="false"/>", field:"openLongBalanceDisp", cssClass: 'xenos-grid-number',id:"openLongBalanceDisp", width:130, sortable: true },
+                {name:"<spring:message code="drv.label.openshortbalance" htmlEscape="false"/>", field:"openShortBalanceDisp", cssClass: 'xenos-grid-number',id:"openShortBalanceDisp", width:140, sortable:true},
+                {name:"<spring:message code="drv.label.closedbalance" htmlEscape="false"/>", field:"totalClosedOutQtyDisp",cssClass: 'xenos-grid-number',  id:"totalClosedOutQtyDisp", width:130, sortable:true},
+                
+                {name:"<spring:message code="drv.label.expiredbalance" htmlEscape="false"/>", field:"expiredBalanceDisp",cssClass: 'xenos-grid-number', id:"expiredBalanceDisp", width:130, sortable: true },
+                {name:"<spring:message code="drv.label.expirystatus" htmlEscape="false"/>", field:"expiryStatus", id:"expiryStatus", width:130, sortable:true},
+                {name:"<spring:message code="drv.label.expirydate" htmlEscape="false"/>", field:"expiryDateStr", id:"expiryDateStr", width:138, sortable:true}
+            ];
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				emptyColumnCheck:false,
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,
+					xlsPref:true,	
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,					
+					pageNo : pageNo,
+					url: '/secure/drv/position/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/drv/position/query/result.json?fetch=next',
+					prevPage : '/secure/drv/position/query/result.json?fetch=previous',
+					pdfReport: '/secure/drv/position/query/report.json?outputType=pdf',
+					xlsReport: '/secure/drv/position/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/drv/position/query/reportPref.json?outputType=xls'
+				},
+				events:{
+								onDataUpdate : function(data,callback){
+									for(i in data.value){							
+										data.value[i].fundAccountPk = data.value[i].accountPk;
+										if(data.value[i].expiryStatus == "EXPIRED")
+												{
+													data.value[i].expiredBalanceDisp = data.value[i].expiredBalanceDisp;		
+													data.value[i].openLongBalanceDisp = "0";
+													data.value[i].openShortBalanceDisp = "0";
+												}
+										else
+												{
+													data.value[i].expiredBalanceDisp = "0";		
+													data.value[i].openLongBalanceDisp = data.value[i].openLongBalanceDisp;
+													data.value[i].openShortBalanceDisp = data.value[i].openShortBalanceDisp;
+												}
+									}
+									callback(data);
+								}
+							}
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				rec.contractPk= "<c:out value="${dl.contractPk}" />";
+				rec.contractReferenceNo= "<c:out value="${dl.contractReferenceNo}"/>";
+                rec.fundCode = "<c:out value="${dl.fundCode}" />";
+                rec.fundName =  "<c:out value="${dl.fundName}" />";
+                rec.securityId = "<c:out value="${dl.securityId}" />";
+                rec.instrumentPk = "<c:out value="${dl.instrumentPk}" />";
+                rec.securityShortName = "<c:out value="${dl.securityShortName}" />";
+                rec.alternateSecCodeDisp = "<c:out value="${dl.alternateSecCodeDisp}" />";
+                rec.underlyingShortName= "<c:out value="${dl.underlyingShortName}" />";
+
+                rec.totalClosedOutQtyDisp = "<c:out value="${dl.totalClosedOutQtyDisp}" />";
+                if("<c:out value="${dl.expiryStatus}" />" == "EXPIRED"){
+				     rec.expiredBalanceDisp ="<c:out value="${dl.expiredBalanceDisp}" />";
+			         rec.openLongBalanceDisp = "0";
+              		 rec.openShortBalanceDisp = "0";
+					 
+			    }else{
+			         rec.expiredBalanceDisp = "0";
+					 rec.openLongBalanceDisp = "<c:out value="${dl.openLongBalanceDisp}" />";
+                     rec.openShortBalanceDisp = "<c:out value="${dl.openShortBalanceDisp}" />";
+			    }
+                
+                
+                rec.expiryStatus = "<c:out value="${dl.expiryStatus}" />";
+                rec.expiryDateStr = "<c:out value="${dl.expiryDateStr}" />";
+                
+                
+                rec.fundPk = "<c:out value="${dl.fundPk}" />";
+                
+                
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+
+
+    
+   
+</jsp:root>

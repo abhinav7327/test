@@ -1,0 +1,519 @@
+<!--$Id$-->
+<!--$Author:  $-->
+<!--$Date: 2016-12-25 13:18:19 $-->
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+	 xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:util="urn:jsptagdir:/WEB-INF/tags/util">
+	 
+<div id="formContainer" class="entryContainer" style="height:auto;">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	<jsp:element name="script">
+    <jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+		var xenos$Dialog$Detail$Hook = function () {
+				
+        };
+		var scripts = [
+				  {path: xenos.context.path + '/scripts/jquery.event.drag-2.0.min.js'},
+				  {path: xenos.context.path + '/scripts/stl/xenos/completion.js'},
+				  {path: xenos.context.path + '/scripts/inf/utilCommons.js'},
+				  {path: xenos.context.path + '/scripts/slick.core.js'},
+				  {path: xenos.context.path + '/scripts/slick.dataview.js'},
+				  {path: xenos.context.path + '/scripts/slick.grid.js'},
+				  {path: xenos.context.path + '/scripts/slick.rowselectionmodel.js'},
+				  {path: xenos.context.path + '/scripts/xenos.editable.grid.js'},
+				  {path: xenos.context.path + '/scripts/slick.formatters.js'},
+				  {path: xenos.context.path + '/scripts/xenos.formatters.js'},
+				  {path: xenos.context.path + '/scripts/slick.editors.js'},
+				  {path: xenos.context.path + '/scripts/xenos.editors.js'},
+				  {path: xenos.context.path + '/scripts/inf/utilValidator.js'},
+				  {path: xenos.context.path + '/scripts/xenos.slick.editrowplugin.js'},
+				  {path: xenos.context.path + '/scripts/slick.autotooltips.js'},
+				  {path: xenos.context.path + '/scripts/slick.compositeeditor.js'},
+				  {path: xenos.context.path + '/scripts/xenos.more.js'}
+				];
+		//it's a localized script
+		xenos.loadLocalizedScript([{path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false}]);
+		xenos.loadScript(scripts, {
+										  ordered: true,
+										  reload:true,
+										  success : function() {
+											var contaxt = $('.formContent');
+											var baseUrl = jQuery('#queryForm').attr('action').replace(/(.*)details.*$/, '$1');
+											$('.dateinput',contaxt).xenosdatepicker();
+											var reasonResult = [];
+											var rowId = 0;			
+											var item = {};
+											var reasonGrid;
+													
+											var reasonGridConf = {
+													editMode 					: 	'delete',
+													deleteCallback				:	deleteReasonHandler,
+			                                     	forceFitColumns				:	true
+
+											};
+											
+											var reasonColumns = [		
+												{name:"<spring:message code="stl.label.reasoncode" htmlEscape="false"/>",  width:100, field:"reasonCode",		id:"reasonCode", 	sortable:false},
+												{name:"<spring:message code="stl.label.narrative" htmlEscape="false"/>",     width:120, field:"narrative",		id:"narrative",		sortable:false}
+											];
+											<xenos:out escapeXml="false">
+											<c:forEach items="${commandForm.selectedCompletionDetails.reasonEntries}" var="dl">
+												item = {};
+												rowId+=1;
+												item.id 			= "xenos_" + rowId;
+												item.reasonCode 	= "<c:out value="${dl.map.reasonCode}" />";
+												item.narrative 		= "<c:out value="${xenosfn:escapeJS(dl.map.narrative)}" />";
+												reasonResult.push(item);
+											</c:forEach>
+											</xenos:out>
+											/**
+											* A common request handler to be used server communication.
+											*/
+											var xenos$Handler$RequestHandler = xenos$Handler$function({
+												get: {
+													contentType: 'json',
+													requestType: xenos$Handler$default.requestType.asynchronous
+												},	
+												settings: {
+													beforeSend: function(request) {
+														request.setRequestHeader('Accept', 'application/json');
+													},
+													type: 'POST'
+												}
+											});
+			
+											/**
+											* Insert/Update ReasonCode
+											*/
+											function upDateReasonCode(data){
+												var result = data;
+												var rowId = 0;
+												if(result){
+													reasonGrid.clearData();
+													for(var i in result){
+														item = {};
+														rowId+=1;
+														item.id 				= 	"xenos_" + rowId;
+														item.reasonCode 	= $.trim(result[i].reasonCode);
+														item.narrative 		= $.trim(result[i].narrative);
+														reasonGrid.addOrUpdateRow(item,{});
+													}
+													$('#reasonCode').val(data.reasonCode);
+													$('#narrative').val(data.narrative);
+												}
+											}
+											
+											function validateOnAddReason(){
+												var validationMessages = [];
+												if(VALIDATOR.isNullValue($.trim($('#reasonCode').val()))){
+													validationMessages.push(xenos$STL$i18n.completion.no_reason_code);
+												}
+												
+											   if(validationMessages.length > 0){
+													 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+													 return false;
+												}
+												return true;
+										 }	
+		 
+										/**
+										* New Service Contract add handler.
+										*/
+										function addReasonHandler(e){
+											var valid = validateOnAddReason();
+											if(valid){
+											var requestUrl = baseUrl + "addReason.json?commandFormId=" + $('[name=commandFormId]').val();	  
+												xenos$Handler$RequestHandler.generic(e, 
+													{	requestUri: requestUrl,
+														settings: {data : populateRestrictionInfoRequestParams()},
+														onJsonContent :  function(e, options, $target, content) {
+															if(content.success == true){	
+																upDateReasonCode(content.value);
+															} else {
+																xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+															}
+														}
+													 }
+												);
+											}
+										}	
+
+										/**
+										* Emp Reason Delete Handler
+										*/
+										function deleteReasonHandler(rowIndex, dataContext){
+											   
+											var requestUrl = baseUrl + "removeReason/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+											xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+												onJsonContent :  function(e, options, $target, content) {
+														if(content.success == true){														
+															upDateReasonCode(content.value);
+														} else {
+															xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+														}
+													}	
+												}
+											);
+										}			
+										
+										function populateRestrictionInfoRequestParams(){
+										var reqObj ={
+											"selectedCompletionDetails.reasonCode"  :    $.trim($('#reasonCode').val()),
+											"selectedCompletionDetails.narrative"  :    $.trim($('#narrative').val())
+										};
+										return reqObj;
+									 }
+			
+									reasonGrid = $('#reasoncodeGrid').xenoseditablegrid(reasonResult, reasonColumns, reasonGridConf);
+									$('#addreasoncodeBtn').unbind('click');
+									$('#addreasoncodeBtn').bind('click',addReasonHandler);
+									
+									
+									$('#quasiCompBy').unbind().bind('change', function(){
+										var quasiCompBy = $('#quasiCompBy').val();
+										if(quasiCompBy == 'PAIR_OFF') {
+											$('#newObligationFor').attr('disabled', 'disabled');
+										} else{
+											$('#newObligationFor').removeAttr('disabled');
+										}
+									}).trigger('change');
+									contaxt.xenosmore({mode:'entry'});
+		}
+	});
+	
+		</jsp:body>
+	  </jsp:element>
+		<c:set var="index" value="${commandForm.selectedIndex}"/>
+		<c:set var="complType" value="${commandForm.completionTypeArray[index]}"/>
+		<c:set var="actType" value="${commandForm.actionType}"/>
+		
+		<form:hidden path="actionType"/>
+		<form:hidden path="selectedCompletionDetails.securitySidePresent"/>
+		<form:hidden path="selectedCompletionDetails.cashSidePresent"/>
+		<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+	    <spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+	    <spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+		
+		<div class="entryBlkArea ">
+			<div class="formItemBlock topitems dottedBg">
+			
+			
+			<c:if test="${actType == 'ADD'}">
+				<div class="formItem">
+				    <form:label path="selectedCompletionView.settlementReferenceNo"><spring:message code="stl.label.settlementreferenceno" htmlEscape="false"/></form:label> 
+				    ${commandForm.selectedCompletionView.settlementReferenceNo}
+				    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					 <form:label path="selectedCompletionView.settlementReferenceNo"><spring:message code="stl.label.valuedate" htmlEscape="false"/></form:label> 
+					 ${commandForm.selectedCompletionView.valueDateStr}
+					 <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					  <form:label path="selectedCompletionView.settlementStatus"><spring:message code="stl.label.completionstatus" htmlEscape="false"/></form:label> 
+					  ${commandForm.selectedCompletionView.settlementStatus}
+					  <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					  <form:label path="completionTypeArray[${index}]"><spring:message code="stl.label.completiontype" htmlEscape="false"/></form:label> 
+					  ${commandForm.completionTypeArray[index]}
+					  <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					  <form:label path="stlDateArray[${index}]"><spring:message code="stl.label.settlementdate" htmlEscape="false"/></form:label> 
+					  <span><form:input value="" path="stlDateArray[${index}]" class="dateinput" onchange="checkDate(this);"/></span>
+					  <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			</c:if>
+				
+				<div class="formItem">
+					  <form:label path="selectedCompletionDetails.remarks1"><spring:message code="stl.label.remarks1" htmlEscape="false"/></form:label>
+					  <span><form:input value="" path="selectedCompletionDetails.remarks1"  class="textBox" maxlength="400"/></span>		
+					  <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					  <form:label path="selectedCompletionDetails.remarks2"><spring:message code="stl.label.remarks2" htmlEscape="false"/></form:label>
+					  <span><form:input value="" path="selectedCompletionDetails.remarks2"  class="textBox" maxlength="400"/></span>		
+					  <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					  <form:label path="selectedCompletionDetails.reasonCode"><spring:message code="stl.label.reasoncode" htmlEscape="false"/></form:label>
+					  <form:select id="reasonCode" path="selectedCompletionDetails.reasonCode" class="dropdowninput">
+							<form:option value=""/>
+							<form:options items="${commandForm.reasonCodeList}" itemLabel="label" itemValue="value"/>
+					  </form:select>
+					  <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+     			<c:if test="${actType == 'ADD'}">
+					<div class="formItem">
+						  <form:label path="selectedCompletionDetails.narrative"><spring:message code="stl.label.narrative" htmlEscape="false"/></form:label>
+						  <span><form:input id="narrative" value="" path="selectedCompletionDetails.narrative"  class="textBox" maxlength="40"/></span>		
+						  <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+				</c:if>		
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				
+				<div id="formActionArea" class="gridBtnMargin">
+					<div class="right">
+					    <div class="btnWrapStyle submitBtn gridAddBtn">
+					    <span class="addreasoncode" style="display:block"><input id="addreasoncodeBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+				    </div>
+					<span class="editBtnreasoncode" style="display:none">	
+								<div class="btnWrapStyle submitBtn"><input id="updatereasoncodeBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+								<div class="btnWrapStyle resetBtn"><input id="cancelreasoncodeBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+					</span>
+					</div>
+				</div>		
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				<div class="entryGrid">
+					<div id="reasoncodeGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+				</div>	
+			</div>
+			
+			<div class="formItemBlock topitems dottedBg">
+			<c:if test="${complType == 'QUASI_COMPLETE' || complType == 'PARTIAL_QUASI_COMPLETE'}">
+				<div class="formItem">
+					<form:label path="selectedCompletionDetails.quasiCompBy"><spring:message code="stl.completion.entryamend.label.quasicompby" htmlEscape="false"/></form:label>
+					<form:select path="selectedCompletionDetails.quasiCompBy" id="quasiCompBy"  class="dropdowninput" styleClass="txtUpperCase">
+							<form:option value=""/>
+							<form:options items="${commandForm.quasiCompByList}"/> 
+					</form:select>				
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					<form:label path="selectedCompletionDetails.newObligationFor"><spring:message code="stl.completion.entryamend.label.newobligationfor" htmlEscape="false"/></form:label>
+					<form:select path="selectedCompletionDetails.newObligationFor" id="newObligationFor"  class="dropdowninput">
+							<form:option value=""/>
+							<form:options items="${commandForm.newObligationForList}"/>
+					</form:select>				
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			</c:if>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>			
+		</div>
+		</div>
+		
+		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		<c:if test="${commandForm.selectedCompletionDetails.securitySidePresent}">
+		<div class="moreHandle">
+					<h1 class="msgHead">
+						<spring:message code="stl.label.completion.entry.completiondetails.securityside.settlementdetails" htmlEscape="false" />
+						<div class="handleBlock"><span class="handler" id="cmpMoreSection"><spring:message text="" htmlEscape="false" /></span>
+						</div>
+					</h1>
+				</div>
+		        <div class="formItemBlock more">
+		          <div class="moreitems dottedBg">		
+					<div class="entryBlkArea">
+				<div class="formItem">
+					<form:label path="selectedCompletionDetails.settleBankSecurity"><spring:message code="stl.label.settlementbank" htmlEscape="false"/></form:label> 
+					${commandForm.selectedCompletionDetails.settleBankSecurity}
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					<form:label path="selectedCompletionDetails.settleAccountSecurity"><spring:message code="stl.label.settleac" htmlEscape="false"/></form:label> 
+					${commandForm.selectedCompletionDetails.settleAccountSecurity}
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<c:choose>
+					<c:when	test="${actType == 'ADD'}">
+				<div class="formItem">
+					<form:label path="selectedCompletionView.instrumentCode"><spring:message code="stl.label.securitycode" htmlEscape="false"/></form:label> 
+					${commandForm.selectedCompletionView.instrumentCode}
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					<form:label path="selectedCompletionView.securityName"><spring:message code="stl.label.securityname" htmlEscape="false"/></form:label> 
+					${commandForm.selectedCompletionView.securityName}
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem twoCols">
+					<form:label path="selectedCompletionView.displayAlternativeSecId"><spring:message code="ref.common.label.alternatesecurityid" htmlEscape="false"/></form:label> 
+					${commandForm.selectedCompletionView.displayAlternativeSecId}
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				  </c:when>
+				  <c:otherwise>
+				  <div class="formItem">
+					<form:label path="selectedCancelCompletionView.instrumentCode"><spring:message code="stl.label.securitycode" htmlEscape="false"/></form:label> 
+					${commandForm.selectedCancelCompletionView.instrumentCode}
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					<form:label path="selectedCancelCompletionView.securityName"><spring:message code="stl.label.securityname" htmlEscape="false"/></form:label> 
+					${commandForm.selectedCancelCompletionView.securityName}
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					<form:label path="selectedCancelCompletionView.displayAlternativeSecId"><spring:message code="ref.common.label.alternatesecurityid" htmlEscape="false"/></form:label> 
+					${commandForm.selectedCancelCompletionView.displayAlternativeSecId}
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				  </c:otherwise>
+				</c:choose>
+				<div class="formItem">
+					<form:label path="selectedCompletionDetails.deliverReceive"><spring:message code="stl.label.deliverreceive" htmlEscape="false"/></form:label> 
+					${commandForm.selectedCompletionDetails.deliverReceive}
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<c:choose>
+					<c:when	test="${actType == 'ADD'}">
+				<div class="formItem">
+					<form:label path="selectedCompletionView.quantityStr"><spring:message code="stl.label.quantity" htmlEscape="false"/></form:label> 
+					${commandForm.selectedCompletionView.quantityStr}
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				</c:when>
+				 <c:otherwise>
+				 <div class="formItem">
+					<form:label path="selectedCancelCompletionView.quantityStr"><spring:message code="stl.label.quantity" htmlEscape="false"/></form:label> 
+					${commandForm.selectedCancelCompletionView.quantityStr}
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				 </c:otherwise>
+				</c:choose>
+				
+			<c:if test="${actType == 'ADD'}">
+				<div class="formItem">
+					<form:label path="selectedCompletionView.outstandingQuantityStr"><spring:message code="stl.label.outstandingquantity" htmlEscape="false"/></form:label> 
+					${commandForm.selectedCompletionView.outstandingQuantityStr}
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				
+				<c:if test="${complType == 'PARTIAL' || complType == 'PARTIAL_QUASI_COMPLETE'}">
+			         <div class="formItem">
+					    <form:label path="selectedCompletionDetails.completeQuantityStr" class="required"><spring:message code="stl.label.completionquantity" htmlEscape="false"/></form:label>
+					    <span><form:input value="" id="completeQuantity" path="selectedCompletionDetails.completeQuantityStr"  class="textBox" maxlength="40" styleClass="txtUpperCase" onchange="return formatQuantity($('#completeQuantity'),15,3,null,$('#completeQuantity').parent().parent().find('label').text())"/></span>		
+					    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			         </div>               
+               </c:if>
+	           <c:if test="${complType != 'PARTIAL' and complType != 'PARTIAL_QUASI_COMPLETE'}">
+                  <div class="formItem">
+					<form:label path="selectedCompletionDetails.completeQuantityStr"><spring:message code="stl.label.completionquantity" htmlEscape="false"/></form:label> 
+					${commandForm.selectedCompletionDetails.completeQuantityStr}
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		          </div>
+               </c:if>
+			</c:if>		
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			<div class="lineHide"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+		</div>
+		</div>
+		</c:if>
+		
+		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		<c:if test="${commandForm.selectedCompletionDetails.cashSidePresent}">
+		<div>
+				<div class="moreHandle">
+					<h1 class="msgHead">
+						<spring:message code="stl.label.completion.entry.completiondetails.cashside.settlementdetails" htmlEscape="false" />
+						<div class="handleBlock"><span class="handler" id="cmpMoreSection"><spring:message text="" htmlEscape="false" /></span>
+						</div>
+					</h1>
+				</div>
+				<div class="formItemBlock more">
+		          <div class="moreitems dottedBg">		
+					<div class="entryBlkArea">
+				<c:if test="${actType == 'ADD'}">				
+					<form:hidden path="selectedCompletionView.outstandingAmountStr"/> <!-- Hidden property -->
+				</c:if>	
+					<div class="formItem">
+						<form:label path="selectedCompletionDetails.settleBankCash"><spring:message code="stl.label.settlementbank" htmlEscape="false"/></form:label> 
+						${commandForm.selectedCompletionDetails.settleBankCash}
+						
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+							<form:label path="selectedCompletionDetails.settleAccountCash"><spring:message code="stl.label.settleac" htmlEscape="false"/></form:label> 
+							${commandForm.selectedCompletionDetails.settleAccountCash}
+							
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<c:choose>
+					<c:when	test="${actType == 'ADD'}">
+					<div class="formItem">
+							<form:label path="selectedCompletionView.ccyCode"><spring:message code="stl.label.ccy" htmlEscape="false"/></form:label> 
+							${commandForm.selectedCompletionView.ccyCode}
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					</c:when>
+					<c:otherwise>
+					<div class="formItem">
+							<form:label path="selectedCancelCompletionView.ccyCode"><spring:message code="stl.label.ccy" htmlEscape="false"/></form:label> 
+							${commandForm.selectedCancelCompletionView.ccyCode}
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					</c:otherwise>
+					</c:choose>
+					<div class="formItem">
+							<form:label path="selectedCompletionDetails.paymentReceive"><spring:message code="stl.label.paymentreceive" htmlEscape="false"/></form:label> 
+							${commandForm.selectedCompletionDetails.paymentReceive}
+							
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<c:choose>
+					<c:when	test="${actType == 'ADD'}">
+					<div class="formItem">
+							<form:label path="selectedCompletionView.amountStr"><spring:message code="stl.label.amount" htmlEscape="false"/></form:label> 
+							${commandForm.selectedCompletionView.amountStr}
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					</c:when>
+					<c:otherwise>
+					<div class="formItem">
+							<form:label path="selectedCancelCompletionView.amountStr"><spring:message code="stl.label.amount" htmlEscape="false"/></form:label> 
+							${commandForm.selectedCancelCompletionView.amountStr}
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					</c:otherwise>
+					</c:choose>
+					
+					<c:if test="${actType == 'ADD'}">				
+						<div class="formItem">
+								<form:label path="selectedCompletionView.outstandingAmountStr"><spring:message code="stl.label.outstandingamount" htmlEscape="false"/></form:label> 
+								${commandForm.selectedCompletionView.outstandingAmountStr}
+								<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+					</c:if >				
+					<c:if test="${complType == 'PARTIAL' || complType == 'PARTIAL_QUASI_COMPLETE'}">
+					<div class="formItem ">
+						<form:label path="selectedCompletionDetails.completeAmountStr" class="required"><spring:message code="stl.label.completionamount" htmlEscape="false"/></form:label>
+						<span><form:input value="" id="completeAmount" path="selectedCompletionDetails.completeAmountStr"  class="textBox" maxlength="40" styleClass="txtUpperCase" onchange="return formatAmount($('#completeAmount'),11,7,null,$('#completeAmount').parent().parent().find('label').text())"/></span>		
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>               
+					</c:if>
+					  
+					<c:if test="${complType == 'COMPLETE'}">
+					<div class="formItem">
+						<form:label path="selectedCompletionDetails.completeAmountStr"><spring:message code="stl.label.completionamount" htmlEscape="false"/></form:label>
+						<span><form:input value="" id="completeAmount" path="selectedCompletionDetails.completeAmountStr"  class="textBox" maxlength="40" styleClass="txtUpperCase" onchange="return formatAmount($('#completeAmount'),11,7,null,$('#completeAmount').parent().parent().find('label').text())"/></span>		
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					</c:if>
+					<c:if test="${complType == 'QUASI_COMPLETE'}">
+					<div class="formItem">
+							<form:label path="selectedCompletionDetails.completeAmountStr"><spring:message code="stl.label.completionamount" htmlEscape="false"/></form:label> 
+							<span><form:input value="" id="completeAmount" path="selectedCompletionDetails.completeAmountStr"  class="textBox" maxlength="40" styleClass="txtUpperCase" readonly="true"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					</c:if>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				<div class="lineHide"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		  </div>
+		</div>
+		</div>
+		</c:if>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+</div>
+</jsp:root>

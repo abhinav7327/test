@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:Module xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:flexlib="http://code.google.com/p/flexlib/" layout="vertical" width="100%" height="100%" creationComplete="{this.setMode()}">
+	<mx:Script>
+		<![CDATA[
+			import mx.resources.ResourceBundle;
+			
+			private function showError(event:Event,msg:String):void
+			{
+				XenosAlert.error("Error occured while "+msg+". Please refer to the log file for details.");
+			}
+		]]>
+		
+	</mx:Script>
+	<mx:Script source="actionscripts/ConfirmRecycleBin.as"/>
+	
+	<mx:XMLListCollection id="documentHeaderList" source="{this.xmlObj.messageSummaryInfoList.messageSummaryInfo}" />
+		
+ 	<mx:Canvas height="100%" width="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+	    <mx:VBox width="100%" height="100%" styleName="Padding"> 
+	    <mx:Label id="lblHead" text="Exm Browse RecycleBin Page- User Confirmation" fontWeight="bold"/>
+	    <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+	    
+	    		<mx:HBox id="hb1" width="100%">
+	    			<mx:DataGrid id="headerGrid" width="100%" height="100%" dataProvider="{documentHeaderList}" horizontalScrollPolicy="on" verticalScrollPolicy="auto">
+					<mx:columns>
+						<mx:DataGridColumn textAlign="center" headerText="Message Type" dataField="messageType" visible="true" sortable="true"/>
+			            <mx:DataGridColumn textAlign="center" headerText="Remarks" dataField="remarks" visible="true" sortable="true" />		                    
+			            <mx:DataGridColumn textAlign="center" headerText="Error Code" dataField="errorCode" visible="true" sortable="true"/>
+			            <mx:DataGridColumn textAlign="center" headerText="Sender System ID" dataField="senderSystemId"  visible="true" sortable="true"/>
+			            <mx:DataGridColumn textAlign="center" headerText="Recipient System ID" dataField="recipientSystemId"  visible="true" sortable="true"/>					
+					</mx:columns>
+					</mx:DataGrid>	
+	    		</mx:HBox>
+            
+            <mx:HBox width="100%" styleName="ButtonBackPanel">
+	   	          <mx:Button id="btnConfirm" label="{this.parentApplication.xResourceManager.getKeyValue('exm.accesslogquery.label.confirm')}" styleName="BtnStyle" click="OperationRequest(event)"/>
+	        	  <mx:Button id="btnCancel" label="{this.parentApplication.xResourceManager.getKeyValue('exm.accesslogquery.label.cancel')}" styleName="BtnStyle" click="cancelOperation()"/>
+	        	  <mx:Button id="btnOk" label="{this.parentApplication.xResourceManager.getKeyValue('exm.accesslogquery.label.ok')}" styleName="BtnStyle" includeInLayout="false" visible="false" click="okOperation()"/>
+	         </mx:HBox>
+	        
+	    </mx:VBox>
+	    
+	</mx:Canvas>
+	
+    <cntrls:XenosHTTPService id="httpService" url="exm/messageBrowserRecycleBin.action?method=confirmAction"
+            resultFormat="e4x"  useProxy="false"
+            fault="httpService_fault(event);"
+            result="httpService_result(event)" showBusyCursor="true" method="POST">         
+     </cntrls:XenosHTTPService>
+     
+     <cntrls:XenosHTTPService id="restoreXmlRequest" url="exm/messageBrowserRecycleBin.action?" fault="showError(event,'performing operation '+opName)"  
+             method="POST" useProxy="false" result="OperationResult(event)" showBusyCursor="true"/>	
+	
+</mx:Module>

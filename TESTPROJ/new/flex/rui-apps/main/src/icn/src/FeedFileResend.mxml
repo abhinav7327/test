@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Account Summary Implementation for Displaying the account information in brief -->
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:controls="*" layout="vertical" styleName="PopupTitleWindow" creationComplete="setErrors();">
+<mx:Script>
+		<![CDATA[
+			import mx.binding.utils.BindingUtils;
+		
+		import mx.utils.StringUtil;
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.collections.ArrayCollection;
+			import mx.managers.PopUpManager;
+			import mx.events.CloseEvent;
+			import mx.events.ResourceEvent;
+			import mx.rpc.events.ResultEvent;
+			[Bindable]	
+			public var dProvider:ArrayCollection;
+			[Bindable]
+			public var errorInfoList : ArrayCollection; 
+			
+			[Bindable]
+			public var formData : XML;
+			[Bindable]
+ 			public var trxNoLbl:String = XenosStringUtils.EMPTY_STR;
+			private function removeTrxPop(event:Event):void {
+				 this.dispatchEvent(new Event("enableButton"));
+       			 PopUpManager.removePopUp(this);
+ 			}
+ 			private function removeAndRefresh(event:Event):void {
+				 this.dispatchEvent(new Event("OkSystemConfirm"));
+       			 PopUpManager.removePopUp(this);
+ 			}
+ 			private function setErrors():void{
+ 				if(dProvider != null){
+ 					if(dProvider.length == 0){
+ 					XenosAlert.info("No Result Found!");
+ 					   cancelButton.addEventListener(MouseEvent.CLICK,removeAndRefresh);
+	 				   okButton.enabled = false;
+ 					}
+ 				}
+ 				 else if(errorInfoList != null ){
+ 					if(errorInfoList.length > 0){
+	 					cancelButton.addEventListener(MouseEvent.CLICK,removeAndRefresh);
+	 					okButton.enabled = false;
+ 					}
+ 				}
+ 				errPage.showError(errorInfoList);
+ 				
+ 			}
+ 			
+ 			private function  confirmData(event:Event):void{
+  	 
+  	 			 okButton.enabled = false;
+			  	 var reqObj : Object = new Object();
+//			  	 reqObj.testKey = key.text;
+//			  	 reqObj.priority = pr.text;
+//			  	 reqObj.remarks1 = rm1.text;
+//			  	 reqObj.remarks2 = rm2.text;
+ 				 reqObj.SCREEN_KEY = 11064;
+			  	 confirmFeed.request = reqObj;
+			  	 confirmFeed.send();
+			  }	
+			  
+			  /**
+			    * This method is the resultHandler for confirm action. This is required for the 
+			    * User Confirmation Screen to show the values in non editable form.
+			    */
+			     private function okResult(event:ResultEvent):void{
+			     	var rs:XML = XML(event.result);
+			     	if (null != event) {
+			     		if(rs.child("Errors").length()>0) {
+			                //some error found
+						 	var errorInfoList : ArrayCollection = new ArrayCollection();
+			                //populate the error info list 			 	
+						 	for each ( var error:XML in rs.Errors.error ) {
+				 			   errorInfoList.addItem(error.toString());
+							}
+						 	errPage.showError(errorInfoList);//Display the error
+						 	cancelButton.addEventListener(MouseEvent.CLICK, removeAndRefresh);
+						 	okButton.enabled = false;
+						 }else {
+					     	hb.visible=true;
+					     	hb.includeInLayout=true;
+					     	btn1.visible=false;
+					     	btn1.includeInLayout=false;
+					     	btn2.visible=true;
+					     	btn2.includeInLayout=true;
+					     	this.title = "Feed Re-Send System Confirmation";
+						 }
+			    	 }
+			     } 
+			
+		]]>
+	</mx:Script>
+	
+	<cntrls:XenosHTTPService id="confirmFeed" 
+         url="icn/feedStatusDispatchAction.action?method=doCommitSendEntry" 
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultDetail)"
+         result="okResult(event)" showBusyCursor="true" resultFormat="xml"/>
+	
+	
+	<mx:VBox width="100%" height="100%" id="uconfirm" >
+		<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		<mx:HBox id="hb" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" visible="false" verticalAlign="middle" includeInLayout="false">
+    		<mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+    		<mx:Label text=" Transaction Completed Successfully." fontWeight="bold" selectable="true"/>	
+    		</mx:HBox>
+			<cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{dProvider}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" >
+                    <cntrls:columns>
+                       <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.xnsrefno')}" dataField="xnsRefNo" sortable="true" visible="true" itemRenderer="com.nri.rui.icn.renderers.DetailRenderer"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.icnrefno')}" dataField="iconReferenceNo" sortable="true" visible="true" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.fundcode')}" dataField="fundCode" showDataTips="true" sortable="true" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.fundname')}" dataField="fundName" showDataTips="true"  sortable="true"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.assetcode')}" dataField="assetCodeForDisplay"  showDataTips="true" sortable="true" minWidth="140" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.interfacename')}" dataField="interfaceName" showDataTips="true" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.feedcreationdate')}" dataField="feedCreationDate" sortable="true" visible="true" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('icn.feedquery.label.status')}" dataField="statusDisplay" sortable="true" />
+                    </cntrls:columns>
+                 </cntrls:CustomDataGrid>
+       <mx:HBox width="100%" styleName="ButtonBackPanel" id="btn1"> 
+		 	<mx:Button id="okButton" label="OK" click="confirmData(event)" styleName="BtnStyle" enabled="true"/>
+	    	<mx:Button id="cancelButton" label="Cancel" click="removeTrxPop(event)" styleName="BtnStyle"/>
+		</mx:HBox>
+		 <mx:HBox width="100%" styleName="ButtonBackPanel" id="btn2" visible="false"> 
+			 	<mx:Button id="okBtn" label="OK" click="removeAndRefresh(event)" styleName="BtnStyle"/>
+		     </mx:HBox> 
+		</mx:VBox>	     
+</mx:TitleWindow>
+	

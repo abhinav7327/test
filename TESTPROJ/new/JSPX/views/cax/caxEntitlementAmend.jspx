@@ -1,0 +1,777 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0" xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+	xmlns:spring="http://www.springframework.org/tags"
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util"
+	xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:display="http://displaytag.sf.net"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	xmlns:tiles="http://tiles.apache.org/tags-tiles"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+
+	<div class="entryContainer">
+
+		<jsp:directive.page contentType="text/html;charset=UTF-8" />
+		<jsp:output omit-xml-declaration="yes" />
+
+		<c:if test="${success =='false'}">
+			<!-- Error message Area -->
+			<ul class="xenosError">
+				<c:forEach items="${value}" var="dl">
+					<li><spring:message text="${dl}" htmlEscape="false" /></li>
+				</c:forEach>
+			</ul>
+		</c:if>
+
+		<spring:message code="form.button.label.add" htmlEscape="false"
+			var="formadd_label" />
+		<spring:message code="form.button.label.save" htmlEscape="false"
+			var="formsave_label" />
+		<spring:message code="form.button.label.cancel" htmlEscape="false"
+			var="formcancel_label" />
+
+		<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		
+			xenos.loadLocalizedScript([
+                  {path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+                  {path: xenos.context.path + '/scripts/cax/xenos-cax-i18n', async: false}
+              ]);
+			//Loading Required scripts before validator is called.
+              xenos.loadScript([
+                  {path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},                  
+                  {path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				  {path: xenos.context.path + '/scripts/cax/xenos/entitlementAmend.js', async: false}
+              ]);
+
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+			var isEditableFlag = "false";
+			var isIncomeFlag = "false";
+			var isIncome = ${commandForm.isIncome};
+			var actionType = '${commandForm.actionType}';
+			var hiddenCashInLieuFlag = '${commandForm.hiddenCashInLieuFlag}';
+			var isFlagForCash = '${commandForm.flagForCash}';
+			$('#calculateAmtBtn').unbind('click');
+			$('#calculateAmtBtn').bind('click',xenos.ns.entitlement.amend.calculateHandler);
+			if(actionType == 'amend'){
+						$xenos$Wizard.apply({ navigations : {
+															okHandler : 'backToQuerySummary',
+															backHandler:'backToQuerySummary'
+														}
+			});
+			}
+			var detailType = '${commandForm.detailType}';
+			if(detailType == "NCM_RIGHTS_DETAIL")
+			{
+				$('#fundAccountNo').css('display','none');
+			}else {
+				$('#bankAccountNo').css('display','none');
+			}
+			var corporateActionId = '${commandForm.corporateActionId}';
+			var editable = '${commandForm.editableAllotedSec}';
+			xenos.ns.entitlement.amend.editableAllotSec(editable,isIncome);
+			
+			// calling the state change handler to load the appropriate mxml file. 
+			xenos$entitlement$amend$stateChangeHandler(corporateActionId, detailType, hiddenCashInLieuFlag, isFlagForCash);  			
+		
+			var xenos$entitlement$amend$unloadHook = function() {
+			   $xenos$Wizard.deregister('submit',xenos$entitlement$amend$validateHook);
+			   $xenos$Wizard.deregister('unload',xenos$entitlement$amend$unloadHook);
+		    };
+			
+		   $xenos$Wizard.register('submit',xenos$entitlement$amend$validateHook);
+		   $xenos$Wizard.register('unload',xenos$entitlement$amend$unloadHook);
+			
+		};
+		
+		var xenos$entitlement$amend$validateHook = function() {
+				return xenos.ns.entitlement.amend.validateSubmitEntitlementAmend();
+			};
+
+		/**
+		  * This Handler method alters the states on the basis of corporate action id .
+		  */
+		  function xenos$entitlement$amend$stateChangeHandler(corporateActionId, detailType, hiddenCashInLieuFlag, isFlagForCash) {
+			var stockOptionFlag = '${commandForm.stockOptionFlag}';
+			var currentState = "";					
+			 switch(corporateActionId) {
+				case "CASH_DIVIDEND":      
+					currentState = "CashRelatedEntitlement";
+					$('#tax').css('display','block');
+					xenos$entitlement$amend$populateAttributes();
+				case "COUPON_PAYMENT":      
+					currentState = "CashRelatedEntitlement";
+					$('#tax').css('display','block');
+					xenos$entitlement$amend$populateAttributes();
+					
+				break;      
+				case "CAPITAL_REPAYMENT":
+					currentState = "CashRelatedEntitlement";
+				break;
+				case "REDEMPTION_BOND":
+					if(stockOptionFlag == "true") {
+						currentState = "StockRelatedEntitlement";
+					} else {
+						currentState = "CashRelatedEntitlement";    	
+					}        
+				case "OPTIONAL_STOCK_DIV":
+					if(stockOptionFlag == "true") {
+						currentState = "StockRelatedEntitlement";
+					} else {
+						currentState = "CashRelatedEntitlement";    	
+					}        
+				case "DIV_REINVESTMENT":
+					if(stockOptionFlag == "true") {
+						currentState = "StockRelatedEntitlement";
+					} else {
+						currentState = "CashRelatedEntitlement";    	
+					}
+					
+				break;      
+				case "STOCK_SPLIT":
+					currentState = "StockRelatedEntitlement";
+				case "STOCK_DIVIDEND":
+					currentState = "StockRelatedEntitlement";
+				case "BONUS_ISSUE":
+					currentState = "StockRelatedEntitlement";
+				case "SPIN_OFF":
+					currentState = "StockRelatedEntitlement";
+				case "NAME_CHANGE":
+					currentState = "StockRelatedEntitlement";
+				case "REVERSE_STOCK_SPLIT":
+					currentState = "StockRelatedEntitlement";
+				case "STOCK_MERGER":
+					currentState = "StockRelatedEntitlement";
+				case "RIGHTS_ALLOCATION":
+					currentState = "StockRelatedEntitlement";
+				case "OTHERS":
+					currentState = "StockRelatedEntitlement";
+				case "RIGHTS_EXPIRY":   
+					currentState = "StockRelatedEntitlement";	
+				break;
+			   }
+			   xenos$entitlement$amend$eventTypeChangeHandler(currentState, corporateActionId, detailType, hiddenCashInLieuFlag, isFlagForCash);	   
+			   
+		  };
+		
+		
+		function xenos$entitlement$amend$eventTypeChangeHandler(currentState, corporateActionId, detailType, hiddenCashInLieuFlag, isFlagForCash) {
+		
+		var baseUrl = xenos.context.path + "/secure/cax/entitlement/adjustment";
+		var requestUrl = null;
+		
+		
+			if(currentState == 'StockRelatedEntitlement') {
+				requestUrl = baseUrl + "/amend/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=stockEntitlementAmend";
+			} else if (currentState == 'CashRelatedEntitlement') {
+				requestUrl = baseUrl + "/amend/changeEvent?commandFormId=" + $('[name=commandFormId]').val()+"&amp;fragments=cashEntitlementAmend";
+			} 
+			
+			
+			 xenos$entitlement$amend$Handler$RequestHandlerHtml.generic(undefined, {	requestUri: requestUrl,
+											settings: {
+													   
+													   complete: function(jqxhr) {
+															console.log(jqxhr);
+															
+															 $("#blockForEventType").html(jqxhr.responseText);
+															 $("#blockForEventType").show();
+															$('input.dateinput', "#blockForEventType").xenosdatepicker();
+															var isIncome = '${commandForm.isIncome}';
+															if(isIncome == true){
+																$('#cashPartAvailableDate').css('display','none');
+																$('#stockPartAvailableDate').css('display','none');
+															}
+															if (currentState == 'StockRelatedEntitlement') {	
+																xenos.ns.entitlement.amend.loadStockPart(corporateActionId, detailType, hiddenCashInLieuFlag);
+															}
+															
+															else if (currentState == 'CashRelatedEntitlement') {
+																xenos.ns.entitlement.amend.loadCashPart(corporateActionId, detailType);
+															}
+															
+															if(corporateActionId == "OTHERS") {
+																xenos.ns.entitlement.amend.loadOthersEventPart(isFlagForCash);
+															}
+														
+													  }
+										}
+										}
+								); 
+		
+};
+	
+function xenos$entitlement$amend$populateAttributes(){
+		 
+		var context = $("#content");		
+		var baseUrl = xenos.context.path + "/secure/cax/entitlement/adjustment";
+		var taxFeeEntryResult = [],
+			rowId = 0,		
+			item = {},
+			taxFeeEntryGrid = null,
+			taxFeeEntryList = [];
+		var taxFeeEntryGridConf = {
+			editMode 					: 	'both',
+			deleteCallback				:	xenos$entitlement$amend$deleteTaxFeeEntryHandler,
+			emptyColumnCheck			:	false,
+			editCallback 				: 	xenos$entitlement$amend$editTaxFeeEntryHandler,
+			forceFitColumns				:	true
+		};
+		var taxFeeEntryColumns = [		
+					{name:"<spring:message code="cax.entitlement.label.taxFeeId"
+		htmlEscape="false" />", field:"taxFeeId", id:"taxFeeId", sortable:false},
+					{name:"<spring:message code="cax.entitlement.label.taxRate"
+		htmlEscape="false" />", field:"rate", id:"rate", cssClass:'xenos-grid-number', sortable:false},
+					{name:"<spring:message code="cax.entitlement.label.rateType"
+		htmlEscape="false" />", field:"rateType", id:"rateType", sortable:false},
+					{name:"<spring:message code="cax.entitlement.label.amount"
+		htmlEscape="false" />", field:"amount", id:"amount", cssClass:'xenos-grid-number', sortable:false}
+				];
+		<xenos:out escapeXml="false">
+		<c:forEach items="${commandForm.detailTaxFeeList}" var="dl">
+			item = {};
+			rowId+=1;
+			item.id 			= "xenos_" + rowId;
+			item.taxFeeId 	= "<c:out value="${dl.taxFeeId}" />";
+			item.rate 	= "<c:out value="${dl.chargeRate}" />";
+			item.rateType 	= "<c:out value="${dl.rateType}" />";
+			item.amount 	= "<c:out value="${dl.taxFeeAmountStr}" />";
+			taxFeeEntryResult.push(item);
+		</c:forEach>
+		</xenos:out>
+		taxFeeEntryGrid = $('#taxFeeEntryGrid').xenoseditablegrid(taxFeeEntryResult, taxFeeEntryColumns, taxFeeEntryGridConf);
+		<c:if test="${not empty commandForm.detailTaxFeeList}">
+			$('#taxFeeEntryGrid').css("display","block");
+		</c:if>
+		
+		
+		/**
+		 * New TaxFee add handler.
+		 */
+		function xenos$entitlement$amend$addTaxFeeEntryHandler(e){
+				var valid = xenos.ns.entitlement.amend.validateTaxFeeAttributes();
+				if(valid){
+					var requestUrl = baseUrl + "/amend/addDetailTaxFee.json?commandFormId=" + $('[name=commandFormId]').val();
+					xenos$entitlement$amend$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+															settings: {data : xenos$entitlement$amend$populateTaxFeeEntryRequestParam()},
+															onJsonContent :  function(e, options, $target, content) {
+																
+																<!--console.log(content)-->
+																if(content.success == true){
+																	$('#taxFeeEntryGrid').css("display","block");
+																	xenos$entitlement$amend$upsertTaxFeeEntry(content.value[0]);
+																	xenos.ns.entitlement.amend.onChangeRateType();
+																} else {
+																	console.log(content.value);
+																	xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																}
+															}
+														 }
+											);
+						}
+			}
+			
+
+									
+			/**
+			 * Populate TaxFee request parameters.
+			 */
+			function xenos$entitlement$amend$populateTaxFeeEntryRequestParam(){
+				
+					var reqObj = {
+							  "taxFeeId"				:	$.trim($('#taxFeeId').val()),
+							  "rate"				:	$.trim($('#rate').val()),
+							  "rateType"				:	$.trim($('#rateType').val()),
+							  "amount"		:	$.trim($('#amount').val())
+							};
+					return reqObj;
+			}
+			/**
+			* Populate TaxFee form.
+			*/
+			function xenos$entitlement$amend$populateTaxFeeEntryForm(result){
+					if(result){
+						context.find('#taxFeeId').val(result.taxFeeId);
+						context.find('#rate').val(result.chargeRate);
+						context.find('#rateType').val(result.rateType);
+						context.find('#amount').val(result.taxFeeAmountStr);
+					}
+			}
+			/**
+			 * Insert/Update TaxFee
+			 */
+			function xenos$entitlement$amend$upsertTaxFeeEntry(data){
+					
+					var result = data.detailTaxFeeList;
+					if(result){
+						taxFeeEntryGrid.clearData();
+						for(var i in result){
+							item = {};
+							rowId+=1;
+							item.id 				= 	"xenos_" + rowId;
+							item.taxFeeId 		= $.trim(result[i].taxFeeId);
+							item.rate 		= $.trim(result[i].chargeRate);
+							item.rateType 		= $.trim(result[i].rateType);
+							item.amount 		= $.trim(result[i].taxFeeAmountStr);
+							
+							taxFeeEntryGrid.addOrUpdateRow(item,{});
+						}
+						xenos$entitlement$amend$populateTaxFeeEntryForm(data);
+					}
+				xenos.utils.clearGrowlMessage();
+			}
+			
+			/**
+			 * TaxFee Delete handler
+			 */
+			function xenos$entitlement$amend$deleteTaxFeeEntryHandler(rowIndex, dataContext){
+				var requestUrl = baseUrl + "/amend/deleteDetailTaxFee/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+				xenos$entitlement$amend$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+														onJsonContent :  function(e, options, $target, content) {
+															if(content.success == true){
+																xenos$entitlement$amend$upsertTaxFeeEntry(content.value[0]);
+																$('.gridAddBtn').show();
+															} else {
+																xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+															}
+														}
+													 }
+										);
+		 }
+			
+		/**
+		 * TaxFee Edit handler
+		 */
+		function xenos$entitlement$amend$editTaxFeeEntryHandler(rowIndex, dataContext){
+				
+				var requestUrl = baseUrl + "/amend/editDetailTaxFee.json?commandFormId=" + $('[name=commandFormId]').val();
+				xenos$entitlement$amend$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+														settings: {data : {"editIndexTaxFeeNo" : rowIndex}},
+														onJsonContent :  function(e, options, $target, content) {
+															if(content.success == true){
+																xenos$entitlement$amend$populateTaxFeeFormForEdit(content.value[0]);
+																xenos.ns.entitlement.amend.onChangeRateType();
+																$('.gridEditBtn').show(); 
+																$('.gridAddBtn').hide();
+															} else {
+																xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+															}
+															return true;
+														}
+													 }
+										);
+			}
+
+			/**
+			* Populate TaxFee form.
+			*/
+			function xenos$entitlement$amend$populateTaxFeeFormForEdit(result){
+					if(result){
+						console.log(result);
+						context.find('#taxFeeId').val(result.taxFeeId);
+						context.find('#rate').val(result.rate);
+						context.find('#rateType').val(result.rateType);
+						context.find('#amount').val(result.amount);
+					}
+			}
+			
+			/**
+			 * TaxFee update handler.
+			 */
+			function xenos$entitlement$amend$updateTaxFeeEntryHandler(e){				
+					var valid = xenos.ns.entitlement.amend.validateTaxFeeAttributes();
+					if(valid){
+						var requestUrl = baseUrl + "/amend/updateDetailTaxFee.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$entitlement$amend$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : xenos$entitlement$amend$populateTaxFeeEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		xenos$entitlement$amend$upsertTaxFeeEntry(content.value[0]);
+																		xenos.ns.entitlement.amend.onChangeRateType();
+																		$('.gridEditBtn').hide(); 
+																		$('.gridAddBtn').show(); 
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+					}
+			 }
+			/**
+			 * TaxFee cancel handler.
+			 */
+			function xenos$entitlement$amend$cancelTaxFeeEntryHandler(e){
+				var requestUrl = baseUrl + "/amend/cancelDetailTaxFee.json?commandFormId=" + $('[name=commandFormId]').val();
+				xenos$entitlement$amend$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		xenos$entitlement$amend$upsertTaxFeeEntry(content.value[0]);
+																		xenos.ns.entitlement.amend.onChangeRateType();
+																		$('.gridEditBtn').hide(); 
+																		$('.gridAddBtn').show();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+			  }
+		 
+		 $('#addTaxFeeEntryBtn').unbind('click');
+		$('#addTaxFeeEntryBtn').bind('click',xenos$entitlement$amend$addTaxFeeEntryHandler);
+		
+		
+		
+		$('#calculateTaxFeeAmtBtn').unbind('click');
+		$('#calculateTaxFeeAmtBtn').bind('click',xenos.ns.entitlement.amend.taxAmountCalculateHandler);
+		
+		$('#updateTaxFeeEntryBtn').unbind('click');
+		 $('#updateTaxFeeEntryBtn').bind('click',xenos$entitlement$amend$updateTaxFeeEntryHandler);
+		 $('#editCallback').unbind('click');
+		 $('#editCallback').bind('click',xenos$entitlement$amend$editTaxFeeEntryHandler);
+		 
+		 $('#cancelTaxFeeEntryBtn').unbind('click');
+		 $('#cancelTaxFeeEntryBtn').bind('click',xenos$entitlement$amend$cancelTaxFeeEntryHandler);
+		 
+		 
+	};
+		
+	</jsp:body>
+    </jsp:element>
+		<div id="generalEntry">
+			<div class="entryBlkArea ">
+				<div class="formItemBlock topitems dottedBg">
+				
+					<!-- Entitlement Reference No. -->
+					<div class="formItem twoCols">
+						<form:label path="commandForm.rdReferenceNo">
+							<spring:message code="cax.entitlement.label.entitlementRefNo"
+								htmlEscape="false" />
+						</form:label>
+						<form:label path="commandForm.rdReferenceNo">${commandForm.rdReferenceNo}</form:label>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+				
+					<!-- Rights Condition Reference No.-->
+					<div class="formItem">
+						<form:label path="commandForm.rcReferenceNo">
+							<spring:message code="cax.entitlement.label.eventRefNo"
+								htmlEscape="false" />
+						</form:label>
+						<form:label path="commandForm.rcReferenceNo">${commandForm.rcReferenceNo}</form:label>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<!-- Fund Account No. -->
+					<div class="formItem">
+						<form:label path="commandForm.accountNo" id="bankAccountNo">
+							<spring:message code="cax.entitlement.label.bankAccount"
+								htmlEscape="false" />
+						</form:label>						
+						<form:label path="commandForm.accountNo" id="fundAccountNo">
+							<spring:message code="cax.entitlement.label.fundAccount"
+								htmlEscape="false" />
+						</form:label>
+						<form:label path="commandForm.rcReferenceNo">${commandForm.accountNo}</form:label>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<!-- Event Type -->
+					<div class="formItem">
+						<form:label path="commandForm.subEventTypeDescription">
+							<spring:message code="cax.entitlement.label.eventType"
+								htmlEscape="false" />
+						</form:label>
+						<form:label path="commandForm.subEventTypeDescription">${commandForm.subEventTypeDescription}</form:label>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<!-- Event Status -->
+					<div class="formItem">
+						<form:label path="commandForm.conditionStatus">
+							<spring:message code="cax.entitlement.label.eventStatus"
+								htmlEscape="false" />
+						</form:label>
+						<form:label path="commandForm.conditionStatus">${commandForm.conditionStatus}</form:label>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<!-- Instrument Code -->
+					<div class="formItem">
+						<form:label path="commandForm.instrumentCode">
+							<spring:message code="cax.entitlement.label.securityCode"
+								htmlEscape="false" />
+						</form:label>
+						<form:label path="commandForm.instrumentCode">${commandForm.instrumentCode}</form:label>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<!-- Instrument Name -->
+					<div class="formItem">
+						<form:label path="commandForm.instrumentName">
+							<spring:message code="cax.entitlement.label.securityName"
+								htmlEscape="false" />
+						</form:label>
+						<form:label path="commandForm.instrumentName">${commandForm.instrumentName}</form:label>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<!-- Allotted Instrument Code -->
+					<div class="formItem">
+						<form:label path="commandForm.allottedInstrument">
+							<spring:message code="cax.entitlement.label.allottedSecurityCode"
+								htmlEscape="false" />
+						</form:label>
+						<form:label id="allottedInstrument" path="commandForm.allottedInstrument">${commandForm.allottedInstrument}</form:label>
+						<span><form:input value=""
+								path="commandForm.allottedInstrument" class="textBox"
+								id="allottedInstrumentText" style="display: none" /></span>
+						<div class="popupBtn" id="allotSecurityCode" style="display: none">
+							<input type="button" class="popupBtnIco" tgt="allottedInstrumentText" hiddenTgt="allottedInstrumentNameText:officialName"
+								popType="security" value="" />
+						</div>
+						<div class="popupBtn" id="allotCcy" style="display: none">
+							<input type="button" class="popupBtnIco" tgt="allottedInstrumentText" hiddenTgt="allottedInstrumentNameText:label"
+								popType="currency" value="" />
+						</div>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<!-- Allotted Instrument Name -->
+					<div class="formItem">
+						<form:label path="commandForm.allottedInstrumentName">
+							<spring:message code="cax.entitlement.label.allottedSecurityName"
+								htmlEscape="false" />
+						</form:label>
+						<form:label id="allottedInstrumentName" path="commandForm.allottedInstrumentName">${commandForm.allottedInstrumentName}</form:label>
+						<span><form:input value=""
+								path="commandForm.allottedInstrumentName" class="textBox"
+								id="allottedInstrumentNameText" style="display: none" readonly="true" /></span>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<!-- Security Balance -->
+					<div class="formItem">
+						<form:label path="commandForm.securityBalanceStr" class="required">
+							<spring:message code="cax.entitlement.label.securityBalance"
+								htmlEscape="false" />
+						</form:label>
+						<span><form:input value=""
+								path="commandForm.securityBalanceStr" class="txtNormal"
+								id="securityBalanceStr" onchange="return formatSignedQuantity($('#securityBalanceStr'),15,3,null,$('#securityBalanceStr').parent().parent().find('label').text())"/></span>
+						<!-- Calculate Button -->
+						<div class="btnWrapStyle calAmtBtnBtn calcBtn"
+							style="margin-top: 0;">
+							<span class="calculateAmt"><input class="calcBtnIco"
+								id="calculateAmtBtn" type="button"
+								title="Calculate Alloted Amount" /></span>
+						</div>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<!-- Instrument Code -->
+					<div class="formItem" id="eventTypeNameDiv"
+						style="display: none">
+						<form:label path="commandForm.eventTypeName">
+							<spring:message code="cax.entitlement.label.eventtypename"
+								htmlEscape="false" />
+						</form:label>
+						<form:label path="commandForm.eventTypeName">${commandForm.eventTypeName}</form:label>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<!-- Payment Date -->
+					<div class="formItem twoCols">
+						<form:label path="commandForm.paymentDate" class="required">
+							<spring:message code="cax.rightsdetail.label.paymentdate"
+								htmlEscape="false" />
+						</form:label>
+						<span><form:input value="" path="commandForm.paymentDate"
+								class="dateinput" id="paymentDate" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, 
+								xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsdetailquery.validation.dateformat_invalid, [this.value]))}" /></span>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+
+					<div id="blockForEventType" style="display:none;"><spring:message text="" htmlEscape="false"/></div>
+
+					<div class="clear">
+						<spring:message text="" htmlEscape="false" />
+					</div>						
+				</div>
+			</div>
+			<!-- TaxFee Block -->
+			<div id="tax" style="display: none">
+				<!-- TaxFee Block -->
+				<div class="moreHandle">
+					<h1 class="msgHead">
+						<spring:message code="cax.entitlement.label.optionaltaxfee"
+							htmlEscape="false" />
+						<div class="handleBlock">
+							<span class="handler collapse" id="caxMoreSection"><spring:message
+									text="" htmlEscape="false" /></span>
+						</div>
+					</h1>
+				</div>
+
+				<div class="entryBlkArea">
+					<h1>
+						<spring:message code="cax.entitlement.label.taxDetail"
+							htmlEscape="false" />
+					</h1>
+					<div class="formItemBlock dottedBg">
+						<!-- TaxFee Id -->
+						<div class="formItem">
+							<form:label path="commandForm.taxFeeId" class="required">
+								<spring:message code="cax.entitlement.label.taxFeeId"
+									htmlEscape="false" />
+							</form:label>
+							<span> <xenos:select id="taxFeeId"
+									path="commandForm.taxFeeId" class="dropdowninput">
+									<form:option value="" />
+									<form:options items="${commandForm.taxFeeIdDropdownList}" />
+								</xenos:select>
+							</span>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- Tax Rate -->
+						<div class="formItem" id="taxRate">
+							<form:label path="commandForm.rate" class="required">
+								<spring:message code="cax.entitlement.label.taxRate"
+									htmlEscape="false" />
+							</form:label>
+							<span><form:input value="" path="commandForm.rate"
+									class="txtNormal" id="rate"
+									onchange="return formatRate($('#rate'),8,10,null,$('#rate').parent().parent().find('label').text());" /></span>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- Rate Type -->
+						<div class="formItem">
+							<form:label path="commandForm.rateType" class="required">
+								<spring:message code="cax.entitlement.label.rateType"
+									htmlEscape="false" />
+							</form:label>
+							<span> <xenos:select id="rateType"
+									path="commandForm.rateType" class="dropdowninput"
+									onchange="xenos.ns.entitlement.amend.onChangeRateType()">
+									<form:option value="" />
+									<form:options items="${commandForm.rateTypeDropdownList}"
+										itemLabel="label" itemValue="value" />
+								</xenos:select>
+							</span>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+
+						<!-- TaxFee Amount -->
+						<div class="formItem">
+							<form:label path="commandForm.amount" class="required"
+								id="taxAmountLbl">
+								<spring:message code="cax.entitlement.label.amount"
+									htmlEscape="false" />
+							</form:label>
+							<span><form:input id="amount" value=""
+									path="commandForm.amount" class="txtNormal"
+									onchange="return formatTaxFeeAmount($('#amount'),13,5,null,$('#amount').parent().parent().find('label').text());" /></span>
+
+							<!-- Calculate Button -->
+							<div class="btnWrapStyle calAmtBtnBtn calcBtn"
+								style="margin-top: 0;" id="calTaxAmt">
+								<span class="calculateAmt"><input class="calcBtnIco"
+									id="calculateTaxFeeAmtBtn" type="button"
+									title="Calculate Tax Fee Amount" /></span>
+							</div>
+
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+						<div class="clear">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+						<!-- Add Button -->
+						<div id="formActionArea" class="gridBtnMargin trdEntryBtnBg">
+							<div class="right">
+								<div class="btnWrapStyle submitBtn gridAddBtn">
+									<span class="addTaxFeeEntry" style="display: block"><input
+										id="addTaxFeeEntryBtn" type="button" value="${formadd_label}"
+										class="inputBtnStyle" /></span>
+								</div>
+								<span class="gridEditBtn" style="display: none">
+									<div class="btnWrapStyle submitBtn">
+										<input id="updateTaxFeeEntryBtn" type="button"
+											value="${formsave_label}" class="inputBtnStyle" />
+									</div>
+									<div class="btnWrapStyle resetBtn">
+										<input id="cancelTaxFeeEntryBtn" type="button"
+											value="${formcancel_label}" class="inputBtnStyle" />
+									</div>
+								</span>
+							</div>
+							<div class="clear">
+								<spring:message text="" htmlEscape="false" />
+							</div>
+						</div>
+					</div>
+					<div class="entryGrid">
+						<div id="taxFeeEntryGrid" class="xenos-grid"
+							style="width: 100%; height: 100px; display: none;">
+							<spring:message text="" htmlEscape="false" />
+						</div>
+					</div>
+				</div>
+				<div class="lineHide">
+					<spring:message text="" htmlEscape="false" />
+				</div>
+				</div>
+				<!--end of taxWindow-->
+			</div>
+			<!-- end of general entry-->
+			<!--end of div main-->
+
+			<spring:eval expression="T(java.lang.System).currentTimeMillis()"
+				var="myId" />
+			<input type="hidden" id="${myId}" />
+			<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			
+		</jsp:body>
+	</jsp:element>
+		</div>
+</jsp:root>

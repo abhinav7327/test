@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml"
+		   xmlns:containers="com.nri.rui.core.containers.*"
+		   xmlns:flexlib="http://code.google.com/p/flexlib/"
+		   xmlns:cntrls="com.nri.rui.core.controls.*"
+		   xmlns:famcontrols="com.nri.rui.fam.controls.*"
+		   xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"
+		   layout="vertical"
+		   percentWidth="100"
+		   percentHeight="100"
+		   horizontalScrollPolicy="off"
+		   verticalScrollPolicy="off">
+		   
+	<mx:Script>
+		<![CDATA[
+		    import mx.controls.Label;
+		    import com.nri.rui.core.utils.XenosStringUtils;
+			import com.nri.rui.core.RendererFectory;
+			import com.nri.rui.core.renderers.ImgSummaryRenderer;
+			import mx.events.CloseEvent;
+			import com.nri.rui.fam.renderers.*;
+			import mx.events.DataGridEvent;
+		    import mx.utils.ObjectUtil;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import com.nri.rui.core.controls.CustomDataGrid
+            
+            private function changeCurrentState():void
+			{
+				currentState="result";
+				app.submitButtonInstance=null;
+			}
+                        
+			/**
+ 			*  datagrid header release event handler to handle datagridcolumn sorting
+ 			*/
+		   public function dataGrid_headerRelease(evt:DataGridEvent):void {				
+				var dg:CustomDataGridForSpring = CustomDataGridForSpring(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];		
+			}			
+		]]>
+	</mx:Script>
+	
+	<mx:Script source="actionscripts/TrashSuspendedTxnQuery.as"/>
+	
+	<mx:states>
+		<mx:State name="result">
+			<mx:SetProperty target="{qry}" name="width" value="0%"/>
+			<mx:SetProperty target="{rslt}"	name="width" value="100%"/>
+			<mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+		</mx:State>
+		<mx:State name="qryres">
+			<mx:SetProperty target="{qry}" name="width" value="50%"/>
+			<mx:SetProperty target="{rslt}" name="width" value="50%"/>
+		</mx:State>
+		<mx:State name="">
+			<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submitTrashQuery}"/>
+		</mx:State>
+	</mx:states>
+	<!-- Define Transition array with one Transition object.-->
+	<mx:transitions>
+		<!-- A transition for changing from any state to any state. -->
+		<mx:Transition id="qryTransition" fromState="*" toState="*">
+			<!-- Define a Parallel effect as the top-level effect.-->
+			<mx:Parallel id="t1" targets="{[qry,rslt]}">
+				<!-- Define a Move and Resize effect.-->
+				<mx:Move duration="400"/>
+
+			</mx:Parallel>
+		</mx:Transition>
+	</mx:transitions>
+		
+			   
+    <cntrls:XenosHTTPServiceForSpring id="initializeTrashSuspendedTxnQuery"
+									  commandFormId="{commandFormId}"
+									  fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)"
+									  method="POST" useProxy="false" result="initPage(event)" showBusyCursor="true"/>
+									  
+	<cntrls:XenosHTTPServiceForSpring id="trashSuspendedTxnQueryRequest"
+									  url="fam/trashSuspendedTxnQuery.spring"
+									  commandFormId="{commandFormId}"
+									  fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+									  result="LoadResultPage(event)"
+									  showBusyCursor="true"
+									  resultFormat="xml">
+	</cntrls:XenosHTTPServiceForSpring>	
+	
+	<cntrls:XenosHTTPServiceForSpring id="trashSuspendedTxnResetQueryRequest"
+									  url="fam/trashSuspendedTxnQuery.spring"
+									  commandFormId="{commandFormId}"
+									  result="initPage(event)"
+									  showBusyCursor="true">
+	</cntrls:XenosHTTPServiceForSpring>		
+	
+	<cntrls:XenosHTTPServiceForSpring id="fundCodeQueryRequest"
+									  url="fam/trashSuspendedTxnQuery.spring"
+									  commandFormId="{commandFormId}"
+									  result="handleFundCodeResult(event)"
+									  showBusyCursor="true">
+	</cntrls:XenosHTTPServiceForSpring>		
+	
+	<cntrls:XenosHTTPService id="initializeUserconf" 
+         					 url="fam/trashSuspendedTxnQuery.spring?" 
+         					 fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize')   + event.fault.faultString)" 
+             				 method="POST" 
+             				 useProxy="false" 
+             				 result="loadUserConfPage(event)" 
+             				 showBusyCursor="true"/>	
+    
+    
+    <mx:Validator source="{multipleFundSelector}"
+				  required="true"
+				  property="text"/>
+	<mx:Validator source="{dateFrom}"
+				  required="true"
+				  property="text"/>		  
+				  
+	<mx:VBox width="100%" verticalGap="0" horizontalGap="0">
+		<mx:HBox width="100%" styleName="ExCoBgPanel">
+			<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance=submitTrashQuery;"/>
+			<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'"/>
+			<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'; app.submitButtonInstance = submitTrashQuery;"/>
+		</mx:HBox>
+		<mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%"/>
+	</mx:VBox>
+	
+	<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		<mx:VBox width="100%" height="100%">	 
+			<mx:HDividedBox id="hdbox1" styleName="Padding4" width="100%" height="100%" liveDragging="true" creationComplete="initPageStart()">
+				<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+				<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" width="100%" height="100%" id="qryVbox" styleName="HDivideStyle">	
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+					<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+					<mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%"/>
+					<mx:Grid width="100%" borderThickness="0"> 
+					    <!-- MultipleFundSelector  && 3 rows-->		 
+					    <mx:GridRow width="100%">
+					        <mx:GridItem width="50%" borderThickness="0" colSpan="2">
+								<famcontrols:MultipleFundSelector id="multipleFundSelector" operationFunction="{fundCodeSelectionHandler}" resultData="{fundCodeArrColl}"/>	
+							</mx:GridItem>
+							<!-- 3 rows -->
+							<mx:GridItem width="50%" borderThickness="0" colSpan="2" paddingTop="50">
+								<mx:Grid width="100%">
+									<mx:GridRow width="100%">
+										<mx:GridItem width="40%" borderThickness="0">
+											<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.label.trade.date.from.to')}"/>
+										</mx:GridItem>
+										<mx:GridItem width="60%" borderThickness="0" paddingLeft="0">
+											<mx:DateField id="dateFrom" formatString="YYYYMMDD" editable="true" width="90"/>
+											<mx:DateField id="dateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+										</mx:GridItem>
+									</mx:GridRow>
+									<mx:GridRow width="100%">
+										<mx:GridItem width="40%" borderThickness="0">
+											<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.label.securitytype')}"/>
+										</mx:GridItem>
+										<mx:GridItem width="60%" borderThickness="0">
+											<cntrls:TreeCombo id="securityTypeList" dataSource="{new XML((app.cachedItems.instrumentTree).toString())}" editMode="true" width="153" displayClearIcon="true" labelField="label" treeHeight="200" x="10" y="10">
+											</cntrls:TreeCombo>
+										</mx:GridItem>
+									</mx:GridRow>
+									<mx:GridRow width="100%">
+										<mx:GridItem width="40%" borderThickness="0">
+											<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.label.component.id')}"/>
+										</mx:GridItem>
+										<mx:GridItem width="60%" borderThickness="0">
+											<mx:ComboBox id="componentIDList" labelField="label" prompt="Select"/>
+										</mx:GridItem>
+									</mx:GridRow>
+								</mx:Grid>	
+							</mx:GridItem>	
+						</mx:GridRow>
+					</mx:Grid>
+					
+					<flexlib:WindowShade id="ws1" tabChildren="{ws1.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.sortorder.fields')}" opened="false" width="100%">
+						<mx:Grid width="100%" borderThickness="0"> 
+							<mx:GridRow width="100%">
+								<mx:GridItem width="100%" borderThickness="0">
+									<mx:HBox width="100%">
+										<mx:ComboBox id="sortField1" labelField="label" width="200" itemRenderer="mx.controls.Label" change="sortOrder1Update()"/>
+										<mx:ComboBox id="sortField2" labelField="label" width="200" itemRenderer="mx.controls.Label" change="sortOrder2Update()"/>
+										<mx:ComboBox id="sortField3" labelField="label" width="200" itemRenderer="mx.controls.Label"/>
+									</mx:HBox>
+								</mx:GridItem>
+							</mx:GridRow>
+						</mx:Grid>
+					</flexlib:WindowShade>	
+					<mx:HBox width="100%" styleName="ButtonBackPanel">
+						<cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submitTrashQuery" styleName="BtnStyle" click="this.submitQuery();"/>
+						<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="this.resetQuery();"/>
+					</mx:HBox>
+				</mx:VBox>
+				</mx:Canvas>
+				<mx:VBox width="0%"	 height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle">	
+					<cntrls:QueryResultHeaderForSpring id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" defaultPrefFile="TrashSuspendedTxnQueryTemplateXLS.xml" previousFunction="doPrev" nextFunction="doNext" width="100%" 
+						               moduleId="fam" enablePreference="true" commandFormIdForPreference="{famTrashSuspendedTxnQueryResult.commandFormIdForPreference}"/>
+							<cntrls:CustomDataGridForSpring id="famTrashSuspendedTxnQueryResult" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="true"
+									   variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()" enablePreference="true" headerRelease="dataGrid_headerRelease(event)">	 
+							
+							<cntrls:columns>
+							        <cntrls:CustomDataGridColumn textAlign="center" headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.SelectItem"
+							        	 headerRenderer="com.nri.rui.core.renderers.SelectAllItem" sortable="false" editable="false"/>
+									<cntrls:CustomDataGridColumn headerText="" width="40"  draggable="false" dataField="dummy" resizable="false"  id="imgRenderer"  itemRenderer="{new RendererFectory(ImgSummaryRenderer)}" sortable="false" />
+									
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.fundcode')}"
+											   dataField="fundCode" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer"  sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.tradedate')}"
+													   dataField="tradeDate" sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.valuedate')}"
+													   dataField="valueDate"  sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.localccy')}"
+													   dataField="localCcy"  sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.securitycode')}" dataField="securityCode" 
+													   itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer"  sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.referencenumber')}"
+													   dataField="referenceNo" itemRenderer="com.nri.rui.fam.renderers.TrashSuspendedTxnDetailRenderer"  sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.openreferencenumber')}"
+													   dataField="openReferenceNo"  sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.sourcecomponent')}"
+													   dataField="sourceComponent"  sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.transactiontype')}"
+													   dataField="transactionType"  sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.tradetype')}"
+													   dataField="tradeType"  sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.traderemarks')}"
+													   dataField="tradeRemarks"  sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.ledger')}"
+													   dataField="ledgerCode"  sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.wiretype')}"
+													   dataField="wireType"  sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.eventtype.sub')}"
+													   dataField="subEventType"  sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.message.status')}"
+													   dataField="messageStatus" sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.broker.account.no')}"
+													   dataField="brokerAccountNo"  itemRenderer="com.nri.rui.core.renderers.AccountDetailsRenderer" sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.entry.by')}"
+													   dataField="entryBy"  sortCompareFunction="sortUtil.sortString" visible="false"/>
+									<cntrls:CustomDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.suspendedtransactionquery.result.label.last.entry.by')}"
+													   dataField="lastEntryBy"  sortCompareFunction="sortUtil.sortString" visible="false"/>	
+							</cntrls:columns>	
+					</cntrls:CustomDataGridForSpring>
+					<mx:HBox>
+						<mx:Button id="trashUserConf" styleName="BtnStyle" label="{this.parentApplication.xResourceManager.getKeyValue('fam.trashsuspendedtxnquery.result.label.trash')}" click="userConfirmationSubmit()"/>
+					</mx:HBox>
+				</mx:VBox>						      		   
+			</mx:HDividedBox>				 
+		</mx:VBox>		   
+	</mx:Canvas>		   			           				 		  
+	
+</mx:Module>

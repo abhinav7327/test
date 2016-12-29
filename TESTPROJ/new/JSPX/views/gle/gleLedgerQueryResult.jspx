@@ -1,0 +1,109 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div>
+    
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" /> 
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;	
+            var grid_result_data = [];
+            var grid_result_columns = [
+				{name:"<spring:message code="gle.ledger.query.label.ledgerCode" htmlEscape="false"/>", field:"ledgerCode", id:"ledgerCode", width:200, sortable:true, formatter:Slick.Formatters.DetailViewFormater,
+						option:{url:'/secure/gle/ledger/details/', 
+						dialogTitle:xenos.title.gleLedgerDetail,
+						dialogTitleValueReqd:false,
+						view:'gleLedgerDetail',
+						height:390,
+						popupIcon:false, 
+						pkFieldName:'ledgerPk'}},
+                {name:"<spring:message code="gle.ledger.query.label.shortName" htmlEscape="false"/>", field:"shortName", id:"shortName", width:200, sortable:true},
+                {name:"<spring:message code="gle.ledger.query.label.ledgerType" htmlEscape="false"/>", field:"ledgerType", id:"ledgerType", width:120, sortable:true},
+                {name:"<spring:message code="gle.ledger.query.label.subCodeType" htmlEscape="false"/>", field:"subcodeType", id:"subcodeType", width:120, sortable:true},
+                {name:"<spring:message code="gle.ledger.query.label.status" htmlEscape="false"/>", field:"status", id:"status", width:120, sortable:true, formatter:Slick.Formatters.CancelRecordFormatter}
+            ];
+			var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:true,
+				emptyColumnCheck : false,
+				forceFitColumns:true,
+				buttons:{
+					print:true,	
+					xls:true,	
+					pdf:true,
+					xlsPref:true,
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext: isNext,
+					url: 'secure/gle/ledger/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/gle/ledger/query/result.json?fetch=next',  
+					prevPage : '/secure/gle/ledger/query/result.json?fetch=previous',
+					pdfReport: '/secure/gle/ledger/query/report.json?outputType=pdf',
+					xlsReport: '/secure/gle/ledger/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/gle/ledger/query/reportPref.json?outputType=xls'
+				}
+			};
+            var row_id = 0;			
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				rec.ledgerPk = "<c:out value="${dl.ledgerPk}" />";
+                rec.ledgerCode= "<c:out value="${dl.ledgerCode}" />";
+                rec.shortName = "<c:out value="${dl.shortName}" />";
+                rec.ledgerType = "<c:out value="${dl.ledgerType}" />";
+                rec.subcodeType = "<c:out value="${dl.subcodeType}" />";
+                rec.status = "<c:out value="${dl.status}" />";
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+	
+	
+	<div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			  <a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'GLELAM')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-amendIco.png" title="${record.actionName}" id="amend" status="ready" alt="Amend" /></c:when>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'GLELCX')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}"  id="cancel" status="ready" alt="Cancel" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			  </a>
+		</c:forEach>	  
+	</div>
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+			var consolidateParmas = function(e){
+						var row = $(e.target).attr('row');
+						var gridData = ($('.xenos-grid').data("gridInstance")).getData().getItems();
+						var parmas = '&amp;pk='+gridData[row]['ledgerPk'];
+						$('a.consolidateActLink').data("params", parmas);
+					};
+		</jsp:body>
+    </jsp:element>
+    
+    </div>
+
+</jsp:root>
+    

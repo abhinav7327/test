@@ -1,0 +1,185 @@
+<!--$Id$-->
+<!--$Author: souparnod $-->
+<!--$Date: 2016-12-26 10:34:38 $-->
+<jsp:root version="2.0"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:jsp="http://java.sun.com/JSP/Page">
+	 
+<div class="formItemArea">
+	
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src">
+			<c:url value="/scripts/inf/utilCommons.js"/>
+		</jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src">
+			<c:url value="/scripts/ncm/xenos-ncm-i18n_en.js"/>
+		</jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+	<div class="formItemBlock topitems dottedBg">
+		<!-- Fund Code -->
+			<div class="formItem">
+				<form:label path="fundCode"><spring:message code="ncm.cash.projection.query.label.fundCode" htmlEscape="false"/></form:label>
+				<span><form:input  id="fundCode" value ="" path="fundCode" class="textBox" /></span>			
+				<div class="popupBtn"><input type="button" class ="popupBtnIco" tgt="fundCode" popType="fundCode" value =""/></div>
+				<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+	
+		<!-- Currency Code -->
+		
+		 <div class="formItem">
+			<form:label path="currency"><spring:message code="ncm.cash.projection.query.label.currency" htmlEscape="false"/></form:label> 
+			<span><form:input id="currency" value="" path="currency"  class="textBox" /></span>
+			<div class="popupBtn">
+				<input type="button" class="popupBtnIco" tgt="currency" popType="currency" value="" />
+			</div>
+			<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+       </div>
+
+     <div class="formItem">
+			<form:label path="" class="required"><spring:message code="ncm.cash.projection.query.label.dateFromTo" htmlEscape="false"/></form:label> 
+			<span><form:input value="" path="dateFrom" style="width:68px" readonly = "true"  id="dateFrom" /></span>
+			<span><form:input value="" path="dateTo" class="dateinput"  id="dateTo" /></span>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+		<div class="formItem">
+					<form:label path="includeFailSettlements">
+						<spring:message code="ncm.cash.projection.query.label.includefail" htmlEscape="false" />
+					</form:label>
+					<span style="padding-top: 4px;">
+					<form:checkbox path="" id="failSettlements" class="failSettlements" value=""/>
+					<input type="hidden" id="failSettlementsVal" name="includeFailSettlements" value=""/>
+					
+					</span>
+					<span class="remove" title="Remove this field" style="display: none;"><spring:message
+							text="" htmlEscape="false" />
+						   </span>
+					<div class="clear">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+		</div> 
+	
+		<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	<div class="formBrdHide"><spring:message text="" htmlEscape="false"/></div>
+
+	<div class="formItemBlock delFormItems deltopitems" style="display:none;" >
+		<!-- Deleted Item goes here -->
+		<input type="button" class="restoreAllBtn" value="Restore All" />
+		<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	
+		<spring:eval expression="T(java.lang.System).currentTimeMillis()" var="myId"/>
+		<input type="hidden" id="${myId}"/>
+<jsp:element name="script">
+	<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			xenos$onReady$Array.push(function() {
+				xenos.loadLocalizedScript([{path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false}]);
+				xenos.loadLocalizedScript([{path: xenos.context.path + '/scripts/ncm/xenos-ncm-i18n', async: false}]);
+				
+				xenos.loadScript([{path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},
+								  {path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+								  {path: xenos.context.path + '/scripts/ncm/ncmCashProjectionSummaryQuery.js', async: false}
+				],{
+					success: function() {
+						checkIncludeFailBalance();
+					}
+				});
+				
+			});
+			
+			var validate = function(){
+				var validationMessages = [];
+				var dateRangeValidationFails = false;
+				if($("#failSettlements").is(':checked')) {
+					$("#failSettlementsVal").val("true");
+				} else {
+					$("#failSettlementsVal").val("false");
+				}
+				
+				// Validate to dates have been specified
+				if($.trim($('#dateTo').val()).length>0 <![CDATA[&&]]> isDateCustom($.trim($('#dateTo').val()))==false){
+					dateRangeValidationFails=true;
+					validationMessages.push(xenos$NCM$i18n.summaryQueryProjection.validation.dateto_invalid);
+				}
+				if($.trim($('#dateTo').val()).length==0){
+					validationMessages.push(xenos$NCM$i18n.summaryQueryProjection.validation.date_empty);
+				}
+				if(dateRangeValidationFails==false <![CDATA[&&]]> !isValidDateRange($.trim($('#dateFrom').val()), $.trim($('#dateTo').val()))){
+						validationMessages.push(xenos$NCM$i18n.summaryQueryProjection.validation.datefrom_less);
+				}
+				if(!isDateRangeLimit($.trim($('#dateFrom').val()), $.trim($('#dateTo').val()))){
+						validationMessages.push(xenos$NCM$i18n.summaryQueryProjection.validation.date_limit);
+				}
+				
+				if ( validationMessages.length >0){
+					if($('.formHeader').find('.formTabErrorIco:visible').length > 0){	                 	
+	                 	$('.formHeader').find('.formTabErrorIco:visible').off('click');
+	                 	$('.formHeader').find('.formTabErrorIco:visible').on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+	                 }else{
+	                 	$('.formHeader').find('.formTabErrorIco').css('display', 'block');
+	                 	$('.formHeader').find('.formTabErrorIco').off('click');
+	                 	$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+	                 }
+	                 return false;
+	            }else{
+	                $('.formHeader').find('.formTabErrorIco').css('display', 'none');
+	            }
+	            return true;
+			};
+			
+			function isDateRangeLimit(fromDate, toDate){
+			  var success = true;
+				
+			  var date1 = new Date(fromDate.substring(4,6)+"/"+fromDate.substring(6,8)+"/"+fromDate.substring(0,4));
+			  var date2 = new Date(toDate.substring(4,6)+"/"+toDate.substring(6,8)+"/"+toDate.substring(0,4));
+			  var timeDiff = Math.abs(date2.getTime() - date1.getTime());
+			  var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24)); 
+				
+			  if((fromDate != null <![CDATA[&&]]> fromDate.length > 0) <![CDATA[&&]]> (toDate != null <![CDATA[&&]]> toDate.length > 0)){
+				if(diffDays > 10){
+					success = false;
+				}
+			  }
+				return success;
+			}
+			
+			$('#dateTo').unbind('change').bind('change',onChangeDate);
+			
+			function onChangeDate(e){
+			 	if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos.i18n.datevalidationmessage.incorrect_date,[this.value]))
+				}else{
+					xenos.ns.views.ncmCashProjectionSummaryQuery.formatDate(this);
+				}
+			 }	
+
+			function checkIncludeFailBalance(){
+				if("${commandForm.includeFailSettlements}" == "true") {
+					$("#failSettlements").prop('checked', true);
+				} else {
+					$("#failSettlements").prop('checked', false);
+				}
+			}
+					
+			jQuery('#' + '${myId}').parent().xenosform({
+				beforeSubmit: validate
+			});
+		</jsp:body>
+	</jsp:element>
+</div>	
+</jsp:root>

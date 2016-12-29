@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+		   xmlns:cntrls="com.nri.rui.core.controls.*"
+		   xmlns:containers="com.nri.rui.core.containers.*" 
+		   xmlns:flexlib="http://code.google.com/p/flexlib/"
+		   xmlns:frmtrs="com.nri.rui.core.formatters.*"
+		   xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+		   xmlns:utils="com.nri.rui.core.utils.*"
+		   layout="vertical" percentWidth="100" 
+		   percentHeight ="100" 
+		   horizontalScrollPolicy="off" 
+		   verticalScrollPolicy="off" 
+		   creationComplete="initPage()">
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.XMLListCollection;
+			import com.nri.rui.core.Globals;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.rpc.events.ResultEvent;
+			import mx.containers.FormItem;
+			import mx.containers.Form;
+			import mx.controls.Alert;
+			import mx.collections.ArrayCollection;
+			import com.nri.rui.core.utils.XenosStringUtils;		
+			import com.nri.rui.core.controls.XenosAlert;
+			import flash.events.*;
+			
+			private function initPage():void{
+				fc.btnUpload.addEventListener(MouseEvent.CLICK, openPopup);
+			}
+			
+			private function getLabelFromBody(item:Object,column : DataGridColumn):String{
+            	return item.Body.TradeData[column.dataField];
+            	
+            }
+            private function getFundAccountNo(item:Object,column : DataGridColumn):String{            	 
+            	var prefix:String =  item.Body.TradeData.InventoryAccountCrossRef.AccountXRef.Prefix;
+            	var accountNo:String =  item.Body.TradeData.InventoryAccountCrossRef.AccountXRef.AccountNo;
+            	var accountNoType:String =  item.Body.TradeData.InventoryAccountCrossRef.AccountXRef.AccountNoType;
+            	return prefix + Globals.ACCOUNT_PREFIX_SEPARATOR + accountNo + Globals.ACCOUNT_CODETYPE_SEPARATOR + accountNoType;
+            	
+            }
+            private function getBrokerAccount(item:Object,column : DataGridColumn):String{            	 
+            	var prefix:String =  item.Body.TradeData.AccountCrossRef.AccountXRef.Prefix;
+            	var accountNo:String =  item.Body.TradeData.AccountCrossRef.AccountXRef.AccountNo;
+            	var accountNoType:String =  item.Body.TradeData.AccountCrossRef.AccountXRef.AccountNoType;
+            	return prefix + Globals.ACCOUNT_PREFIX_SEPARATOR + accountNo + Globals.ACCOUNT_CODETYPE_SEPARATOR + accountNoType;
+            	
+            }
+            private function getSecurity(item:Object,column : DataGridColumn):String{            	 
+            	var secCode:String =  item.Body.TradeData.InstrumentCrossRef.InstrumentXRef.SecurityId;
+            	return secCode;
+            	
+            }
+            private function getSecurityCodeType(item:Object,column : DataGridColumn):String{            	 
+            	var secCodeType:String =  item.Body.TradeData.InstrumentCrossRef.InstrumentXRef.InstrumentCodeType;
+            	return secCodeType;
+            	
+            }
+            private function getBuySell(item:Object,column : DataGridColumn):String{            	 
+            	var buySellOrientation:String =  item.Body.TradeData.BuySellOrientation;
+            	var ssBbFlag:String =  item.Body.TradeData.ShortSellBuyBackFlag;
+            	var buySell:String = XenosStringUtils.EMPTY_STR;
+            	if(XenosStringUtils.isBlank(ssBbFlag)){
+            		if(XenosStringUtils.equals(buySellOrientation,"FB")){
+            			buySell = "Buy";
+            		}else if(XenosStringUtils.equals(buySellOrientation,"FS")){
+            			buySell = "Sell";
+            		}
+            	}else{
+            		if(XenosStringUtils.equals(buySellOrientation,"FB")){
+            			buySell = "Buy Back";
+            		}else if(XenosStringUtils.equals(buySellOrientation,"FS")){
+            			buySell = "Short Sell";
+            		}
+            	}
+            	return buySell;
+            	
+            }
+            
+            private function getCounterPartyAccno(item:Object,column : DataGridColumn):String{
+            	var prefix:String =  item.Body.AccountCrossRef.AccountXRef.Prefix;
+            	var accountNo:String =  item.Body.AccountCrossRef.AccountXRef.AccountNo;
+            	var accountNoType:String =  item.Body.AccountCrossRef.AccountXRef.AccountNoType;
+            	if(XenosStringUtils.isBlank(prefix))
+				{
+					return accountNo + Globals.ACCOUNT_CODETYPE_SEPARATOR + accountNoType;            		
+				} else {
+					return prefix + Globals.ACCOUNT_PREFIX_SEPARATOR 
+				      + accountNo + Globals.ACCOUNT_CODETYPE_SEPARATOR + accountNoType;
+            	}            	
+            }
+            private function getTradeCcy(item:Object,column : DataGridColumn):String{
+            	var cCY:String = item.Body.TradeData.TradeCcyCrossRef.CcyXRef.CCY;
+            	var cCYType:String = item.Body.TradeData.TradeCcyCrossRef.CcyXRef.CCYType;
+            	return cCY + Globals.SECURITY_CODETYPE_SEPARATOR + cCYType;
+            	
+            }
+            private function getStlCcy(item:Object,column : DataGridColumn):String{
+            	var cCY:String = item.Body.TradeData.SettlementCcyCrossRef.CcyXRef.CCY;
+            	var cCYType:String = item.Body.TradeData.SettlementCcyCrossRef.CcyXRef.CCYType;
+            	if(!XenosStringUtils.isBlank(cCY)){
+            		return cCY + Globals.SECURITY_CODETYPE_SEPARATOR + cCYType;
+            	}else{
+            		return XenosStringUtils.EMPTY_STR;
+            	}
+            }
+            private function getPrincipalAmount(item:Object,column : DataGridColumn):String{
+				var principalAmt:String = item.Body.TradeData.PrincipalAmount;
+				return numberFormatter.format(principalAmt);            	
+		    }
+		    private function getTax(item:Object,column : DataGridColumn):String{
+		    	var amt:String = XenosStringUtils.EMPTY_STR;
+				var tax:XMLList = item.Body.TradeData.TaxFee;
+				var taxFee:XML = new XML();
+				if(tax != null){
+					for each(taxFee in tax){
+						var id:String = taxFee.TaxFeeId;
+						if(XenosStringUtils.equals(id,column.dataField)){
+							amt = taxFee.Amount;
+							break;
+						}
+					}
+				}
+				return numberFormatter.format(amt);            	
+		    }
+		    private function getAccruedInterestAmount(item:Object,column : DataGridColumn):String{
+				var accrIntAmt:String = item.Body.TradeData.AccruedInterestAmount;
+				var negAccrFlag:String = item.Body.TradeData.NegativeAccruedInterestFlag;
+				if(!XenosStringUtils.isBlank(negAccrFlag)){
+					if(XenosStringUtils.equals(negAccrFlag,Globals.DATABASE_YES)){
+						accrIntAmt = "-" + accrIntAmt;
+					}
+				}
+				return numberFormatter.format(accrIntAmt);            	
+		    }
+		    private function getNetAmountInTrdCcy(item:Object,column : DataGridColumn):String{
+				var netAmtTrdCcy:String = item.Body.TradeData.NetAmountInTradingCcy;
+				return numberFormatter.format(netAmtTrdCcy);            	
+	        }
+
+          
+		]]>
+	</mx:Script>
+	
+	<mx:Script source="actionscripts/TrdXLSFileLoad.as"/>
+
+	<cntrls:XenosHTTPService id="trdFileLoad" 
+		url="trd/trdXLSLoadDispatch.action?method=doSubmit" 
+		fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"	
+		result="prest(event)" 
+		showBusyCursor="true" resultFormat="xml">
+	</cntrls:XenosHTTPService>
+	
+	<cntrls:XenosHTTPService id="trdFileLoadConfirm" 
+		url="trd/trdXLSLoadDispatch.action?method=doSubmitConfirm" 
+		fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"	
+		result="submitConfirmResult(event)" 
+		showBusyCursor="true" resultFormat="xml">
+	</cntrls:XenosHTTPService>
+     
+ 	<frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+      
+	<mx:Canvas  width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+	
+	<mx:VBox width="100%" height="100%">
+		
+		<mx:VBox id="mt" label="File Upload" width="100%" height="100%">
+			<mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+			
+			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>			
+			<mx:HBox id="hfbox" width="100%" >
+			</mx:HBox>
+
+			<cntrls:FileUploadControl id="fc" uploadUrl="trd/trdXLSLoadDispatch.action?method=init"  uploadToFiled="fileName" httpProcess="{trdFileLoad}"
+			maxNumOfFiles="1" _filter = "{filter}"
+			uploadComplete="Alert.show(this.parentApplication.xResourceManager.getKeyValue('trd.files.uploaded.success'), 'Upload successful')" 
+			uploadIOError="Alert.show(this.parentApplication.xResourceManager.getKeyValue('trd.files.uploaded.failure.io'), 'Error')" 
+			uploadSecurityError="Alert.show(this.parentApplication.xResourceManager.getKeyValue('trd.files.uploaded.failure.security'), 'Error')"/>
+			
+			 
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+		           <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle"  click="this.unselectFile()" />
+		           
+		    </mx:HBox>
+		</mx:VBox>
+			<mx:VBox width="100%" height="100%" id="cnf" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" visible="false" includeInLayout="false">
+				<cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" width="100%"/>
+				<cntrls:SoftWarningControl id="softWarn" width="100%" color="#0000FF" backgroundAlpha="0" borderStyle="none" fontWeight="bold"/>	
+				<utils:FXCPager id="fxcPager" pageIndex="{currentPage}" pageSize="{pageSize}" dataProvider="{summaryResult}" />
+		        <mx:DataGrid width="100%" height="100%" id="confirmResultSummary" sortableColumns="false" dataProvider="{fxcPager.pageData}" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindAll()">
+		            <mx:columns>
+		               <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" /> 
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradetype')}" dataField="TradeType" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.matchingsupressflag')}" dataField="MatchingSuppressFlag" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradedate')}" dataField="TradeDate" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.valuedate')}" dataField="ValueDate" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.inventoryaccountno')}" dataField="" labelFunction="getFundAccountNo"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.buysellflag')}" dataField="" labelFunction="getBuySell"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.securityinfo')}" dataField="" labelFunction="getSecurity"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.seccodetype')}" dataField="" labelFunction="getSecurityCodeType"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.quantity')}" dataField="Quantity" labelFunction="getLabelFromBody" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.price')}" dataField="InputPrice" labelFunction="getLabelFromBody" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.principalamount')}" dataField="" labelFunction="getPrincipalAmount" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradetxndetailquery.label.commission')}" dataField="COMM" labelFunction="getTax" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradetxndetailquery.label.localtax')}" dataField="LOCAL_TAX" labelFunction="getTax" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradetxndetailquery.label.otherfee')}" dataField="OTHER_FEES" labelFunction="getTax" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradetxndetailquery.label.localfee')}" dataField="LOCAL_FEES" labelFunction="getTax" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradetxndetailquery.label.newissuefee')}" dataField="NEW_ISSUE_FEE" labelFunction="getTax" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradetxndetailquery.label.accruedinterestamount')}" dataField="" labelFunction="getAccruedInterestAmount" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.dirtypriceflag')}" dataField="DirtyPriceFlag" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.netamountintradingcurrency')}" dataField="" labelFunction="getNetAmountInTrdCcy" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradecurrency')}" dataField="" labelFunction="getTradeCcy"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.settlementcurrency')}" dataField="" labelFunction="getStlCcy"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.exchangerate')}" dataField="ExchangeRate" labelFunction="getLabelFromBody" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.calculationtype')}" dataField="CalculationType" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.brokeraccountno')}" dataField="" labelFunction="getBrokerAccount"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.status')}" dataField="Status" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.orderreferenceno')}" dataField="OMSReferenceNo" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.externalreferenceno')}" dataField="OMSExecutionNo" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.etcreferenceno')}" dataField="EtcReferenceNo" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.brokerreferenceno')}" dataField="BrokerReferenceNo" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.externalrefno')}" dataField="ExternalReferenceNo" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.origexternalrefno')}" dataField="ExternalReferenceNoOriginal" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.remarks')}" dataField="Remarks" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.remarksforreports')}" dataField="RemarksForReports" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.rcvdconf.label.origin.datasrc')}" dataField="OriginDataSource" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.instructionsuppressflag')}" dataField="InstructionSuppressFlag" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.origxenosrefno')}" dataField="ReferenceNoOriginal" labelFunction="getLabelFromBody"/>
+		           	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.plSuppressFlag')}" dataField="PlSuppressFlag" labelFunction="getLabelFromBody"/>
+		           	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradetxndetailquery.label.localTax02')}" dataField="LOCAL_TAX_02" labelFunction="getTax" textAlign="right"/>
+		           	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.indexratio')}" dataField="IndexRatio" labelFunction="getLabelFromBody" textAlign="right"/>
+		            </mx:columns>
+		         </mx:DataGrid>
+		         <mx:HBox width="60%" horizontalAlign="right">
+	            	<cntrls:FXCPagerBar id="fxc_pageNav2" pager="{fxcPager}" totalPages="{Math.ceil(summaryResult.length/pageSize)}" maxVisiblePages="{navSize}" buttonMode="true"/>
+	                <mx:NumericStepper value="{this.pageSize}" change="this.pageSize = event.target.value" maximum="50000"/>		                
+        		</mx:HBox>
+		         <mx:HBox width="100%" styleName="ButtonBackPanel">
+		     		<mx:Button id="confirmSubmitFileButton" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="this.confirmSubmitFile()" />
+		           	<mx:Button id="cxlUploadUC" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.cancel')}" styleName="BtnStyle"  click="this.unselectFile()" />
+		     	</mx:HBox>
+	        </mx:VBox>
+	        
+	        
+	        
+	        <mx:VBox width="100%" height="100%" id="submitCnf" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" visible="false" includeInLayout="false">
+	        	<mx:HBox styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle">
+	        		<mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+		    		<mx:Label text="{noOfMsgCreatedStr}" fontWeight="bold" selectable="true"/>	
+		    	</mx:HBox>
+		        <mx:DataGrid width="100%" height="100%" sortableColumns="false" dataProvider="{summaryResult}" variableRowHeight="true" horizontalScrollPolicy="auto">
+		            <mx:columns> 
+		               <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" />
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradetype')}" dataField="TradeType" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.matchingsupressflag')}" dataField="MatchingSuppressFlag" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradedate')}" dataField="TradeDate" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.valuedate')}" dataField="ValueDate" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.inventoryaccountno')}" dataField="" labelFunction="getFundAccountNo"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.buysellflag')}" dataField="" labelFunction="getBuySell"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.securityinfo')}" dataField="" labelFunction="getSecurity"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.seccodetype')}" dataField="" labelFunction="getSecurityCodeType"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.quantity')}" dataField="Quantity" labelFunction="getLabelFromBody" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.price')}" dataField="InputPrice" labelFunction="getLabelFromBody" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.principalamount')}" dataField="" labelFunction="getPrincipalAmount" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradetxndetailquery.label.commission')}" dataField="COMM" labelFunction="getTax" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradetxndetailquery.label.localtax')}" dataField="LOCAL_TAX" labelFunction="getTax" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradetxndetailquery.label.otherfee')}" dataField="OTHER_FEES" labelFunction="getTax" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradetxndetailquery.label.localfee')}" dataField="LOCAL_FEES" labelFunction="getTax" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradetxndetailquery.label.newissuefee')}" dataField="NEW_ISSUE_FEE" labelFunction="getTax" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradetxndetailquery.label.accruedinterestamount')}" dataField="" labelFunction="getAccruedInterestAmount" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.dirtypriceflag')}" dataField="DirtyPriceFlag" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.netamountintradingcurrency')}" dataField="" labelFunction="getNetAmountInTrdCcy" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradecurrency')}" dataField="" labelFunction="getTradeCcy"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.settlementcurrency')}" dataField="" labelFunction="getStlCcy"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.exchangerate')}" dataField="ExchangeRate" labelFunction="getLabelFromBody" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.calculationtype')}" dataField="CalculationType" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.brokeraccountno')}" dataField="" labelFunction="getBrokerAccount"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.status')}" dataField="Status" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.orderreferenceno')}" dataField="OMSReferenceNo" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.externalreferenceno')}" dataField="OMSExecutionNo" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.etcreferenceno')}" dataField="EtcReferenceNo" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.brokerreferenceno')}" dataField="BrokerReferenceNo" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.externalrefno')}" dataField="ExternalReferenceNo" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.origexternalrefno')}" dataField="ExternalReferenceNoOriginal" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.remarks')}" dataField="Remarks" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.remarksforreports')}" dataField="RemarksForReports" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.rcvdconf.label.origin.datasrc')}" dataField="OriginDataSource" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.instructionsuppressflag')}" dataField="InstructionSuppressFlag" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.origxenosrefno')}" dataField="ReferenceNoOriginal" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.plSuppressFlag')}" dataField="PlSuppressFlag" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradetxndetailquery.label.localTax02')}" dataField="LOCAL_TAX_02" labelFunction="getTax" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.indexratio')}" dataField="IndexRatio" labelFunction="getLabelFromBody" textAlign="right"/>
+		            </mx:columns>
+		         </mx:DataGrid>	         
+			     <mx:HBox width="100%" styleName="ButtonBackPanel">
+		     		<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" click="this.goToInitialPage()" />
+		     	</mx:HBox>
+	        </mx:VBox>
+	        
+	</mx:VBox>
+	
+	</mx:Canvas>
+</mx:Module>

@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Resend Summary Implementation for Displaying the Feed File Resend information in brief -->
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+		xmlns:containers="com.nri.rui.core.containers.*"
+	 	xmlns:cntrls="com.nri.rui.core.controls.*"
+		xmlns:nampopup="com.nri.rui.nam.popupImpl.*"
+		xmlns:namrenderers="com.nri.rui.nam.renderers.*"
+		xmlns:flexlib="http://code.google.com/p/flexlib/" 
+		xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"	
+		xmlns:controls="*"
+		layout="vertical"
+		styleName="PopupTitleWindow"
+		creationComplete="setErrors();">
+<mx:Script>
+		<![CDATA[
+			import mx.binding.utils.BindingUtils;
+			import com.nri.rui.nam.renderers.NamFeedFileOpenRenderer;
+			import mx.utils.StringUtil;
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.collections.ArrayCollection;
+			import mx.managers.PopUpManager;
+			import mx.events.CloseEvent;
+			import mx.events.ResourceEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.events.DataGridEvent;
+			import com.nri.rui.core.utils.ProcessResultUtil;
+			[Bindable]
+			public var dProvider:ArrayCollection;
+			[Bindable]
+			public var errorInfoList : ArrayCollection;
+			[Bindable]
+    		private var confirmResult:ArrayCollection= new ArrayCollection();
+			[Bindable]
+			public var formData : XML;
+
+			private var sortUtil: ProcessResultUtil= new ProcessResultUtil();
+
+			/**
+ 			*  datagrid header release event handler to handle datagridcolumn sorting
+ 			*/
+			public function dataGrid_headerRelease(evt:DataGridEvent):void {				
+				var dg:DataGrid = DataGrid(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];		
+			}
+			
+		   /**
+		    * This method should be called on creationComplete of the datagrid 
+		    */ 
+		   /*  private function bindDataGrid():void {
+		        qh.dgrid = securitySummary;
+		    }  */ 
+			private function removeNamPop(event:Event):void {
+				 this.dispatchEvent(new Event("enableButton"));
+       			 PopUpManager.removePopUp(this);
+ 			}
+
+ 			private function removeAndRefresh(event:Event):void {
+				 this.dispatchEvent(new Event("OkSystemConfirm"));
+       			 PopUpManager.removePopUp(this);
+ 			}
+
+ 			private function setErrors():void{
+ 				if(dProvider != null){
+ 					if(dProvider.length == 0){
+ 					XenosAlert.info("No Result Found!");
+ 					   cancelButton.addEventListener(MouseEvent.CLICK,removeAndRefresh);
+	 				   okButton.enabled = false;
+ 					}
+ 				}
+ 				 else if(errorInfoList != null ){
+ 					if(errorInfoList.length > 0){
+	 					cancelButton.addEventListener(MouseEvent.CLICK,removeAndRefresh);
+	 					okButton.enabled = false;
+ 					}
+ 				}
+ 				errPage.showError(errorInfoList);
+ 			}
+
+ 			private function  confirmData(event:Event):void{
+  	 			 okButton.enabled = false;
+			  	 var reqObj : Object = new Object();
+				 reqObj.method= "reSend";
+ 				 reqObj.SCREEN_KEY = 11064;
+         		 confirmFeed.url="nam/namFeedStatusSelectedQueryResendDispatch.action";
+			  	 confirmFeed.request = reqObj;
+			  	 confirmFeed.send();
+			  }
+
+			  /**
+			    * This method is the resultHandler for confirm action. This is required for the
+			    * User Confirmation Screen to show the values in non editable form.
+			    */
+			     private function okResult(event:ResultEvent):void{
+			     	var rs:XML = XML(event.result);
+			     	var tempResult:ArrayCollection = new ArrayCollection();
+
+			     	if (null != event) {
+			     		if(rs.child("Errors").length()>0) {
+			                //some error found
+						 	var errorInfoList : ArrayCollection = new ArrayCollection();
+			                //populate the error info list
+						 	for each ( var error:XML in rs.Errors.error ) {
+				 			   errorInfoList.addItem(error.toString());
+							}
+						 	errPage1.showError(errorInfoList);//Display the error
+						 	cancelButton.addEventListener(MouseEvent.CLICK, removeAndRefresh);
+						 	okButton.enabled = false;
+						 }
+						 else if(rs.child("row").length()>0) {
+							try {
+				                    for each ( var rec:XML in rs.row ) {
+				                        tempResult.addItem(rec);
+				                    }
+	                    			confirmResult = tempResult;
+				        			dProvider = confirmResult;
+						        	formData = rs;
+					     			NamFeedResendStack.selectedChild=confirmSummaryCanvas;
+					     			this.title = "Feed Re-Send System Confirmation";
+			                }catch(e:Error){
+			                    XenosAlert.error("No result found");
+			                }
+						 }
+						 else {
+	            	        	confirmResult.removeAll();
+    	            	    	XenosAlert.info("No Results Found");
+        		    	}
+			    	}
+			     }
+		]]>
+	</mx:Script>
+
+	<cntrls:XenosHTTPService id="confirmFeed"
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultDetail)"
+         result="okResult(event)" showBusyCursor="true" resultFormat="xml"/>
+
+	<mx:VBox width="100%" height="100%" id="uconfirm" >
+		  <mx:ViewStack id="NamFeedResendStack" width="100%" height="100%" >
+			    <mx:Canvas id="resultSummaryCanvas" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+					<mx:VBox width="100%" height="100%">
+						<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+						        <mx:DataGrid id="resultSummary" width="100%" height="100%" dataProvider="{dProvider}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" headerRelease="dataGrid_headerRelease(event)">
+						            <mx:columns>
+							   		   <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+				               			<mx:DataGridColumn textAlign="center" draggable="false" headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.view')}" itemRenderer="com.nri.rui.nam.renderers.NamFeedDetailViewRenderer"  showDataTips="true"  visible="true" sortable="false"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.interfaceid')}"  sortable="true" dataField="interfaceId" sortCompareFunction="sortUtil.sortString" />
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.interfacename')}"  sortable="true" dataField="interfaceName" sortCompareFunction="sortUtil.sortString"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.officeid')}"  sortable="true" dataField="officeId" sortCompareFunction="sortUtil.sortString"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.srccomponent')}"  sortable="true" dataField="srcComponent" sortCompareFunction="sortUtil.sortString"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.xenosrefno')}"  sortable="true" dataField="xnsRefNo" sortCompareFunction="sortUtil.sortString" itemRenderer="com.nri.rui.nam.renderers.NamFeedDetailRenderer"  visible="true" />
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.feedtype')}"  sortable="true" dataField="feedType" sortCompareFunction="sortUtil.sortString"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.destinationsystem')}"  sortable="true" dataField="destinationSystem" sortCompareFunction="sortUtil.sortString"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.destsysrefno')}"  sortable="true" dataField="destSystemRefNo" sortCompareFunction="sortUtil.sortString"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.acceptancestatus')}"  sortable="true" dataField="acceptanceStatus" sortCompareFunction="sortUtil.sortString" itemRenderer="com.nri.rui.nam.renderers.AcceptanceStatusRenderer" />
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.errorid')}"  sortable="true" dataField="errorId" sortCompareFunction="sortUtil.sortString"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.errormsg')}" sortable="true"  dataField="errorMsg" sortCompareFunction="sortUtil.sortString"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.feedstatus')}"  sortable="true" dataField="status" sortCompareFunction="sortUtil.sortString"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.creationdate')}" sortable="true" dataField="creationDateStr" sortCompareFunction="sortUtil.sortString"/>
+						            </mx:columns>
+						         </mx:DataGrid>
+				       <mx:HBox width="100%" styleName="ButtonBackPanel" id="btn1">
+						 	<mx:Button id="okButton" label="OK" click="confirmData(event)" styleName="BtnStyle" enabled="true"/>
+					    	<mx:Button id="cancelButton" label="Cancel" click="removeNamPop(event)" styleName="BtnStyle"/>
+						</mx:HBox>
+					</mx:VBox>
+				 </mx:Canvas>
+				 <mx:Canvas id="confirmSummaryCanvas" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+					<mx:VBox width="100%" verticalGap="5" height="100%">
+						<cntrls:XenosErrors id="errPage1" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+						<mx:HBox id="hb1" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" visible="true" verticalAlign="middle" includeInLayout="true">
+				    		<mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+				    		<mx:Label text=" Transaction Completed Successfully." fontWeight="bold" selectable="true"/>
+				    	</mx:HBox>
+						        <mx:DataGrid id="confirmSummary" width="100%" height="100%" dataProvider="{dProvider}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto">
+						            <mx:columns>
+							   		   <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+				               			<mx:DataGridColumn textAlign="center" resizable="false" headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.view')}" itemRenderer="com.nri.rui.nam.renderers.NamFeedFileOpenRenderer"  showDataTips="true"  visible="true" sortable="false"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.interfaceid')}" sortable="true" dataField="interfaceId" />
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.interfacename')}" sortable="true" dataField="interfaceName"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.officeid')}" sortable="true" dataField="officeId"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.feedstatus')}" sortable="true" dataField="feedStatus"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.outputfilename')}" sortable="true" dataField="outputFileName"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.status')}" sortable="true" dataField="status"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.feedversionno')}" sortable="true" dataField="feedVersionNo"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.feedcreationdatetime')}" sortable="true" dataField="feedCreationDateTime"/>
+						               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.creationdate')}" sortable="true" dataField="creationDate"/>
+						            </mx:columns>
+						         </mx:DataGrid>
+						        <mx:HBox width="100%" styleName="ButtonBackPanel" id="btn2" >
+							 		<mx:Button id="okBtn" label="OK" click="removeAndRefresh(event)" styleName="BtnStyle"/>
+						     	</mx:HBox>
+					</mx:VBox>
+				 </mx:Canvas>
+			</mx:ViewStack>
+		</mx:VBox>
+</mx:TitleWindow>

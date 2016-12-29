@@ -1,0 +1,1898 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+
+
+-->
+
+<containers:XenosEntryModule xmlns:mx="http://www.adobe.com/2006/mxml" 
+							xmlns:containers="com.nri.rui.core.containers.*" 
+							xmlns:flexlib="http://code.google.com/p/flexlib/" 
+							xmlns:cntrls="com.nri.rui.core.controls.*" 
+							xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+							xmlns:frmtrs="com.nri.rui.core.formatters.*" 
+							xmlns:valdtrs="com.nri.rui.core.validators.*"
+							layout="vertical" 
+							percentWidth="100" 
+							percentHeight ="100" 
+							horizontalScrollPolicy="off" 
+							verticalScrollPolicy="off">
+    <mx:Script>
+    	<![CDATA[
+    		import com.nri.rui.core.Globals;
+    		import mx.resources.ResourceBundle;
+    	]]>
+    </mx:Script>
+	
+    <mx:Script source="actionscripts/TradeSpecialAmend.as"/>
+	 
+    <containers:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="entryState">
+            <mx:SetProperty target="{qry}" name="width" value="100%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="0%"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions>
+         					
+    <cntrls:XenosHTTPService id="backToFirstEntryScreenRequestForAmend" 
+         					url="trd/tradeEntryAmend.action?method=backtoInitialScreen" 
+         					fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         					result="loadFirstEntryScreenFromSecondHandler(event)" 
+         					showBusyCursor="true"/>
+         					
+    <frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+	<valdtrs:XenosNumberValidator id="numValQty" 
+									requiredFieldError=""
+    								invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.quantity.error')}" 
+							    	exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('trd.allowed.quqntity.digit.error')}" 
+    								negativeError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.quantity.error')}" 
+							    	separationError="" 
+							    	source="{quantity}" 
+							    	property="text" 
+        							allowNegative="false" 
+        							domain="real" 
+        							lowerThanMinError="" 
+        							maxValue="999999999999999" 
+        							minValue="" 
+        							invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.quantity.error')}" 
+        							decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.quantity.error')}" 
+        							precision="3" 
+        							precisionError="{this.parentApplication.xResourceManager.getKeyValue('trd.allowed.quqntity.precision.error')}" />
+        							
+    <valdtrs:XenosNumberValidator id="numValInputPrice" 
+									requiredFieldError=""
+    								invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.inputprice.error')}" 
+							    	exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('trd.allowed.inputprice.digit.error')}" 
+    								negativeError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.inputprice.error')}" 
+							    	separationError="" 
+							    	source="{inputPrice}" 
+							    	property="text" 
+        							allowNegative="false" 
+        							domain="real" 
+        							lowerThanMinError="" 
+        							maxValue="999999999" 
+        							minValue="" 
+        							invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.inputprice.error')}" 
+        							decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.inputprice.error')}" 
+        							precision="9" 
+        							precisionError="{this.parentApplication.xResourceManager.getKeyValue('trd.allowed.inputprice.precision.error')}" />
+        							
+            							
+    <valdtrs:XenosNumberValidator id="numValIssuePricingExchngRate" 
+									requiredFieldError=""
+    								invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.issuepricingexchangerate.error')}" 
+							    	exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('trd.allowed.issuepricingexchangerate.digit.error')}" 
+    								negativeError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.issuepricingexchangerate.error')}" 
+							    	separationError="" 
+							    	source="{issuePricingExchangeRate}" 
+							    	property="text" 
+        							allowNegative="false" 
+        							domain="real" 
+        							lowerThanMinError="" 
+        							maxValue="9999999999" 
+        							minValue="" 
+        							invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.issuepricingexchangerate.error')}" 
+        							decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.issuepricingexchangerate.error')}" 
+        							precision="10" 
+        							precisionError="{this.parentApplication.xResourceManager.getKeyValue('trd.allowed.issuepricingexchangerate.precision.error')}" />
+        							
+          							
+    <valdtrs:XenosNumberValidator id="numValAccrDays" 
+									requiredFieldError=""
+    								invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.acrdays.error')}" 
+							    	exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('trd.allowed.acrdays.digit.error')}" 
+    								negativeError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.acrdays.error')}" 
+							    	separationError="" 
+							    	source="{accrDays}" 
+							    	property="text" 
+        							allowNegative="false" 
+        							domain="real" 
+        							lowerThanMinError="" 
+        							maxValue="99999" 
+        							minValue="" 
+        							invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.acrdays.error')}" 
+        							decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.acrdays.error')}" 
+        							precision="0" 
+        							precisionError="{this.parentApplication.xResourceManager.getKeyValue('trd.allowed.acrdays.precision.error')}" />
+    
+      <!--Negative Tax Fee Amount is allowed according to the discussion on XGA-1122-->    							
+    <valdtrs:XenosNumberValidator id="numValTaxAmt" 
+									requiredFieldError=""
+    								invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.taxamnt.error')}" 
+							    	exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('trd.allowed.taxamnt.digit.error')}"
+							    	separationError="" 
+							    	source="{taxAmountTxt}" 
+							    	property="text"
+        							domain="real"  
+        							allowNegative="true"
+        							lowerThanMinError="" 
+        							maxValue="9999999999" 
+        							minValue="-9999999999" 
+        							invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.taxamnt.error')}" 
+        							decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('trd.invalid.taxamnt.error')}" 
+        							precision="3" 
+        							precisionError="{this.parentApplication.xResourceManager.getKeyValue('trd.allowed.taxamnt.precision.error')}" />
+        							
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%">
+	<mx:ViewStack id="vstack" width="100%" height="100%" creationComplete="loadAll()" creationPolicy="all">
+		
+		<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto" >
+		<mx:VBox label="Entry Criteria" width="100%" height="100%">
+			<mx:Label id="initLabel" text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.entry')}" fontWeight="bold"/>
+			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+			<mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+			<mx:VBox id="amendRefNoBox" label="Trade Amend" width="100%" visible="false" includeInLayout="false">
+				<mx:Grid width="100%" borderThickness="1" horizontalGap="0" verticalGap="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="15%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.referenceno')}" fontWeight="bold"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="90%" borderThickness="0">
+                            <mx:Label id="amendRefNo" text="" fontWeight="bold"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                </mx:Grid>
+			</mx:VBox>
+			<mx:Grid width="100%" id="entryCriteria" borderThickness="0" visible="false" includeInLayout="false" >
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="15%" borderThickness="0">
+                            <mx:TextInput id="tradeTypeTxt" editable="false" width="100" visible="false" includeInLayout="false" enabled="false" disabledColor="0x000000"/>
+                        	<mx:TextInput id="tradeDateTxt" editable="false" width="100" visible="false" includeInLayout="false" enabled="false" disabledColor="0x000000"/>
+                        	<mx:TextInput id="buySellFlagTxt" editable="false" width="100" visible="false" includeInLayout="false" enabled="false" disabledColor="0x000000"/>
+                            <mx:TextInput id="fundAccNoTxt" editable="false" width="100" visible="false" includeInLayout="false" enabled="false" disabledColor="0x000000"/>
+                            <mx:TextInput id="brokerAccNoTxt" editable="false" width="100" visible="false" includeInLayout="false" enabled="false" disabledColor="0x000000"/>
+                        	<cntrls:XenosLabel id="brokerAccName" toolTip="{brokerAccName.text}" width="500"/>  
+                            <mx:TextInput id="securityCodeTxt" editable="false" width="100" visible="false" includeInLayout="false" enabled="false" disabledColor="0x000000"/>
+                            <mx:TextInput id="grossNetTypeTxt" editable="false" width="100" visible="false" includeInLayout="false" enabled="false" disabledColor="0x000000"/>
+                        	<mx:TextInput id="tradeCcyTxt" editable="false" width="100" visible="false" includeInLayout="false" enabled="false" disabledColor="0x000000"/>
+                        	<mx:ComboBox id="executionMethod" prompt="Select" labelField="label"/>
+                            <mx:TextInput id="issuePricingExchangeRate" editable="true" width="100"  /> 
+                         	<mx:ComboBox id="issuePricingCalculationType" prompt="Select" labelField="label"/>
+                         	<mx:ComboBox id="excouponFlag" prompt="Select" labelField="label"/>
+                        	<mx:ComboBox id="dirtyPriceFlag" prompt="Select" labelField="label"/>
+                        	<mx:ComboBox id="negativeAccruedInterestFlag" prompt="Select" labelField="label"/>
+                        	<mx:TextInput id="principalAmtInIssueCcy" editable="false" width="100" enabled="false" disabledColor="0x000000"/>
+                         	<mx:ComboBox id="taxFeeIdCombo" prompt="Select" labelField="label"/>
+	                        <mx:ComboBox id="taxRateTypeCombo" prompt="Select" labelField="label"/>
+	                        <mx:TextInput id="taxAmountTxt" editable="true" width="100"/>
+                            <mx:ComboBox id="cxlRsnCode" labelField="label" prompt="Select"/>
+                            <mx:Label id="remarksLbl" text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.remarks')}"/>
+                            <mx:TextInput id="remarksForReports" editable="true" width="100%" maxChars="255"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                </mx:Grid>
+                
+			<mx:HBox width="100%" id="firstSubmitPanel" styleName="ButtonBackPanel" visible="false" includeInLayout="false">
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" 
+   	           						id="submit" 
+   	           						styleName="BtnStyle" 
+   	           						click="doSubmit();" />
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" 
+               				styleName="BtnStyle" 
+               				click ="doReset();"/>
+               <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="upBack" styleName="BtnStyle" click="doEntryBack()"/>
+	        </mx:HBox>
+	        
+	        <mx:VBox width="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+	        	<flexlib:WindowShade id="ws1" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws1" tabChildren="{ws1.opened=true}" styleName="linkButtonWindowShade" opened="true" label="{this.parentApplication.xResourceManager.getKeyValue('trd.fund.tradeentryaction.label.accountinfo')}" width="100%" >
+				    <mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label id="fundCode" text="" click="showFundCode()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.securityCode')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label id="securityCode" text="" click="showInstrumentDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.detail.tradeentryaction.label.accountno')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label id="fundAccNo" text="" click="showInventoryAccountDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.alternatesecuritycode')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label id="altSecCode" text="" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.fundaccountsname')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<cntrls:XenosLabel id="fundAccName" text="" selectable="true" isWrapReq="true" width="300"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.securityname')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<cntrls:XenosLabel id="secName" text="" selectable="true" isWrapReq="true" width="300"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.fund.label.fundname')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label id="fundName" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text=""/>
+							</mx:GridItem>
+						</mx:GridRow>
+					</mx:Grid>
+		    	</flexlib:WindowShade>
+		    	<flexlib:WindowShade id="ws5" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws5" tabChildren="{ws5.opened=true}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradeinformation')}" width="100%" >
+		    	<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.refno')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="refNo" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradestatus')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="status" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradetype')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="tradeType" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.buysellflag')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="buySellFlag" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.matchstatus')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="matchStatus" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.brokeraccountno')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="accNo" text="" click="showAccountDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.counterpartyname')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="cpName" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.brokerogcode')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="brokerOgCode" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.principalagentflag')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="principalAgentFlag" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradedate')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="tradeDate" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradetime')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="tradeTime" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.valuedate')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="valueDate" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.inputprice')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="inputPrice" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.grossnettype')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="grossNetType" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.inputpriceformat')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="inputPriceFormat" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.yieldpriceconvtype')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="yieldPriceConvType" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradecurrency')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="tradeCcy" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.settlementccy')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="stlCcy" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.issuecurrency')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="issueCcy" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.exchangerate')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="exchngRate" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.issueexchangerate')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="exchngRateIssuePricing" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.price')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="price" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.quantity')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="quantity" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.principalamount')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="principalAmt" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.principalamountissuecurrency')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="principalAmtInIssue" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.currentfacevalue')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="currentFaceValue" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.accrdintramt')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="accrIntAmt" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.interestrate')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="interestAmt" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.accstartdate')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="accrStartDate" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.totaltaxfeeandcomm')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="totalTaxFee" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.accrueddays')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="accrDays" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.netamount')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="netAmt" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.netamountintradingcurrency')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="netAmtInTrdCcy" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.poolfactor')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="poolFactor" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>					
+	      </mx:Grid>
+    	</flexlib:WindowShade>
+		
+	        	<mx:Grid id="specialAmendCriteria" width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="15%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.orderreferenceno')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="19%" borderThickness="0">
+                            <mx:TextInput id="omsOrderNo" editable="true" width="100" restrict="{Globals.INPUT_PATTERN}" maxChars="32"/>
+                        </mx:GridItem> 
+                        <mx:GridItem width="15%" borderThickness="0">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.brokerreferenceno')}"/>
+	                    </mx:GridItem>
+                        <mx:GridItem width="18%" borderThickness="0">
+                        	<mx:TextInput id="brokerRefNo" editable="true" width="100" restrict="{Globals.INPUT_PATTERN}" maxChars="20"/>
+                        </mx:GridItem> 
+                        <mx:GridItem width="15%" borderThickness="0">
+                        	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.etcrefno')}"/>
+	                    </mx:GridItem>
+                        <mx:GridItem width="18%" borderThickness="0">
+                        	<mx:TextInput id="ogRefNo" editable="true" width="100" restrict="{Globals.INPUT_PATTERN}" maxChars="48"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+	        		<mx:GridRow width="100%">
+                        <mx:GridItem width="15%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.extrefno')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="19%" borderThickness="0">
+                            <mx:TextInput id="omsExecutionNo" editable="true" width="100" restrict="{Globals.INPUT_PATTERN}" maxChars="48"/>
+                        </mx:GridItem>  
+                        <mx:GridItem width="15%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.matchingsupressflag')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="18%" borderThickness="0">
+                        	<mx:ComboBox id="matchingSuppressFlag" prompt="Select" labelField="label"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="15%" borderThickness="0">
+                           <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.specialamend.label.origin.datasrc')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="19%" borderThickness="0" styleName="ReqdLabel">
+                            <mx:ComboBox id="originalDataSource" prompt="Select" labelField="label"/>
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                     <mx:GridRow width="100%">
+                        <mx:GridItem width="15%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.directedbrokerflag')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="19%" borderThickness="0">
+                            <mx:ComboBox id="directedBrokerFlag" prompt="Select" labelField="label"/>
+                        </mx:GridItem> 
+                        <mx:GridItem width="15%" borderThickness="0">
+                             <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.directedbroker')}" />
+                       </mx:GridItem>
+                        <mx:GridItem width="18%" borderThickness="0">
+                        	<mx:TextInput id="directedBroker" editable="true" width="100" restrict="{Globals.INPUT_PATTERN}" maxChars="48"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="15%" borderThickness="0">
+                        	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.softdollarflag')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="18%" borderThickness="0">
+                        <mx:ComboBox id="softDollarFlag" labelField="label" prompt="Select"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+	        	</mx:Grid>
+				<flexlib:WindowShade id="ws2" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws2" tabChildren="{ws2.opened=true}" styleName="linkButtonWindowShade" label="More{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradeinformation')}" width="100%" >
+					<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+						<mx:GridRow width="100%">
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.externalrefno')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="extRefNo" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								
+							</mx:GridItem>
+							<mx:GridItem width="18%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.basketid')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="basketId" text="" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.projectNo')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="projectNo" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.executionmarket')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="execMarket" text="" click="showFinInstPopUp()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="18%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.executionmethod')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="execMethod" text="" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.datasource')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="dataSrc" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="18%" styleName="LabelBgColor">
+								<mx:Label text="" styleName="FormLabelHeading" visible="false" includeInLayout="false" /> <!-- XGA-105 -->
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label text="" selectable="true" visible="false" includeInLayout="false"/> <!-- XGA-105 id="uConfShortSellFlag" -->
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="" styleName="FormLabelHeading" /> <!-- XGA-105 -->
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label text="" selectable="true"/> <!-- XGA-105 id="uConfShortSellExemptFlag" -->
+							</mx:GridItem>
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.startendtype')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="startEndType" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="18%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.excouponflag')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="exCouponFlag" text="" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.dirtypriceflag')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label />
+							</mx:GridItem>
+							<mx:GridItem width="18%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.stipulation')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="stipulation" text="" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.senderrefno')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="senderRefNo" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.negetiveaccruflag')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="negAccIntFlag" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="18%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tipsadjustprice')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="tipsAdjustPrice" text="" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tipsindexaccruedinitdate')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="tipsIndexAccruedInitDate" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tipsIndexValueDate')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="tipsIndexVd" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="18%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.prefiguredprincipalflag')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="prefiguredPrincipalFlag" text="" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.stepinoutflag')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="stepInOutFlag" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label />
+							</mx:GridItem>
+							<mx:GridItem width="18%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradematchtype')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="trdMatchType" text="" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.trdconfirm')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="trdConfReqd" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.excludefromnetting')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="excludeFromNetting" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="18%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.traceEligbility')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="traceEligibleFlag" text="" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.formT')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="formTEligibleFlag" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.forwardrepoflag')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="fwrdRepoFlag" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="18%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.remarksforreports')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<cntrls:XenosLabel id="reportForRemarks" text="" selectable="true" isWrapReq="true" width="180"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.affirmsuppressflag')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="affirmSppressFlag" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="17%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.instructionsuppressflag')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="instructionSuppressFlag" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="18%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.matchexclusionflag')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="16%">
+								<mx:Label id="matchExclusionFlag" text="" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>			
+					  </mx:Grid>
+				</flexlib:WindowShade>
+				<flexlib:WindowShade id="taxFeeBlock" label="Tax-Fee" width="100%" styleName="linkButtonWindowShade" tabChildren="{taxFeeBlock.opened}" opened="true">
+					<mx:HBox width="100%">
+						<mx:Box width="100%" paddingRight="1">
+							<mx:DataGrid id="taxFeeGrid" dataProvider="{tax}" width="100%" rowCount="{tax.length}">
+								<mx:columns> 
+								   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.taxfeeid')}" dataField="taxFeeId"/>
+								   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.taxrate')}" dataField="rate"/>
+								   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.taxratetype')}" dataField="rateType"/>
+								   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.taxamount')}" dataField="amountStr"/>
+								</mx:columns>
+							</mx:DataGrid>
+						</mx:Box>
+					</mx:HBox>
+	        	</flexlib:WindowShade>
+				<flexlib:WindowShade id="ssiBlock" label="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.ssiheader')}" tabChildren="{ssiBlock.opened}" styleName="linkButtonWindowShade" width="100%" opened="true">
+	        		<mx:Grid width="100%" borderThickness="1" verticalGap="0" horizontalGap="0" horizontalScrollPolicy="auto">
+	                    <mx:GridRow width="100%">
+	                        <mx:GridItem width="8%" borderThickness="1">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.cashsecurityflag')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="8%" borderThickness="1">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.brokerbic')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="8%" borderThickness="1">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.acronym')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="8%" borderThickness="1">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.popup.instrumentsearch.label.instrumenttype')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="4%" borderThickness="1">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.ccy')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="8%" borderThickness="1">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.settlementtype')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.bankname')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.contraid')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.dtcparticipantnumber')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.cpexternalsettlementeact')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.priority')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.placeofsettlement')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem borderThickness="1">
+	                            <mx:Label width="7%" text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.participantid')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem borderThickness="1">
+	                            <mx:Label width="7%" text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.participantid2')}"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem borderThickness="1"/>
+	                    </mx:GridRow>
+	                    <mx:GridRow width="100%">
+	                        <mx:GridItem width="8%" borderThickness="1">
+	                            <mx:Label id="cashSecFlagSec" text=""/>
+	                            <mx:Label id="statusSec" text="" visible="false" includeInLayout="false"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="8%" borderThickness="1">
+	                            <mx:Label id="brokerBicSec" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="8%" borderThickness="1">
+	                            <mx:Label id="acronymSec" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="8%" borderThickness="1">
+	                            <mx:Label id="securityTypeSec" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="4%" borderThickness="1">
+	                            <mx:Label id="ccySec" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="8%" borderThickness="1">
+	                            <mx:Label id="stlTypeSec" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="bankNameSec" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="contraIdSec" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="dtcPartNoSec" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="dtcExtStlAccSec" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="prioritySec" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="placeOfStlSec" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="partIdSec" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="partId2Sec" text=""/>
+	                        </mx:GridItem>
+	                        
+	                    </mx:GridRow>
+	                    <mx:GridRow width="100%">
+	                        <mx:GridItem width="8%" borderThickness="1">
+	                            <mx:Label id="cashSecFlagCash" text=""/>
+	                            <mx:Label id="statusCash" text="" visible="false" includeInLayout="false"/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="8%" borderThickness="1">
+	                            <mx:Label id="brokerBicCash" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="8%" borderThickness="1">
+	                            <mx:Label id="acronymCash" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="8%" borderThickness="1">
+	                            <mx:Label id="securityTypeCash" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="4%" borderThickness="1">
+	                            <mx:Label id="ccyCash" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="8%" borderThickness="1">
+	                            <mx:Label id="stlTypeCash" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="bankNameCash" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="contraIdCash" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="dtcPartNoCash" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="dtcExtStlAccCash" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="priorityCash" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="placeOfStlCash" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="partIdCash" text=""/>
+	                        </mx:GridItem>
+	                        <mx:GridItem width="7%" borderThickness="1">
+	                            <mx:Label id="partId2Cash" text=""/>
+	                        </mx:GridItem>
+	                    </mx:GridRow>
+		        	</mx:Grid>
+	        	</flexlib:WindowShade>
+	        	
+	        	<mx:HBox width="100%" styleName="ButtonBackPanel">
+	   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" 
+	   	           						id="submitAddlEntry" 
+	   	           						styleName="BtnStyle" 
+	   	           						click="doSubmit();" />
+	               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" 
+	               				styleName="BtnStyle" 
+	               				click ="doReset();"/>
+	               <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="back" styleName="BtnStyle" click="doEntryBack()"/>
+		        </mx:HBox>
+	        </mx:VBox>
+		</mx:VBox>
+		</mx:Canvas>
+				
+		<mx:VBox width="100%" height="100%" id="rslt" 
+			horizontalScrollPolicy="auto" verticalScrollPolicy="auto" styleName="HDivideStyle" >			
+	         <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.entry.user.conf')}" fontWeight="bold" id="uConfLabel"/>
+	         <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.entry.system.conf')}" fontWeight="bold" id="sConfLabel" includeInLayout="false" visible="false"/>
+	         <mx:HBox id="hb"  styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" visible="false" verticalAlign="middle" includeInLayout="false">           
+	            <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+	            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.label.confirm.txn')}  {this.parentApplication.xResourceManager.getKeyValue('inf.label.refno')} : {uConfRefNo.text}" fontWeight="bold" selectable="true"/>  
+	         </mx:HBox>
+	         <cntrls:XenosErrors id="usrConfErrPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+	         <mx:VBox width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off"  styleName="HDivideStyle">
+	         	
+		    	<flexlib:WindowShade id="ws11" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws11" tabChildren="{ws11.opened=true}" styleName="linkButtonWindowShade" opened="true" label="{this.parentApplication.xResourceManager.getKeyValue('trd.fund.tradeentryaction.label.accountinfo')}" width="100%" >
+				    <mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label id="uConfFundCode" text="" click="showFundCode()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.securityCode')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label id="uConfSecurityCode" text="" click="showInstrumentDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.detail.tradeentryaction.label.accountno')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label id="uConfFundAccNo" text="" click="showInventoryAccountDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.alternatesecuritycode')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label id="uConfAltSecCode" text="" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.fundaccountsname')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<cntrls:XenosLabel id="uConfFundAccName" text="" selectable="true" isWrapReq="true" width="300"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.securityname')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<cntrls:XenosLabel id="uConfSecName" text="" selectable="true" isWrapReq="true" width="300"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.fund.label.fundname')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label id="uConfFundName" text="" selectable="true"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+								<mx:Label text="" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="30%">
+								<mx:Label text=""/>
+							</mx:GridItem>
+						</mx:GridRow>
+					</mx:Grid>
+		    	</flexlib:WindowShade>
+		    	<flexlib:WindowShade id="ws55" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws55" tabChildren="{ws55.opened=true}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradeinformation')}" width="100%" >
+		    	<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.refno')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfRefNo" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradestatus')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfStatus" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradetype')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfTradeType" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.buysellflag')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfBuySellFlag" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.matchstatus')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfMatchStatus" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.brokeraccountno')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfAccNo" text="" click="showAccountDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.counterpartyname')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfCpName" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.brokerogcode')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfBrokerOgCode" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.principalagentflag')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfPrincipalAgentFlag" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradedate')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfTradeDate" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradetime')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfTradeTime" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.valuedate')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfValueDate" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.inputprice')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfInputPrice" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.grossnettype')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfGrossNetType" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.inputpriceformat')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfInputPriceFormat" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.yieldpriceconvtype')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfYieldPriceConvType" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradecurrency')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfTradeCcy" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.settlementccy')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfStlCcy" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.issuecurrency')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfIssueCcy" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.exchangerate')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfExchngRate" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.issueexchangerate')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfExchngRateIssuePricing" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.price')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfPrice" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.quantity')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfQuantity" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.principalamount')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfPrincipalAmt" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.principalamountissuecurrency')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfPrincipalAmtInIssue" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.currentfacevalue')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfCurrentFaceValue" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.accrdintramt')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfAccrIntAmt" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.interestrate')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfInterestAmt" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.accstartdate')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfAccrStartDate" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.totaltaxfeeandcomm')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfTotalTaxFee" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.accrueddays')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfAccrDays" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.netamount')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfNetAmt" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.netamountintradingcurrency')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfNetAmtInTrdCcy" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.poolfactor')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfPoolFactor" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%"  >
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.remarks')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<cntrls:XenosLabel id="uConfRemarks" text="" selectable="true" isWrapReq="true" width="180"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%" >
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_regi_date')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfEntryDate" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_upd_date')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfLastEntryDate" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%" >
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.created_by')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfCreatedBy" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.updated_by')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfUpdatedBy" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%" >
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.creation_date')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfCreationDate" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.update_date')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfUpdateDate" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label text=""/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%"  >
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.orderreferenceno')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfOmsOrderNo" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.brokerreferenceno')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfBrokerRefNo" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.etcrefno')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfOgRefNo" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%"  >
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.extrefno')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfOmsExecNo" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.matchingsupressflag')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfMatchingSuppressFlag" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.specialamend.label.origin.datasrc')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfOriginalDataSource" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%"  >
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.directedbrokerflag')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfDirectedBrokerFlag" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="17%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.directedbroker')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfDirectedBroker" text="" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="18%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.softdollarflag')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="16%">
+							<mx:Label id="uConfSoftDollarFlag" text="" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+	      </mx:Grid>
+    	</flexlib:WindowShade>		    	
+    	<flexlib:WindowShade id="ws22" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws22" tabChildren="{ws22.opened=true}" styleName="linkButtonWindowShade" label="More{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradeinformation')}" width="100%" >
+    	<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+    		<mx:GridRow width="100%">
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.externalrefno')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfExtRefNo" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					
+				</mx:GridItem>
+				<mx:GridItem width="18%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.basketid')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfBasketId" text="" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.projectNo')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfProjectNo" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.executionmarket')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfExecMarket" text="" click="showFinInstPopUp()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="18%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.executionmethod')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfExecMethod" text="" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.datasource')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfDataSrc" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="18%" styleName="LabelBgColor">
+					<mx:Label text="" styleName="FormLabelHeading" visible="false" includeInLayout="false" /> <!-- XGA-105 -->
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label text="" selectable="true" visible="false" includeInLayout="false"/> <!-- XGA-105 id="uConfShortSellFlag" -->
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="" styleName="FormLabelHeading" /> <!-- XGA-105 -->
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label text="" selectable="true"/> <!-- XGA-105 id="uConfShortSellExemptFlag" -->
+				</mx:GridItem>
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.startendtype')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfStartEndType" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="18%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.excouponflag')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfExCouponFlag" text="" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.dirtypriceflag')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfDirtyPriceFlag" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label />
+				</mx:GridItem>
+				<mx:GridItem width="18%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.stipulation')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfStipulation" text="" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.senderrefno')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfSenderRefNo" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.negetiveaccruflag')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfNegAccIntFlag" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="18%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tipsadjustprice')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfTipsAdjustPrice" text="" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tipsindexaccruedinitdate')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConftipsIndexAccruedInitDate" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tipsIndexValueDate')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfTipsIndexVd" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="18%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.prefiguredprincipalflag')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfprefiguredPrincipalFlag" text="" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.stepinoutflag')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfStepInOutFlag" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label />
+				</mx:GridItem>
+				<mx:GridItem width="18%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.tradematchtype')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfTrdMatchType" text="" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.trdconfirm')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfTrdConfReqd" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.excludefromnetting')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfExcludeFromNetting" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="18%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.traceEligbility')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfTraceEligibleFlag" text="" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.formT')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfformTEligibleFlag" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.forwardrepoflag')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfFwrdRepoFlag" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="18%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.remarksforreports')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<cntrls:XenosLabel id="uConfReportForRemarks" text="" selectable="true" isWrapReq="true" width="180"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.affirmsuppressflag')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfAffirmSppressFlag" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="17%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.instructionsuppressflag')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfInstructionSuppressFlag" text="" selectable="true"/>
+				</mx:GridItem>
+				<mx:GridItem width="18%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.matchexclusionflag')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="16%">
+					<mx:Label id="uConfMatchExclusionFlag" text="" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>			
+		  </mx:Grid>
+    	</flexlib:WindowShade>
+	    <flexlib:WindowShade id="ws3" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws3" tabChildren="{ws3.opened=true}" styleName="linkButtonWindowShade" opened="false" label="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.taxfee.header')}" width="100%" >
+    	<mx:HBox width="100%">
+    		<mx:Box width="100%" paddingRight="1">
+	    		<mx:DataGrid id="uConfTaxFeeGrid" dataProvider="{tax}" width="100%" rowCount="{tax.length}" visible="false" includeInLayout="false">
+					<mx:columns>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.taxfeeid')}" dataField="taxFeeId"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.taxrate')}" dataField="rate"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.taxratetype')}" dataField="rateType"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.taxamount')}" dataField="amountStr"/>
+					</mx:columns>
+				</mx:DataGrid>
+        	</mx:Box>
+		</mx:HBox>
+        </flexlib:WindowShade>
+        <flexlib:WindowShade id="ws6" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws6" tabChildren="{ws6.opened=true}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.ssiheader')}" width="100%" >
+        	<mx:Grid id="viewSsiNotForCancel" width="100%" verticalGap="0" horizontalGap="0">
+        		<mx:GridRow width="100%">
+        		    <mx:GridItem width="8%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.cashsecurityflag')}" styleName="FormLabelHeading"/>
+					</mx:GridItem>
+					<mx:GridItem width="8%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.brokerbic')}" styleName="FormLabelHeading"/>
+					</mx:GridItem>
+					<mx:GridItem width="8%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.acronym')}" styleName="FormLabelHeading"/>
+					</mx:GridItem>
+					<mx:GridItem width="8%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.popup.instrumentsearch.label.instrumenttype')}" styleName="FormLabelHeading"/>
+					</mx:GridItem>
+					 <mx:GridItem width="4%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.ccy')}" styleName="FormLabelHeading"/>
+					</mx:GridItem>
+					<mx:GridItem width="8%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.settlementtype')}" styleName="FormLabelHeading"/>
+					</mx:GridItem>
+					<mx:GridItem width="7%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.bankname')}" styleName="FormLabelHeading"/>
+					</mx:GridItem>
+				    <mx:GridItem width="7%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.contraid')}" styleName="FormLabelHeading"/>
+					</mx:GridItem>
+					<mx:GridItem width="7%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.dtcparticipantnumber')}" styleName="FormLabelHeading"/>
+					</mx:GridItem>
+					<mx:GridItem width="7%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.cpexternalsettlementeact')}" styleName="FormLabelHeading"/>
+					</mx:GridItem>
+					<mx:GridItem width="7%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.priority')}" styleName="FormLabelHeading"/>
+					</mx:GridItem>
+					<mx:GridItem width="7%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.placeofsettlement')}" styleName="FormLabelHeading"/>
+					</mx:GridItem>
+					<mx:GridItem width="7%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.participantid')}" styleName="FormLabelHeading"/>
+					</mx:GridItem>
+					<mx:GridItem width="7%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.participantid2')}" styleName="FormLabelHeading"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+				   <mx:GridItem width="8%" borderThickness="1">
+                        <mx:Label id="uConfCashSecFlagSec" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="8%" borderThickness="1">
+                        <mx:Label id="uConfBrokerBicSec" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="8%" borderThickness="1">
+                        <mx:Label id="uConfAcronymSec" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="8%" borderThickness="1">
+                        <mx:Label id="uConfSecurityTypeSec" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="4%" borderThickness="1">
+                        <mx:Label id="uConfCcySec" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="8%" borderThickness="1">
+                        <mx:Label id="uConfStlTypeSec" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfBankNameSec" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfContraIdSec" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfDtcPartNoSec" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfDtcExtStlAccSec" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfPrioritySec" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfPlaceOfStlSec" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfPartIdSec" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfPartId2Sec" text=""/>
+                    </mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="8%" borderThickness="1">
+                        <mx:Label id="uConfCashSecFlagCash" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="8%" borderThickness="1">
+                        <mx:Label id="uConfBrokerBicCash" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="8%" borderThickness="1">
+                        <mx:Label id="uConfAcronymCash" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="8%" borderThickness="1">
+                        <mx:Label id="uConfSecurityTypeCash" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="4%" borderThickness="1">
+                        <mx:Label id="uConfCcyCash" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="8%" borderThickness="1">
+                        <mx:Label id="uConfStlTypeCash" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfBankNameCash" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfContraIdCash" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfDtcPartNoCash" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfDtcExtStlAccCash" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfPriorityCash" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfPlaceOfStlCash" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfPartIdCash" text=""/>
+                    </mx:GridItem>
+                    <mx:GridItem width="7%" borderThickness="1">
+                        <mx:Label id="uConfPartId2Cash" text=""/>
+                    </mx:GridItem>
+				</mx:GridRow>
+			</mx:Grid>
+			
+        </flexlib:WindowShade>
+	         </mx:VBox>
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+			   <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="backUsrConf" styleName="BtnStyle" click="doBack()"/>
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uConfSubmit" styleName="BtnStyle" click="doSave();" />
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.sysconfirm')}" id="sConfSubmit" styleName="BtnStyle" click="{this.mode == 'entry' ?  this.dispatchEvent(new Event('entrySysConf')) : this.dispatchEvent(new Event('amendEntrySysConf'))}" includeInLayout="false" visible="false"/>
+	        </mx:HBox>
+		</mx:VBox>
+	</mx:ViewStack>
+	
+    </mx:VBox>
+    </mx:Canvas>
+</containers:XenosEntryModule>

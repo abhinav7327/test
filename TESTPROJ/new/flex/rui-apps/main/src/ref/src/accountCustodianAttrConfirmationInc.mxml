@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:src="*">
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.utils.XenosPopupUtils;
+			import mx.core.UIComponent;
+			import mx.managers.PopUpManager;
+			import mx.collections.XMLListCollection;
+			import mx.controls.Alert;
+			import com.nri.rui.core.controls.XenosAlert;
+			import mx.controls.Label;
+			import mx.containers.TitleWindow;
+			import com.nri.rui.core.containers.SummaryPopup;
+     		import com.nri.rui.core.Globals;
+     		import mx.controls.CheckBox;
+     		import com.nri.rui.core.utils.XenosStringUtils;
+			import mx.utils.StringUtil;
+			
+			[Bindable]
+			private var xmlSource:XML;
+			
+			public function set setXml(value:XML):void
+			{
+				this.xmlSource = value;
+				if(this.xmlSource != null)
+				{
+					//visibleCounterParty();
+					//visibleAutoafmflag();
+				//	populateTradeTypeCategory();
+				//	ShowOrHideBankAccType();
+					ShowOrHideAutoAfmFlag();
+					ShowHideFundLink();
+					//lblBroker.setStyle("color",0x007ac8);
+			 		//lblBroker.setStyle("textDecoration","underline");
+				}
+			}
+			
+			/* private function visibleAutoafmflag():void
+			{
+				if(xmlSource.account.accountType == 'S')
+					gridAutoafmflag.visible = true;
+				else
+					gridAutoafmflag.visible = false;
+			} */
+			
+			/* private function visibleCounterParty():void
+			{
+				if(xmlSource.account.counterPartyDetailType == 'BANK/CUSTODIAN')
+					this.gridCounterParty.visible = true;
+				else
+					this.gridCounterParty.visible = false;
+			} */
+			
+			public function showFundCode():void{
+	   					
+				if(!XenosStringUtils.isBlank(xmlSource.bankAccount.fundPk)){
+					var fundPkStr : String = xmlSource.bankAccount.fundPk;
+					var parentApp :UIComponent = UIComponent(this.parentApplication);
+					//XenosAlert.info(fundPkStr.toString());
+					XenosPopupUtils.showFundCodeDetails(fundPkStr,parentApp);
+				}
+	   }
+			
+/* 			private function populateTradeTypeCategory():void
+			{
+				var lblTradeTypeCat:Label;
+				this.vboxTradeTypeCategoryData.removeAllChildren();
+				this.vboxTradeTypeCategoryLabel.removeAllChildren();
+				if(this.xmlSource.account.counterPartyType == 'INTERNAL')
+				{
+					for each(var item:XML in xmlSource.tradeTypeAccountRolePage.tradeTypeCategory)
+					{
+						lblTradeTypeCat = new Label();
+						lblTradeTypeCat.text =  item;
+						this.vboxTradeTypeCategoryData.addChild(lblTradeTypeCat);
+					}
+					var tradeTypeLabel:Label = new Label();
+					tradeTypeLabel.text = this.parentApplication.xResourceManager.getKeyValue('ref.account.label.tradetypecategory');
+					tradeTypeLabel.styleName = "FormLabelHeading";
+					this.vboxTradeTypeCategoryLabel.addChild(tradeTypeLabel);
+				}
+			} */
+			
+			private function openFinInstDetailPopup():void
+			{
+				var sPopup : SummaryPopup;
+				if(xmlSource.bankAccount.brokerCode!=null)
+				{	
+					sPopup = SummaryPopup
+            			(PopUpManager.createPopUp( UIComponent(this.parentApplication), SummaryPopup , true));
+					sPopup.title = this.parentApplication.xResourceManager.getKeyValue('ref.fininst.title') + " " + this.parentApplication.xResourceManager.getKeyValue('ref.fininst.label.fininstview');
+				//sPopup.title = "Financial Institution  View";
+					sPopup.width = parentApplication.width - 100;
+	    			sPopup.height = parentApplication.height - 100;
+					PopUpManager.centerPopUp(sPopup);
+					sPopup.moduleUrl = Globals.FININST_DETAILS_SWF+Globals.QS_SIGN+Globals.FININST_PK+Globals.EQUALS_SIGN+this.xmlSource.bankAccount.finInstRolePk;
+				}	
+			}
+			
+		private function displayDefaultBankAccountFlag():void
+			{
+				if(this.xmlSource != null)
+				{
+					if(xmlSource.bankAccount.counterPartyDetailType == 'BANK/CUSTODIAN'){
+						this.grDefaultBankAccountFlag.visible = true;
+						this.grDefaultBankAccountFlag.includeInLayout = true;
+						this.valDefaultBankAccount.text = xmlSource.defaultBankAccount;
+						//this.chkDefaultBankAccountFlag.selected = xmlSource.defaultBankAccountFlag as Boolean;						
+					}else{
+						visiblityDefaultBankAccount();
+					}
+					
+				}else{
+						visiblityDefaultBankAccount();
+				}
+			
+		}
+		private function visiblityDefaultBankAccount():void
+		 {
+			this.grDefaultBankAccountFlag.visible = false;
+			this.grDefaultBankAccountFlag.includeInLayout = false;
+		 }
+		
+/* 		private function ShowOrHideBankAccType():void
+			{
+				if(xmlSource.counterPartyDetailTypeExp == "FUND")
+					{
+						this.itemBankAccType.visible=false;
+						this.itemBankAccType.includeInLayout=false;
+					}
+			} */
+		private function ShowHideFundLink():void{
+			if(this.xmlSource != null && !XenosStringUtils.isBlank(this.xmlSource.bankAccount.fundPk))
+				{
+					fundpk.styleName="TextLink";
+					fundpk.useHandCursor= true;
+					fundpk.buttonMode= true;
+					fundpk.mouseChildren= false;
+					//XenosAlert.info("111");
+				}
+		}
+		private function ShowOrHideAutoAfmFlag():void
+			{
+				if(xmlSource.bankAccount.accountType == "S")
+					{
+						this.valAutoAfmFlag.text = xmlSource.autoAfmFlagExp;
+						this.labelAutoAfmFlag.visible=true;
+						this.labelAutoAfmFlag.includeInLayout=true;
+						this.valAutoAfmFlag.visible=true;
+						this.valAutoAfmFlag.includeInLayout=true;
+					}
+				else
+					{
+						this.labelAutoAfmFlag.visible=false;
+						this.labelAutoAfmFlag.includeInLayout=false;
+						this.valAutoAfmFlag.visible=false;
+						this.valAutoAfmFlag.includeInLayout=false;
+					}
+			}
+			
+		]]>
+	</mx:Script>
+	
+	<mx:Grid id="dispGrid" verticalGap="0" horizontalGap="0" width="100%" height="100%">
+			<mx:GridRow id="grDefaultBankAccountFlag" width="100%" updateComplete="displayDefaultBankAccountFlag()">
+				<mx:GridItem width="20%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.defaultbankaccount')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="30%">
+					<mx:Label id="valDefaultBankAccount" selectable="true"/>
+					<!--mx:CheckBox id="chkDefaultBankAccountFlag"/-->
+				</mx:GridItem>
+				<mx:GridItem width="20%" styleName="LabelBgColor">				
+				</mx:GridItem>
+				<mx:GridItem width="30%">				
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.activitystatus')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.activityStatus}" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label id="fundpk" text="{xmlSource.bankAccount.fundCode}"  click="showFundCode()" selectable="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.residentcountry')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.residentCountry}" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.contractcountry')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.contractCountry}" selectable="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.nationality')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.nationality}" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem id="itemBankAccType" width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.bankAccountType')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.bankAccountType}" selectable="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.accounttype')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccountTypeExp}" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.counterpartytype')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.counterPartyDetailTypeExp}" selectable="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+	
+		<mx:GridRow width="100%">
+			<!--
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.customercode')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.customerCode}"/>
+			</mx:GridItem>
+			-->
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.broker')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%" borderThickness="0">
+				<!--<mx:LinkButton id="lblBroker" labelPlacement="left" label="{xmlSource.account.brokerCode}" click="openFinInstDetailPopup()" />-->
+				<mx:Label id="lblBroker"  text="{xmlSource.bankAccount.brokerCode}" click="openFinInstDetailPopup()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text=""/>
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text=""/>
+			</mx:GridItem>
+		</mx:GridRow>
+		
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.lastactivitydate')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.lastActivityDateStr}" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.laststatementdate')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.lastStatementDateStr}" selectable="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.acopendate')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.accountOpenDateStr}" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.acopenby')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.accountOpenedBy}" selectable="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.accountupdatedate')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.accountUpdateDateStr}" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.accountupdatedby')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.accountUpdatedBy}" selectable="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.accountclosedate')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.accountCloseDateStr}" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.accountcloseby')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.accountClosedBy}" selectable="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.serviceoffice')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.otherAttributes.serviceOffice}" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.treatycode')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.treatyCode}" selectable="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.datasource')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.dataSource}" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text=""/>
+			</mx:GridItem>
+		</mx:GridRow>
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text=""/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label id="labelAutoAfmFlag" text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.autoafmflag')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label id="valAutoAfmFlag" text="" styleName="FormLabelHeading" />
+			</mx:GridItem>
+		</mx:GridRow>
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text=""/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" id="gridTradetypecategory" styleName="LabelBgColor">
+				<mx:VBox id="vboxTradeTypeCategoryLabel" verticalGap="0" horizontalGap="0">
+				</mx:VBox>
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:VBox id="vboxTradeTypeCategoryData" verticalGap="0" horizontalGap="0">
+				</mx:VBox>
+			</mx:GridItem>
+		</mx:GridRow>	
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.remarks')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:VBox verticalGap="0" horizontalGap="0">
+					<mx:Label text="{xmlSource.bankAccount.remarks1}" selectable="true"/>
+					<mx:Label text="{xmlSource.bankAccount.remarks2}" selectable="true"/>
+					<mx:Label text="{xmlSource.bankAccount.remarks3}" selectable="true"/>
+					<mx:Label text="{xmlSource.bankAccount.remarks4}" selectable="true"/>
+				</mx:VBox>				
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.memo')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.memo}" selectable="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.lastriskupdatedate')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.lastRiskUpdateDateStr}" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.customer.label.lastriskupdatedby')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.lastRiskUpdatedBy}" selectable="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_regi_date')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.appRegiDateStr}" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.created_by')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.createdBy}" selectable="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_upd_date')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.appUpdDateStr}" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.updated_by')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.updatedBy}" selectable="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.creation_date')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.creationDateStr}" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.update_date')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.updateDateStr}" selectable="true"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		<mx:GridRow width="100%">
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.status')}" styleName="FormLabelHeading" />
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text="{xmlSource.bankAccount.status}" selectable="true"/>
+			</mx:GridItem>
+			<mx:GridItem width="20%" styleName="LabelBgColor">
+				<mx:Label text=""/>
+			</mx:GridItem>
+			<mx:GridItem width="30%">
+				<mx:Label text=""/>
+			</mx:GridItem>
+		</mx:GridRow>
+		
+	</mx:Grid>
+</mx:Module>
+

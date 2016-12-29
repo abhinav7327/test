@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for GLE Balance Query Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" 
+    xmlns:containers="com.nri.rui.core.containers.*" 
+    xmlns:flexlib="http://code.google.com/p/flexlib/" 
+    xmlns:cntrls="com.nri.rui.core.controls.*" 
+    xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+    xmlns:glePopUp="com.nri.rui.gle.popupImpl.*"
+    percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" 
+    verticalScrollPolicy="off" creationComplete="loadAll()">
+    
+    <mx:Script>
+        <![CDATA[
+            import mx.utils.ObjectUtil;
+            import mx.utils.StringUtil;
+			import mx.containers.TitleWindow;
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.controls.advancedDataGridClasses.AdvancedDataGridColumn;
+			import mx.controls.CheckBox;
+			import mx.managers.PopUpManager;
+			
+			import com.nri.rui.core.controls.XenosAlert;
+			
+            /**
+            * 
+            */
+			private function changeCurrentState():void{
+				currentState = "result";
+				app.submitButtonInstance = null;
+			}
+        ]]>
+    </mx:Script>
+    <mx:Script source="actionscripts/GleBalanceQuery.as"/>
+    
+    <mx:states>
+        <mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </mx:states>
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+    
+  	<cntrls:XenosHTTPService id="initializeGleBalanceQuery" fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)" 
+             method="POST" useProxy="false" result="initPage(event)" showBusyCursor="true"/>	
+
+    <cntrls:XenosHTTPService id="gleBalanceQueryRequest" 
+         url="gle/gleBalanceQueryDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         result="loadSummaryPage(event)" showBusyCursor="true" resultFormat="xml">
+      <!--  <mx:request>
+            <method>doQuery</method>
+            <ledgerCodeFrom>{ledgerCodeFrom.gleCode.text}</ledgerCodeFrom>
+            <ledgerCodeTo>{ledgerCodeTo.gleCode.text}</ledgerCodeTo>
+            <currency>{ccyBox.ccyText.text}</currency>
+            <subLedgerCode>{subLedgerCode.accountNo.text}</subLedgerCode>
+            <balanceEntryDate>{balanceEntryDate.text}</balanceEntryDate>
+            <trialBalanceId>{trialBalancePopUp.trialBalanceId.text}</trialBalanceId>
+
+        </mx:request> -->
+    </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="gleBalanceResetQueryRequest" url="gle/gleBalanceQueryDispatch.action?method=initialExecute"
+        result="initPage(event)" showBusyCursor="true">
+    </cntrls:XenosHTTPService>
+    
+    <mx:Validator source="{ledgerCodeFrom}" required="true" property="text" />
+    <mx:Validator source="{balanceEntryDate}" required="true" property="text" />
+   
+    
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;" />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>    	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    	<mx:VBox width="100%" height="100%"> 
+			<mx:HDividedBox id="hdbox1" styleName="Padding4" width="100%" height="100%" liveDragging="true" creationComplete="initPageStart()">
+					<mx:VBox label="Query Criteria" width="100%" height="100%" id="qry" styleName="HDivideStyle" >
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+						<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+						<mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+						<mx:Grid width="100%" borderThickness="0">
+						
+						<mx:GridRow width="100%">
+	                		 <mx:GridItem width="20%" borderThickness="0">
+	               			     <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.trialbalanceid')}" />
+	               			 </mx:GridItem>
+	               			 <mx:GridItem width="30%" borderThickness="0">
+	              			      <!--<mx:ComboBox id="trialBalanceId" labelField="label"/>-->
+	                		    <xenospopup:TrialBalanceIdHBox id="trialBalancePopUp"/>
+	              			  </mx:GridItem>
+	              			  <mx:GridItem width="20%" borderThickness="0">
+					     <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.date')}" styleName="ReqdLabel" />
+					  </mx:GridItem>	
+					  	<mx:GridItem width="30%" borderThickness="0">
+					     <mx:HBox width="100%">
+					     <mx:DateField id="balanceEntryDate"  formatString="YYYYMMDD" editable="true" width="90"/>
+					   <!--<mx:DateField id="balanceEntryDateTo"  formatString="YYYYMMDD" editable="true" width="90"/>--> 
+					     </mx:HBox>
+        				</mx:GridItem>
+               			</mx:GridRow>		
+						
+                    		<mx:GridRow width="100%">
+                        		<mx:GridItem width="20%" borderThickness="0">
+                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.ledgercodefrom')}" styleName="ReqdLabel" />
+                        		</mx:GridItem>	
+							 	<mx:GridItem width="30%" borderThickness="0">
+							 		 <glePopUp:GleLedgerQueryPopUpHBox id="ledgerCodeFrom" />
+							 	</mx:GridItem>
+				                <mx:GridItem width="20%" borderThickness="0">
+                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.ledgercodeto')}" />
+                        		</mx:GridItem>	
+							 	<mx:GridItem width="30%" borderThickness="0">
+							 		 <glePopUp:GleLedgerQueryPopUpHBox id="ledgerCodeTo" />
+							 	</mx:GridItem>
+                        	</mx:GridRow>
+                        	<mx:GridRow width="100%">
+                        		<mx:GridItem width="20%" borderThickness="0">
+                        			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.ccy')}" />
+                        		</mx:GridItem>	
+							    <mx:GridItem width="30%" borderThickness="0">
+                        			<cntrls:CurrencyHBox id="ccyBox"/>
+                        		</mx:GridItem>
+                        		
+                        		
+                        	</mx:GridRow>
+                        	
+                        	
+                        </mx:Grid>		
+				<mx:Grid width="100%" borderThickness="0">
+                    
+                        <mx:GridRow width="100%">
+		          <mx:GridItem width="20%" borderThickness="0">
+		              <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.subledgercode')}" />
+		          </mx:GridItem>
+		          <mx:GridItem width="30%" borderThickness="0">
+		                 <xenospopup:AccountPopUpHbox id="subLedgerCode" 
+		                  retContextItem="{returnContextItem}" 
+		                  recContextItem="{populateContext()}" />
+                   	   </mx:GridItem> 
+
+                  <mx:GridItem width="30%" borderThickness="0">
+                        <mx:CheckBox label="{this.parentApplication.xResourceManager.getKeyValue('gle.label.consolidate')}" id="consolidateTB"/>
+                  </mx:GridItem>
+
+                   </mx:GridRow>
+                   <mx:GridRow width="100%">
+                         
+                   </mx:GridRow>
+             
+                </mx:Grid> 
+						
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="this.submitQuery();" />
+	           <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle"  click="this.resetQuery();"/>
+	        </mx:HBox>
+	        
+		</mx:VBox>
+		<mx:VBox width="0%" height="100%" id="rslt" styleName="HDivideStyle" horizontalScrollPolicy="off" verticalScrollPolicy="off" >		        		
+		    <cntrls:QueryResultHeaderForAdvancedDataGrid id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" />
+			   <!-- <mx:DataGrid id="resultSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" verticalScrollPolicy="auto" creationComplete="bindDataGrid()">
+			        <mx:columns> 
+	                    <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.gle.renderers.GlebalanceImgSummaryRenderer"/>    
+	                    <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.label.ccy')}" width="120" dataField="ccyId"  showDataTips="true" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.ledger_code_name')}" width="150" dataField="shortName"  showDataTips="true" itemRenderer="com.nri.rui.gle.renderers.TotalAmountRenderer" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.sub_ledger_code')}" width="120" dataField="subLedgerCode"  showDataTips="true" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.label.trialbalanceid')}" width="120" dataField="trialBalanceId"  id="trialbalance" showDataTips="true" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.lastactivitydate')}" dataField="lastActivityDateDisplay"  showDataTips="true" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.Debit') + ' ' + this.parentApplication.xResourceManager.getKeyValue('gle.journalqueryresultaction.label.amount')}" dataField="debitBalanceStr" textAlign="right"  showDataTips="true" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer" />
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.Credit') + ' ' + this.parentApplication.xResourceManager.getKeyValue('gle.journalqueryresultaction.label.amount')}" width="110" dataField="creditBalanceStr" textAlign="right"  showDataTips="true" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer" />
+							                          
+	                </mx:columns>
+			    </mx:DataGrid>-->
+			    <cntrls:XenosAdvancedDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="off" verticalScrollPolicy="auto" creationComplete="bindDataGrid()">
+					<cntrls:groupedColumns>
+						<mx:AdvancedDataGridColumn headerText="" width="100" minWidth="100" resizable="false" itemRenderer="com.nri.rui.gle.renderers.GlebalanceImgSummaryRenderer"/>    
+						<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.label.ccy')}" width="120" dataField="ccyId"  showDataTips="true" itemRenderer="com.nri.rui.core.renderers.NullValueRendererForAdvancedDataGrid" />
+						<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.ledger_code_name')}" width="150" dataField="shortName"  showDataTips="true" itemRenderer="com.nri.rui.gle.renderers.TotalAmountRenderer" />
+						<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.sub_ledger_code')}" width="120" dataField="subLedgerCode"  showDataTips="true" itemRenderer="com.nri.rui.core.renderers.NullValueRendererForAdvancedDataGrid" />
+						<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.label.trialbalanceid')}" width="120" dataField="trialBalanceId"  id="trialbalance" showDataTips="true" itemRenderer="com.nri.rui.core.renderers.NullValueRendererForAdvancedDataGrid" />
+						<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.lastactivitydate')}" dataField="lastActivityDateDisplay"  showDataTips="true" itemRenderer="com.nri.rui.core.renderers.NullValueRendererForAdvancedDataGrid" />
+						<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.journalqueryresultaction.label.amount')}">    
+							<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.Debit')}" dataField="debitBalanceStr" textAlign="right"  showDataTips="true" itemRenderer="com.nri.rui.core.renderers.NullValueRendererForAdvancedDataGrid" />
+							<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.Credit')}" width="110" dataField="creditBalanceStr" textAlign="right"  showDataTips="true" itemRenderer="com.nri.rui.core.renderers.NullValueRendererForAdvancedDataGrid" />
+						</mx:AdvancedDataGridColumnGroup>  											  
+					</cntrls:groupedColumns>
+				</cntrls:XenosAdvancedDataGrid>
+
+		</mx:VBox> 
+	</mx:HDividedBox>    
+   </mx:VBox>
+ </mx:Canvas> 
+</mx:Module>

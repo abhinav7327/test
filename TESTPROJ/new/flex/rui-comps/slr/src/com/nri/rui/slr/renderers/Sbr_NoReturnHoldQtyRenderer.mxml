@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TextInput xmlns:mx="http://www.adobe.com/2006/mxml" 
+              text="{data.holdQtyStr}" 
+              restrict="[0-9.]"               
+              focusOut="onFocusOut()"
+              creationComplete="onCreationComplete()"              
+              editable="{(data.selected=='true' || data.selected == true)? true:false}" paddingLeft="10">
+              
+    <mx:Script>
+        <![CDATA[
+        	import mx.utils.StringUtil;
+            import com.nri.rui.slr.Events.NoReturnChangeEvent;
+            import com.nri.rui.core.controls.XenosAlert;
+            
+            import mx.controls.DataGrid;
+            import mx.controls.Label;
+            import mx.events.FlexEvent;
+            import mx.controls.Text;
+            
+            private var currentId:Number;
+            
+            override public function set data(value:Object):void {
+                super.data = value;
+                currentId = data.rowNum;
+                text = data.holdQtyStr;
+            }        
+            
+            public function onFocusOut():void {
+                var textStr:String = this.parentDocument.dataFormatter.parseNumberString(String(this.text));
+                var temp:int ;
+                data.holdQtyStr = this.text;
+                if (textStr == null || isNaN(Number(textStr))) {
+                    XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('borrow.error.invalidholdquantity'), updateMe);
+                    return;
+                } else if (Number(textStr) < 0) {
+                    XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('borrow.error.invalidholdquantity'), updateMe);
+                    return;
+                } else if(Number(textStr) > Number(data.availableQty)) {
+                    XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('borrow.error.holdqty.greaterthan.availableqty'), updateMe);                    
+                    return;
+                } else {
+                    
+                    data.holdQty= textStr;
+                    this.text = data.holdQtyStr;                    
+                    
+                    data.returnQty = Number(data.availableQty) - Number(data.holdQty);
+										                                        
+                   	if((data.selected=='true' || data.selected == true)){
+                    	temp = textStr.indexOf(".",1)
+                    	if (temp > 0){
+                    		data.returnQtyStr = this.parentDocument.numberwithoutprecisin.format(data.returnQty);
+	                    	data.holdQtyStr = this.parentDocument.numberFormatter.format(textStr);	
+                    	}else{
+                    		data.returnQtyStr = this.parentDocument.numberwithoutprecisin.format(data.returnQty);
+	                    	data.holdQtyStr = this.parentDocument.numberwithoutprecisin.format(textStr);
+                    	}
+	                    
+                    }else{
+                    	 temp = data.returnQty.indexOf(".",1);
+                    	 
+	                     if (temp > 0){
+	                     	data.returnQtyStr = this.parentDocument.numberFormatter.format(data.returnQty);
+		                 }else{
+		                 	data.returnQtyStr = this.parentDocument.numberwithoutprecisin.format(data.returnQty);
+		                 }
+		                                    
+	                     data.holdQtyStr = textStr;
+                    }
+                    
+                    //trace("returnQtyStr" + data.returnQtyStr + " holdQtyStr " + data.holdQtyStr + " data.holdQty " + data.holdQty )
+                }
+                this.parentDocument.handleChangedData(data);
+                this.parentDocument.invalidateDisplayList();
+            }
+            private function onCreationComplete():void {
+                (listData.owner as DataGrid).addEventListener(NoReturnChangeEvent.HOLD_QTY_CHANGE_EVENT,handleHoldQtyChange);
+            }
+            private function handleHoldQtyChange(myChange:NoReturnChangeEvent):void {
+                if (myChange.rowNum != currentId) return;// Because this method will be called for all itemrendereres in all the rows.
+                this.data = myChange.itemValue;
+                //trace("HoldQuantityEventFired for " + currentId);
+                onFocusOut();            
+            }
+            override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void {
+                super.updateDisplayList(unscaledWidth, unscaledHeight);
+            }
+            
+            public function updateMe(event:Event):void {
+                //revert back to the original values
+                data.holdQtyStr = data.availableQtyStr.toString();
+                data.holdQty= data.availableQty.toString();                
+                this.text = data.holdQtyStr;                    
+                
+                data.returnQty = Number(data.availableQty) - Number(data.holdQty);
+                data.returnQtyStr = this.parentDocument.numberFormatter.format(data.returnQty);
+                
+                this.parentDocument.setFocusOnHoldQuantity();
+                
+                this.parentDocument.handleChangedData(data);
+                this.parentDocument.invalidateDisplayList();
+            }            
+        ]]>
+    </mx:Script>
+</mx:TextInput>

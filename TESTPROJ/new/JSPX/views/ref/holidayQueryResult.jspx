@@ -1,0 +1,92 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [
+				{name:"", field:"cnslAct", id:"cnslAct", width:30,formatter: Slick.Formatters.ConsolidateActFormater},
+				{name:"<spring:message code="ref.holiday.label.calendarid" htmlEscape="false"/>", field:"calendarId", id:"calendarId", sortable: true, width:150, formatter:Slick.Formatters.HolidayDetailViewFormatter},
+                {name:"<spring:message code="ref.holiday.label.calendarname" htmlEscape="false"/>", field:"name", id:"calendarName", sortable: true, width:152},
+                {name:"<spring:message code="ref.holiday.label.weekendpattern" htmlEscape="false"/>", field:"weekendPattern", id:"weekendPattern", width:150, sortable: false },
+                {name:"<spring:message code="ref.holiday.label.holidayyear" htmlEscape="false"/>", field:"year", cssClass: 'xenos-grid-number', id:"holidayYear", width:150, sortable:true},
+                {name:"<spring:message code="ref.holiday.label.noofholidays" htmlEscape="false"/>", field:"noOfHolidays", cssClass: 'xenos-grid-number', id:"noOfHolidays", width:150, sortable:true}
+            ];
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,	
+					xlsPref:true,
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+					url: '/secure/ref/holiday/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/ref/holiday/query/result.json?fetch=next',
+					prevPage : '/secure/ref/holiday/query/result.json?fetch=previous',
+					pdfReport: '/secure/ref/holiday/query/report.json?outputType=pdf',
+					xlsReport: '/secure/ref/holiday/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/ref/holiday/query/reportPref.json?outputType=xls'
+				}
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				rec.calendarPk= "<c:out value="${dl.calendarPk}" />";
+				rec.calendarId= "<c:out value="${dl.calendarId}"/>";
+                rec.name = "<c:out value="${dl.name}" />";
+                rec.weekendPattern = "<c:out value="${dl.weekendPattern}" />";
+                rec.year = "<c:out value="${dl.year}" />";
+                rec.noOfHolidays = "<c:out value="${dl.noOfHolidays}" />";
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+
+
+    <div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			  <a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'REFHMAM')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-amendIco.png" title="${record.actionName}" id="amend" status="ready" alt="Amend" /></c:when>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'REFHMCX')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}"  id="cancel" status="ready" alt="Cancel" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			  </a>
+		</c:forEach>	  
+	</div>	
+
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/ref/holidayQueryResult.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+</jsp:root>

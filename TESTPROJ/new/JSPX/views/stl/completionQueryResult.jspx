@@ -1,0 +1,182 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+	 xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:form="http://www.springframework.org/tags/form"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:jsp="http://java.sun.com/JSP/Page">
+	 
+<div class="formItemArea">
+	
+    <jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" /> 
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>	 
+	
+	<jsp:element name="script">
+				<jsp:attribute name="type">text/javascript</jsp:attribute>
+				<jsp:attribute name="src"><c:url value="/scripts/xenos.slick.checkboxselectcolumn.js"/></jsp:attribute>
+				<jsp:body></jsp:body>
+	</jsp:element>
+
+	<jsp:element name="script">
+				<jsp:attribute name="type">text/javascript</jsp:attribute>
+				<jsp:attribute name="src"><c:url value="/scripts/stl/xenos/completion.js"/></jsp:attribute>
+				<jsp:body></jsp:body>
+	</jsp:element>
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+            var pageNo = <c:out value="${pageNo}" />;	 
+            var grid_result_data = [];
+			  var grid_result_columns = [
+				{name:"<spring:message code="stl.stlqry.label.settlementrefno" htmlEscape="false"/>", field:"settlementReferenceNo",id:"settlementReferenceNo", width:178,sortable:true, formatter:Slick.Formatters.StlCompletionEditFormatter},
+				{name:"<spring:message code="stl.stlqry.label.valuedate" htmlEscape="false"/>", field:"valueDateStr",id:"valueDateStr", width:91,sortable:true},
+				{name:"<spring:message code="stl.label.settleac" htmlEscape="false"/>", field:"displayAccountNo",id:"displayAccountNo", width:178,sortable:true,formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'ourSettleAccountPk'}}, 
+				{name:"<spring:message code="stl.label.settleaccname" htmlEscape="false"/>", field:"accountName",id:"accountName", width:91,sortable:true},
+				{name:"<spring:message code="stl.label.securitycode" htmlEscape="false"/>", field:"instrumentCode",id:"instrumentCode", width:178,sortable:true,formatter:Slick.Formatters.InstrumentDetailViewFormater}, 
+				{name:"<spring:message code="stl.label.securityname" htmlEscape="false"/>", field:"securityName",id:"securityName",width:260,sortable:true},
+				{name:"<spring:message code="ref.common.label.alternatesecurityid" htmlEscape="false"/>", field:"displayAlternativeSecId",id:"displayAlternativeSecId",width:170,sortable:true},
+				{name:"<spring:message code="stl.stlqry.label.ccy" htmlEscape="false"/>", field:"ccyCode",id:"ccyCode",width:50,sortable:true},
+				{name:"<spring:message code="stl.label.ourbank" htmlEscape="false"/>", field:"ourBank",id:"ourBank",formatter:Slick.Formatters.FinInstDetailViewFormater,width:120,sortable:true},
+				{name:"<spring:message code="stl.label.ourbankname" htmlEscape="false"/>", field:"ourBankName",id:"ourBankName",width:110,sortable:true},
+				{name:"<spring:message code="stl.label.quantity" htmlEscape="false"/>", field:"quantityStr",id:"quantityStr",cssClass:'xenos-grid-number',width:110,sortable:true},
+				{name:"<spring:message code="stl.label.amount" htmlEscape="false"/>", field:"amountStr",id:"amountStr",cssClass:'xenos-grid-number',width:170,sortable:true},
+				{name:"<spring:message code="stl.label.instructionreferenceno" htmlEscape="false"/>", field:"instructionRefno",id:"instructionRefno",width:178,sortable:true},
+				{name:"<spring:message code="stl.label.reasoncode" htmlEscape="false"/>", field:"reasonCode",id:"reasonCode",width:110,sortable:true},
+				{name:"<spring:message code="stl.label.remarks1" htmlEscape="false"/>", field:"remarks1",id:"remarks1",width:110,sortable:true},
+				{name:"<spring:message code="stl.label.remarks2" htmlEscape="false"/>", field:"remarks2",id:"remarks2",width:110,sortable:true},
+
+             ];
+			var grid_result_settings = {
+				enableToolbar:true,
+				forceFitColumns:false,
+				consolidateActionFlag:true,
+				consolidateAttribute:{type:'check'},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					url: '/secure/stl/settlement/completion/query/count.json'
+				},
+				buttons:{
+						
+						
+					
+						
+					columnPicker:true,	
+					save:true	
+				},
+				urls:{
+					nextPage : '/secure/stl/settlement/completion/query/result.json?fetch=next',
+					prevPage : '/secure/stl/settlement/completion/query/result.json?fetch=previous'
+					
+				},
+				events:{
+					onDataUpdate : function(data,callback){
+					
+						for(i in data.value){
+							data.value[i].fundAccountPk = data.value[i].inventoryAccountPk;
+							data.value[i].settlementReferenceNo = data.value[i].settlementReferenceNo+"-"+data.value[i].versionNo;
+							data.value[i].finInstRolePk = data.value[i].ourBankPk;
+							data.value[i].ourSettleAccountPk = data.value[i].ourSettleAcPk;
+						}
+						callback(data);
+					}
+				},
+				afterRenderComplete: function(grid, formContainer){
+					var gridCtx = false;
+					
+					if(grid){
+						gridCtx = grid.getCanvasNode();
+						grid.onSort.subscribe(bindPageNavigationHandler);
+						grid.onRenderCompleted.subscribe(bindPageNavigationHandler);
+					}
+					
+					if(gridCtx){
+						bindPageNavigationHandler();												
+					}
+					
+					function bindPageNavigationHandler(){
+						$('.page-navigation-hyperlink',gridCtx).off('click');
+						$('.page-navigation-hyperlink',gridCtx).on('click', xenos.ns.views.completion.pageNavigationHandler);
+					}
+				},
+				 defaultInvisibleColumns: ["accountName", "ourBankName"]
+				
+			};
+
+	        var row_id = 0;			
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.commandFormId="${requestScope['commandFormId']}";
+				rec.id = "xenos_" + row_id;
+				
+				rec.clientSettlementInfoPk="<c:out value="${dl.clientSettlementInfoPk}" />";				
+				rec.instrumentPk = "<c:out value="${dl.instrumentPk}"/>";
+				rec.detailHistoryPk = "<c:out value="${dl.detailHistoryPk}"/>";
+				rec.ourSettleAccountPk = "<c:out value="${dl.ourSettleAcPk}"/>";
+				
+				rec.ccyPk = "<c:out value="${dl.ccyPk}" />";	                
+				rec.finInstRolePk = "<c:out value="${dl.ourBankPk}" />";	                
+				rec.settlementInfoPk= "<c:out value="${dl.settlementInfoPk}" />";
+				rec.settlementReferenceNo= "<c:out value="${dl.settlementReferenceNo}" />";
+				rec.valueDateStr= "<c:out value="${dl.valueDateStr}" />";
+				rec.displayAccountNo= "<c:out value="${dl.displayAccountNo}" />"; 
+				rec.accountName= "<c:out value="${dl.accountName}" />"; 
+				rec.instrumentCode= "<c:out value="${dl.instrumentCode}" />";
+				rec.ccyCode= "<c:out value="${dl.ccyCode}" />";
+				rec.displayAlternativeSecId= "<c:out value="${dl.displayAlternativeSecId}" />"; 
+				rec.ourBank= "<c:out value="${dl.ourBank}" />";
+				rec.securityName= "<c:out value="${dl.securityName}" />"; 
+				rec.ourBankName= "<c:out value="${dl.ourBankName}" />"; 
+				rec.quantityStr= "<c:out value="${dl.quantityStr}" />";
+				rec.amountStr= "<c:out value="${dl.amountStr}" />"; 
+				rec.instructionRefno= "<c:out value="${dl.instructionRefno}" />";
+			rec.reasonCode= "<c:out value="${dl.reasonCode}" />";
+				rec.remarks1= "<c:out value="${dl.remarks1}" />";
+		rec.remarks2= "<c:out value="${dl.remarks2}" />"; 
+				
+				
+				grid_result_data.push(rec);
+				
+				
+				
+			 </c:forEach>
+			 </xenos:out>
+        </jsp:body>
+    </jsp:element>
+
+	
+
+  
+		<jsp:element name="script">
+			<jsp:attribute name="type">text/javascript</jsp:attribute>
+			<jsp:attribute name="src"><c:url value="/scripts/stl/xenos/stlQueryConsolidation.js"/></jsp:attribute>
+			<jsp:body></jsp:body>
+		</jsp:element>
+	
+	
+  
+   <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            jQuery('.rightDockMenu').show();
+        </jsp:body>
+    </jsp:element>      
+</div>
+
+</jsp:root>

@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+		   xmlns:cntrls="com.nri.rui.core.controls.*"
+		   xmlns:containers="com.nri.rui.core.containers.*" 
+		   xmlns:flexlib="http://code.google.com/p/flexlib/"
+		   xmlns:frmtrs="com.nri.rui.core.formatters.*"
+		   xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+		   xmlns:utils="com.nri.rui.core.utils.*"
+		   layout="vertical" percentWidth="100" 
+		   percentHeight ="100" 
+		   horizontalScrollPolicy="off" 
+		   verticalScrollPolicy="off" 
+		   creationComplete="initPage()">
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.XMLListCollection;
+			import com.nri.rui.core.Globals;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.rpc.events.ResultEvent;
+			import mx.containers.FormItem;
+			import mx.containers.Form;
+			import mx.controls.Alert;
+			import mx.collections.ArrayCollection;
+			import com.nri.rui.core.utils.XenosStringUtils;		
+			import com.nri.rui.core.controls.XenosAlert;
+			import flash.events.*;
+			
+			private function initPage():void {
+				//filePath.setFocus();
+				fc.btnUpload.addEventListener(MouseEvent.CLICK, openPopup);
+			}
+			
+			private function getLabelFromBody(item:Object,column : DataGridColumn):String {
+            	return item.Body.TradeInfo[column.dataField];
+            	
+            }
+            private function getFundAccountNo(item:Object,column : DataGridColumn):String {            	 
+            	var prefix:String =  item.Body.InventoryAccountCrossRef.AccountXRef.Prefix;
+            	var accountNo:String =  item.Body.InventoryAccountCrossRef.AccountXRef.AccountNo;
+            	var accountNoType:String =  item.Body.InventoryAccountCrossRef.AccountXRef.AccountNoType;
+            	return prefix + Globals.ACCOUNT_PREFIX_SEPARATOR + accountNo + Globals.ACCOUNT_CODETYPE_SEPARATOR + accountNoType;
+            	
+            }
+            private function getBrokerAccount(item:Object,column : DataGridColumn):String {            	 
+            	var prefix:String =  item.Body.AccountCrossRef.AccountXRef.Prefix;
+            	var accountNo:String =  item.Body.AccountCrossRef.AccountXRef.AccountNo;
+            	var accountNoType:String =  item.Body.AccountCrossRef.AccountXRef.AccountNoType;
+            	return prefix + Globals.ACCOUNT_PREFIX_SEPARATOR + accountNo + Globals.ACCOUNT_CODETYPE_SEPARATOR + accountNoType;
+            	
+            }
+            
+            private function getSecurity(item:Object,column : DataGridColumn):String {            	 
+            	var secCode:String 	   =  item.Body.InstrumentCrossRef.InstrumentXRef.SecurityId;
+            	var secCodeType:String =  item.Body.InstrumentCrossRef.InstrumentXRef.InstrumentCodeType;
+            	return secCode + Globals.SECURITY_CODETYPE_SEPARATOR + secCodeType;
+            	
+            }
+            private function getBuySell(item:Object,column : DataGridColumn):String {            	 
+            	var buySellOrientation:String =  item.Body.TradeInfo.BuySellOrientation;
+            	var buySell:String = XenosStringUtils.EMPTY_STR;
+            	if(XenosStringUtils.equals(buySellOrientation,"FB")) {
+        			buySell = "Buy";
+        		} else if(XenosStringUtils.equals(buySellOrientation,"FS")) {
+        			buySell = "Sell";
+        		}
+            	return buySell;
+            }
+            //Added for issue NAMPX-54
+            private function getOrgXnosRefNo(item:Object,column : DataGridColumn):String {
+		    	return item.Body.TradeInfo.OriginalXenosReferenceNo;
+		    }
+            
+            private function getTradeCcy(item:Object,column : DataGridColumn):String {
+            	var cCY:String 	   = item.Body.TradeInfo.TradeCcyCrossRef.CcyXRef.CCY;
+            	//var cCYType:String = item.Body.TradeInfo.TradeCcyCrossRef.CcyXRef.CCYType;
+            	//return cCY + Globals.SECURITY_CODETYPE_SEPARATOR + cCYType;
+            	return cCY;
+            }
+            
+           
+		    private function getTax(item:Object,column : DataGridColumn):String {
+		    	var amt:String = XenosStringUtils.EMPTY_STR;
+				var tax:XMLList = item.Body.TradeData.TaxFee;
+				var taxFee:XML = new XML();
+				if(tax != null){
+					for each(taxFee in tax){
+						var id:String = taxFee.TaxFeeId;
+						if(XenosStringUtils.equals(id,column.dataField)){
+							amt = taxFee.Amount;
+							break;
+						}
+					}
+				}
+				return numberFormatter.format(amt);            	
+		    }
+		    private function getStatus(item:Object,column : DataGridColumn):String {
+		    	return item.Body.Status;
+		    }
+			private function getQuantity(item:Object,column : DataGridColumn):String {
+		    	return item.Body.TradeInfo.Quantity;
+		    }
+		    private function getPrice(item:Object,column : DataGridColumn):String {
+		    	return item.Body.TradeInfo.PriceOrPremium;
+		    }
+		    
+		   	private function getExecutionOffice(item:Object,column : DataGridColumn):String {
+		    	return item.Body.TradeInfo.ExecutionOffice;
+		    }
+		    
+		   	private function getInstructionSuppressFlag(item:Object,column : DataGridColumn):String {
+		    	return item.Body.TradeInfo.InstructionSuppressFlag;
+		    }
+          	private function getPrincipalAmount(item:Object,column : DataGridColumn):String {
+		    	return item.Body.TradeInfo.PrincipalAmount;
+		    }
+		    private function getNetAmount(item:Object,column : DataGridColumn):String {
+		    	return item.Body.TradeInfo.NetAmount;
+		    }
+		    private function openLongShortPosition(item:Object,column : DataGridColumn):String {
+		    	var openLongShortPosition:String = XenosStringUtils.EMPTY_STR;
+		    	var buySellFlag:String = item.Body.TradeInfo.BuySellFlag;
+		    	var buySellOrientation:String = item.Body.TradeInfo.BuySellOrientation;
+		    	var posEffect:String = item.Body.TradeInfo.PosEffect;
+		    	if(XenosStringUtils.equals(posEffect,"O")) {
+		    		if(XenosStringUtils.equals(buySellFlag,"S")
+		    			&& (XenosStringUtils.equals(buySellOrientation,"FB"))) {
+		    			openLongShortPosition = "Open Long Position";
+		    		}
+		    	
+            		if(XenosStringUtils.equals(buySellFlag,"B")
+		    			&& (XenosStringUtils.equals(buySellOrientation,"FS"))) {
+		    			openLongShortPosition = "Open Short Position";
+		    		}
+		    	} else {
+		    		if(XenosStringUtils.equals(buySellFlag,"S")
+		    			&& (XenosStringUtils.equals(buySellOrientation,"FB"))) {
+		    			openLongShortPosition = "Close Short Position";
+		    		}
+		    		if(XenosStringUtils.equals(buySellFlag,"B")
+		    			&& (XenosStringUtils.equals(buySellOrientation,"FS"))) {
+		    			openLongShortPosition = "Close Long Position";
+		    		}
+		    	}
+		    	return openLongShortPosition;
+		    }
+		    private function getHedgePurpose(item:Object,column : DataGridColumn):String {
+		    	return item.Body.HedgePurpose;
+		    }
+		    private function getCommission(item:Object,column : DataGridColumn):String {
+		    	var amount:String = null;
+		    	for each ( var taxBlock:XML in item.Body.TradeInfo.TaxFee ) {
+		    		if(XenosStringUtils.equals(taxBlock.TaxFeeId,"DRVCOMM")) {
+		    			amount = taxBlock.Amount;
+		    			break;
+		    		}
+		    	}
+		    	return amount;
+		    }
+		    private function getConsumptionTax(item:Object,column : DataGridColumn):String {
+		    	var amount:String = null;
+		    	for each ( var taxBlock:XML in item.Body.TradeInfo.TaxFee ) {
+		    		if(XenosStringUtils.equals(taxBlock.TaxFeeId,"DRVTAX")) {
+		    			amount = taxBlock.Amount;
+		    		}
+		    	}
+		    	return amount;
+		    }
+		    private function getConsumptionTax02(item:Object,column : DataGridColumn):String {
+		    	var amount:String = null;
+		    	for each ( var taxBlock:XML in item.Body.TradeInfo.TaxFee ) {
+		    		if(XenosStringUtils.equals(taxBlock.TaxFeeId,"DRVTAX_02")) {
+		    			amount = taxBlock.Amount;
+		    		}
+		    	}
+		    	return amount;
+		    }
+		    private function getExtRefNo(item:Object,column : DataGridColumn):String {
+		    	return item.Body.TradeInfo.ExternalReferenceNo;
+		    }
+		]]>
+	</mx:Script>
+	
+	<mx:Script source="actionscripts/DrvXLSFileLoad.as"/>
+
+	<cntrls:XenosHTTPService id="drvFileLoad" 
+		url="drv/drvXLSLoadDispatch.action?method=doSubmit" 
+		fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"	
+		result="prest(event)" 
+		showBusyCursor="true" resultFormat="xml">
+	</cntrls:XenosHTTPService>
+	
+	<cntrls:XenosHTTPService id="drvFileLoadConfirm" 
+		url="drv/drvXLSLoadDispatch.action?method=doSubmitConfirm" 
+		fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"	
+		result="submitConfirmResult(event)" 
+		showBusyCursor="true" resultFormat="xml">
+	</cntrls:XenosHTTPService>
+     
+ 	<frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+      
+	<mx:Canvas  width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+	
+	<mx:VBox width="100%" height="100%">
+		
+		<mx:VBox id="mt" label="File Upload" width="100%" height="100%">
+			<mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+			
+			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>			
+			<mx:HBox id="hfbox" width="100%" >
+			</mx:HBox>
+
+			<cntrls:FileUploadControl id="fc" uploadUrl="drv/drvXLSLoadDispatch.action?method=init"  uploadToFiled="fileName" httpProcess="{drvFileLoad}"
+			maxNumOfFiles="1" _filter = "{filter}"
+			uploadComplete="Alert.show(this.parentApplication.xResourceManager.getKeyValue('drv.files.uploaded.success'), 'Upload successful')" 
+			uploadIOError="Alert.show(this.parentApplication.xResourceManager.getKeyValue('drv.files.uploaded.failure.io'), 'Error')" 
+			uploadSecurityError="Alert.show(this.parentApplication.xResourceManager.getKeyValue('drv.files.uploaded.failure.security'), 'Error')"/>
+			
+			 
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+		           <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle"  click="this.unselectFile()" />
+		           
+		    </mx:HBox>
+		</mx:VBox>
+			<mx:VBox width="100%" height="100%" id="cnf" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" visible="false" includeInLayout="false">
+				<cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" width="100%"/>
+				<cntrls:SoftWarningControl id="softWarn" width="100%" color="#0000FF" backgroundAlpha="0" borderStyle="none" fontWeight="bold"/>	
+				<utils:FXCPager id="fxcPager" pageIndex="{currentPage}" pageSize="{pageSize}" dataProvider="{summaryResult}" />
+		        <mx:DataGrid width="100%" height="100%" id="confirmResultSummary" sortableColumns="false" dataProvider="{fxcPager.pageData}" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindAll()">
+		            <mx:columns>
+		               <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundaccountno')}" dataField="" labelFunction="getFundAccountNo"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.accountno')}" dataField="" labelFunction="getBrokerAccount"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradedate')}" dataField="TradeDate" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.valuedate')}" dataField="ValueDate" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securitycode')}" dataField="" labelFunction="getSecurity"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.buysell')}" dataField="" labelFunction="getBuySell"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.quantity')}" dataField="" labelFunction="getQuantity" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.price')}" dataField="" labelFunction="getPrice" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.originalxenosreferenceno')}" dataField="" labelFunction="getOrgXnosRefNo" />
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.externalreferenceno')}" dataField="" labelFunction="getExtRefNo" />
+					   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradecurrency')}" dataField="" labelFunction="getTradeCcy"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.principalamount')}" dataField="" labelFunction="getPrincipalAmount" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.netamount')}" dataField="" labelFunction="getNetAmount" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.opencloseposition')}" dataField="openLongShortPosition" labelFunction="openLongShortPosition"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.hedgepurpose')}" dataField="" labelFunction="getHedgePurpose" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.commission')}" dataField="" labelFunction="getCommission" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.consumptiontax')}" dataField="" labelFunction="getConsumptionTax" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.consumptiontax02')}" dataField="" labelFunction="getConsumptionTax02" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.status')}" dataField="" labelFunction="getStatus"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.executionoffice')}" dataField="" labelFunction="getExecutionOffice"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.instructionsuppressflag')}" dataField="" labelFunction="getInstructionSuppressFlag"/>
+		            </mx:columns>
+		         </mx:DataGrid>
+		         <mx:HBox width="60%" horizontalAlign="right">
+	            	<cntrls:FXCPagerBar id="fxc_pageNav2" pager="{fxcPager}" totalPages="{Math.ceil(summaryResult.length/pageSize)}" maxVisiblePages="{navSize}" buttonMode="true"/>
+	                <mx:NumericStepper id="numericStepperField" value="{this.pageSize}" change="this.pageSize = event.target.value" maximum="50000"/>		                
+        		</mx:HBox>
+		         <mx:HBox width="100%" styleName="ButtonBackPanel">
+		     		<cntrls:XenosButton id="confirmSubmitFileButton" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="this.confirmSubmitFile()" />
+		           	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.cancel')}" styleName="BtnStyle"  click="this.unselectFile()" />
+		     	</mx:HBox>
+	        </mx:VBox>
+	        
+	        
+	        
+	        <mx:VBox width="100%" height="100%" id="submitCnf" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" visible="false" includeInLayout="false">
+	        	<mx:HBox styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle">
+	        		<mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+		    		<mx:Label text="{noOfMsgCreatedStr}" fontWeight="bold" selectable="true"/>	
+		    	</mx:HBox>
+		        <mx:DataGrid width="100%" height="100%" sortableColumns="false" dataProvider="{summaryResult}" variableRowHeight="true" horizontalScrollPolicy="auto">
+		            <mx:columns>
+					   <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+					   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundaccountno')}" dataField="" labelFunction="getFundAccountNo"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.accountno')}" dataField="" labelFunction="getBrokerAccount"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradedate')}" dataField="TradeDate" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.valuedate')}" dataField="ValueDate" labelFunction="getLabelFromBody"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securitycode')}" dataField="" labelFunction="getSecurity"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.buysell')}" dataField="" labelFunction="getBuySell"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.quantity')}" dataField="" labelFunction="getQuantity" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.price')}" dataField="" labelFunction="getPrice" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.externalreferenceno')}" dataField="" labelFunction="getExtRefNo" />
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.originalxenosreferenceno')}" dataField="" labelFunction="getOrgXnosRefNo" />
+					   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradecurrency')}" dataField="" labelFunction="getTradeCcy"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.principalamount')}" dataField="" labelFunction="getPrincipalAmount" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.netamount')}" dataField="" labelFunction="getNetAmount" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.opencloseposition')}" dataField="openLongShortPosition" labelFunction="openLongShortPosition"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.hedgepurpose')}" dataField="" labelFunction="getHedgePurpose" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.commission')}" dataField="" labelFunction="getCommission" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.consumptiontax')}" dataField="" labelFunction="getConsumptionTax" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.consumptiontax02')}" dataField="" labelFunction="getConsumptionTax02" textAlign="right"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.status')}" dataField="" labelFunction="getStatus"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.executionoffice')}" dataField="" labelFunction="getExecutionOffice"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.instructionsuppressflag')}" dataField="" labelFunction="getInstructionSuppressFlag"/>
+
+		            </mx:columns>
+		         </mx:DataGrid>	         
+			     <mx:HBox width="100%" styleName="ButtonBackPanel">
+		     		<cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" id="sConfSubmit" styleName="BtnStyle" click="this.goToInitialPage()" />
+		     	</mx:HBox>
+	        </mx:VBox>
+	        
+	</mx:VBox>
+	
+	</mx:Canvas>
+</mx:Module>

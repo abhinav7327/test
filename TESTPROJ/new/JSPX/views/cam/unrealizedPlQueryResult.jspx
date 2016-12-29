@@ -1,0 +1,110 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:form="http://www.springframework.org/tags/form"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:jsp="http://java.sun.com/JSP/Page" version="2.0">
+     
+<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+    <jsp:output omit-xml-declaration="yes" /> 
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>   
+     
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+			  var grid_result_columns = [
+				{name:"<spring:message code="cam.unrealized.pl.query.label.referenceno" htmlEscape="false"/>", field:"referenceNo", id:"referenceNo", width:140, sortable:true},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.basedate" htmlEscape="false"/>", field:"baseDateDisp", id:"baseDateDisp", width:80, sortable:true},
+			  	{name:"<spring:message code="ref.fund.label.fundcode" htmlEscape="false"/>", field:"fundCode", id:"fundCode", width:110, sortable:true, formatter:Slick.Formatters.FundDetailViewFormatter},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.accountno" htmlEscape="false"/>", field:"accountNoDisp", id:"accountNoDisp", width:120, sortable:true, formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'accountPk'} },
+				{name:"<spring:message code="cam.unrealized.pl.query.label.accountName" htmlEscape="false"/>", field:"accountName", id:"accountName", width:120, sortable:true},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.securitycode" htmlEscape="false"/>", field:"securityId", id:"securityId", width:120, sortable:true, formatter:Slick.Formatters.InstrumentDetailViewFormater},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.securityname" htmlEscape="false"/>", field:"securityName", id:"securityName", width:130, sortable:true},
+				{name:"<spring:message code="cam.security.label.alternatesecurity" htmlEscape="false"/>", field:"alternateSecurity", id:"alternateSecurity", width:100, sortable:true},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.currency" htmlEscape="false"/>", field:"issueCcY", id:"issueCcY", width:80, sortable:true},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.unrealizedpl" htmlEscape="false"/>", field:"formattedUnrealizedPl",id:"formattedUnrealizedPl", width:80, cssClass:'xenos-grid-number', sortable:true},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.tradingpl" htmlEscape="false"/>", field:"profitLossForDisplay",id:"profitLossForDisplay", width:80, cssClass:'xenos-grid-number', sortable:true},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.quantity" htmlEscape="false"/>", field:"formattedQuantity",id:"formattedQuantity", width:100, cssClass:'xenos-grid-number', sortable:true},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.bookvalue" htmlEscape="false"/>", field:"formattedBookValue", id:"formattedBookValue", width:100, cssClass:'xenos-grid-number', sortable:true},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.cost" htmlEscape="false"/>", field:"costForDisplay", id:"costForDisplay", width:120, cssClass:'xenos-grid-number', sortable:true},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.marketvalue" htmlEscape="false"/>", field:"formattedMarketValue", id:"formattedMarketValue", width:80, cssClass:'xenos-grid-number', sortable:true},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.marketprice" htmlEscape="false"/>", field:"formattedMarketPrice",id:"formattedMarketPrice", width:80, cssClass:'xenos-grid-number', sortable:true},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.pricetype" htmlEscape="false"/>", field:"priceType", id:"priceType", width:100, sortable:true},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.datasource" htmlEscape="false"/>", field:"dataSource", id:"dataSource", width:100, sortable:true},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.vendorprice" htmlEscape="false"/>", field:"formattedVendorPrice", id:"formattedVendorPrice", width:120, cssClass:'xenos-grid-number', sortable:true},
+				{name:"<spring:message code="cam.unrealized.pl.query.label.diffflag" htmlEscape="false"/>", field:"diffMarketValueFlag",id:"diffMarketValueFlag", width:100, sortable:true}
+              ];
+			var grid_result_settings = {
+                enableToolbar:true,
+                consolidateActionFlag:false,
+                buttons:{
+                    print:true, 
+                    xls:true,
+                    pdf:true,
+                    xlsPref:true,
+                    columnPicker:true,  
+                    save:true   
+                },
+                pagingInfo:{
+                    isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+                    url: '/secure/cam/unrealizedpl/query/count.json'
+                },
+                urls:{
+                    nextPage : '/secure/cam/unrealizedpl/query/result.json?fetch=next',
+                    prevPage : '/secure/cam/unrealizedpl/query/result.json?fetch=previous',
+                    pdfReport: '/secure/cam/unrealizedpl/query/report.json?outputType=pdf',
+                    xlsReport: '/secure/cam/unrealizedpl/query/report.json?outputType=xls',
+                    xlsCurrent: '/secure/cam/unrealizedpl/query/reportPref.json?outputType=xls'
+                }
+            };
+            var row_id = 0;         
+            var rec = {};
+			<xenos:out escapeXml="false">
+				<c:forEach items="${value}" var="dl">
+					rec = {};
+					row_id+=1;
+					rec.id = "xenos_" + row_id;
+					rec.referenceNo= "<c:out value="${dl.referenceNo}" />"; 
+					rec.baseDateDisp= "<c:out value="${dl.baseDateDisp}" />";
+					rec.fundCode= "<c:out value="${dl.fundCode}" />";
+					rec.accountNoDisp= "<c:out value="${dl.accountNoDisp}" />";
+					rec.accountName = "<c:out value="${xenosfn:escapeJS(dl.accountName)}" />";
+					rec.securityId= "<c:out value="${xenosfn:escapeJS(dl.securityId)}" />";
+					rec.securityName= "<c:out value="${dl.securityName}" />";
+					rec.alternateSecurity= "<c:out value="${dl.alternateSecurity}" />";
+					rec.issueCcY= "<c:out value="${dl.issueCcY}" />";
+					rec.formattedUnrealizedPl= "<c:out value="${dl.formattedUnrealizedPl}" />";
+					rec.profitLossForDisplay= "<c:out value="${dl.profitLossForDisplay}" />";
+					rec.formattedQuantity= "<c:out value="${dl.formattedQuantity}" />";
+					rec.formattedBookValue= "<c:out value="${dl.formattedBookValue}" />";
+					rec.costForDisplay= "<c:out value="${dl.costForDisplay}" />";
+					rec.formattedMarketValue= "<c:out value="${dl.formattedMarketValue}" />";
+					rec.formattedMarketPrice= "<c:out value="${dl.formattedMarketPrice}" />";
+					rec.priceType= "<c:out value="${dl.priceType}" />";
+					rec.dataSource= "<c:out value="${dl.dataSource}" />";
+					rec.formattedVendorPrice= "<c:out value="${dl.formattedVendorPrice}" />";
+					rec.diffMarketValueFlag= "<c:out value="${dl.diffMarketValueFlag}" />";
+					rec.fundPk= "<c:out value="${dl.fundPk}" />";
+					rec.accountPk= "<c:out value="${dl.accountPk}" />";
+					rec.instrumentPk= "<c:out value="${dl.instrumentPk}" />";
+					grid_result_data.push(rec);
+				 </c:forEach>
+			 </xenos:out>	
+        </jsp:body>
+    </jsp:element>	
+</jsp:root>

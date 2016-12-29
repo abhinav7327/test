@@ -1,0 +1,731 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+<div class="entryContainer paddingFour">
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src">
+			<c:url value="/scripts/inf/datevalidation.js" />
+		</jsp:attribute>
+		<jsp:body>
+            xenos$onReady$Array.push(function() {
+                xenos.loadScript([{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false}]);
+                xenos.loadLocalizedScript([{path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false}]);
+            });
+        </jsp:body>
+	  </jsp:element>
+	  <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src">
+		     <c:url value="/scripts/stl/xenos/SettlementAmendmentCorporateAction.js"/>
+		</jsp:attribute>
+		<jsp:body>
+		      xenos$onReady$Array.push(function() {
+                xenos.loadScript([{path: xenos.context.path + '/scripts/stl/xenos/SettlementAmendmentCorporateAction.js', async: false}]);
+              });
+		</jsp:body>
+	  </jsp:element>
+	  <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src">
+		     <c:url value="/scripts/stl/xenos/SettlementAmendment.js"/>
+		</jsp:attribute>
+		<jsp:body>
+		      xenos$onReady$Array.push(function() {
+                xenos.loadScript([{path: xenos.context.path + '/scripts/stl/xenos/SettlementAmendment.js', async: false}]);
+              });
+		</jsp:body>
+	  </jsp:element>
+	  <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+		     var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+			   var validationMessages = [];
+			  showDetail();
+			  var unloadHook = function(){					
+						$xenos$Wizard.deregister('submit',validateSettlementAmendment);
+						$xenos$Wizard.deregister('unload',unloadHook);
+					};	
+					
+					$xenos$Wizard.register('submit',validateSettlementAmendment);
+					$xenos$Wizard.register('unload',unloadHook);
+					xenos.utils.afterFormRenderScuts();
+			  }
+		</jsp:body>
+	  </jsp:element>
+	  <jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			  $("#settleTypeFLD").change(function(){
+	            showDetail();
+              });
+			  $("#inxForNormal").change(function(){
+	             var validationMessages = [];
+	            onchangeInxTransmissionForCash(validationMessages);
+				if (validationMessages.length > 0){
+				  xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+				}else {
+	              xenos.utils.clearGrowlMessage();
+				}
+              });
+			  $("#securitySettlementMode").change(function(){
+	            onchangeSecStlMode();
+              });
+		</jsp:body>
+	  </jsp:element>
+	  <jsp:element name="script">
+	  <jsp:attribute name="type">text/javascript</jsp:attribute>
+      <jsp:body>
+                //Loading Localized Script
+                xenos.loadLocalizedScript([
+                    {path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+                    {path: xenos.context.path + '/scripts/stl/xenos-stl-i18n', async: false}
+                ]);
+                //Loading Required scripts before validator is called.
+                xenos.loadScript([
+                    {path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},
+                    {path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false}
+                ],{
+                    success: function() {
+                        jQuery('#' + '${myId}').parent().xenosform({
+                            beforeSubmit:xenos.ns.views.stlQuery.validateSubmit,							
+							afterRendering : afterRenderFunc
+                        });
+                    }
+                });
+								
+			function afterRenderFunc($context){				
+					/**
+					 * A common request handler to be used server communication.
+					 */
+					var xenos$Handler$RequestHandler = xenos$Handler$function({
+						get:{
+							contentType: 'json',
+							requestType: xenos$Handler$default.requestType.asynchronous
+						},
+						settings:{
+							beforeSend: function(request) {
+								request.setRequestHeader('Accept', 'application/json');
+							},
+							type: 'POST'
+						}
+					});
+					
+					xenos.ns.filterHiddenTgt.filterHiddenTargetFieldId = function(row, tgt ) {
+				
+					if(tgt.attr("tgt") === "cpSecCustomizedPopup" || tgt.attr("tgt") === "cpCashCustomizedPopup"){
+					if((row.detailside) == "SECURITY"){
+						 $('#cpBank').val(row.settlementBank);
+					   $('#cpSettleAc').val(row.settlementAc);
+					    $('#cpSettleAcName1stLine').val(row.settlementAcName1);
+					    $('#cpSettleAcName2ndLine').val(row.settlementAcName2);
+					    $('#cpSettleAcName3rdLine').val(row.settlementAcName3);
+					    $('#cpSettleAcName4thLine').val(row.settlementAcName4);
+					    $('#cpIntermediaryInfo').val(row.intermediaryInfo);
+					    $('#beneficiaryName').val(row.beneficiaryName);
+					    $('#placeofsettlement').val(row.placeOfSettlement);
+					    $('#brokerBic').val(row.brokerBic);
+					    $('#participantId').val(row.participantId);
+						 $('#participantId2').val(row.participantId2);
+						  $('#cpListHitCopy').val(row.cpListHitCopy);
+						  $('#secCpChainIndex').val(row.secCpChainIndex);
+						 $('# contraId').val(row.contraId);
+						  $('#deliveryInstruction').val(row.fullDeliveryInx);
+						  $('#dtcInstitutionId').val(row.institutionIdName);
+						  $('#dtcAgentId').val(row.agentIdName);
+						  $('#dtcAgentAccountNo').val(row.agentAccountNo);
+						  $('#dtcParticipantId').val(row.participantNoName);
+						  $('#furtherCredit').val(row.furtherCredit);
+						  $('#settlementMode').val(row.settlementMode);
+						  $('#secSSILayout').val(row.ssiLayout);
+						  $('#cpBankCodeType').val(row.bankCodeType);
+				
+					  }	else if ((row.detailside) == "CASH"){
+					       $('#cpListHitCopy').val(row.cpListHitCopy);
+                                      $('#cpListHitCopy').val(row.cpListHitCopy);
+                                      $('#cashCpChainIndex').val(row.secCpChainIndex);
+                                      $('#cashCpBank').val(row.settlementBank);
+                                      $('#cashCpSettleAc').val(row.settlementAc);
+                                      $('#cashCpSettleAcName1stLine').val(row.settlementAcName1);
+                                      $('#cashCpSettleAcName2ndLine').val(row.settlementAcName2);
+                                      $('#cashCpSettleAcName3rdLine').val(row.settlementAcName3);
+                                      $('#cashCpSettleAcName4thLine').val(row.settlementAcName4);
+                                      $('#cashCpIntermediaryInfo').val(row.intermediaryInfo);
+                                      $('#contraIdCash').val(row.contraId);
+                                      $('#deliveryInstructionCash').val(row.fullDeliveryInx);
+                                      $('#dtcInstitutionIdCash').val(row.institutionIdName);
+                                      $('#dtcAgentIdCash').val(row.agentIdName);
+                                      $('#dtcAgentAccountNoCash').val(row.agentAccountNo);
+                                      $('#dtcParticipantIdCash').val(row.participantNoName);
+                                      $('#cashBeneficiaryName').val(row.beneficiaryName);
+                                      $('#furtherCreditCash').val(row.furtherCredit);
+                                      $('#settlementModecash').val(row.settlementMode);
+                                      $('#cashSSILayout').val(row.ssiLayout);
+                                      $('#cashPlaceofsettlement').val(row.placeOfSettlement);
+                                      $('#cashBrokerBic').val(row.brokerBic);
+                                      $('#cashCpBankCodeType').val(row.bankCodeType);
+                                      $('#cashParticipantId').val(row.participantId);
+                                      $('#cashParticipantId2').val(row.participantId2);
+					  } else{
+					    $('#cpBank').val(row.settlementBank);
+					   $('#cpSettleAc').val(row.settlementAc);
+					    $('#cpSettleAcName1stLine').val(row.settlementAcName1);
+					    $('#cpSettleAcName2ndLine').val(row.settlementAcName2);
+					    $('#cpSettleAcName3rdLine').val(row.settlementAcName3);
+					    $('#cpSettleAcName4thLine').val(row.settlementAcName4);
+					    $('#cpIntermediaryInfo').val(row.intermediaryInfo);
+					    $('#beneficiaryName').val(row.beneficiaryName);   
+						 $('#cpListHitCopy').val(row.cpListHitCopy);
+						  $('#secCpChainIndex').val(row.secCpChainIndex);
+						 $('# contraId').val(row.contraId);
+						  $('#deliveryInstruction').val(row.fullDeliveryInx);
+						  $('#dtcInstitutionId').val(row.institutionIdName);
+						  $('#dtcAgentId').val(row.agentIdName);
+						  $('#dtcAgentAccountNo').val(row.agentAccountNo);
+						  $('#dtcParticipantId').val(row.participantNoName);
+						  $('#furtherCredit').val(row.furtherCredit);
+						  $('#settlementMode').val(row.settlementMode);
+					     } 
+					  
+				      } 
+				   }
+				};
+		</jsp:body>	
+    </jsp:element>
+    <c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>	 
+    <jsp:directive.page contentType="text/html;charset=UTF-8" />
+	<jsp:output omit-xml-declaration="yes" />
+	
+	 <form:input type="hidden" id="diffCashFlag" path="commandForm.diffCashFlag"/>
+	 <form:input type="hidden" id="isSuppressed" path="commandForm.isSuppressed"/>
+	 <form:input type="hidden" id="nonSuppressedSide" path="commandForm.nonSuppressedSide"/>
+	 <form:input type="hidden" id="isBrokerAccount" path="commandForm.isBrokerAccount"/>
+	 <form:input type="hidden" id="cashSSILayout" path="commandForm.cashSSILayout"/>
+	 <form:input type="hidden" id="secSSILayout" path="commandForm.secSSILayout"/>
+	 <form:input type="hidden" id="cashSIVOSettlementInfoStatus" path="commandForm.cashSettlementInfoVO.settlementInfoStatus"/>
+	 <form:input type="hidden" id="cashSdVoSettlementInfoStatus" path="commandForm.cashStlDetail.otherAttributes.map['settlementInfoStatus']"/>
+     <form:input type="hidden" id="siVOSettlementInfoStatus" path="commandForm.settlementInfoVO.settlementInfoStatus"/> 
+	 <form:input type="hidden" id="secSdVoSettlementInfoStatus" path="commandForm.securityStlDetail.otherAttributes.map['settlementInfoStatus']"/>
+
+	  <form:input type="hidden" id="settlementFor" path="commandForm.settlementFor"/>
+	  <form:input type="hidden" id="csiVoSettlementFor" path="commandForm.clientSettlementInfoVO.settlementFor"/>
+	  <form:input type="hidden" id="siVoInventoryAccountPk" path="commandForm.settlementInfoVO.inventoryAccountPk"/>
+	  <form:input type="hidden" id="cashSiVoInventoryAccountPk" path="commandForm.cashSettlementInfoVO.inventoryAccountPk"/>
+      <form:input type="hidden" id="secCpChainIndex" path="commandForm.secCpChainIndex"/>
+	  <form:input type="hidden" id="secOurChainIndex" path="commandForm.secOurChainIndex"/>
+	  <form:input type="hidden" id="cashCpChainIndex" path="commandForm.cashCpChainIndex"/>
+	  <form:input type="hidden" id="cashOurChainIndex" path="commandForm.cashOurChainIndex"/>
+	  <form:input type="hidden" id="secSDFurtherCredit" path="commandForm.securityStlDetail.furtherCredit"/>
+	  <form:input type="hidden" id="secFurtherCredit" path="commandForm.securityStlDetail.cpBankCodeType"/>
+	  <form:input type="hidden" id="cashFurtherCredit" path="commandForm.cashStlDetail.furtherCredit"/>
+	  <form:input type="hidden" id="cpBankCodeType" path="commandForm.cashStlDetail.cpBankCodeType"/>
+	  <form:input type="hidden" id="viewType" path="commandForm.viewType"/>
+	 
+	 
+	 <input type="hidden" id="amendConfirmFlag" value="A"/>
+	 <input type="hidden" id="cpListHitCopy" value="N"/>
+	 <input type="hidden" id="isBrokerInternalCase" value="N"/>
+	 <input type="hidden" id="cashButtonstatus" value="D"/>
+     
+	 <form:input type="hidden" id="seclocalCode" value="" path="commandForm.securityStlDetail.localCode"/>
+	 <form:input type="hidden" id="cashlocalCode" value="" path="commandForm.cashStlDetail.localCode"/>
+
+	 <c:set var="secBenifBic" value="${commandForm.settlementInfoVO.otherAttributes.map['beneficiaryBic']}"/>
+	 <c:set var="cashBenifBic" value="${commandForm.settlementInfoVO.otherAttributes.map['beneficiaryBic']}"/>
+	 <c:set var="tradingAccount" value="${commandForm.settlementInfoVO.otherAttributes.map['tradingAc']}"/>
+	 <c:set var="correspondingSecurityId" value="${commandForm.settlementInfoVO.otherAttributes.map['correspondingSecurityId']}"/>
+	 <c:set var="securityCode" value="${commandForm.securityStlDetail.otherAttributes.map['securityCode']}"/>
+	 <c:set var="settlementCcy" value="${commandForm.cashStlDetail.otherAttributes.map['settlementCcy']}"/>
+	 <c:set var="cpBankCodeType" value="${commandForm.securityStlDetail.cpBankCodeType}"/>
+	 <c:set var="cashCpBankCodeType" value="${commandForm.cashStlDetail.cpBankCodeType}"/>
+	 <c:set var="secSSILayout" value="${commandForm.secSSILayout}"/>
+	 <c:set var="cashCpChainIndex" value="${commandForm.cashCpChainIndex}"/>
+	 <c:set var="secCpChainIndex" value="${commandForm.secCpChainIndex}"/>
+	 <c:set var="cashFurtherCredit" value="${commandForm.cashStlDetail.furtherCredit}"/>
+	 <c:set var="secSDFurtherCredit" value="${commandForm.securityStlDetail.furtherCredit}"/>
+	 
+	 <input type="hidden" id="tradingAc" value="${commandForm.settlementInfoVO.otherAttributes.map['tradingAc']}"/>
+	 <input type="hidden" id="securityCode" value="${commandForm.securityStlDetail.otherAttributes.map['securityCode']}"/>
+	 <input type="hidden" id="deliveryMethod" value="${commandForm.securityStlDetail.deliveryMethod}"/>
+	 <input type="hidden" id="currency" value="${commandForm.cashStlDetail.otherAttributes.map['settlementCcy']}"/>
+	 <input type="hidden" id="settlementType" value="${commandForm.clientSettlementInfoVO.settlementType}"/>
+	 
+	  <input type="hidden" id="contraId" value="${commandForm.securityStlDetail.otherAttributes.map['contraId']}"/>
+	 <input type="hidden" id="deliveryInstruction" value="${commandForm.securityStlDetail.otherAttributes.map['deliveryInstruction']}"/>
+	 <input type="hidden" id="dtcInstitutionId" value="${commandForm.securityStlDetail.dtcInstitutionId}"/>
+	 <input type="hidden" id="dtcAgentId" value="${commandForm.securityStlDetail.dtcAgentId}"/>
+	 <input type="hidden" id="dtcAgentAccountNo" value="${commandForm.securityStlDetail.dtcAgentAccountNo}"/>
+	 <input type="hidden" id="dtcParticipantId" value="${commandForm.securityStlDetail.dtcParticipantId}"/>
+	 <input type="hidden" id="furtherCredit" value="${commandForm.securityStlDetail.furtherCredit}"/>
+	 <input type="hidden" id="settlementMode" value="${commandForm.securityStlDetail.settlementMode}"/>
+	 
+	  <input type="hidden" id="contraIdCash" value="${commandForm.cashStlDetail.otherAttributes.map['contraId']}"/>
+	  <input type="hidden" id="deliveryInstructionCash" value="${commandForm.cashStlDetail.otherAttributes.map['deliveryInstruction']}"/>
+	 <input type="hidden" id="dtcInstitutionIdCash" value="${commandForm.cashStlDetail.dtcInstitutionId}"/>
+	 <input type="hidden" id="dtcAgentIdCash" value="${commandForm.cashStlDetail.dtcAgentId}"/>
+	 <input type="hidden" id="dtcAgentAccountNoCash" value="${commandForm.cashStlDetail.dtcAgentAccountNo}"/>
+	 <input type="hidden" id="dtcParticipantIdCash" value="${commandForm.cashStlDetail.dtcParticipantId}"/>
+	 <input type="hidden" id="furtherCreditCash" value="${commandForm.cashStlDetail.furtherCredit}"/>
+	 <input type="hidden" id="settlementModecash" value="${commandForm.cashStlDetail.settlementMode}"/>
+	 
+
+	<!--sec trade details -->
+		<div class="entryBlkArea ">
+			<div class="formItemBlock dottedBg">
+			<!-- Settlement Reference No -->
+			<div class="formItem">
+				<form:label path="commandForm.clientSettlementInfoVO.settlementReferenceNo" ><spring:message code="stl.amendment.label.traderefno" htmlEscape="false"/></form:label>
+				<form:label id="settlementReferenceNo" path="commandForm.clientSettlementInfoVO.settlementReferenceNo">${commandForm.clientSettlementInfoVO.settlementReferenceNo}-${commandForm.clientSettlementInfoVO.versionNo}</form:label>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="formItem">
+				<form:label path="commandForm.settlementInfoVO.otherAttributes.map['tradingAc']" ><spring:message code="stl.amendment.label.tradingac" htmlEscape="false"/></form:label>
+				<form:label path="commandForm.settlementInfoVO.otherAttributes.map['tradingAc']" >${tradingAccount}</form:label>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Account Name -->
+			<div class="formItem twoCols">
+				<form:label path="commandForm.settlementInfoVO.otherAttributes.map['tradingAcName']" ><spring:message code="stl.amendment.label.tradingacname" htmlEscape="false"/></form:label>
+				<form:label path="commandForm.settlementInfoVO.otherAttributes.map['tradingAcName']" >${commandForm.settlementInfoVO.otherAttributes.map['tradingAcName']}</form:label>	
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		    </div>
+			<!-- Trade Date -->
+			<div class="formItem security_trade_general">
+				<form:label path="commandForm.clientSettlementInfoVO.otherAttributes.map['tradeDate']" ><spring:message code="stl.amendment.label.tradedate" htmlEscape="false"/></form:label>
+				<form:label path="commandForm.clientSettlementInfoVO.otherAttributes.map['tradeDate']" >${commandForm.clientSettlementInfoVO.otherAttributes.map['tradeDate']}</form:label>		
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		    </div>
+			<!-- Value Date -->
+			<div class="formItem">
+				<form:label path="commandForm.settlementInfoVO.otherAttributes.map['valueDate']" ><spring:message code="stl.amendment.label.valuedate" htmlEscape="false"/></form:label>
+				<form:label path="commandForm.settlementInfoVO.otherAttributes.map['valueDate']" >${commandForm.settlementInfoVO.otherAttributes.map['valueDate']}</form:label>		
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		    </div>
+			<!-- Settlement Type -->
+			<div class="formItem security_trade_general">
+				<form:label path="commandForm.clientSettlementInfoVO.settlementType"><spring:message code="stl.amendment.label.settlementtype" htmlEscape="false"/></form:label>
+					<span>
+						<xenos:select id="settleTypeFLD" path="commandForm.clientSettlementInfoVO.settlementType" class="dropdowninput">
+							<form:options items="${commandForm.dropDownListValues.settlementTypeList}" itemLabel="label" itemValue="value" />
+						</xenos:select>
+					</span>
+					<span id="settleTypeLBL" style="display:none;"><form:label path="commandForm.clientSettlementInfoVO.settlementType" >${commandForm.clientSettlementInfoVO.settlementType}</form:label></span>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	        </div>
+			<!-- Price -->
+			<div class="formItem">
+				<form:label path="commandForm.clientSettlementInfoVO.otherAttributes.map['price']" ><spring:message code="stl.amendment.label.price" htmlEscape="false"/></form:label>
+				<form:label path="commandForm.clientSettlementInfoVO.otherAttributes.map['price']" >${commandForm.clientSettlementInfoVO.otherAttributes.map['price']}</form:label>			
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			   </div>
+			   <!-- Settle Standing Status -->
+			<div class="formItem">
+				<form:label path="commandForm.settlementInfoVO.settlementInfoStatus" ><spring:message code="stl.amendment.label.stlinfostatus" htmlEscape="false"/></form:label>
+				<form:label path="commandForm.settlementInfoVO.settlementInfoStatus" >${commandForm.settlementInfoVO.settlementInfoStatus}</form:label>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		    </div>
+			   <!-- Settlement Status -->
+			<div class="formItem">
+				<form:label path="commandForm.settlementInfoVO.settlementStatus" ><spring:message code="stl.amendment.label.stlstatus" htmlEscape="false"/></form:label>
+				<form:label path="commandForm.settlementInfoVO.settlementStatus" >${commandForm.settlementInfoVO.settlementStatus}</form:label>		
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		    </div>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div></div>
+			<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+		    <div id="wsSecSide" style="display: none;">
+					<div class="moreHandle">
+                      <h1 class="msgHead">
+                          <spring:message code="stl.amendment.label.securitysidesettlementdetail" htmlEscape="false"/>
+                    <div class="handleBlock">
+                     <span class="handler" id="stlMoreSection"><spring:message text="" htmlEscape="false"/></span>
+                    </div>
+                   </h1>
+                   </div>
+			    		<!-- Margin Block -->
+	        <div class="formItemBlock more">
+		        <div class="moreitems dottedBg">		
+					<div class="entryBlkArea">
+					<div class="formItem">
+						<form:label path="commandForm.securityStlDetail.otherAttributes.map['securityCode']" ><spring:message code="stl.amendment.label.securitycode" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.securityStlDetail.otherAttributes.map['securityCode']" >${securityCode}</form:label>		
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- Security Name -->
+					<div class="formItem">
+						<form:label path="commandForm.securityStlDetail.otherAttributes.map['securityName']" ><spring:message code="stl.amendment.label.securityname" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.securityStlDetail.otherAttributes.map['securityName']" style="width: auto!important;">${commandForm.securityStlDetail.otherAttributes.map['securityName']}</form:label>	
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- Quantity/Nominal -->
+					<div class="formItem">
+						<form:label path="commandForm.securityStlDetail.otherAttributes.map['quantity']" ><spring:message code="stl.amendment.label.quantity/nominal" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.securityStlDetail.otherAttributes.map['quantity']" >${commandForm.securityStlDetail.otherAttributes.map['quantity']}</form:label>	
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- Bond TaxExemption -->
+					<div class="formItem">
+						<form:label path="commandForm.securityStlDetail.bondTaxExemption"><spring:message code="stl.stlqry.label.bondtaxexemption" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.securityStlDetail.bondTaxExemption">${commandForm.securityStlDetail.bondTaxExemption}</form:label>			
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- Deliver Receive -->
+					<div class="formItem">
+						<form:label path="commandForm.securityStlDetail.otherAttributes.map['deliverReceive']"><spring:message code="stl.amendment.label.deliver/receive" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.securityStlDetail.otherAttributes.map['deliverReceive']">${commandForm.securityStlDetail.otherAttributes.map['deliverReceive']}</form:label>		
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- Form -->
+					<div class="formItem">
+						<form:label path="commandForm.securityStlDetail.deliveryMethod" ><spring:message code="stl.amendment.label.form" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.securityStlDetail.deliveryMethod" >${commandForm.securityStlDetail.deliveryMethod}</form:label>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- Settlement Mode -->
+					<div class="formItem">
+						<form:label path="commandForm.securityStlDetail.settlementMode" class="required"><spring:message code="stl.amendment.label.settlementmode" htmlEscape="false"/></form:label>
+	                    <xenos:select id="securitySettlementMode" path="commandForm.securityStlDetail.settlementMode" class="dropdowninput" onChange="onchangeSecStlMode();">
+							<form:options items="${commandForm.dropDownListValues.settlementModeList}" itemLabel="label" itemValue="value" />
+						</xenos:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<!-- Inx Transmission -->
+					
+					<div class="formItem">
+						<form:label path="commandForm.settlementInfoVO.transmissionReqdFlag"><spring:message code="stl.amendment.label.inxtransmission" htmlEscape="false"/></form:label>
+						<span>
+						  <xenos:select id="inxTransmission" path="commandForm.settlementInfoVO.transmissionReqdFlag" class="dropdowninput">
+						     <form:options items="${commandForm.dropDownListValues.inxTransmissionList}" itemLabel="label" itemValue="value" />
+				    	  </xenos:select>
+						</span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		  </div>
+		  
+		     <div class="formItemBlock" id="sec_cp">
+			    <!-- To Bank / CP Bank **START -->
+			    <div class="BtnPosWrapper">
+                <h3 class="left"><spring:message code="stl.amendment.label.cpdetails" htmlEscape="false"/></h3>
+				    <div class="formItem">
+					    <span class="showForBankToBank cashTransfEntry popupBtn">
+						 <input id="ourBankListPopUp1" class="inputBtnStyle small-btn-style"  type="button" tgt="cpSecCustomizedPopup"  popType="cpSecCustomizedPopup" security="SECURITY" intermediaryInfoListName="SEC_CP_INTERMEDIARY_LIST" value="List" hiddenFieldFilteredReqd="true"/>
+					    </span>
+					    <div class="clear"><spring:message text="" htmlEscape="false"/></div>	
+				   </div>		
+			   </div>  	
+			   		   
+			   <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				 	     <div class="formItem">
+							<form:label path="commandForm.securityStlDetail.otherAttributes.map[cpBank]"><spring:message code="stl.amendment.label.cpbank" htmlEscape="false"/></form:label>
+							<span><form:input id="cpBank" value="" path="commandForm.securityStlDetail.otherAttributes.map[cpBank]"  class="textBox readOnlyInput" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<form:label id="secCpSettleAc" path="commandForm.securityStlDetail.otherAttributes.map[cpSettleAc]"><spring:message code="stl.amendment.label.cpsettlea/c" htmlEscape="false"/></form:label>
+							<span><form:input id="cpSettleAc" value="" path="commandForm.securityStlDetail.otherAttributes.map[cpSettleAc]"  class="textBox readOnlyInput" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div id="secRow1">
+								<div class="formItem">
+									<form:label path="commandForm.securityStlDetail.cpExtSettleAccountName1"><spring:message code="stl.amendment.label.cpsettlea/cname1stline" htmlEscape="false"/></form:label>
+									<span><form:input id="cpSettleAcName1stLine" value="" path="commandForm.securityStlDetail.cpExtSettleAccountName1" class="textBox readOnlyInput" readonly ="true"/></span>			
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+								<div class="formItem">										
+								     <form:label path="commandForm.securityStlDetail.cpExtSettleAccountName2"><spring:message code="stl.amendment.label.cpsettlea/cname2ndline" htmlEscape="false"/></form:label>										
+									 <span><form:input id="cpSettleAcName2ndLine" value="" path="commandForm.securityStlDetail.cpExtSettleAccountName2" class="textBox readOnlyInput" readonly ="true"/></span>			
+								     <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+					    </div>
+						<div id="secRow2">
+								<div class="formItem">
+									<form:label path="commandForm.securityStlDetail.cpExtSettleAccountName3"><spring:message code="stl.amendment.label.cpsettlea/cname3rdline" htmlEscape="false"/></form:label>
+									<span><form:input id="cpSettleAcName3rdLine" value="" path="commandForm.securityStlDetail.cpExtSettleAccountName3" class="textBox readOnlyInput" readonly ="true"/></span>			
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>
+								<div class="formItem">
+									<form:label path="commandForm.securityStlDetail.cpExtSettleAccountName4"><spring:message code="stl.amendment.label.cpsettlea/cname4thline" htmlEscape="false"/></form:label>
+									<span><form:input id="cpSettleAcName4thLine" value="" path="commandForm.securityStlDetail.cpExtSettleAccountName4" class="textBox readOnlyInput" readonly ="true"/></span>			
+									<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								</div>	
+						</div>
+						<div class="formItem twoCols" id="secRow3">
+							<form:label path="commandForm.securityStlDetail.otherAttributes.map[cpIntermediaryInfo]" ><spring:message code="stl.amendment.label.cpintermediaryinfo" htmlEscape="false"/></form:label>
+							<span><form:input id="cpIntermediaryInfo" value="" path="commandForm.securityStlDetail.otherAttributes.map[cpIntermediaryInfo]"  class="textBox readOnlyInput" style="width:1000px;" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+					   <div class="formItem twoCols">
+							<form:label path="commandForm.securityStlDetail.otherAttributes.map[ourSettleBeneficiaryName]" ><spring:message code="stl.amendment.label.beneficiaryname" htmlEscape="false"/></form:label>
+							<span><form:input id="beneficiaryName" value="" path="commandForm.securityStlDetail.otherAttributes.map[ourSettleBeneficiaryName]" class="textBox readOnlyInput" style="width:1000px;" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+
+						<div class="formItem" style="display: none;">
+							<form:label path="commandForm.securityStlDetail.otherAttributes.map[placeOfSettlement]"><spring:message code="stl.label.placeofsettlement" htmlEscape="false"/></form:label>
+							<span><form:input id="placeofsettlement" value="" path="commandForm.securityStlDetail.otherAttributes.map[placeOfSettlement]" class="textBox readOnlyInput" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem" style="display: none;">
+							<form:label path="commandForm.securityStlDetail.brokerBic" ><spring:message code="stl.label.brokerbic" htmlEscape="false"/></form:label>
+							<span><form:input id="brokerBic" value="" path="commandForm.securityStlDetail.brokerBic"  class="textBox readOnlyInput" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem" style="display: none;">
+							<form:label path="commandForm.securityStlDetail.participantId"><spring:message code="stl.label.participantid" htmlEscape="false"/></form:label>
+							<span><form:input id="participantId" value="" path="commandForm.securityStlDetail.participantId" class="textBoxNormal readOnlyInput" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					    </div>
+						<div class="formItem" style="display: none;">
+							<form:label path="commandForm.securityStlDetail.participantId2"><spring:message code="stl.label.participantid2" htmlEscape="false"/></form:label>
+							<span><form:input id="participantId2" value="" path="commandForm.securityStlDetail.participantId2" class="textBoxNormal readOnlyInput" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+							</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+			<!-- Security Side Our details -->
+		    <div class="formItemBlock">
+			  <!-- To Bank / CP Bank **START -->
+			  <div class="BtnPosWrapper" id="ourHeader">
+			  <h3 class="left"><spring:message code="stl.amendment.label.ourdetails" htmlEscape="false"/></h3>
+				 <div class="formItem">
+					<span class="showForBankToBank cashTransfEntry popupBtn">
+						<input id="ourBankListPopUp1" class="inputBtnStyle small-btn-style"  type="button" tgt="ourSecCustomizedPopup" hiddenTgt="secOurChainIndex:secOurChainIndex,ourBank:settlementBank,ourSettleAc:settlementAc,ourIntermediaryInfo:intermediaryInfo" popType="ourSecCustomizedPopup" security="SECURITY" intermediaryInfoListName="SEC_OUR_INTERMEDIARY_LIST" value="List" hiddenFieldFilteredReqd="true"/>
+					</span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>	
+				</div>		
+			  </div>	
+              <div class="clear"><spring:message text="" htmlEscape="false"/></div>		
+                   		  <div id="secRow4">  
+					         <div class="formItem">
+								<form:label path="commandForm.securityStlDetail.otherAttributes.map[ourBank]" class="required"><spring:message code="stl.amendment.label.ourbank" htmlEscape="false"/></form:label>
+								<span><form:input id="ourBank" value="" path="commandForm.securityStlDetail.otherAttributes.map[ourBank]" class="textBox readOnlyInput" readonly ="true"/></span>					
+								<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+							</div>
+							<div class="formItem">
+								<form:label path="commandForm.securityStlDetail.otherAttributes.map[ourSettleAc]" class="required"><spring:message code="stl.amendment.label.oursettlea/c" htmlEscape="false"/></form:label>					
+								<span><form:input id="ourSettleAc" value="" path="commandForm.securityStlDetail.otherAttributes.map[ourSettleAc]" class="textBox readOnlyInput" readonly ="true"/></span>	
+								<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+							</div>
+						 </div>
+						 <div id="secRow5"> 
+							<div class="formItem twoCols">
+								<form:label path="commandForm.securityStlDetail.otherAttributes.map['ourIntermediaryInfo']" ><spring:message code="stl.amendment.label.ourintermediaryinfo" htmlEscape="false"/></form:label>
+								<span><form:input id="ourIntermediaryInfo" value="" path="commandForm.securityStlDetail.otherAttributes.map['ourIntermediaryInfo']" class="textBox readOnlyInput" style="width:1000px;" readonly ="true"/></span>			
+								<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+							</div>
+							<div class="formItem twoCols">
+								<form:label path="commandForm.securityStlDetail.description" ><spring:message code="stl.amendment.label.description" htmlEscape="false"/></form:label>
+								<span><form:input id="description" value="" path="commandForm.securityStlDetail.description" class="txtNormal"  maxlength="255" style="width:1000px;"/></span>			
+								<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+							</div>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div></div></div></div>
+	</div></div>
+			<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+			<div  id="wsCashSide" style="display: none;">
+					<div class="moreHandle">
+                      <h1 class="msgHead">
+                          <spring:message code="stl.amendment.label.cashsidesettlementdetail" htmlEscape="false"/>
+                    <div class="handleBlock">
+                     <span class="handler" id="stlMoreSection"><spring:message text="" htmlEscape="false"/></span>
+                    </div>
+                   </h1>
+                   </div>
+			    		<!-- Margin Block -->
+	        <div class="formItemBlock more">
+		        <div class="moreitems dottedBg">		
+					<div class="entryBlkArea">
+						<div class="formItemBlock">
+						<div class="formItem">
+						<form:label path="commandForm.cashStlDetail.otherAttributes.map['settlementCcy']"><spring:message code="stl.amendment.label.settlementccy" htmlEscape="false"/></form:label>
+	                    <span><form:label id="settlementCcy" value="" path="commandForm.cashStlDetail.otherAttributes.map['settlementCcy']">${commandForm.cashStlDetail.otherAttributes.map['settlementCcy']}</form:label></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.cashStlDetail.otherAttributes.map['amount']"><spring:message code="stl.label.netamount" htmlEscape="false"/></form:label>
+	                    <span><form:label id="netamount" value="" path="commandForm.cashStlDetail.otherAttributes.map['amount']">${commandForm.cashStlDetail.otherAttributes.map['amount']}</form:label></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.cashStlDetail.otherAttributes.map['deliverReceive']"><spring:message code="stl.amendment.label.payment/receive" htmlEscape="false"/></form:label>
+	                    <span><form:label path="commandForm.cashStlDetail.otherAttributes.map['deliverReceive']">${commandForm.cashStlDetail.otherAttributes.map['deliverReceive']}</form:label></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+					    <form:label path="commandForm.cashStlDetail.wayOfPayment"><spring:message code="stl.amendment.label.wayofpayment" htmlEscape="false" /></form:label>
+					    <span><form:input id="wayofpayment" value="" path="commandForm.cashStlDetail.wayOfPayment"  class="textBox readOnlyInput" readonly ="true" style="display: none;"/></span>
+						<input id="diffcash" type="button" class="inputBtnStyle small-btn-style" value="Diff cash" onclick="handleDiffCash()" style="display: none;"/>
+						<span><input id="samecash" type="button" class="inputBtnStyle small-btn-style" value="Same Cash" onclick="handleSameCash()" style="display: none;"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                    </div>
+				    <div class="formItemBlock" id="cashSide2"> 
+					<!-- Settlement Mode -->
+					<div class="formItem">
+						<form:label path="commandForm.cashStlDetail.settlementMode" class="required"><spring:message code="stl.amendment.label.settlementmode" htmlEscape="false"/></form:label>
+	                    <xenos:select id="cashSettlementmode" path="commandForm.cashStlDetail.settlementMode" class="dropdowninput" onChange="onchangeCashStlMode();">
+							<form:options items="${commandForm.dropDownListValues.settlementModeList}" itemLabel="label" itemValue="value" />
+						</xenos:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+					    <form:label path="commandForm.settlementInfoVO.transmissionReqdFlag"><spring:message code="stl.amendment.label.inxtransmission" htmlEscape="false"/></form:label>
+						<span>
+							<xenos:select id="inxForNormal" path="commandForm.cashSettlementInfoVO.transmissionReqdFlag" class="dropdowninput" style="display:none;">
+							<form:options items="${commandForm.dropDownListValues.inxTransmissionList}" itemLabel="label" itemValue="value" />
+						    </xenos:select>
+					    </span>
+						<span>
+						    <xenos:select id="inxForSuppress" path="commandForm.settlementInfoVO.transmissionReqdFlag" class="dropdowninput" style="display:none;">
+							<form:options items="${commandForm.dropDownListValues.inxTransmissionList}" itemLabel="label" itemValue="value"/>
+							</xenos:select>
+						</span>
+				      <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				   </div>
+		  
+		     <div class="formItemBlock" id="cash_cp">
+			    <!-- To Bank / CP Bank **START -->
+			   
+			   <div class="BtnPosWrapper">
+                <h3 class="left"><spring:message code="stl.amendment.label.cpdetails" htmlEscape="false"/></h3>
+				    <div class="formItem">
+					    <span class="showForBankToBank cashTransfEntry popupBtn">
+						 <input id="ourBankListPopUp1" class="inputBtnStyle small-btn-style"  type="button" tgt="cpCashCustomizedPopup"
+						  popType="cpCashCustomizedPopup" cash="CASH" intermediaryInfoListName="CASH_CP_INTERMEDIARY_LIST" value="List" hiddenFieldFilteredReqd="true"/>
+					    </span>
+					    <div class="clear"><spring:message text="" htmlEscape="false"/></div>	
+				   </div>		
+			   </div> 
+			   
+			   <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				 	    <div class="formItem">
+							<form:label path="commandForm.cashStlDetail.otherAttributes.map[cpBank]" ><spring:message code="stl.amendment.label.cpbank" htmlEscape="false"/></form:label>
+							<span><form:input id="cashCpBank" value="" path="commandForm.cashStlDetail.otherAttributes.map[cpBank]"  class="textBox readOnlyInput" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<form:label id="lblCashCpSettleAc" path="commandForm.cashStlDetail.otherAttributes.map[cpSettleAc]"><spring:message code="stl.amendment.label.cpsettlea/c" htmlEscape="false"/></form:label>
+							<span><form:input id="cashCpSettleAc" value="" path="commandForm.cashStlDetail.otherAttributes.map[cpSettleAc]"  class="textBox readOnlyInput" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						
+				                <div id="cashRow1">
+									<div class="formItem">
+										<form:label path="commandForm.cashStlDetail.cpExtSettleAccountName1"><spring:message code="stl.amendment.label.cpsettlea/cname1stline" htmlEscape="false"/></form:label>
+										<span><form:input id="cashCpSettleAcName1stLine" value="" path="commandForm.cashStlDetail.cpExtSettleAccountName1" class="textBox readOnlyInput" readonly ="true"/></span>			
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+									<div class="formItem">
+										<form:label path="commandForm.cashStlDetail.cpExtSettleAccountName2"><spring:message code="stl.amendment.label.cpsettlea/cname2ndline" htmlEscape="false"/></form:label>
+										<span><form:input id="cashCpSettleAcName2ndLine" value="" path="commandForm.cashStlDetail.cpExtSettleAccountName2" class="textBox readOnlyInput" readonly ="true"/></span>			
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+								</div>
+							    <div id="cashRow2">
+									<div class="formItem">
+										<form:label path="commandForm.cashStlDetail.cpExtSettleAccountName3"><spring:message code="stl.amendment.label.cpsettlea/cname3rdline" htmlEscape="false"/></form:label>
+										<span><form:input id="cashCpSettleAcName3rdLine" value="" path="commandForm.cashStlDetail.cpExtSettleAccountName3" class="textBox readOnlyInput" readonly ="true"/></span>			
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+									</div>
+									<div class="formItem">
+										<form:label path="commandForm.cashStlDetail.cpExtSettleAccountName4"><spring:message code="stl.amendment.label.cpsettlea/cname4thline" htmlEscape="false"/></form:label>
+										<span><form:input id="cashCpSettleAcName4thLine" value="" path="commandForm.cashStlDetail.cpExtSettleAccountName4" class="textBox readOnlyInput" readonly ="true"/></span>			
+										<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+								    </div>
+								</div>		
+								
+						
+						<div class="formItem twoCols" id="cashRow3">
+							<form:label path="commandForm.cashStlDetail.otherAttributes.map[cpIntermediaryInfo]" ><spring:message code="stl.amendment.label.cpintermediaryinfo" htmlEscape="false"/></form:label>
+							<span><form:input id="cashCpIntermediaryInfo" value="" path="commandForm.cashStlDetail.otherAttributes.map[cpIntermediaryInfo]"  class="textBox readOnlyInput" style="width:1000px;" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+					   <div class="formItem twoCols">
+							<form:label path="commandForm.cashStlDetail.otherAttributes.map[ourSettleBeneficiaryName]" ><spring:message code="stl.amendment.label.beneficiaryname" htmlEscape="false"/></form:label>
+							<span><form:input id="cashBeneficiaryName" value="" path="commandForm.cashStlDetail.otherAttributes.map[ourSettleBeneficiaryName]" class="textBox readOnlyInput" style="width:1000px;" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+
+						<div class="formItem" style="display:none;">
+							<form:label path="commandForm.cashStlDetail.otherAttributes.map[placeOfSettlement]"><spring:message code="stl.label.placeofsettlement" htmlEscape="false"/></form:label>
+							<span><form:input id="cashPlaceofsettlement" value="" path="commandForm.cashStlDetail.otherAttributes.map[placeOfSettlement]" class="textBox readOnlyInput" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem" style="display:none;">
+							<form:label path="commandForm.cashStlDetail.brokerBic" ><spring:message code="stl.label.brokerbic" htmlEscape="false"/></form:label>
+							<span><form:input id="cashBrokerBic" value="" path="commandForm.cashStlDetail.brokerBic"  class="textBox readOnlyInput" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem" style="display:none;">
+							<form:label path="commandForm.cashStlDetail.participantId"><spring:message code="stl.label.participantid" htmlEscape="false"/></form:label>
+							<span><form:input id="cashParticipantId" value="" path="commandForm.cashStlDetail.participantId" class="textBoxNormal readOnlyInput" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					    </div>
+						<div class="formItem" style="display:none;">
+							<form:label path="commandForm.cashStlDetail.participantId2"><spring:message code="stl.label.participantid2" htmlEscape="false"/></form:label>
+							<span><form:input id="cashParticipantId2" value="" path="commandForm.cashStlDetail.participantId2" class="textBoxNormal readOnlyInput" readonly ="true"/></span>			
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+							</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					 
+			<!-- Cash Side Our details -->
+		    <div class="formItemBlock" id="cash_own">
+			  <!-- To Bank / CP Bank **START -->
+			  <div class="BtnPosWrapper" id="ourHeaderCash">
+			  <h3 class="left"><spring:message code="stl.amendment.label.ourdetails" htmlEscape="false"/></h3>
+				 <div class="formItem">
+					<span class="showForBankToBank cashTransfEntry popupBtn">
+						<input id="ourBankListPopUp1" class="inputBtnStyle small-btn-style" type="button" tgt="ourCashCustomizedPopup" hiddenTgt="cashOurChainIndex:cashOurChainIndex,cashOurBank:settlementBank,cashOurSettleAc:settlementAc,cashOurIntermediaryInfo:intermediaryInfo" popType="ourCashCustomizedPopup" cash="CASH" intermediaryInfoListName="CASH_OUR_INTERMEDIARY_LIST" value="List" hiddenFieldFilteredReqd="true"/>
+					</span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>	
+				</div>		
+			  </div>	
+              <div class="clear"><spring:message text="" htmlEscape="false"/></div>		
+                          <div id="cashRow4">			  
+					        <div class="formItem">
+								<form:label path="commandForm.cashStlDetail.otherAttributes.map[ourBank]" class="required"><spring:message code="stl.amendment.label.ourbank" htmlEscape="false"/></form:label>
+								<span><form:input id="cashOurBank" value="" path="commandForm.cashStlDetail.otherAttributes.map['ourBank']" class="textBox readOnlyInput" readonly ="true"/></span>					
+								<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+							</div>
+							<div class="formItem">
+								<form:label path="commandForm.cashStlDetail.otherAttributes.map[ourSettleAc]" class="required"><spring:message code="stl.amendment.label.oursettlea/c" htmlEscape="false"/></form:label>					
+								<span><form:input id="cashOurSettleAc" value="" path="commandForm.cashStlDetail.otherAttributes.map['ourSettleAc']" class="textBox readOnlyInput" readonly ="true"/></span>	
+								<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+							</div>
+						</div>
+						<div id="cashRow5">
+							<div class="formItem twoCols">
+								<form:label path="commandForm.cashStlDetail.otherAttributes.map[ourIntermediaryInfo]" ><spring:message code="stl.amendment.label.ourintermediaryinfo" htmlEscape="false"/></form:label>
+								<span><form:input id="cashOurIntermediaryInfo" value="" path="commandForm.cashStlDetail.otherAttributes.map['ourIntermediaryInfo']" class="textBox readOnlyInput" style="width:1000px;" readonly ="true"/></span>			
+								<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+							</div>
+						</div>	
+							<div class="formItem twoCols">
+								<form:label path="commandForm.cashStlDetail.description" ><spring:message code="stl.amendment.label.description" htmlEscape="false"/></form:label>
+								<span><form:input id="cashDescription" value="" path="commandForm.cashStlDetail.description" class="txtNormal"  maxlength="255" style="width:1000px;"/></span>			
+								<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+							</div>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div></div></div></div></div>
+	</div></div>
+</jsp:root>

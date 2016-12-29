@@ -1,0 +1,1294 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:Module verticalScrollPolicy="off" xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" xmlns:controls="*" creationComplete="init()" width="100%" height="100%" xmlns:src="ref.src.*" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:flexlib="http://code.google.com/p/flexlib/">
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.Label;
+			import mx.containers.Tile;
+	   		import com.nri.rui.core.utils.XenosStringUtils;
+ 	  		import mx.controls.listClasses.BaseListData;
+   			import mx.controls.listClasses.ListData;
+	   		import mx.utils.StringUtil;
+ 	  		import mx.controls.dataGridClasses.DataGridColumn;
+	   		import mx.controls.DataGrid;
+		
+			import mx.controls.Button;
+			import mx.containers.HBox;
+			import mx.containers.FormItem;
+			import mx.containers.GridItem;
+			import mx.containers.GridRow;
+			import mx.containers.Grid;
+			import com.nri.rui.core.utils.PrintUtils;
+			import mx.core.IFlexDisplayObject;
+            import com.nri.rui.core.controls.XenosAlert;    
+            import com.nri.rui.core.Globals;
+            import com.nri.rui.core.utils.PrintUtils;
+//            import smr.src.actionscripts.Globals;
+            import mx.rpc.events.ResultEvent;
+            import mx.core.UIComponent;
+            import mx.collections.XMLListCollection;
+            import com.nri.rui.core.utils.XenosPopupUtils;
+            import mx.core.Application;
+            import mx.collections.ArrayCollection;
+            
+            
+			[Bindable]
+            private var instrumentNo:String;    
+            [Bindable]       
+            public var xmlSource:XML;
+			[Bindable]
+            private var bbUniqueNo:String;
+            [Bindable]   
+            private var exchangeMrkt:String;
+			
+            public var o:Object = {};
+			private const SPACE : String = ' ';
+
+			private var dataName:ArrayCollection= new ArrayCollection();
+			private var dataValue:ArrayCollection = new ArrayCollection();
+			private var dataSet:ArrayCollection = new ArrayCollection();
+			private var dataNamePrice:ArrayCollection= new ArrayCollection();
+			private var dataValuePrice:ArrayCollection = new ArrayCollection();
+			private var dataSetPrice:ArrayCollection = new ArrayCollection();
+
+			private var dataCheck:String;
+			private var fieldName:String;
+ 			private var num:String;
+ 			private var gridNum:String;
+
+ 			private	var dataNameFieldLength:int = 16;
+ 			private var dataValueFieldLength:int = 17;
+ 			private var gridrowLength:int = 100;
+ 			private var gridLength:int = 100;
+
+			[Bindable]
+ 			public var mes:String;
+            
+            public function parseUrlString():void {
+                try {
+                    var myPattern:RegExp = /.*\?/; 
+                    var s : String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split("&"); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("="); 
+                        if (tempA[0] == Globals.BB_UNIQUE_ID) {
+                            bbUniqueNo = tempA[1] as String;
+                          //  break;
+                        }
+                      if (tempA[0] == Globals.EXCH_CODE) {
+                        exchangeMrkt = tempA[1] as String;                          
+                            break;
+                        } 
+                    }      
+                } catch (e:Error) {
+                    trace(e);
+                }            
+            }
+			
+			private function init():void
+			{
+				parseUrlString();
+				
+				var req : Object = new Object();
+
+				req.bbUniqueId= bbUniqueNo;
+				req.exchangeMrkt= exchangeMrkt;
+				BloombergDataRequest.request=req;				
+				BloombergDataRequest.send();
+			}
+			
+			private function initPage(event:ResultEvent):void 
+			{
+				xmlSource = event.result as XML;
+/* 				var initColl:ArrayCollection = new ArrayCollection();
+                var tempColl: ArrayCollection;  	
+				var i:int;
+ */
+                if(xmlSource == null){
+          			XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('smr.instrument.msg.error.initialize.marketSector'));
+	        	} else {
+	        		instrumnetInfo();
+	        		priceInfo();
+	        	}
+			}
+
+
+			private function getDataName():void
+			{	
+	
+				dataName.removeAll();
+ /*				dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.bbUniqueId')));             //1
+				dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.securityName')));           //2
+				dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.bbSecurityCode')));         //3
+				dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.countryOfIncorporation'))); //4
+				dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.issueCcy')));               //5
+				dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.securityType')));           //6
+				dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.primaryExchangeCode')));    //7
+				dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.bbExchangeCode')));         //8
+				dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.ticker')));                 //9   
+				dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.sedol')));                  //10
+				dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.isin')));                   //11
+				dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cusip')));                  //12
+				dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.issueDate')));              //13
+				dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.maturityDate')));           //14
+ */
+           dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.i144aFlag')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.adrAdrPerSh')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.adrShPerAdr')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.adrUndlCmpid')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.adrUndlCrncy')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.adrUndlSecid')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.adrUndlTicker')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.amtIssued')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.amtOutstanding')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.announceDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.basicSpread')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.bearer')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.calcMaturity')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.calcTyp')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.calcTypDes')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.callDiscrete')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.callFeature')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.callPartial')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.callable')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.called')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.calledDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.calledPx')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cdrCountryCode')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cdrExchCode')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cdrSettleCode')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cntryIssueIso')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cntryOfDomicile')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cntryOfIncorporation')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.collatTyp')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.country')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.countryGuarantor')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cpn')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cpnCrncy')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cpnFreq')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cpnTyp')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.creditEnhancements')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.crncy')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.curCpn')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cvCnvsFexchRt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cvCnvsPx')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cvCnvsRatio')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cvCommonTicker')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cvCommonTickerExch')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cvMandatoryCnvs')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cvProvPx')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cvShPar')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cvStartDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cvUnderlyingIdBbUnique')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.cvUntil')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.dayCnt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.daysToSettle')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.defaulted')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.deliveryTyp')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.dtcEligible')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.dtcRegistered')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.dualCrncy')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.dvdCrncy')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.dvdDeclaredDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.dvdExDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.dvdFreq')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.dvdPayDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.dvdRecordDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.dvdShLast')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.dvdTypLast')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyDvdExFlag')));
+              dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyDvdPctFranked')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyDvdSh12m')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyDvdSh12mNet')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyFreeFloatPct')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyFundCrncy')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyFundTicker')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyInitPoDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyInitPoShPx')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyOptAvail')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyPoDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyPrimExch')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyPrimExchShrt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyPrimSecurityCompExch')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyPrimSecurityPrimExch')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyPrimSecurityTicker')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyShOut')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyShOutDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyShOutReal')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqyShOutTotMultSh')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqySicCode')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqySicName')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqySplitAdjInitPoPx')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqySplitDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.eqySplitRatio')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.estCpnFlag')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.euSavingsDirective')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.exchCode')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.exchangeable')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.extendible')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.finalMaturity')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.firstCallDtIssuance')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.firstCpnDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.firstSettleDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.floater')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.fltBenchMultiplier')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.fltCpnConvention')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.fltDaysPrior')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.fltPayDay')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.giltsExDvdDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.guarantorName')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idAustrian')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idBbCompany')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idBbConnect')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idBbGuarantor')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idBbParentCo')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idBbPrimSecurity')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idBbPrimSecurityFlag')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idBbSecurity')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idBbUnique')));
+              dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idBelgium')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idCedel')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idCommon')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idCusip')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idCusipReal')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idDanish')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idDutch')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idEuroclear')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idExchSymbol')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idFrench')));
+            dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idIsin')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idItaly')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idJapan')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idJapanCompany')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idLocal')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idLuxembourg')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idMicLocalExch')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idMicPrimExch')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idMic1')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idMic2')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idMic3')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idMic4')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idMic5')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idNaicsCode')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idNorway')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idSedol1')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idSedol2')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idSedol3')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idSedol4')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idSedol5')));
+              dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idSpain')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idSwedish')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idValoren')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idWertpapier')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.idXtrakter')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.industryGroup')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.industrySector')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.industrySubgroup')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.industrySubgroupNum')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.inflationLinkedIndicator')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.insuranceStatus')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.intAccDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.isCurrentGovt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.isDayPayer')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.isPerpetual')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.isRegS')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.isReverseConvertible')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.isSets')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.isSoftCall')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.isStkMarginable')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.isUnitTraded')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.isoCountryGuarantor')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.issueDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.issuePx')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.issuer')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.issuerIndustry')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.junior')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.lastDpsGross')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.lastRefixDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.leadMgr')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.longCompName')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.lseSector')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.lseSegment')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.makeWholeCall')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.marketIssue')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.marketSectorDes')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.marketStatus')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.maturity')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.minIncrement')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.minPiece')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.mostRecentReportedFactor')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.mtyTyp')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.multipleShare')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.name')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.nxtCallDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.nxtCallPx')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.nxtCpnDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.nxtFactorDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.nxtParCallDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.nxtParPutDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.nxtPutDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.nxtPutPx')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.nxtRefixDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.nxtRefundDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.nxtSinkAmt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.nxtSinkDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.oidBond')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.parAmt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.parValCrncy')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.parentCompName')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.parentCompTicker')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.parentIndustryGroup')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.parentIndustrySector')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.parentIndustrySubgroup')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.pcsQuoteTyp')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.pctParQuoted')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.penultimateCpnDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.pfdDvdPayDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.pfdExDvdDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.pfdRstDvd')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroAmtIssued')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroAmtOutstanding')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroAmtOutstandingLast')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroCalcTyp')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroCalcTypDes')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroCalendarCode')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroDayCnt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroDayCntDes')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroIdCommon')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroIdDutch')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroIdFrench')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroIdIsin')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroIssueTyp')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroMinIncrement')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroMinPiece')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postEuroParAmt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.postRedenomCrncy')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preEuroAmtIssued')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preEuroAmtOutstanding')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preEuroAmtOutstandingLast')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preEuroCalcTyp')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preEuroCalcTypDes')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preEuroCalendarCode')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preEuroDayCnt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preEuroDayCntDes')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preEuroIdCommon')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preEuroIdFrench')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preEuroIdIsin')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preEuroIssueTyp')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preEuroMinIncrement')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preEuroMinPiece')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preEuroParAmt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.preRedenomCrncy')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.prevCpnDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.prvtPlace')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.putDiscrete')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.putFeature')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.putable')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.pxQuoteLotSize')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.pxRoundLotSize')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.pxTradeLotSize')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.reconventionDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.redempCrncy')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.redempVal')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.redenomDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.redenomMethod')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.redenomPx')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.redenomRoundMethod')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.refixFreq')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.registered')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.relIndex')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.removalReason')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.resetIdx')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.rtgCanadian')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.rtgDbrs')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.rtgJcr')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.rtgMikuni')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.rtgRi')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.seasoningStatus')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.secRestrict')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.securityDes')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.securityTyp')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.securityTyp2')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.sedol1CountryIso')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.sedol2CountryIso')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.sedol3CountryIso')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.sedol4CountryIso')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.sedol5CountryIso')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.senior')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.series')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.shortName')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.sinkable')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.stepupCpn')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.stepupDt')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.structuredNote')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.ticker')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.tickerAndExchCode')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.totalNonVotingSharesValue')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.totalVotingSharesValue')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.tradeCrncy')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.tradeStatus')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.transferAgent')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.votingRights')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.whenIssued')));
+             dataName.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.whichJapaneseSection')));
+			}
+			
+			private function getDataValue():void
+			{
+				
+				dataValue.removeAll();
+ /* 				dataValue.addItem(xmlSource.bbresultviews.view.bbUniqueId);       //1
+				dataValue.addItem(xmlSource.bbresultviews.view.securityName);     //2
+				dataValue.addItem(xmlSource.bbresultviews.view.bbSecurityCode);   //3
+				dataValue.addItem(xmlSource.bbresultviews.view.countryOfIncorp);  //4
+				dataValue.addItem(xmlSource.bbresultviews.view.issueCcy);         //5
+				dataValue.addItem(xmlSource.bbresultviews.view.securityType);     //6
+				dataValue.addItem(xmlSource.bbresultviews.view.eqyPrimExchShrt);  //7
+				dataValue.addItem(xmlSource.bbresultviews.view.exchangeMrkt);     //8
+				dataValue.addItem(xmlSource.bbresultviews.view.ticker);           //9
+				dataValue.addItem(xmlSource.bbresultviews.view.sedolCode1);       //10
+				dataValue.addItem(xmlSource.bbresultviews.view.isinCode);         //11
+				dataValue.addItem(xmlSource.bbresultviews.view.cusipCode);        //12
+				dataValue.addItem(xmlSource.bbresultviews.view.issueDate);        //13
+				dataValue.addItem(xmlSource.bbresultviews.view.maturityDate);     //14
+ */
+  				 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.i144aFlag);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.adrAdrPerSh);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.adrShPerAdr);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.adrUndlCmpid);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.adrUndl);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.adrUndlSecid);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.adrUndlTicker);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.amtIssued);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.amtOutstanding);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.announceDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.basicSpread);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.bearer);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.calcMaturity);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.calcTyp);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.calcTypDes);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.callDiscrete);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.callFeature);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.callPartial);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.callable);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.called);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.calledDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.calledPx);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cdrCountryCode);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cdrExchCode);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cdrSettleCode);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cntryIssueIso);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cntryOfDomicile);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cntryOfIncorporation);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.collatTyp);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.country);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.countryGuarantor);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cpn);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cpnCrncy);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cpnFreq);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cpnTyp);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.creditEnhancements);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.crncy);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.curCpn);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cvCnvsFexchRt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cvCnvsPx);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cvCnvsRatio);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cvCommonTicker);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cvCommonTickerExch);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cvMandatoryCnvs);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cvProvPx);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cvShPar);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cvStartDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cvUnderlyingIdBbUnique);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.cvUntil);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.dayCnt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.daysToSettle);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.defaulted);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.deliveryTyp);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.dtcEligible);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.dtcRegistered);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.dualCrncy);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.dvdCrncy);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.dvdDeclaredDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.dvdExDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.dvdFreq);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.dvdPayDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.dvdRecordDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.dvdShLast);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.dvdTypLast);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyDvdExFlag);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyDvdPctFranked);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyDvdSh12m);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyDvdSh12mNet);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyFreeFloatPct);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyFundCrncy);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyFundTicker);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyInitPoDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyInitPoShPx);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyOptAvail);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyPoDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyPrimExch);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyPrimExchShrt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyPrimSecurityCompExch);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyPrimSecurityPrimExch);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyPrimSecurityTicker);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyShOut);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyShOutDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyShOutReal);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqyShOutTotMultSh);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqySicCode);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqySicName);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqySplitAdjInitPoPx);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqySplitDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.eqySplitRatio);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.estCpnFlag);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.euSavingsDirective);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.exchCode);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.exchangeable);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.extendible);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.finalMaturity);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.firstCallDtIssuance);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.firstCpnDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.firstSettleDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.floater);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.fltBenchMultiplier);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.fltCpnConvention);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.fltDaysPrior);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.fltPayDay);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.giltsExDvdDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.guarantorName);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idAustrian);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idBbCompany);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idBbConnect);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idBbGuarantor);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idBbParentCo);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idBbPrimSecurity );
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idBbPrimSecurityFlag);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idBbSecurity);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idBbUnique);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idBelgium);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idCedel);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idCommon);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idCusip);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idCusipReal);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idDanish);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idDutch);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idEuroclear);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idExchSymbol);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idFrench);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idIsin);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idItaly);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idJapan);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idJapanCompany);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idLocal);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idLuxembourg);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idMicLocalExch);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idMicPrimExch);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idMic1);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idMic2);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idMic3);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idMic4);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idMic5);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idNaicsCode);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idNorway);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idSedol1);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idSedol2);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idSedol3);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idSedol4);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idSedol5);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idSpain);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idSwedish);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idValoren);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idWertpapier);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.idXtrakter);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.industryGroup);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.industrySector);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.industrySubgroup);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.industrySubgroupNum);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.inflationLinkedIndicator);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.insuranceStatus);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.intAccDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.isCurrentGovt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.isDayPayer);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.isPerpetual);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.isRegS);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.isReverseConvertible);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.isSets);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.isSoftCall);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.isStkMarginable);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.isUnitTraded);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.isoCountryGuarantor);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.issueDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.issuePx);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.issuer);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.issuerIndustry);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.junior);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.lastDpsGross);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.lastRefixDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.leadMgr);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.longCompName);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.lseSector);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.lseSegment);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.makeWholeCall);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.marketIssue);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.marketSectorDes);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.marketStatus);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.maturity);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.minIncrement);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.minPiece);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.mostRecentReportedFactor);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.mtyTyp);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.multipleShare);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.name);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.nxtCallDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.nxtCallPx);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.nxtCpnDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.nxtFactorDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.nxtParCallDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.nxtParPutDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.nxtPutDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.nxtPutPx);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.nxtRefixDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.nxtRefundDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.nxtSinkAmt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.nxtSinkDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.oidBond);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.parAmt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.parValCrncy);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.parentCompName);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.parentCompTicker);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.parentIndustryGroup);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.parentIndustrySector);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.parentIndustrySubgroup);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.pcsQuoteTyp);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.pctParQuoted);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.penultimateCpnDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.pfdDvdPayDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.pfdExDvdDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.pfdRstDvd);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroAmtIssued);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroAmtOutstanding);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroAmtOutstandingLast);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroCalcTyp);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroCalcTypDes);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroCalendarCode);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroDayCnt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroDayCntDes);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroIdCommon);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroIdDutch);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroIdFrench);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroIdIsin);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroIssueTyp);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroMinIncrement);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroMinPiece);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postEuroParAmt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.postRedenomCrncy);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preEuroAmtIssued);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preEuroAmtOutstanding);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preEuroAmtOutstandingLast);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preEuroCalcTyp);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preEuroCalcTypDes);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preEuroCalendarCode);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preEuroDayCnt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preEuroDayCntDes);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preEuroIdCommon);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preEuroIdFrench);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preEuroIdIsin);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preEuroIssueTyp);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preEuroMinIncrement);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preEuroMinPiece);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preEuroParAmt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.preRedenomCrncy);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.prevCpnDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.prvtPlace);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.putDiscrete);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.putFeature);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.putable);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.pxQuoteLotSize);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.pxRoundLotSize);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.pxTradeLotSize);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.reconventionDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.redempCrncy);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.redempVal);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.redenomDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.redenomMethod);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.redenomPx);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.redenomRoundMethod);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.refixFreq);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.registered);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.relIndex);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.removalReason);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.resetIdx);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.rtgCanadian);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.rtgDbrs);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.rtgJcr);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.rtgMikuni);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.rtgRi);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.seasoningStatus);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.secRestrict);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.securityDes);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.securityTyp);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.securityTyp2);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.sedol1CountryIso);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.sedol2CountryIso);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.sedol3CountryIso);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.sedol4CountryIso);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.sedol5CountryIso);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.senior);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.series);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.shortName);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.sinkable);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.stepupCpn);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.stepupDt);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.structuredNote);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.ticker);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.tickerAndExchCode);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.totalNonVotingSharesValue);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.totalVotingSharesValue);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.tradeCrncy);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.tradeStatus);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.transferAgent);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.votingRights);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.whenIssued);
+                 dataValue.addItem(xmlSource.bbresultviewsInstrument.viewInstrument.whichJapaneseSection);	
+			}
+
+			private function getDataNamePrice():void
+			{
+				dataNamePrice.removeAll();
+/* 				dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.bbUniqueId')));             //1
+				dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.high52Week')));           //2
+				dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.low52Week')));         //3
+				dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.lastPrice'))); //4
+				dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.volume')));               //5
+				dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.curMktCapitalizationStr')));           //6
+				dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.cntryIssueIso')));    //7
+				dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.cntryOfDomicile')));         //8
+				dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.cntryOfIncorporation')));                 //9   
+				dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.compositeExchCode')));                  //10
+				dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.curMktCap')));                   //11
+				dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.cvParity')));                  //12
+				dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.cvPctPremium')));              //13
+				dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.cvPremiumPoints')));           //14
+ */
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.cntryIssueIso')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.cntryOfDomicile')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.cntryOfIncorporation')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.compositeExchCode')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.crncy')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.curMktCap')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.cvParity')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.cvPctPremium')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.cvPremiumPoints')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.daysAcc')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.discLiborAsk')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.discLiborBid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.discLiborMid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.discMrgnAsk')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.discMrgnBid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.discMrgnMid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.eqyBeta')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.eqyDvdYld12m')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.eqyDvdYld12mNet')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.eqyDvdYldInd')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.eqyFloat')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.eqyPrimExch')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.eqyPrimExchShrt')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.eqyPrimSecurityCompExch')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.eqyShOut')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.eqyShOutReal')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.exchCode')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.exchMktGrp')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.exchSubMktGrp')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.groupNameStatic')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.high52week')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.highDt52week')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idBbCompany')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idBbConnect')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idBbPrimSecurityFlag')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idBbSecurity')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idBbUnique')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idBelgium')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idCommon')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idCusip')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idDutch')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idExchSymbol')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idFrench')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idIsin')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idLocal')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idMicLocalExch')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idMicPrimExch')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idMic1')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idMic2')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idMic3')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idMic4')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idMic5')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idSedol1')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idSedol2')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idSedol3')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idSedol4')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idSedol5')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idStockExchange')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idValoren')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idWertpapier')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.idxRatio')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.intAcc')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.lastUpdate')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.lastUpdateDt')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.lastUpdateDtExchTz')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.low52week')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.lowDt52week')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.marketSectorDes')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.marketStatus')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.mktCapListed')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.mktOfRefInfo')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.name')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.offOnExchVolume')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pctParQuoted')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.placeOfSettlement')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pricingSource')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.priorCloseAsk')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.priorCloseAskYld')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.priorCloseBid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.priorCloseBidYld')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.priorCloseMid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.priorCloseMidYld')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxAsk')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxBid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxCloseDt')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxDirtyClean')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxDiscAsk')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxDiscBid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxDiscMid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxFixing')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxHigh')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxLast')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxLow')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxMid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxNasdaqClose')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxOpen')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxQuoteLotSize')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxRoundLotSize')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxTradeLotSize')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.pxVolume')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.quoteTyp')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.secDate2a7')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.securityTyp')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.sedol1CountryIso')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.sedol2CountryIso')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.sedol3CountryIso')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.sedol4CountryIso')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.sedol5CountryIso')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.ticker')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.tickerAndExchCode')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.tradeCrncy')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.tradeStatus')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.workoutDtAsk')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.workoutDtBid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.workoutDtMid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.workoutPxAsk')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.workoutPxBid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.workoutPxMid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.yldCnvAsk')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.yldCnvBid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.yldCnvMid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.yldNxtRefundAsk')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.yldNxtRefundBid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.yldNxtRefundMid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.yldYtcAsk')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.yldYtcBid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.yldYtcMid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.yldYtmAsk')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.yldYtmBid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.yldYtmMid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.yldYtpAsk')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.yldYtpBid')));
+             dataNamePrice.addItem((this.parentApplication.xResourceManager.getKeyValue('smr.bloombergPrice.label.yldYtpMid')));
+			}			
+
+			private function getDataValuePrice():void
+			{
+				dataValuePrice.removeAll();
+/*  				dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.bbUniqueId);
+				dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.high52Week);
+				dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.low52Week);
+				dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.lastPrice);
+				dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.volume);
+				dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.curMktCapitalizationStr);
+				dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.cntryIssueIso);
+				dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.cntryOfDomicile );
+				dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.cntryOfIncorporation);
+				dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.compositeExchCode);
+				dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.curMktCap);
+				dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.cvParity);
+				dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.cvPctPremium);
+				dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.cvPremiumPoints);
+ */
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.cntryIssueIso);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.cntryOfDomicile);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.cntryOfIncorporation);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.compositeExchCode);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.crncy);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.curMktCap);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.cvParity);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.cvPctPremium);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.cvPremiumPoints);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.daysAcc);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.discLiborAsk);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.discLiborBid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.discLiborMid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.discMrgnAsk);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.discMrgnBid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.discMrgnMid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.eqyBeta);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.eqyDvdYld12m);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.eqyDvdYld12mNet);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.eqyDvdYldInd);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.eqyFloat);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.eqyPrimExch);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.eqyPrimExchShrt);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.eqyPrimSecurityCompExch);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.eqyShOut);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.eqyShOutReal);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.exchCode);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.exchMktGrp);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.exchSubMktGrp);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.groupNameStatic);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.high52week);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.highDt52week);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idBbCompany);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idBbConnect);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idBbPrimSecurityFlag);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idBbSecurity);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idBbUnique);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idBelgium);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idCommon);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idCusip);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idDutch);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idExchSymbol);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idFrench);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idIsin);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idLocal);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idMicLocalExch);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idMicPrimExch);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idMic1);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idMic2);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idMic3);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idMic4);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idMic5);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idSedol1);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idSedol2);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idSedol3);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idSedol4);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idSedol5);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idStockExchange);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idValoren);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idWertpapier);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.idxRatio);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.intAcc);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.lastUpdate);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.lastUpdateDt);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.lastUpdateDtExchTz);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.low52week);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.lowDt52week);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.marketSectorDes);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.marketStatus);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.mktCapListed);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.mktOfRefInfo);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.name);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.offOnExchVolume);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pctParQuoted);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.placeOfSettlement);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pricingSource);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.priorCloseAsk);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.priorCloseAskYld);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.priorCloseBid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.priorCloseBidYld);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.priorCloseMid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.priorCloseMidYld);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxAsk);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxBid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxCloseDt);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxDirtyClean);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxDiscAsk);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxDiscBid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxDiscMid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxFixing);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxHigh);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxLast);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxLow);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxMid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxNasdaqClose);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxOpen);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxQuoteLotSize);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxRoundLotSize);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxTradeLotSize);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.pxVolume);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.quoteTyp);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.secDate2a7);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.securityTyp);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.sedol1CountryIso);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.sedol2CountryIso);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.sedol3CountryIso);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.sedol4CountryIso);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.sedol5CountryIso);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.ticker);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.tickerAndExchCode);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.tradeCrncy);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.tradeStatus);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.workoutDtAsk);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.workoutDtBid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.workoutDtMid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.workoutPxAsk);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.workoutPxBid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.workoutPxMid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.yldCnvAsk);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.yldCnvBid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.yldCnvMid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.yldNxtRefundAsk);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.yldNxtRefundBid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.yldNxtRefundMid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.yldYtcAsk);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.yldYtcBid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.yldYtcMid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.yldYtmAsk);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.yldYtmBid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.yldYtmMid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.yldYtpAsk);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.yldYtpBid);
+                 dataValuePrice.addItem(xmlSource.bbresultviewsprice.viewprice.yldYtpMid);
+			}
+
+			private function instrumnetInfo():void 
+			{
+		    vb1.removeAllChildren();
+			//var grid:Grid = new Grid();
+ 			var gridrow:GridRow = new GridRow();
+ 			var griditem1:GridItem = new GridItem();
+ 			var griditem2:GridItem = new GridItem();
+   			var label1:Label = new Label();
+ 			var label2:Label = new Label();
+ 			var dataNum:int;
+ 			var rowNum:int;
+			dataSet.removeAll();
+			dataName.removeAll();
+			dataValue.removeAll();
+
+			getDataName();
+			getDataValue();
+			dataNum = 0;
+
+			if(dataName.length != dataValue.length){
+	    		errPage.removeError();
+	    		XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('smr.data.not.much'));				
+			}
+
+ 			for(var col:int=0;col< dataName.length ;col++)
+			{
+				if(dataValue.getItemAt(col).toString() != "" || null){
+					dataSet.addItem(dataName.getItemAt(col));
+					dataSet.addItem(dataValue.getItemAt(col));					
+				}
+			}
+ 			       
+            var rowChecker:int = 0;
+
+		    gridrow.percentWidth=gridrowLength; 
+			griditem1.percentWidth=dataNameFieldLength;
+			griditem2.percentWidth=dataValueFieldLength; 
+			grid.percentWidth=gridLength;
+			griditem1.styleName='LabelBgColor';
+//			griditem2.styleName="LabelBgColor";
+			label1.styleName='FormLabelHeading';
+//			label2.styleName="FormLabelHeading";
+
+		
+			for(var i:int=0;i< dataSet.length;i=i + 2)
+			{
+				if(rowChecker == 3){
+					grid.addChild(gridrow); 
+					gridrow   = new GridRow();
+				    gridrow.percentWidth=gridrowLength; 
+				    rowChecker = 0;
+				}
+	            label1.text = dataSet.getItemAt(i).toString();
+                label2.text = dataSet.getItemAt(i+1).toString();
+
+	 			griditem1.addChild(label1);
+	 			griditem2.addChild(label2);
+ 	 			gridrow.addChild(griditem1);
+				gridrow.addChild(griditem2);
+
+				label1 = new Label();
+				label2 = new Label();
+				griditem1 = new GridItem();
+				griditem2 = new GridItem();
+
+				griditem1.percentWidth=dataNameFieldLength;
+				griditem2.percentWidth=dataValueFieldLength;
+				griditem1.styleName='LabelBgColor';
+				label1.styleName='FormLabelHeading';							
+				rowChecker = rowChecker +1;
+				
+ 			}
+ 			if(rowChecker == 1 || 2)
+ 			{
+				grid.addChild(gridrow); 
+				gridrow   = new GridRow();
+			    gridrow.percentWidth=gridrowLength; 
+			    rowChecker = 0; 				
+ 			}
+	 		vb1.addChild( grid );
+			}
+
+			private function priceInfo():void 
+			{
+		    vb2.removeAllChildren();
+			//var gridP:Grid = new Grid();
+ 			var gridrowP:GridRow = new GridRow();
+ 			var griditem1P:GridItem = new GridItem();
+ 			var griditem2P:GridItem = new GridItem();
+   			var label1P:Label = new Label();
+ 			var label2P:Label = new Label();
+ 			var dataNumP:int;
+ 			var rowNumP:int;
+
+			dataSetPrice.removeAll();
+			dataNamePrice.removeAll();
+			dataValuePrice.removeAll();
+
+			getDataNamePrice();
+			getDataValuePrice();
+			dataNumP = 0;
+
+			if(dataNamePrice.length!=dataValuePrice.length){
+	    		errPage.removeError();
+	    		XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('smr.data.not.much'));				
+			}
+
+ 			for(var colP:int=0;colP< dataNamePrice.length ;colP++)
+			{
+				if(dataValuePrice.getItemAt(colP).toString() != "" || null){
+					dataSetPrice.addItem(dataNamePrice.getItemAt(colP));
+					dataSetPrice.addItem(dataValuePrice.getItemAt(colP));
+				}
+			}
+ 			       
+            var rowCheckerP:int = 0;
+
+		    gridrowP.percentWidth=gridrowLength; 
+			griditem1P.percentWidth=dataNameFieldLength;
+			griditem2P.percentWidth=dataValueFieldLength; 
+			gridP.percentWidth=gridLength;
+			griditem1P.styleName='LabelBgColor';
+//			griditem2.styleName="LabelBgColor";
+			label1P.styleName='FormLabelHeading';
+//			label2.styleName="FormLabelHeading";
+
+		
+			for(var iP:int=0;iP< dataSetPrice.length;iP=iP + 2)
+			{
+				if(rowCheckerP == 3){
+					gridP.addChild(gridrowP); 
+					gridrowP   = new GridRow();
+				    gridrowP.percentWidth=gridrowLength; 
+				    rowCheckerP = 0;
+				}
+	            label1P.text = dataSetPrice.getItemAt(iP).toString();
+                label2P.text = dataSetPrice.getItemAt(iP+1).toString();
+
+	 			griditem1P.addChild(label1P);
+	 			griditem2P.addChild(label2P);
+ 	 			gridrowP.addChild(griditem1P);
+				gridrowP.addChild(griditem2P);
+
+				label1P = new Label();
+				label2P = new Label();
+				griditem1P = new GridItem();
+				griditem2P = new GridItem();
+
+				griditem1P.percentWidth=dataNameFieldLength;
+				griditem2P.percentWidth=dataValueFieldLength;
+				griditem1P.styleName='LabelBgColor';
+				label1P.styleName='FormLabelHeading';							
+				rowCheckerP = rowCheckerP +1;
+ 			}
+ 			if(rowCheckerP == 1 || 2)
+ 			{
+				gridP.addChild(gridrowP); 
+				gridrowP   = new GridRow();
+			    gridrowP.percentWidth=gridrowLength; 
+			    rowCheckerP = 0; 				
+ 			}
+	 		vb2.addChild( gridP );
+			}
+			
+		private var _listData:BaseListData;
+		
+		public function get listData():BaseListData
+		{
+			return _listData;
+		}
+		
+		// Define the setter method,
+		public function set listData(value:BaseListData):void
+		{
+			_listData = value;
+		}		
+ 		]]>
+	</mx:Script>
+	<cntrls:XenosHTTPService id="BloombergDataRequest" url="smr/queryBloombergDataDispatch.action?method=viewBloombergDetails"
+        result="initPage(event)" showBusyCursor="true" method="POST" useProxy="false"
+        fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)));" resultFormat="e4x">
+        <!--fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)));" resultFormat="e4x"-->
+        <!-- <mx:request>
+        	<instrumentPk>{instrumentNo}</instrumentPk>
+        </mx:request>  -->
+    </cntrls:XenosHTTPService>
+
+<!--		<mx:states>	
+    	<mx:State name="Summary">
+-->    		<!--mx:SetProperty target="{this.parentDocument}" name="title" value="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.securitysummary')}"/-->
+<!--	   		<mx:AddChild relativeTo="{instrumentMain}" position="lastChild">
+                <mx:target>         
+-->	
+		<mx:VBox width="100%" height="100%">
+				<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+				        <!--controls:InstrumentSummaryView dataProvider="{this.xmlSource}" width="100%" height="100%"/-->
+				   	<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+				   	<mx:VBox width="100%" height="100%">
+				   		<mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+				        	<mx:Button id="Print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetail(this.bmrgDetail)"/>
+				    	</mx:HBox>
+						<mx:VBox id="bmrgDetail"  width="100%" height="100%" verticalScrollPolicy="off">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.title')}" styleName="LabelBgColor" fontWeight="bold" fontSize="12"  width="100%"/>
+						    <controls:BloombergGeneralView dataProvider="{this.xmlSource}" width="100%" height="30%"/>
+							<flexlib:WindowShade verticalScrollPolicy="auto" id="ws1" tabChildren="{ws1.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.detailedInstrumentInformation')}" opened="true" width="100%">				    
+								<mx:VBox width="100%" id="vb1">
+									<mx:Grid id="grid" verticalGap="0" horizontalGap="0">
+					
+									</mx:Grid>
+								</mx:VBox>
+	    					</flexlib:WindowShade>				    
+							<flexlib:WindowShade verticalScrollPolicy="auto" id="ws2" tabChildren="{ws2.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('smr.queryBloomberg.label.priceInformation')}" opened="true" width="100%">				    
+								<mx:VBox width="100%" id="vb2">
+									<mx:Grid id="gridP" verticalGap="0" horizontalGap="0">
+					
+									</mx:Grid>
+								</mx:VBox>
+	    					</flexlib:WindowShade>				    				    
+						</mx:VBox>
+				   	</mx:VBox>
+			 	</mx:Canvas>
+ 		</mx:VBox>		 
+</mx:Module>

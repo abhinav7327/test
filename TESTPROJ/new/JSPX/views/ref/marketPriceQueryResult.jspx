@@ -1,0 +1,92 @@
+<!--$Id$-->
+<!--$Author: Debnandini $-->
+<!--$Date: 2016-12-26 09:59:24 $-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+    
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" /> 
+
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;	
+			var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;	
+            var grid_result_data = [];
+			
+            var grid_result_columns = [
+            	{name:"<spring:message code="ref.marketPrice.label.baseDate" htmlEscape="false"/>", field:"baseDateStr", id:"baseDateStr", width:90, sortable:true},
+                {name:"<spring:message code="ref.marketPrice.label.market" htmlEscape="false"/>", field:"finInstRoleCode", id:"finInstRoleCode", width:100, sortable:true},
+                {name:"<spring:message code="ref.marketPrice.label.securityCode" htmlEscape="false"/>", field:"securityCode", id:"securityCode", width:200, sortable:true},
+                {name:"<spring:message code="ref.marketPrice.label.securityName" htmlEscape="false"/>", field:"officialName", id:"officialName", width:350,sortable:true},
+                {name:"<spring:message code="ref.marketPrice.label.alternate.securityCode" htmlEscape="false"/>", field:"alternateSecurityCode", id:"alternateSecurityCode", width:300,sortable:true},
+				{name:"<spring:message code="ref.marketPrice.label.ccy" htmlEscape="false"/>", field:"currency", id:"currency", width:70, sortable:true},
+                {name:"<spring:message code="ref.marketPrice.label.dataSource" htmlEscape="false"/>", field:"dataSource", id:"dataSource", width:150, sortable:true},
+                {name:"<spring:message code="ref.marketPrice.label.priceType" htmlEscape="false"/>", field:"priceType", id:"priceType", width:100, sortable:true},
+                {name:"<spring:message code="ref.marketPrice.label.price" htmlEscape="false"/>", field:"priceStr", id:"priceStr", width:130, cssClass:'xenos-grid-number', sortable:true},
+                {name:"<spring:message code="ref.marketPrice.label.remarks" htmlEscape="false"/>", field:"remarks", id:"remarks", width:200, sortable:true},                
+                {name:"<spring:message code="ref.marketPrice.label.status" htmlEscape="false"/>", field:"status", id:"status", width:100, sortable:true, formatter:Slick.Formatters.CancelRecordFormatter},
+            ];
+			var grid_result_settings = {
+				enableToolbar:true,
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+					url: '/secure/ref/marketprice/query/count.json'
+				},
+				buttons:{
+					print:true,	
+					xls:true,	
+					pdf:true,
+					xlsPref:true,
+					columnPicker:true,	
+					save:true	
+				},
+				urls:{
+					nextPage : '/secure/ref/marketprice/query/result.json?fetch=next',
+					prevPage : '/secure/ref/marketprice/query/result.json?fetch=previous',
+					pdfReport: '/secure/ref/marketprice/query/report.json?outputType=pdf',
+					xlsReport: '/secure/ref/marketprice/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/ref/marketprice/query/reportPref.json?outputType=xls'
+				}
+			};
+            var row_id = 0;			
+            var rec = {};
+            <xenos:out escapeXml="false">
+	            <c:forEach items="${value}" var="dl">
+	                rec = {};
+	                row_id+=1;
+	                rec.id = "xenos_" + row_id;                
+	                rec.baseDateStr = "<c:out value="${dl.baseDateStr}" />";
+	                rec.finInstRoleCode = "<c:out value="${dl.finInstRoleCode}" />";
+	                rec.securityCode = "<c:out value="${dl.securityCode}" />";
+					rec.officialName = "<c:out value="${dl.officialName}" />";
+					rec.alternateSecurityCode = "<c:out value="${dl.alternateSecurityCode}" />";
+	                rec.currency = "<c:out value="${dl.currency}" />";
+	                rec.dataSource = "<c:out value="${dl.dataSource}" />";
+	                rec.priceType = "<c:out value="${dl.priceType}" />";
+	                rec.priceStr = "<c:out value="${dl.priceStr}" />";
+	                rec.remarks = "<c:out value="${dl.remarks}" />";                
+					rec.status = "<c:out value="${dl.status}" />";				
+					grid_result_data.push(rec);
+	            </c:forEach>
+            </xenos:out>			
+        </jsp:body>
+    </jsp:element>	
+		
+	
+	<input type="hidden" id="resultVisited" name="resultVisited" value="${commandForm.resultVisited}"/>
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/ref/marketPriceQueryResult.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element> 
+	
+</jsp:root>

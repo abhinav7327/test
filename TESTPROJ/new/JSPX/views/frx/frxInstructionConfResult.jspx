@@ -1,0 +1,93 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		
+            var grid_result_data = [];		
+			
+            var grid_result_columns = [			
+			
+				{name:"<spring:message code="frx.inst.label.traderefverno" htmlEscape="false"/>", field:"tradeRefVerNo", id:"tradeRefVerNo", width:170, formatter:Slick.Formatters.FrxInstructionTradeDetailViewFormatter, sortable: false},
+				{name:"<spring:message code="frx.inst.label.fundac" htmlEscape="false"/>", field:"fundAccountNo", id:"fundAccountNo", sortable: false, width:150, formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'fundAccountPk'}},
+				{name:"<spring:message code="frx.label.baseccy" htmlEscape="false"/>", field:"buyCcy", id:"buyCcy", width:80, sortable: false },
+                {name:"<spring:message code="frx.label.baseccyamt" htmlEscape="false"/>", field:"buyCcyAmntStr", id:"buyCcyAmntStr", width:150, cssClass: 'xenos-grid-number', sortable: false },
+                {name:"<spring:message code="frx.label.againstccy" htmlEscape="false"/>", field:"sellCcy", id:"sellCcy", width:80, sortable: false },
+                {name:"<spring:message code="frx.label.againstccyamt" htmlEscape="false"/>", field:"sellCcyAmntStr", id:"sellCcyAmntStr",cssClass: 'xenos-grid-number', width:150, sortable: false },
+				{name:"<spring:message code="frx.inst.label.deliveryagent" htmlEscape="false"/>", field:"buyDeliveryAgent", id:"buyDeliveryAgent", width:120, sortable: false },
+				{name:"<spring:message code="frx.inst.label.receivingagent" htmlEscape="false"/>", field:"sellRecievingAgent", id:"sellRecievingAgent", width:120, sortable: false },
+				{name:"<spring:message code="frx.inst.label.func" htmlEscape="false"/>", field:"functionDisplay", id:"functionDisplay", width:100, sortable: false }				
+			];
+			
+            var grid_result_settings = {
+				enableToolbar:false,
+				consolidateActionFlag: false,
+				
+				buttons: {
+					
+				},
+				pagingInfo:{
+					
+				},
+				urls:{
+				},
+				events:{
+					onDataUpdate : function(data,callback){
+						for(i in data.value){		
+							data.value[i].tradeRefVerNo = tradeRefVerNo(data.value[i].versionNo, data.value[i].tradeRefNo);
+							data.value[i].fundAccountNo = data.value[i].fundPrefix+";"+data.value[i].fundAccountNo;
+						}
+						callback(data);
+					}
+				}
+			};
+			
+            var row_id = 0;
+            var rec = {};
+            
+			var tradeRefVerNo = function(versionNo, tradeRefNo){
+            	if(versionNo=="0"){
+            		return tradeRefNo;
+            	}else{
+            		return tradeRefNo+"-"+versionNo;
+            	}
+            }
+			
+			<xenos:out escapeXml="false">
+				<c:forEach items="${value}" var="dl">
+					rec = {};
+					row_id+=1;
+					rec.id = "xenos_" + row_id;
+					
+					rec.tradeRefVerNo = tradeRefVerNo("<c:out value="${dl.versionNo}" />", "<c:out value="${dl.tradeRefNo}" />");
+					rec.frxTrdPk = "<c:out value="${dl.frxTrdPk}" />";
+					rec.fundAccountNo = "<c:out value="${dl.fundPrefix}" />" + ";" + "<c:out value="${dl.fundAccountNo}" />";
+					rec.fundAccountPk = "<c:out value="${dl.fundAccountPk}" />";
+					rec.buyCcy = "<c:out value="${dl.buyCcy}" />";
+					rec.buyCcyAmntStr = "<c:out value="${dl.buyCcyAmntStr}" />";
+					rec.sellCcy = "<c:out value="${dl.sellCcy}" />";
+					rec.sellCcyAmntStr = "<c:out value="${dl.sellCcyAmntStr}" />";	
+					rec.buyDeliveryAgent = "<c:out value="${dl.buyDeliveryAgent}" />";
+					rec.sellRecievingAgent = "<c:out value="${dl.sellRecievingAgent}" />";
+					rec.functionDisplay = "<c:out value="${dl.functionDisplay}" />";
+					rec.instructionType = "<c:out value="${dl.instructionType}" />";				
+					grid_result_data.push(rec);
+				</c:forEach>
+			</xenos:out>
+			
+        </jsp:body>
+    </jsp:element>
+	
+</jsp:root>

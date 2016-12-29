@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Item Renderer for CashAdjustEntryPopUp.  -->
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%">
+    <mx:Script>
+        <![CDATA[
+        	import com.nri.rui.core.utils.XenosStringUtils;
+        	import mx.utils.StringUtil;
+        	import mx.controls.Alert;
+        	import mx.events.CloseEvent;            
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.Globals;
+            import mx.controls.ToolTip;
+            import flash.events.MouseEvent;        
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            import mx.events.CloseEvent;
+		            
+           [Embed(source="../../../../../assets/icon_view_detail.png")]
+           [Bindable]
+		    private var icoView:Class;
+            
+            [Bindable] public  var _mode:String = "amend";
+            
+            private var sPopup : SummaryPopup;
+            private var standingRulePk:String="";
+ 			[Bindable]
+			private var commandFormId: String="";
+			
+        	public function closeHandler(event:CloseEvent):void {
+                  this.parentDocument.sendReq();
+                  sPopup.removeMe();
+            }
+            
+            public override function set data(value:Object):void {
+                super.data = value;
+                if(XenosStringUtils.equals(data.status,Globals.STATUS_CANCEL)) {
+			 		this.cancelButton.enabled=false;
+	         	}else{
+	         		this.cancelButton.enabled=true;
+	         		parentDocument.invalidateDisplayList();
+	         	}
+             }
+            
+            public function handleCancel(event:MouseEvent):void {
+            	//mx.controls.Alert.show("ok");
+            	//standingRulePk =data.standingRulePk;
+            	/* XenosAlert.info("CloseEntryDeleteRenderer handleCancel"); */
+            	var parentApp :UIComponent = UIComponent(this.parentApplication);
+            	sPopup= SummaryPopup(PopUpManager.createPopUp(parentApp,SummaryPopup,true));
+            	sPopup.title = this.parentApplication.xResourceManager.getKeyValue("fam.closingquery.delete.label.title");	
+				setModuleUrl(sPopup);
+            	sPopup.addEventListener(CloseEvent.CLOSE,closeHandler,false,0,true);
+	     	    sPopup.width = parentApp.width - 400; 
+    		    sPopup.height = parentApp.height - 240;
+	    	    PopUpManager.centerPopUp(sPopup); 	
+            	
+            }
+            
+            private function setModuleUrl(sPopup:SummaryPopup):void{
+            	/* XenosAlert.info("setModuleUrl"); */
+		 	//mx.controls.Alert.show(sPopup.moduleUrl);
+		 	sPopup.moduleUrl = "assets/appl/fam/CloseEntryDeleteView.swf?accountingClosingStatusPk="+data.accountingClosingStatusPk+"&commandFormId="+data.commandFormId;
+		 	
+		 }
+		 
+            public function handleSummaryView(event:MouseEvent):void{
+            	var parentApp :UIComponent = UIComponent(this.parentApplication);
+            	sPopup= SummaryPopup(PopUpManager.createPopUp(parentApp,SummaryPopup,true));
+            	sPopup.title = this.parentApplication.xResourceManager.getKeyValue("fam.closingquery.summary.label.title");
+            	sPopup.moduleUrl = "assets/appl/fam/CloseSummaryView.swf?accountingClosingStatusPk="+data.accountingClosingStatusPk+"&commandFormId="+data.commandFormId;
+            	sPopup.addEventListener(CloseEvent.CLOSE,closeHandler,false,0,true);
+	     	    sPopup.width = parentApp.width - 100;
+    		    sPopup.height = parentApp.height - 100;
+	    	    PopUpManager.centerPopUp(sPopup);
+	    	    //mx.controls.Alert.show("Summary View Page");
+            }
+        ]]>
+    </mx:Script>
+    
+    <mx:Button id="cancelButton" styleName="BtnDelete" width="18" height="18" label="Cancel"  click="handleCancel(event);"/>
+    <mx:Image id="detailView" source="{icoView}" buttonMode="true" verticalAlign="middle" toolTip="View Details" click="handleSummaryView(event);" />
+</mx:HBox>
+
+

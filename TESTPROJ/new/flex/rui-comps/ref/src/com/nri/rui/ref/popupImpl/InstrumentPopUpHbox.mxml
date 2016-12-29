@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" horizontalGap="0" xmlns:xenos="com.nri.rui.core.controls.*">
+     <!-- The Instrumento auto complete input box-->
+     <!--xenos:AutoComplete id="instrumentId"   mapping="ref/instrumentPopupSearchDispatch.action?method=viewSecuritySummary"
+         width="100" cache="false" fieldName="instrumentCode" maxCharLimit="4"  hitTimeInSec="10"/-->
+     <mx:TextInput id="instrumentId" width="100" restrict="{Globals.INPUT_PATTERN}"/>    
+     <!-- The instrument popup control-->
+     <mx:Image id="instrumentPopup" source="@Embed('../../../../../../assets/popup_icon.png')" 
+               verticalAlign="middle" horizontalAlign="center" click="showPopUp(recContextItem,retContextItem);"/>    
+     
+     <mx:Script>
+        <![CDATA[
+        	import com.nri.rui.core.startup.XenosApplication;
+        	import com.nri.rui.core.Globals; 
+        //start of script   
+        import mx.managers.PopUpManager;
+        import com.nri.rui.core.utils.HiddenObject;
+        import com.nri.rui.ref.popupImpl.InstrumentPopup;
+        import mx.collections.ArrayCollection;
+        import mx.core.UIComponent;
+        
+           [Bindable]
+           //Items returning through context - Non display objects
+           public var retContextItem:ArrayCollection = new ArrayCollection();
+           [Bindable]
+           //Items receiving through context - Non display objects
+           public var recContextItem:ArrayCollection = new ArrayCollection();
+           
+           private var popUpPoint:Point = new Point();
+   		
+   		private var xApp:XenosApplication = XenosApplication.getInstance(Globals.DEFAULT_ENTERPRISE);
+        /*
+         * Open the Account PopUp Window.
+         * Cast the return value of the createPopUp() method
+         * to AccountPopup, the name of the component containing
+         *  the PopupWindow container
+         */
+        private function showPopUp(recCtxItems:ArrayCollection,
+                                   retCtxItem:ArrayCollection):void {
+            
+            
+            if (recCtxItems == null){
+                recCtxItems = new ArrayCollection();
+            }
+            
+            if (retCtxItem == null){
+                retCtxItem = new ArrayCollection();
+            }
+            //create the account popup        
+            var instPopup:InstrumentPopup=InstrumentPopup
+            (PopUpManager.createPopUp( UIComponent(this.parentApplication), InstrumentPopup , true));
+            //Center the Popup Window in the Application's container
+            PopUpManager.centerPopUp(instPopup);
+            /* Pass a reference to the AutoComplete control
+             * to the PopUpWindow container so that the 
+             * PopUpWindow container can return data to the main application.
+             */
+            instPopup.retTxtInput=instrumentId;
+            // Pass a reference to the returnning context items
+            instPopup.returnContextItems = retCtxItem;
+            // Pass a reference to the popup context items
+            instPopup.receiveCtxItems = recCtxItems;
+            
+            xApp.submitButtonInstance = instPopup.search;
+            //initialize the account popup
+            instPopup.initPopup();
+        }
+        //end of script
+        ]]>
+    </mx:Script>
+</mx:HBox>

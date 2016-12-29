@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:Tile xmlns:mx="http://www.adobe.com/2006/mxml" addedEffect="WipeDown" removedEffect="WipeUp" creationComplete="init()" horizontalScrollPolicy="auto">
+    <mx:Tree id="itemTree" tabEnabled="true" tabIndex="2" horizontalScrollPolicy="auto" itemClick="itemClickHandler(event)" styleName="TreeNoIcon" dataProvider="" showRoot="false" rowCount="8"  includeInLayout="false"  x="0" y="0" itemOpen="treeChanged(event)" itemClose="treeChanged(event)"/>
+    <mx:Script>
+        <![CDATA[
+            import mx.events.TreeEvent;
+            import mx.events.FlexEvent;
+            import mx.events.ListEvent;
+            import mx.events.ScrollEvent;
+            
+            import mx.controls.Alert;
+            import mx.controls.ComboBox;
+            
+            private var xmlDoc:XML;
+            private var cWidth:int;
+            private var cHeight:int=300;
+            private var lastOpenNode:XML;
+            private var itemCombo:ComboBox;
+            private var node:XML;
+            private var labField:String="value";
+            private var labelKeyField:String="";
+            
+            //**********Public properties*************************************/    
+        
+            public function get labelKeyData():String{
+                return this.labelKeyField;
+            }
+            private function itemClickHandler(event:ListEvent):void{
+                trace("In itemClickHandler **********************");
+            }
+            public function set labelKeyData(value:String):void{
+                this.labelKeyField=value;
+            }
+           
+            // Event handler for the Tree control change event.
+            public function treeChanged(event:TreeEvent):void {
+                var measWidth:Number = itemTree.measureWidthOfItems(0,0);
+                if(measWidth > itemTree.width){
+                    itemTree.horizontalScrollPolicy = "on";
+                    itemTree.maxHorizontalScrollPosition = measWidth - itemTree.width;
+                }else{
+                    itemTree.horizontalScrollPolicy = "off";
+                }
+            }
+                
+            public function set labelField(value:String):void{
+                this.labField=value;
+            }
+            
+            public function setTreeFocus():void    {
+                this.itemTree.setFocus();
+            }
+            
+            public function set ComboBoxReference(value:ComboBox):void{
+                this.itemCombo=value;
+            }
+            
+            public function set TreeWidth(value:int):void{
+                this.cWidth=value;
+            }
+            
+            public function set TreeHeight(value:int):void{
+                this.cHeight=value;
+            }
+            
+            public function get TreeReference():Tree{
+                return this.itemTree;
+            }
+            
+            public function set dataSource(value:XML):void
+            {
+                this.xmlDoc=value;
+            }
+            //End of Getter and Setter properties
+        
+            //Event Handlers Definitions
+
+            private function treeMouseWheel_handler(evt:MouseEvent):void
+            {
+                this.itemCombo.open();
+            }
+            
+            private function tree_keyUpHandler(evt:KeyboardEvent):void
+            {
+                if(evt.keyCode == Keyboard.ESCAPE)
+                  this.itemCombo.close();
+                 if(evt.keyCode==Keyboard.ENTER )
+                 {
+                     SetComboTextWithSelectedNode();
+                    this.itemCombo.close();
+                    this.itemCombo.setFocus();                 
+                 }    
+            }
+            
+            private function itemTreeSelection_handler(evt:ListEvent):void
+            {
+              node = XML(itemTree.selectedItem);    
+            }
+            
+            private function treeClick_handler(evt:MouseEvent):void
+            {
+                this.SetComboTextWithSelectedNode();                
+            }
+            
+            private function treeScroll_handler(evt:ScrollEvent):void
+            {
+                    if(this.itemCombo != null)
+                    this.itemCombo.open();
+            }
+            
+            private function treeMouseDown_handler(evt:ListEvent):void{
+                this.SetComboTextWithSelectedNode();
+                evt.stopPropagation();
+            }
+            
+            // End of Event handler definitions
+        
+        
+        
+            //Initialization routine to run upon creationComplete event.    
+            private function init():void
+            {
+                this.width=this.cWidth;
+                this.itemTree.width=this.cWidth;
+                this.height=this.cHeight;
+                this.itemTree.height=this.cHeight;
+                this.itemTree.dataProvider=xmlDoc;
+                this.itemTree.labelField="@" + this.labField;
+//                this.itemTree.addEventListener(ScrollEvent.SCROLL,treeScroll_handler);
+//                //this.itemTree.addEventListener(MouseEvent.CLICK,treeClick_handler);
+//                this.itemTree.addEventListener(ListEvent.CHANGE,itemTreeSelection_handler);
+//                this.itemTree.addEventListener(KeyboardEvent.KEY_UP,tree_keyUpHandler);
+//                this.itemTree.addEventListener(MouseEvent.MOUSE_WHEEL,treeMouseWheel_handler);
+//                this.itemTree.addEventListener(ListEvent.ITEM_CLICK,treeMouseDown_handler);
+            }
+
+            /*
+            public function SetComboBoxText():void
+            {
+                node =    XML(itemTree.selectedItem);
+                if(node != null)
+                this.itemCombo.text=node.attribute(labField);
+                this.itemCombo.close();
+            }*/
+            
+            //Setting the ComboBox text with the value of the selected node.
+            public function SetComboTextWithSelectedNode():void
+            {
+                node = XML(itemTree.selectedItem);
+                if(itemTree.selectedItem != null && node != null){
+                 this.itemCombo.text = node.attribute("value");
+                 this.labelKeyField = node.attribute("value");    
+                }
+            }            
+            
+            //Refreshing the Tree view            
+            public function refreshTree():void
+            {
+                if(this.xmlDoc != null)
+                this.itemTree.dataProvider=xmlDoc;
+                
+                //Remove all the event listeners during close of the popupTree.
+                if(this.itemTree.hasEventListener(ScrollEvent.SCROLL)){
+                    this.itemTree.removeEventListener(ScrollEvent.SCROLL,treeScroll_handler);
+                }
+                if(this.itemTree.hasEventListener(ListEvent.CHANGE)){
+                    this.itemTree.removeEventListener(ListEvent.CHANGE,itemTreeSelection_handler);
+                }
+                if(this.itemTree.hasEventListener(KeyboardEvent.KEY_UP)){
+                    this.itemTree.removeEventListener(KeyboardEvent.KEY_UP,tree_keyUpHandler);
+                }
+                if(this.itemTree.hasEventListener(MouseEvent.MOUSE_WHEEL)){            
+                    this.itemTree.removeEventListener(MouseEvent.MOUSE_WHEEL,treeMouseWheel_handler);
+                }
+                if(this.itemTree.hasEventListener(ListEvent.ITEM_CLICK)){            
+                    this.itemTree.removeEventListener(ListEvent.ITEM_CLICK,treeMouseDown_handler);
+                }
+                //trace("Event Handlers Removed.")
+            }
+        
+            //Finding the node with the selected string and then expanding the node.    
+            public function findNodeById(sId:String):void
+            {
+                if(xmlDoc==null)
+                    return;
+                var xmllistDescendants:XMLList  = xmlDoc.descendants().(attribute(labField) == sId);
+                expandParents(xmllistDescendants[0]);
+                itemTree.selectedItem = xmllistDescendants[0];
+                lastOpenNode=xmllistDescendants[0];
+                if(xmllistDescendants!=null)
+                    this.itemTree.visible=true;
+            }//findNodeById
+          
+            private function expandParents(xmlNode:XML):void
+            {
+                this.collapseParents(this.lastOpenNode);    
+                if(xmlNode!=null)    
+                    while (xmlNode.parent() != null) 
+                    {  
+                        xmlNode = xmlNode.parent();
+                        itemTree.expandItem(xmlNode,true, false);
+                    }
+            }
+          
+            //Collapsing the last opened node.
+            private function collapseParents(xmlNode:XML):void
+            {
+                if(xmlNode!=null)    
+                while (xmlNode.parent() != null) 
+                {  
+                    xmlNode = xmlNode.parent();
+                    itemTree.expandItem(xmlNode,false, false);
+                }
+            }
+            //Adding the necessary Event Listeners during opening of the popUpTree
+            public function addNeedfullEventListeners():void{
+                if(this.itemTree != null){
+                    //trace("Event Handlers Added.")
+                    this.itemTree.addEventListener(ScrollEvent.SCROLL,treeScroll_handler);
+                    this.itemTree.addEventListener(ListEvent.CHANGE,itemTreeSelection_handler);
+                    this.itemTree.addEventListener(KeyboardEvent.KEY_UP,tree_keyUpHandler);
+                    this.itemTree.addEventListener(MouseEvent.MOUSE_WHEEL,treeMouseWheel_handler);
+                    this.itemTree.addEventListener(ListEvent.ITEM_CLICK,treeMouseDown_handler);
+                }
+            }    
+            
+        ]]>
+    </mx:Script>    
+    
+</mx:Tile>

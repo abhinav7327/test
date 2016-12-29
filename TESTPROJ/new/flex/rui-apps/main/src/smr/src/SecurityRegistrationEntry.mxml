@@ -1,0 +1,1515 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<containers:XenosEntryModule xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" 
+							xmlns:flexlib="http://code.google.com/p/flexlib/" 
+							xmlns:cntrls="com.nri.rui.core.controls.*"
+							xmlns:frmtrs="com.nri.rui.core.formatters.*" 
+	                        xmlns:valdtrs="com.nri.rui.core.validators.*"  
+	                        xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+							layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+
+<mx:Script>
+	<![CDATA[
+		import mx.core.Application;
+		import com.nri.rui.core.controls.AutoScroll;
+		import com.nri.rui.core.Globals;
+		import com.nri.rui.core.utils.XenosStringUtils;
+		import mx.resources.ResourceBundle;
+    ]]>
+</mx:Script>
+<mx:Script source="actionscripts/SecurityRegistrationEntry.as"/>
+
+<containers:states>
+    <mx:State name="confirmState">
+        <mx:SetProperty target="{entryView}" name="width" value="0%"/>
+        <mx:SetProperty target="{confirmView}" name="width" value="100%"/>
+    </mx:State>
+    <mx:State name="entryState">
+        <mx:SetProperty target="{entryView}" name="width" value="100%"/>
+        <mx:SetProperty target="{confirmView}" name="width" value="0%"/>
+    </mx:State>
+</containers:states>
+<!-- Define Transition array with one Transition object.-->
+<containers:transitions>
+    <!-- A transition for changing from any state to any state. -->
+    <mx:Transition id="qryTransition" fromState="*" toState="*">
+        <!-- Define a Parallel effect as the top-level effect.-->
+        <mx:Parallel id="t1" targets="{[entryView,confirmView]}">
+            <!-- Define a Move and Resize effect.-->
+            <mx:Move  duration="400"/>
+            <!--<mx:Resize duration="400"/>-->
+        </mx:Parallel>
+    </mx:Transition>
+</containers:transitions>
+
+
+ <!--Services for instrument code -->
+<cntrls:XenosHTTPService id="addInstrumentService"  showBusyCursor="true" method="POST"
+     result="addInstrumentServiceResult(event)"  fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('smr.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+     useProxy="false" resultFormat="xml">
+</cntrls:XenosHTTPService>		    
+<cntrls:XenosHTTPService id="editInstrumentService"  showBusyCursor="true" method="POST"
+     result="editInstrumentServiceResult(event)"  fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('smr.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+     useProxy="false" resultFormat="xml">
+</cntrls:XenosHTTPService>
+<cntrls:XenosHTTPService id="deleteInstrumentService"  showBusyCursor="true" method="POST"
+     result="addInstrumentServiceResult(event)"  fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('smr.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+     useProxy="false" resultFormat="xml">
+</cntrls:XenosHTTPService>
+<cntrls:XenosHTTPService id="validateMarketService"  showBusyCursor="true" method="POST"
+     result="validateMarketServiceResult(event)"  fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('smr.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+     useProxy="false" resultFormat="xml">
+</cntrls:XenosHTTPService>
+<!--Services for Memo Population -->
+<cntrls:XenosHTTPService id="addMemoService"
+ 	 showBusyCursor="true"
+ 	 method="POST" 
+     result="memoResultHandler(event)"
+     fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('smr.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+     useProxy="false" resultFormat="xml">
+</cntrls:XenosHTTPService>
+    
+<cntrls:XenosHTTPService id="editMemoService"
+ 	 showBusyCursor="true"
+ 	 method="POST" 
+     result="memoEditResultHandler(event)"
+     fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('smr.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+     useProxy="false" resultFormat="xml">
+</cntrls:XenosHTTPService>
+    
+<cntrls:XenosHTTPService id="deleteMemoService"
+ 	 showBusyCursor="true"
+ 	 method="POST"
+     result="memoResultHandler(event)"
+     fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('smr.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+     useProxy="false" resultFormat="e4x">
+</cntrls:XenosHTTPService>		    
+<frmtrs:XenosNumberFormatter id="numberFormatter" 
+        useThousandsSeparator="true" />
+
+<valdtrs:XenosNumberValidator id="dividendVal" 
+                                  source="{dividend}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  negativeError="Dividend cannot be negative"
+                                  invalidCharError="Please enter a valid value for Dividend" 
+                                  separationError=""
+                                  lowerThanMinError="" 
+                                  minValue="" 
+                                  invalidFormatCharsError="Please enter a valid value for Dividend" 
+                                  decimalPointCountError="Please enter a valid value for Dividend" 
+                                   /> 
+
+<valdtrs:XenosNumberValidator id="couponrateVal" 
+                                  source="{couponrate}" 
+                                  property="text"                        
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  exceedsMaxError="{Application.application.xResourceManager.getKeyValue('smr.instrument.msg.error.beforepointlimit', new Array('6'))}" 
+                                  negativeError="Coupon Rate cannot be negative"
+                                  invalidCharError="Please enter a valid value for Coupon Rate" 
+                                  separationError=""
+                                  lowerThanMinError="" 
+                                  maxValue="999999.999999"
+                                  minValue="" 
+                                  invalidFormatCharsError="Please enter a valid value for Coupon Rate" 
+                                  decimalPointCountError="Please enter a valid value for Coupon Rate" 
+                                  precision="6" precisionError="{Application.application.xResourceManager.getKeyValue('smr.instrument.msg.error.afterpointlimit', new Array('6'))}"
+                                   />   
+<valdtrs:XenosNumberValidator id="fixcouponrateVal" 
+                                  source="{fixcouponrate}" 
+                                  property="text"                        
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  exceedsMaxError="{Application.application.xResourceManager.getKeyValue('smr.instrument.msg.error.beforepointlimit', new Array('6'))}" 
+                                  negativeError="Fix Coupon Rate cannot be negative"
+                                  invalidCharError="Please enter a valid value for Fix Coupon Rate" 
+                                  separationError=""
+                                  lowerThanMinError="" 
+                                  maxValue="999999.999999"
+                                  minValue="" 
+                                  invalidFormatCharsError="Please enter a valid value for Fix Coupon Rate" 
+                                  decimalPointCountError="Please enter a valid value for Fix Coupon Rate" 
+                                  precision="6" precisionError="{Application.application.xResourceManager.getKeyValue('smr.instrument.msg.error.afterpointlimit', new Array('6'))}"
+                                   />
+<valdtrs:XenosNumberValidator id="votingrightsVal" 
+                                  source="{votingrights}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  negativeError="Voting Rights cannot be negative"
+                                  invalidCharError="Please enter a valid value for Voting Rights" 
+                                  separationError=""
+                                  lowerThanMinError="" 
+                                  minValue="" 
+                                  invalidFormatCharsError="Please enter a valid value for Voting Rights" 
+                                  decimalPointCountError="Please enter a valid value for Voting Rights" 
+                                 /> 
+<valdtrs:XenosNumberValidator id="mintradingunitVal" 
+                                  source="{mintradingunit}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  negativeError="Minimum Trading Unit cannot be negative"
+                                  invalidCharError="Please enter a valid value for Minimum Trading Unit" 
+                                  separationError=""
+                                  lowerThanMinError="" 
+                                  minValue="" 
+                                  invalidFormatCharsError="Please enter a valid value for Minimum Trading Unit" 
+                                  decimalPointCountError="Please enter a valid value for Minimum Trading Unit" 
+                                 /> 
+<valdtrs:XenosNumberValidator id="currentshareoutstandingVal" 
+                                  source="{currentshareoutstanding}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  negativeError="CurrentShare Outstanding cannot be negative"
+                                  invalidCharError="Please enter a valid value for CurrentShare Outstanding" />
+<valdtrs:XenosNumberValidator id="amtissuedVal" 
+                                  source="{amtissued}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  negativeError="Amount Issued cannot be negative"
+                                  invalidCharError="Please enter a valid value for Amount Issued." />
+<valdtrs:XenosNumberValidator id="amtoutstandingVal" 
+                                  source="{amtoutstanding}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  negativeError="Amount Outstanding cannot be negative"
+                                  invalidCharError="Please enter a valid value for Amount Outstanding." />                                
+<valdtrs:XenosNumberValidator id="mrktcapitalizationVal" 
+                                  source="{mrktcapitalization}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  negativeError="Market Capitalization cannot be negative"
+                                  invalidCharError="Please enter a  valid value for Market Capitalization" />
+<valdtrs:XenosNumberValidator id="lastpriceVal" 
+                                  source="{lastprice}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  negativeError="Last Price cannot be negative"
+                                  invalidCharError="Please enter a valid value for Last Price." />     
+<valdtrs:XenosNumberValidator id="freefloatperctVal" 
+                                  source="{freefloatperct}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  negativeError="Free Float Percent cannot be negative"
+                                  invalidCharError="Please enter a valid value for Free Float Percent." />
+<valdtrs:XenosNumberValidator id="volumeVal" 
+                                  source="{volume}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="int" 
+                                  integerError="Volume must be an integer."
+                                  negativeError="Volume cannot be negative"
+                                  invalidCharError="Please enter a valid value for Volume." />                                                                                                                                 
+<valdtrs:XenosNumberValidator id="tickSizeVal" 
+                                  source="{ticksize}"
+                                  requiredFieldError="" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  negativeError="Tick Size cannot be negative"
+                                  invalidCharError="Please enter a valid value for Tick Size." />  
+<valdtrs:XenosNumberValidator id="strikePrcVal" 
+                                  source="{strikePriceStr}" 
+                                  property="text" 
+								  maxValue="99999999999.9999999"
+								  exceedsMaxError="{Application.application.xResourceManager.getKeyValue('smr.instrument.msg.error.beforepointlimit', new Array('11'))}" 
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  negativeError="Strike Price cannot be negative"
+                                  invalidCharError="Please enter a valid value for Strike Price." 
+								  precision="7" precisionError="{Application.application.xResourceManager.getKeyValue('smr.instrument.msg.error.afterpointlimit', new Array('7'))}"/>                                                                                                                                                                                                
+<valdtrs:XenosNumberValidator id="redemptionvalueVal" 
+                                  source="{redemptionvalue}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  negativeError="Redemption Value cannot be negative"
+                                  invalidCharError="Please enter a valid value for Redemption Value." />     
+<valdtrs:XenosNumberValidator id="roundlotsizeVal" 
+                                  source="{roundlotsize}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="int" 
+                                  integerError="Round Lot Size must be an integer."
+                                  negativeError="Round Lot Size cannot be negative"
+                                  invalidCharError="Please enter a valid value for Round Lot Size." />   
+<valdtrs:XenosNumberValidator id="daybasisVal" 
+                                  source="{daybasis}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="int" 
+                                  integerError="Day Basis must be an integer."
+                                  negativeError="Day Basis cannot be negative"
+                                  invalidCharError="Please enter a valid value for Day Basis." /> 
+<valdtrs:XenosNumberValidator id="paymentfrequencyVal" 
+                                  source="{paymentfrequency}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="int" 
+                                  integerError="Payment Frequency must be an integer."
+                                  negativeError="Payment Frequency cannot be negative."
+                                  invalidCharError="Please enter a valid value for Payment Frequency." />                                  
+<valdtrs:XenosNumberValidator id="issuepriceVal" 
+                                  source="{issueprice}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  negativeError="Issue Price cannot be negative"
+                                  invalidCharError="Please enter a valid value for Issue Price." />  
+<valdtrs:XenosNumberValidator id="recDaysVal" 
+                                  source="{recordDays}" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="int" 
+                                  integerError="Record Days must be an integer."
+                                  negativeError="Record Days cannot be negative"
+                                  invalidCharError="Please enter a valid value for Record Days." />                                                                                                                                                                 
+<!--<mx:Validator source="{instrumenttype}" required="true" property="text" />  -->
+
+    
+<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%" styleName="Padding">
+		<mx:ViewStack id="vstack" width="100%" height="100%" creationComplete="loadAll()" creationPolicy="all" >
+			<mx:Canvas id="entryView" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+				<mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('smr.label.entry.criteria')}" width="100%" height="100%"  >
+					<mx:Label id="initLabel" text="{this.parentApplication.xResourceManager.getKeyValue('smr.label.entry.criteria')}" fontWeight="bold"/>
+					<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		    		
+		    		<!-- Instrument Code Info -->
+		    <flexlib:WindowShade id="ws1" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws1" tabChildren="{ws1.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.basicattributes')}" width="100%">
+			   	<!-- <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">-->
+			    <mx:HBox width="100%">		    	
+			    <mx:VBox width="50%" horizontalGap="0" verticalGap="0">					
+			   		<mx:Grid verticalGap="0" horizontalGap="2" width="100%" borderThickness="0">
+						<mx:GridRow width="100%" height="100%">
+							<mx:GridItem width="10%" borderThickness="0" >
+			                	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.codetype')}" />
+			                </mx:GridItem>
+			                <mx:GridItem width="15%" borderThickness="0" >
+			                	<mx:ComboBox id="codetype" labelField="label"/>
+			                </mx:GridItem>
+							<mx:GridItem width="10%" borderThickness="0" >
+			                	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.id')}"/>
+			                </mx:GridItem>
+			                <mx:GridItem width="15%" borderThickness="0" >
+			                	<mx:TextInput id="instrumentId" maxChars="21" restrict="{Globals.INPUT_PATTERN}" />
+			                </mx:GridItem>
+			                <mx:GridItem width="10%" borderThickness="0" >
+			                	<mx:Label text="" />
+			                </mx:GridItem>
+			                <mx:GridItem width="15%" borderThickness="0" >
+			                	<mx:Label text="" />
+			                </mx:GridItem>
+			                <mx:GridItem width="25%" borderThickness="0" horizontalAlign="right" colSpan="2">
+			                	<mx:Button id="instrumentCodeAdd" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.add')}"  styleName="BtnStyle" click="doinstrumentCodeAdd()"/>
+			                	<!--<mx:Button  styleName="BtnAdd" id="instrumentCodeAdd" click="doinstrumentCodeAdd()"/>-->
+			                </mx:GridItem>
+						</mx:GridRow>						
+					</mx:Grid>					
+					<cntrls:CustomDataGrid dataProvider="{instrumentIdList}" width="100%" height="100%" sortableColumns="false" rowCount="{instrumentIdList.length > 0 ? (instrumentIdList.length + 1) : 2}">
+						<cntrls:columns>
+							<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.codetype')}" dataField="uiCodeType"/>
+							<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.code')}"  dataField="securityId"/>
+							<mx:DataGridColumn headerText="" textAlign="center">
+									<mx:itemRenderer>
+										<mx:Component>
+											<mx:HBox>
+												<mx:Button id="editBtn" styleName="BtnEdit" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.edit')}" click="outerDocument.doinstrumentCodeEdit(data)" width="18" height="18"/>
+												<mx:Button id="deleteBtn" styleName="BtnDelete" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.delete')}" click="outerDocument.doinstrumentCodeDelete(data)" width="18" height="18"/>
+											</mx:HBox>
+										</mx:Component>										
+									</mx:itemRenderer>
+							</mx:DataGridColumn>
+ 						</cntrls:columns>
+      		 	  </cntrls:CustomDataGrid>	
+		    	</mx:VBox>		     
+		   		<mx:VBox width="50%">
+		   	 	 <mx:Grid width="100%" borderThickness="0">
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" borderThickness="0">
+		             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.countrycodebbinc')}" styleName="ReqdLabel"/>
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" borderThickness="0">
+		            		<!--<cntrls:CurrencyHBox id="countryCode"/>-->
+		            		<xenospopup:CountryPopUpHbox id="issuecntry"/>
+		        		</mx:GridItem>       
+		        		<mx:GridItem width="20%" borderThickness="0">
+		             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.instrumenttype')}" styleName="ReqdLabel" fontWeight="bold"/>
+		        		</mx:GridItem>
+			    		<mx:GridItem width="30%" borderThickness="0">
+			                <cntrls:TreeCombo id="instrumentType" dataSource="{treeXml}" editMode="true" displayClearIcon="true" labelField="label" treeHeight="200"  x="10" y="10" />
+			            </mx:GridItem>		         		
+			        </mx:GridRow>  
+		    		<mx:GridRow width="100%">
+		        		 <mx:GridItem width="20%" borderThickness="0">
+		             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.countrycodebbdom')}" styleName="ReqdLabel"/>
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" borderThickness="0">
+		            		<!--<cntrls:CurrencyHBox id="countryCode"/>-->
+		            		<xenospopup:CountryPopUpHbox id="cntrydomicile"/>
+		        		</mx:GridItem>                 
+		         		<mx:GridItem width="20%" borderThickness="0">
+		            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.issuecurrency')}" styleName="ReqdLabel"/>
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" borderThickness="0">
+		            		<cntrls:CurrencyHBox id="issueccy"/>
+		        		</mx:GridItem>            
+		    		</mx:GridRow>
+		    		<mx:GridRow width="100%">
+		        		<mx:GridItem width="20%" borderThickness="0">
+		            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.contractsize')}" styleName="ReqdLabel"/>
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" borderThickness="0">
+		            		<mx:TextInput id="contractSize" text="{queryResult.contractSizeStr}" width="100"/>
+		        		</mx:GridItem>                   
+		         		<mx:GridItem width="20%" borderThickness="0">
+		            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.listedmarket')}" />
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" borderThickness="0">
+		        			<xenospopup:FinInstituteForCountryCodePopupHbox id="listedmarket" recContextItem="{populateFinInstRole()}"/>
+		            		<!--<mx:TextInput id="listedmarket" text="{queryResult.listedMarket}"/>-->
+		        		</mx:GridItem>               
+		    		</mx:GridRow>
+		    		<mx:GridRow width="100%">
+		    			
+		        		<mx:GridItem width="20%" borderThickness="0">
+		             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.mintradingunit')}" />
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" borderThickness="0">
+		            		<mx:TextInput id="mintradingunit" text="{queryResult.minTradingUnitStr}" focusOut="mintradingunitVal.handleNumericField(numberFormatter)"/> 
+		        		</mx:GridItem>
+		        		<mx:GridItem width="20%" borderThickness="0">
+	    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.listeddate')}"/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="30%" borderThickness="0">
+	    					<mx:DateField restrict="0-9" width="90" formatString="YYYYMMDD" editable="true" id="listeddate"  />
+	    				</mx:GridItem>                       
+			         	</mx:GridRow>
+			         	<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%" borderThickness="0">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.lastprice')}"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" borderThickness="0">
+		    					<mx:TextInput id="lastprice" text="{queryResult.lastPriceStr}" focusOut="lastpriceVal.handleNumericField(numberFormatter)"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%" borderThickness="0">
+		             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.investmentcountrycode')}" styleName="ReqdLabel"/>
+		        			</mx:GridItem>
+		        			<mx:GridItem width="30%" borderThickness="0">		            		
+		            		<xenospopup:CountryPopUpHbox id="investmentCountryCode" />
+		        			</mx:GridItem> 
+	    			</mx:GridRow>
+	    				<mx:GridRow width="100%">
+		        		<mx:GridItem width="20%" borderThickness="0">
+		             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.investmentsector')}"/>
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" borderThickness="0">
+		            		<mx:ComboBox id="investmentSector" dataProvider="{investmentSectorList}" labelField="label"/> 
+		        		</mx:GridItem>                       
+		         		<mx:GridItem width="20%" borderThickness="0">
+		            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.mutualfundcategory')}"/>
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" borderThickness="0">
+		            		<mx:ComboBox id="mutualFundCategory" dataProvider="{mutualFundCategoryList}" labelField="label"/>
+		        		</mx:GridItem>               
+		    			</mx:GridRow>	
+		    	</mx:Grid>
+		   	</mx:VBox> 
+		   	</mx:HBox>
+	           
+	   		</flexlib:WindowShade>	
+		    			    		
+    		<flexlib:WindowShade id="ws2" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws2" tabChildren="{ws2.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.securitynameinfo')}" opened="true" width="100%">
+    	
+    		<mx:Grid width="100%" borderThickness="0">
+    			<mx:GridRow width="100%">	
+				<mx:GridItem width="10%" borderThickness="0">
+             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.languagecode')}" styleName="ReqdLabel"/>
+    				</mx:GridItem>
+        		<mx:GridItem width="15%" borderThickness="0">
+            		<mx:TextInput id="languageCode" text="{queryResult.charsetCode}" editable="false" backgroundColor="#EEEEEE"/> 
+    				</mx:GridItem>
+         		<mx:GridItem width="10%" borderThickness="0">
+            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.shortname')}" styleName="ReqdLabel"/>
+    				</mx:GridItem>
+        		<mx:GridItem width="15%" borderThickness="0">
+            		<mx:TextInput id="shortname" text="{queryResult.shortName}" restrict="{Globals.INPUT_PATTERN}"/>
+    				</mx:GridItem>
+        		<mx:GridItem width="10%" borderThickness="0">
+            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.officialname')}" styleName="ReqdLabel"/>
+    				</mx:GridItem>
+        		<mx:GridItem width="15%" borderThickness="0">
+            		<mx:TextInput id="officialName" text="{queryResult.officialName}" restrict="{Globals.INPUT_PATTERN}" />
+    				</mx:GridItem>
+        		<!--<mx:GridItem width="5%" borderThickness="0">
+                    <mx:Label text="" />
+    				</mx:GridItem>
+                <mx:GridItem width="20%" borderThickness="0">
+                    <mx:Button id="visibleInstrumentInfoBtn" label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.btn.label.details')}" styleName="BtnStyle" toggle="true" click="visibleInstrumentInfo()"/>
+    			</mx:GridItem>-->
+    			</mx:GridRow>
+    			<mx:GridRow width="100%" id="ws" visible="false" includeInLayout="false">	
+    			<mx:GridItem width="10%" borderThickness="0">
+             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.languagecode')}" styleName="ReqdLabel"/>
+    				</mx:GridItem>
+        		<mx:GridItem width="15%" borderThickness="0">
+            		<mx:TextInput id="altLanguageCode" text="{queryResult.altCharsetCode}" editable="false" backgroundColor="#EEEEEE"/> 
+    				</mx:GridItem>
+         		<mx:GridItem width="10%" borderThickness="0">
+            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.shortname')}" styleName="ReqdLabel"/>
+    				</mx:GridItem>
+        		<mx:GridItem width="15%" borderThickness="0">
+            		<mx:TextInput id="altShortName" text="{queryResult.altShortName}" />
+    				</mx:GridItem>
+        		<mx:GridItem width="10%" borderThickness="0">
+            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.officialname')}" styleName="ReqdLabel"/>
+    				</mx:GridItem>
+        		<mx:GridItem width="15%" borderThickness="0">
+            		<mx:TextInput id="altOfficialName" text="{queryResult.altOfficialName}"  />
+    				</mx:GridItem>
+        		<!--<mx:GridItem width="5%" borderThickness="0">
+                    <mx:Label text="" />
+    				</mx:GridItem>
+                <mx:GridItem width="20%" borderThickness="0">
+                    <mx:Label text=""/>
+    			</mx:GridItem>-->
+    			</mx:GridRow>
+    		</mx:Grid>
+    		</flexlib:WindowShade>
+    		
+    		<flexlib:WindowShade id="ws3" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws3" tabChildren="{ws3.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.memo')}" opened="true" width="100%">
+    		<mx:VBox width="100%" horizontalGap="0" verticalGap="0">	
+    		<mx:Grid width="100%" borderThickness="0">
+				<mx:GridRow id="memoGrid" width="100%">
+			        <mx:GridItem width="11%" borderThickness="0">
+			            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.memo')}"/>
+			        </mx:GridItem>
+			        <mx:GridItem width="22%" borderThickness="0">
+			            <mx:ComboBox id="memoData" dataProvider="{memoValueList}" />  
+			        </mx:GridItem> 
+			        <mx:GridItem width="11%" borderThickness="0">
+			            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.description1')}"/>
+			        </mx:GridItem>
+			        <mx:GridItem width="22%" borderThickness="0">
+			            <mx:TextInput id="description1" maxChars="50" editable="true" restrict="{Globals.INPUT_PATTERN}"/>
+			        </mx:GridItem>
+			        <mx:GridItem width="11%" borderThickness="0">
+			            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.description2')}"/>
+			        </mx:GridItem>
+			        <mx:GridItem width="22%" borderThickness="0">
+			            <mx:TextInput id="description2" maxChars="50" editable="true" restrict="{Globals.INPUT_PATTERN}"/>
+			        </mx:GridItem> 
+			        <mx:GridItem width="11%" borderThickness="0">
+			            <mx:Label text="" styleName="ReqdLabel"/>
+			        </mx:GridItem>
+			        <mx:GridItem width="22%" borderThickness="0">
+			            <mx:Button id="addMemoBtn" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.add')}" styleName="BtnStyle" click="addMemo()"/>
+			        </mx:GridItem>                       
+			    </mx:GridRow>         
+			</mx:Grid>
+			<cntrls:CustomDataGrid id="memoSummary" dataProvider="{memoSummaryResult}" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" rowCount="4"> 
+			    <cntrls:columns>
+			    	<mx:DataGridColumn headerText="" width="50" textAlign="center">
+						<mx:itemRenderer>
+							<mx:Component>
+								<mx:HBox>
+									<cntrls:XenosButton id="editMemo" styleName="BtnEdit" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.edit')}" click="outerDocument.editMemo(data)" width="18" height="18"/>
+									<cntrls:XenosButton id="deleteMemo" styleName="BtnDelete" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.delete')}" click="outerDocument.deleteMemo(data)" width="18" height="18"/>
+								</mx:HBox>
+							</mx:Component>
+						</mx:itemRenderer>
+					</mx:DataGridColumn>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.memo')}" width="100" dataField="memoCode" />
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.description1')}" width="400" dataField="description1"  />
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.description2')}" width="400" dataField="description2"  />
+		       </cntrls:columns>
+			</cntrls:CustomDataGrid>
+			
+			</mx:VBox>
+		    </flexlib:WindowShade>
+		    <flexlib:WindowShade id="ws4" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws4" tabChildren="{ws4.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.stockdetails')}" opened="true" width="100%">
+    		<mx:Grid width="100%" borderThickness="0">
+    			<mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.dividend')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="dividend" text="{queryResult.eqyDvdSh12mStr}" focusOut="dividendVal.handleNumericField(numberFormatter)"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.mrktcapitalization')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="mrktcapitalization" text="{queryResult.curMktCapitalizationStr}" focusOut="mrktcapitalizationVal.handleNumericField(numberFormatter)" />
+    				</mx:GridItem>
+    			</mx:GridRow>
+    			<mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.dvdexdate')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<!--<mx:TextInput id="dvdexdate" text="{queryResult.dvdExDate}" />-->
+    					<mx:DateField id="dvdexdate" restrict="0-9" width="90" formatString="YYYYMMDD" editable="true" text="{queryResult.dvdExDtStr}" />
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.currentshareoutstanding')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="currentshareoutstanding" text="{queryResult.currentShareOutstandingStr}" focusOut="currentshareoutstandingVal.handleNumericField(numberFormatter)" />
+    				</mx:GridItem>
+    			</mx:GridRow>
+    			<mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.votingrights')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="votingrights" text="{queryResult.votingRightsStr}" focusOut="votingrightsVal.handleNumericField(numberFormatter)"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.freefloatperct')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="freefloatperct" text="{queryResult.eqyFreeFloatPctStr}" focusOut="freefloatperctVal.handleNumericField(numberFormatter)" />
+    				</mx:GridItem>
+    			</mx:GridRow>
+    			<mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.volume')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="volume" text="{queryResult.pxVolumeStr}" focusOut="volumeVal.handleNumericField(numberFormatter)"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.sector')}" />
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="indSector" text="{queryResult.sector}" />
+    				</mx:GridItem>
+    			</mx:GridRow>
+    			<mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.dvdccy')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<!--<mx:TextInput id="dvdccy" text="{queryResult.dvdCrncy}" restrict="{Globals.INPUT_PATTERN}"/>-->
+    					<cntrls:CurrencyHBox id="dvdccy"  />
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.indgroup')}" />
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="indGroup" text="{queryResult.industryGroup}" />
+    				</mx:GridItem>
+    			</mx:GridRow>
+    			<mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.roundlotsize')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="roundlotsize" text="{queryResult.pxRoundLotSizeStr}" focusOut="roundlotsizeVal.handleNumericField(numberFormatter)"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.industry')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="industry"  text="{queryResult.industry}" />
+    				</mx:GridItem>
+    			</mx:GridRow>
+    			<mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text=""/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:Label text=""/>
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.subindustry')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="subindustry" text="{queryResult.subIndustry}" />
+    				</mx:GridItem>
+    			</mx:GridRow>
+    		</mx:Grid>	
+    		</flexlib:WindowShade>
+    		<flexlib:WindowShade id="ws5" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws5" tabChildren="{ws5.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.bonddetails')}" opened="true" width="100%">
+    		<mx:Grid width="100%" borderThickness="0">
+    			<mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+	                	<mx:Label id="bondTypeLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.bondtype')}"/>
+	                </mx:GridItem>
+	                <mx:GridItem width="30%" borderThickness="0">
+	                <!--	<mx:TextInput id="bondType" text="{queryResult.discountCouponType}" />-->
+	                	<mx:ComboBox id="bondType" labelField="label" change="bondTypeChangeHandler(event)" focusIn="storeCurrentCouponValue(event)"/>
+	                </mx:GridItem>
+	                <mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.issueprice')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="issueprice" text="{queryResult.issuePxStr}" focusOut="issuepriceVal.handleNumericField(numberFormatter)"/>
+    				</mx:GridItem>
+    			</mx:GridRow>
+    			<mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label id="redmpnCcyLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.redempccy')}" styleName=""/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<!--<mx:TextInput id="redempccy" text="{queryResult.redempCrncy}" restrict="{Globals.INPUT_PATTERN}"/>-->
+    					<cntrls:CurrencyHBox id="redempccy" />
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.redemptionvalue')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="redemptionvalue" text="{queryResult.redempValStr}" focusOut="redemptionvalueVal.handleNumericField(numberFormatter)"/>
+    				</mx:GridItem>
+    			</mx:GridRow>
+    			<mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label id="issueDateLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.issuedateformat')}" styleName=""/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<!--<mx:TextInput id="issuedate" text="{queryResult.issueDate}" />-->
+    					<mx:DateField id="issuedate" restrict="0-9" width="90" formatString="YYYYMMDD" editable="true" text="{queryResult.issueDate}" />
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label id="maturityDateLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.maturitydateformat')}" styleName=""/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<!--<mx:TextInput id="maturitydate" text="{queryResult.maturityDate}" />-->
+    					<mx:DateField id="maturitydate" restrict="0-9" width="90" formatString="YYYYMMDD" editable="true" text="{queryResult.maturityDateStr}" />
+    				</mx:GridItem>
+    			</mx:GridRow>
+    			<mx:GridRow width="100%">
+					<mx:GridItem borderThickness="0" width="20%">
+	                	<mx:Label id="recordDaysLbl" text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.recorddays')}" />
+	                </mx:GridItem>
+	                <mx:GridItem borderThickness="0" width="30%">
+	                	<mx:TextInput id="recordDays" width="100" focusOut="recDaysVal.handleNumericField(numberFormatter)"/>
+	                </mx:GridItem>
+	                <mx:GridItem borderThickness="0" width="20%">
+	                </mx:GridItem>
+	                <mx:GridItem borderThickness="0" width="30%">
+                    </mx:GridItem>
+        		</mx:GridRow>
+        		</mx:Grid>
+        		
+        	<!--<mx:Grid id="gridForCouponTypeCoupon" visible="false" includeInLayout="false" width="100%" height="100%">-->
+        	<mx:Grid id="gridForCouponTypeCoupon" width="100%" height="100%">
+        		<mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label id="paymentFreqLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.paymentfrequency')}" styleName=""/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="paymentfrequency" text="{queryResult.cpnFreqStr}" focusOut="paymentfrequencyVal.handleNumericField(numberFormatter)"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label id="cpnCcyLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.cpnccy')}" styleName=""/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<!--<mx:TextInput id="cpnccy" text="{queryResult.cpnCrncy}" restrict="{Globals.INPUT_PATTERN}"/>-->
+    					<cntrls:CurrencyHBox id="cpnccy" />
+    				</mx:GridItem>
+    			</mx:GridRow>	
+    			<mx:GridRow width="100%">
+	    			<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label id="acrIssueDtLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.accrissuedate')}" styleName=""/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<!--<mx:TextInput id="accrissuedate" text="{queryResult.accInterestDt}" />-->
+    					<mx:DateField id="accrissuedate" restrict="0-9" width="90" formatString="YYYYMMDD" editable="true" text="{queryResult.intAccDtStr}" />
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+	                	<mx:Label id="accIntCalTypeLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.accintcalctype')}" styleName=""/>
+	                </mx:GridItem>
+	                <mx:GridItem width="30%" borderThickness="0">
+	                	<!--<mx:TextInput id="accIntCalType" text="{queryResult.accruedInterestConv}" editable="false" enabled="false"/>-->
+	                	<mx:ComboBox id="accIntCalType" labelField="label"/>
+	                </mx:GridItem>
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label id="firstPaymentDtLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.firstpaymentdt')}" styleName=""/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<!--<mx:TextInput id="firstpaymentdt" text="{queryResult.firstPaymentDate}" />-->
+    					<mx:DateField id="firstpaymentdt" restrict="0-9" width="90" formatString="YYYYMMDD" editable="true" text="{queryResult.firstCpnDtStr}" />
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+	                	<!--<mx:Label id="initCpnTypeLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.initcpntype')}" styleName=""/>-->
+	                	<mx:Label text=""/>
+	                </mx:GridItem>
+	                <mx:GridItem width="30%" borderThickness="0">
+	                	<!--<mx:TextInput id="initialCouponType" text="{queryResult.initialCouponType}" restrict="{Globals.INPUT_PATTERN}"/>-->
+	                	<!--<mx:ComboBox id="initialCouponType" labelField="label" dataProvider="{couponTypeValues}"/>-->
+	                	<mx:Label text=""/>
+	                </mx:GridItem>
+    			</mx:GridRow>
+    			<mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.finalcpndate')}" />
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:DateField id="finalcpndate" restrict="0-9" width="90" formatString="YYYYMMDD" editable="true" text="{queryResult.finalCouponDateStr}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+	                	<mx:Label id="finalCpnTypeLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.finalcpntype')}" styleName=""/>
+	                </mx:GridItem>
+	                <mx:GridItem width="30%" borderThickness="0">
+	                	<!--<mx:TextInput id="finalcpntype" text="{queryResult.finalCouponType}" restrict="{Globals.INPUT_PATTERN}"/>-->
+	                	<mx:ComboBox id="finalcpntype" labelField="label" dataProvider="{couponTypeValues}"/>
+	                </mx:GridItem>
+    			</mx:GridRow>
+    			
+    			<mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+	                	<mx:Label id="rateTypeLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.ratetype')}" styleName="" />
+	                </mx:GridItem>
+	                <mx:GridItem width="30%" borderThickness="0">
+	                	<!--<mx:TextInput id="rateType" text="{queryResult.floatingFixFlag}" restrict="{Globals.INPUT_PATTERN}" maxChars="1" width="160"/>-->
+	                	<mx:ComboBox id="rateType" labelField="label" change="rateTypeChangeHandler(event)" focusIn="storeCurrentRateTypeValue(event)"/>
+	                </mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0" >
+    					<mx:Label id="fixedCouponRateLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.fixedcouponrate')}" styleName="" />
+    					<!--<mx:Label id="floatingCpnRateLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.rate')}" styleName="ReqdLabel" visible="false" includeInLayout="false"/>-->
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0" >
+    					<mx:TextInput id="fixcouponrate" text="{queryResult.couponRateStr}" focusOut="fixcouponrateVal.handleNumericField(numberFormatter)" />
+    					<!--<mx:TextInput id="couponrate" text="{queryResult.couponRateStr}" focusOut="couponrateVal.handleNumericField(numberFormatter)" visible="false" includeInLayout="false"/>-->
+    				</mx:GridItem>
+    			
+    			</mx:GridRow>
+    			<!--<mx:GridRow width="100%" id="rateFloatcoupon1" visible="false" includeInLayout="false">-->
+    			<mx:GridRow width="100%" id="rateFloatcoupon1" >
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label id="effDtFromLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.effdatefrom')}" styleName=""/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:DateField id="effdatefrom" restrict="0-9" width="90" formatString="YYYYMMDD" editable="true" text="{queryResult.effectiveStartDateStr}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label id="recordDtLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.recorddate')}" styleName=""/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:DateField id="recordDate" restrict="0-9" width="90" editable="true" formatString="YYYYMMDD"/>
+    				</mx:GridItem>	
+    			</mx:GridRow>
+    			<mx:GridRow width="100%" id="floatingCpnRateLbl" >
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="" />
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:Label text="" />
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label id="rateLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.rate')}" styleName=""/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0" >
+    					<mx:TextInput id="couponrate" text="{queryResult.curCpnRateStr}" focusOut="couponrateVal.handleNumericField(numberFormatter)" />
+    				</mx:GridItem>
+    			</mx:GridRow>
+    		</mx:Grid>
+    		<mx:Grid width="100%" height="100%">
+    			<mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.prevpaymentdt')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:DateField id="prevpaymentdt" restrict="0-9" width="90" formatString="YYYYMMDD" editable="true" text="{queryResult.prevCpnDtStr}" />
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.nxtcpndate')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:DateField id="nxtcpndate" restrict="0-9" width="90" formatString="YYYYMMDD" editable="true" text="{queryResult.nxtCpnDtStr}" />
+    				</mx:GridItem>
+    			</mx:GridRow>
+    			<mx:GridRow width="100%">
+	    			<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.daybasis')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="daybasis" text="{queryResult.dayCntStr}" focusOut="daybasisVal.handleNumericField(numberFormatter)"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.accrualtypecode')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="accrualtypecode" text="{queryResult.cpnTyp}" />
+    				</mx:GridItem>
+    			</mx:GridRow>
+    			<mx:GridRow width="100%">
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.amtissued')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="amtissued" text="{queryResult.amtIssuedStr}" focusOut="amtissuedVal.handleNumericField(numberFormatter)"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="20%" borderThickness="0">
+    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.amtoutstanding')}"/>
+    				</mx:GridItem>
+    				<mx:GridItem width="30%" borderThickness="0">
+    					<mx:TextInput id="amtoutstanding" text="{queryResult.amtOutstandingStr}" focusOut="amtoutstandingVal.handleNumericField(numberFormatter)"/>
+    				</mx:GridItem>
+    			</mx:GridRow>
+    			<mx:GridRow width="100%">
+		            		<mx:GridItem width="20%" borderThickness="0">
+		                	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.investmentbondcategory')}"/>
+		                	</mx:GridItem>
+		                	<mx:GridItem width="30%" borderThickness="0">
+		                	<mx:ComboBox id="investmentBondCategory" labelField="label" dataProvider="{investmentBondCategoryList}"/>
+		                	</mx:GridItem>
+		                	<mx:GridItem width="20%" borderThickness="0">
+		                	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.euroyenbondflag')}"/>
+		                	</mx:GridItem>
+		                	<mx:GridItem width="30%" borderThickness="0">
+		                	<mx:ComboBox id="euroYenBondFlag" labelField="label" dataProvider="{euroYenBondFlagList}"/>
+		                	</mx:GridItem>
+		         </mx:GridRow>
+    		</mx:Grid>
+    		</flexlib:WindowShade>
+		    		
+			<flexlib:WindowShade id="ws6" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws6" tabChildren="{ws6.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.drvdetails')}" opened="true" width="100%">
+				<mx:Grid width="100%" borderThickness="0">
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" borderThickness="0">
+	    					<mx:Label id="drvstartdtLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.drvstartdate')}"/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="30%" borderThickness="0">
+	    					<mx:DateField restrict="0-9" width="90" formatString="YYYYMMDD" editable="true" id="drvstartdate" text="{queryResult.startDateStr}"/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="20%" borderThickness="0">
+	    					<mx:Label id="ticksizeLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.ticksize')}"/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="30%" borderThickness="0">
+	    					<mx:TextInput id="ticksize" text="{queryResult.tickSizeStr}" focusOut="tickSizeVal.handleNumericField(numberFormatter)"/>
+	    				</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" borderThickness="0">
+	    					<mx:Label id="drvexpdtLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.drvexpdate')}"/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="30%" borderThickness="0">
+	    					<mx:DateField restrict="0-9" width="90" formatString="YYYYMMDD" editable="true" id="drvexpdate" text="{queryResult.expiryDateStr}"  />
+	    				</mx:GridItem>
+	    				<mx:GridItem borderThickness="0">
+		                	<mx:Label id="drvundrlyingsecLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.underlyingsecurity')}" />
+		                </mx:GridItem>
+		                <mx:GridItem borderThickness="0">
+		                	<xenospopup:InstrumentPopUpHbox id="underlyingInstrumentCode" />
+		                </mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" borderThickness="0">
+	    					<mx:Label id="drvcontractdtLbl" text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.contractdate')}"/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="30%" borderThickness="0">
+	    					<mx:TextInput restrict="0-9/"  id="contractdate" text="{queryResult.contractDate}"  />
+	    				</mx:GridItem>
+	    				<mx:GridItem width="20%" borderThickness="0">
+	    					<mx:Label text=""/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="30%" borderThickness="0">
+	    					<mx:Label text=""/>
+	    				</mx:GridItem>
+					</mx:GridRow>
+				</mx:Grid>
+				<mx:Grid  id="optId" width="100%" borderThickness="0" includeInLayout="false" visible="false">
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" borderThickness="0">
+		                	<mx:Label id="callPutFlagLbl" text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.callputflag')}" styleName="ReqdLabel"/>
+		                </mx:GridItem>
+		                <mx:GridItem width="30%" borderThickness="0">
+		                	<mx:ComboBox id="callPutFlag" labelField="label" dataProvider="{callPutFlagValues}"/>
+		                </mx:GridItem>
+		                <mx:GridItem width="20%" borderThickness="0">
+		                	<mx:Label id="optionTypeLbl" text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.optiontype')}" styleName="ReqdLabel"/>
+		                </mx:GridItem>
+		                <mx:GridItem width="30%" borderThickness="0">
+		                	<mx:ComboBox id="optionType" labelField="label" dataProvider="{optionTypeValues}"/>
+		                </mx:GridItem>
+		            </mx:GridRow>
+		            <mx:GridRow width="100%">
+						<mx:GridItem  borderThickness="0">
+		                	<mx:Label id="strikePriceStrLbl" text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.strikeprice')}" styleName="ReqdLabel"/>
+		                </mx:GridItem>
+		                <mx:GridItem borderThickness="0">
+		                	<mx:TextInput id="strikePriceStr"  focusOut="strikePrcVal.handleNumericField(numberFormatter)"/>
+		                </mx:GridItem>
+		                <mx:GridItem width="20%" borderThickness="0">
+	    					<mx:Label text=""/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="30%" borderThickness="0">
+	    					<mx:Label text=""/>
+	    				</mx:GridItem>
+		            </mx:GridRow>
+		           </mx:Grid>
+			</flexlib:WindowShade>
+		<mx:HBox width="100%" styleName="ButtonBackPanel">
+              <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="doMarketValidation()" />              
+        </mx:HBox>
+		</mx:VBox>
+		</mx:Canvas>
+			<!--<mx:Canvas width="100%" height="100%" id="confirmView" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">-->
+			<mx:VBox width="100%" height="100%" id="confirmView" horizontalScrollPolicy="auto" verticalScrollPolicy="auto" styleName="HDivideStyle">
+				<cntrls:XenosErrors id="uerrPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+				<cntrls:SoftWarningControl id="softWarn" width="100%" color="#0000FF" backgroundAlpha="0" borderStyle="none" fontWeight="bold"/>
+			 	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.common.header.user.confirm')}" fontWeight="bold" id="uConfLabel"/>
+             	<!--<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.common.header.sys.confirm')}" fontWeight="bold" id="sConfLabel" includeInLayout="false" visible="false"/>-->
+             	<mx:HBox id="sConfLabel" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" includeInLayout="false" visible="false">
+		              <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>            
+		              <mx:Label id="txnMessage" textAlign="left" fontWeight="bold" text="{this.parentApplication.xResourceManager.getKeyValue('smr.common.header.sys.confirm')}-{this.parentApplication.xResourceManager.getKeyValue('inf.label.confirm.txn')}" selectable="true"/>    
+		          </mx:HBox> 
+             	
+             	<flexlib:WindowShade id="uws1" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.uws1" tabChildren="{uws1.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.basicattributes')}" width="100%">
+			   	<!-- <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">-->
+			    <mx:HBox width="100%">		    	
+			    <mx:VBox width="50%" horizontalGap="0" verticalGap="0">					
+			   	<cntrls:CustomDataGrid dataProvider="{instrumentIdList}" width="100%" height="100%" sortableColumns="false" rowCount="{instrumentIdList.length > 0 ? (instrumentIdList.length + 1) : 2}">
+						<cntrls:columns>
+							<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.codetype')}" dataField="instrumentCodeType"/>
+							<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.code')}"  dataField="securityId"/>
+						</cntrls:columns>
+      		 	  </cntrls:CustomDataGrid>	
+		    	</mx:VBox>		     
+		   		<mx:VBox width="50%">
+		   	 	 <mx:Grid width="100%" verticalGap="0" horizontalGap="0" >
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+		             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.countrycodebbinc')}" styleName="FormLabelHeading"/>
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" >
+		            		<!--<cntrls:CurrencyHBox id="countryCode"/>-->
+		            		<mx:Label id="uissuecntry" text="{queryResult.cntryOfIncorporation}"/>
+		        		</mx:GridItem>   
+		        		<mx:GridItem width="20%" styleName="LabelBgColor">
+		             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.instrumenttype')}" styleName="FormLabelHeading"/>
+		        		</mx:GridItem>
+			    		<mx:GridItem width="30%" >
+			                <mx:Label id="uinstrumentType" text="{queryResult.actualSecurityType}" />
+			            </mx:GridItem>		         		
+			        </mx:GridRow>  
+		    		<mx:GridRow width="100%">
+		        		 <mx:GridItem width="20%" styleName="LabelBgColor">
+		             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.countrycodebbdom')}" styleName="FormLabelHeading"/>
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" >
+		            		<!--<cntrls:CurrencyHBox id="countryCode"/>-->
+		            		<mx:Label id="ucntrydomicile" text="{queryResult.countryOfDomicile}"/>
+		        		</mx:GridItem>                    
+		         		<mx:GridItem width="20%" styleName="LabelBgColor">
+		            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.issuecurrency')}" styleName="FormLabelHeading"/>
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" >
+		            		<mx:Label id="uissueccy" text="{queryResult.crncy}"/>
+		        		</mx:GridItem>            
+		    		</mx:GridRow>
+		    		<mx:GridRow width="100%">
+		        		<mx:GridItem width="20%" styleName="LabelBgColor">
+		            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.contractsize')}" styleName="FormLabelHeading"/>
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" >
+		            		<mx:Label id="ucontractSize" text="{queryResult.contractSizeStr}" width="100%" />
+		        		</mx:GridItem>                   
+		         		<mx:GridItem width="20%" styleName="LabelBgColor">
+		            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.listedmarket')}" styleName="FormLabelHeading"/>
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" >
+		            		<mx:Label id="ulistedmarket" text="{queryResult.listedMarket}"/>
+		        		</mx:GridItem>     
+		    		</mx:GridRow>
+		    		<mx:GridRow width="100%">
+		    			<mx:GridItem width="20%" styleName="LabelBgColor">
+		             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.mintradingunit')}" styleName="FormLabelHeading" />
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" >
+		            		<mx:Label id="umintradingunit" text="{queryResult.minTradingUnitStr}" /> 
+		        		</mx:GridItem>
+		        		<mx:GridItem width="20%" styleName="LabelBgColor">
+	    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.listeddate')}" styleName="FormLabelHeading"/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="30%" >
+	    					<mx:Label id="ulisteddate" text="{queryResult.listingDateStr}" />
+	    				</mx:GridItem>                        
+		         	</mx:GridRow>
+		    		<mx:GridRow width="100%">
+		        		<mx:GridItem width="20%" styleName="LabelBgColor">
+	    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.lastprice')}" styleName="FormLabelHeading"/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="30%" >
+	    					<mx:Label id="ulastprice" text="{queryResult.lastPriceStr}" />
+	    				</mx:GridItem>	    				
+	    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.investmentcountrycode')}" styleName="FormLabelHeading"/>
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" >
+		            		<!--<cntrls:CurrencyHBox id="countryCode"/>-->
+		            		<mx:Label text="{queryResult.investCountryCode}"/>
+		        		</mx:GridItem>         
+		    		</mx:GridRow>		    		
+		    		<mx:GridRow width="100%">
+		        		<mx:GridItem width="20%" styleName="LabelBgColor">
+	    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.investmentsector')}" styleName="FormLabelHeading"/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="30%" >
+	    					<mx:Label id="uinvestmentsector" text="{investmentSectorDisp}" />
+	    				</mx:GridItem>	    				
+	    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.mutualfundcategory')}" styleName="FormLabelHeading"/>
+		        		</mx:GridItem>
+		        		<mx:GridItem width="30%" >		            		
+		            		<mx:Label id="umutualfundcategory" text="{mutualFundCategoryDisp}"/>
+		        		</mx:GridItem>         
+		    	 </mx:GridRow>
+		    	</mx:Grid>
+		   	</mx:VBox> 
+		   	</mx:HBox>
+	           
+	   		</flexlib:WindowShade>	
+             	
+             	<flexlib:WindowShade id="uws2" tabChildren="{uws2.opened}" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.uws2" label="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.securitynameinfo')}" opened="true" width="100%">
+		    		<mx:Grid verticalGap="0" horizontalGap="0" width="100%" >
+		    			<mx:GridRow width="100%">	
+		    				<mx:GridItem width="12%" styleName="LabelBgColor">
+			             		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.languagecode')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+			        		<mx:GridItem width="21%">
+			            		<mx:Label id="ulanguageCode" text="{queryResult.charsetCode}" /> 
+		    				</mx:GridItem>
+			         		<mx:GridItem width="12%" styleName="LabelBgColor">
+			            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.shortname')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+			        		<mx:GridItem width="21%" >
+			            		<mx:Label id="ushortname" text="{queryResult.shortName}" />
+		    				</mx:GridItem>
+			        		<mx:GridItem width="12%" styleName="LabelBgColor">
+			            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.officialname')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+			        		<mx:GridItem width="22%">
+			            		<mx:Label id="uofficialName" text="{queryResult.officialName}"  />
+		    				</mx:GridItem>
+						</mx:GridRow>
+						
+		    		</mx:Grid>
+		    	</flexlib:WindowShade>
+		    	
+		    	<!-- Memo Information -->
+			<flexlib:WindowShade id="uws3" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.uws3" tabChildren="{uws3.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.memo')}" width="100%" >
+				<cntrls:CustomDataGrid width="100%" height="100%" dataProvider="{memoSummaryResult}" sortableColumns="false" rowCount="{memoSummaryResult.length > 0 ? (memoSummaryResult.length + 1) : 2}">
+					<cntrls:columns>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.memo')}" dataField="memoCode"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.description1')}" dataField="description1"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.description2')}" dataField="description2"/>
+					</cntrls:columns>
+				</cntrls:CustomDataGrid>
+			</flexlib:WindowShade>
+			<flexlib:WindowShade id="uws4" tabChildren="{uws4.opened}" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.uws4" label="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.stockdetails')}" opened="true" width="100%">
+		    			<mx:Grid verticalGap="0" horizontalGap="0" width="100%" >
+		    	
+		    			<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%"  styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.dividend')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="udividend" text="{queryResult.eqyDvdSh12mStr}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%"  styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.mrktcapitalization')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="umrktcapitalization" text="{queryResult.curMktCapitalizationStr}"  />
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		    			<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%"  styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.dvdexdate')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<!--<mx:Label id="dvdexdate" text="{queryResult.dvdExDate}" />-->
+		    					<mx:Label id="udvdexdate" text="{queryResult.dvdExDtStr}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%"  styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.currentshareoutstanding')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="ucurrentshareoutstanding" text="{queryResult.currentShareOutstandingStr}" />
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		    			<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%"  styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.votingrights')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="uvotingrights" text="{queryResult.votingRightsStr}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%"  styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.freefloatperct')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="ufreefloatperct" text="{queryResult.eqyFreeFloatPctStr}" />
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		    			<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%"  styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.volume')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="uvolume" text="{queryResult.pxVolumeStr}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%"  styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.sector')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="uindSector" text="{queryResult.sector}" />
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		    			<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%"  styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.dvdccy')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="udvdccy" text="{queryResult.dvdCrncy}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%"  styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.indgroup')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="uindGroup" text="{queryResult.industryGroup}" />
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		    			<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%"  styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.roundlotsize')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="uroundlotsize" text="{queryResult.pxRoundLotSizeStr}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%"  styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.industry')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="uindustry"  text="{queryResult.industry}" />
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		    			<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%"  styleName="LabelBgColor">
+		    					<mx:Label text=""/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label text=""/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%"  styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.subindustry')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="usubindustry" text="{queryResult.subIndustry}" />
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		    		</mx:Grid>	
+		    	</flexlib:WindowShade>
+		    	<flexlib:WindowShade id="uws5" tabChildren="{uws5.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.bonddetails')}" opened="true" width="100%">
+		    		<mx:Grid verticalGap="0" horizontalGap="0" width="100%" >
+		    			<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+			                	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.bondtype')}" styleName="FormLabelHeading"/>
+			                </mx:GridItem>
+			                <mx:GridItem width="30%" >
+			                	<mx:Label id="ubondType" text="{queryResult.discountCouponType}"/>
+			                </mx:GridItem>
+			                <mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.issueprice')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="uissueprice" text="{queryResult.issuePxStr}"/>
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		    			<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.redempccy')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="uredempccy" text="{queryResult.redempCrncy}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.redemptionvalue')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="uredemptionvalue" text="{queryResult.redempValStr}" />
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		    			<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.issuedateformat')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<!--<mx:TextInput id="issuedate" text="{queryResult.issueDate}" />-->
+		    					<mx:Label id="uissuedate"  text="{queryResult.issueDate}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.maturitydateformat')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<!--<mx:TextInput id="maturitydate" text="{queryResult.maturityDate}" />-->
+		    					<mx:Label id="umaturitydate"  text="{queryResult.maturityDateStr}" />
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		    			<mx:GridRow width="100%">
+							<mx:GridItem width="20%" styleName="LabelBgColor">
+			                	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.recorddays')}" styleName="FormLabelHeading"/>
+			                </mx:GridItem>
+			                <mx:GridItem width="30%" >
+			                	<mx:Label id="urecordDays" text="{queryResult.recordDaysStr}"/>
+			                </mx:GridItem>
+			                <mx:GridItem width="20%" styleName="LabelBgColor">
+			                </mx:GridItem>
+			                <mx:GridItem width="30%" >
+		                    </mx:GridItem>
+		        		</mx:GridRow>
+		        		<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.paymentfrequency')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="upaymentfrequency" text="{queryResult.cpnFreqStr}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.cpnccy')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="ucpnccy" text="{queryResult.cpnCrncy}" />
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		        		<mx:GridRow width="100%">
+		        			<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.accrissuedate')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<!--<mx:TextInput id="accrissuedate" text="{queryResult.accInterestDt}" />-->
+		    					<mx:Label id="uaccrissuedate"  text="{queryResult.intAccDtStr}" />
+		    				</mx:GridItem>
+		        			<mx:GridItem width="20%" styleName="LabelBgColor">
+			                	<mx:Label  text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.accintcalctype')}" styleName="FormLabelHeading"/>
+			                </mx:GridItem>
+			                <mx:GridItem width="30%" >
+			                	<mx:Label id="uaccIntCalType" text="{queryResult.accruedInterestConv}"/>
+			                </mx:GridItem>
+		        		</mx:GridRow>
+		        		<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.firstpaymentdt')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<!--<mx:Label id="firstpaymentdt" text="{queryResult.firstPaymentDate}" />-->
+		    					<mx:Label id="ufirstpaymentdt"  text="{queryResult.firstCpnDtStr}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+			                	<!--<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.initcpntype')}" styleName="FormLabelHeading"/>-->
+			                	<mx:Label text=""/>
+			                </mx:GridItem>
+			                <mx:GridItem width="30%" >
+			                	<!--<mx:Label id="uinitialCouponType" text="{queryResult.initialCouponType}"/>-->
+			                	<mx:Label text=""/>
+			                </mx:GridItem>
+		    			</mx:GridRow>
+		        		<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.finalcpndate')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="ufinalcpndate" text="{queryResult.finalCouponDateStr}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+			                	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.finalcpntype')}" styleName="FormLabelHeading"/>
+			                </mx:GridItem>
+			                <mx:GridItem width="30%" >
+			                	<mx:Label id="ufinalcpntype" text="{queryResult.finalCouponType}"/>
+			                </mx:GridItem>
+		    			</mx:GridRow>
+		        		
+		        		<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+			                	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.ratetype')}" styleName="FormLabelHeading" />
+			                </mx:GridItem>
+			                <mx:GridItem width="30%" >
+			                	<mx:Label id="urateType" text="{queryResult.floatingFixFlag}" />
+			                </mx:GridItem>
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.fixedcouponrate')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="ufixcouponrate" text="{queryResult.couponRateStr}" />
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		        		<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.rate')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="ucouponrate" text="{queryResult.curCpnRateStr}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label text="" />
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		    			<mx:GridRow width="100%">
+			    			<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.effdatefrom')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="ueffdatefrom" text="{queryResult.effectiveStartDateStr}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.recorddate')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="urecordDate" text="{queryResult.recordDateStr}" />
+		    				</mx:GridItem>
+		                </mx:GridRow>
+		    			<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.prevpaymentdt')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="uprevpaymentdt"  text="{queryResult.prevCpnDtStr}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.nxtcpndate')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="unxtcpndate"  text="{queryResult.nxtCpnDtStr}" />
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		    			<mx:GridRow width="100%">
+			    			<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.daybasis')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="udaybasis" text="{queryResult.dayCntStr}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.accrualtypecode')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="uaccrualtypecode" text="{queryResult.cpnTyp}" />
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		    			<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.amtissued')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="uamtissued" text="{queryResult.amtIssuedStr}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.amtoutstanding')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="uamtoutstanding" text="{queryResult.amtOutstandingStr}" />
+		    				</mx:GridItem>
+		    			</mx:GridRow>
+		    			
+		    			<mx:GridRow width="100%">
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.investmentbondcategory')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="uinvestmentbondcategory" text="{investBondCategoryDisp}" />
+		    				</mx:GridItem>
+		    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.euroyenbondflag')}" styleName="FormLabelHeading"/>
+		    				</mx:GridItem>
+		    				<mx:GridItem width="30%" >
+		    					<mx:Label id="ueuroyenbondflag" text="{euroYenBondFlagDisp}" />
+		    				</mx:GridItem>
+		    			</mx:GridRow>		
+		    		</mx:Grid>
+		    		</flexlib:WindowShade>
+		    	<flexlib:WindowShade id="uws6" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.uws6" tabChildren="{uws6.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.drvdetails')}" opened="true" width="100%">
+				<mx:Grid width="100%" verticalGap="0" horizontalGap="0">
+					<mx:GridRow width="100%" >
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+	    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.drvstartdate')}" styleName="FormLabelHeading"/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="30%" >
+	    					<mx:Label text="{queryResult.startDateStr}" id="udrvstartdate"  />
+	    				</mx:GridItem>
+	    				<mx:GridItem width="20%" styleName="LabelBgColor">
+	    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.ticksize')}" styleName="FormLabelHeading"/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="30%" >
+	    					<mx:Label id="uticksize" text="{queryResult.tickSizeStr}" />
+	    				</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+	    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.drvexpdate')}" styleName="FormLabelHeading"/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="30%" >
+	    					<mx:Label text="{queryResult.expiryDateStr}" id="udrvexpdate"  />
+	    				</mx:GridItem>
+	    				<mx:GridItem width="20%" styleName="LabelBgColor">
+		                	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.underlyingsecurity')}" styleName="FormLabelHeading" />
+		                </mx:GridItem>
+		                <mx:GridItem width="30%">
+		                	<mx:Label id="uunderlyingInstrumentCode" text="{queryResult.underlyingInstrumentCode}"/>
+		                </mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+	    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('smr.instrument.label.contractdate')}" styleName="FormLabelHeading"/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="30%" >
+	    					<mx:Label text="{queryResult.contractDate}" id="ucontractdate"  />
+	    				</mx:GridItem>
+	    				<mx:GridItem width="20%" styleName="LabelBgColor">
+	    					<mx:Label text=""/>
+	    				</mx:GridItem>
+	    				<mx:GridItem width="30%" >
+	    					<mx:Label text=""/>
+	    				</mx:GridItem>
+					</mx:GridRow>
+					<mx:GridRow width="100%">
+						<mx:GridItem width="20%" styleName="LabelBgColor">
+		                	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.callputflag')}" styleName="FormLabelHeading"/>
+		                </mx:GridItem>
+		                <mx:GridItem width="30%" >
+		                	<mx:Label text="{queryResult.callPutFlag}" id="ucallputflag"/>
+		                </mx:GridItem>
+		                <mx:GridItem width="20%" styleName="LabelBgColor">
+		                	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.optiontype')}" styleName="FormLabelHeading"/>
+		                </mx:GridItem>
+		                <mx:GridItem width="30%" >
+		                	<mx:Label text="{queryResult.optionType}" id="uoptiontype"/>
+		                </mx:GridItem>
+		            </mx:GridRow>
+		            <mx:GridRow width="100%">
+						<mx:GridItem  styleName="LabelBgColor">
+		                	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.strikeprice')}" styleName="FormLabelHeading"/>
+		                </mx:GridItem>
+		                <mx:GridItem colSpan="3" >
+		                	<mx:Label text="{queryResult.strikePriceStr}" id="ustrikeprice"/>
+		                </mx:GridItem>
+		            </mx:GridRow>
+		    		</mx:Grid>
+		    		</flexlib:WindowShade>
+		    	<mx:HBox width="100%" styleName="ButtonBackPanel">
+		           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uConfSubmit" styleName="BtnStyle" click="{this.dispatchEvent(new Event('entryConf'))}" /> 
+		           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="uConfBack" styleName="BtnStyle" click="doBack()"/> 
+		           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.sysconfirm')}" id="sConfSubmit" styleName="BtnStyle" click="{this.dispatchEvent(new Event('entrySysConf'))}" includeInLayout="false" visible="false"/>               
+		        </mx:HBox>
+			</mx:VBox>
+		</mx:ViewStack>
+	</mx:VBox>
+</mx:Canvas>	    	
+</containers:XenosEntryModule>

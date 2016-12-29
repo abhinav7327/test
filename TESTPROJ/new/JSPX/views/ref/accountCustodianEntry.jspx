@@ -1,0 +1,1112 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+	<div class="entryContainer">
+	    <jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	    <jsp:output	omit-xml-declaration="yes" />
+
+		<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>		
+			<jsp:body>
+
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+					
+					xenos.loadScript([
+						{path: xenos.context.path + '/scripts/ref/fundAccountCustodianEntry.js', async: false},
+						{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+						{path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false}
+					]);
+					
+					if("${commandForm.account.counterPartyDetailType}" == "INTERNAL"){
+                            $("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','block');
+                            $("#formActionArea > div > div > .wizPrev > .inputBtnStyle").css('display','block');
+                        }
+					
+					var context = $xenos$Wizard.$context;
+		        	var baseUrl = xenos.context.path + context.find('form').attr('action');
+					var accountNoEntryResult = [],
+						rowId = 0,		
+						item = {},
+						accountNoEntryGrid = null,
+						accountNoEntryList = [];
+						
+					var nameDetailEntryResult = [],
+						rowId = 0,		
+						item = {},
+						nameDetailEntryGrid = null,
+						nameDetailEntryList = [];
+						
+						
+				/**
+					* A common request handler to be used server communication.
+					*/
+					var xenos$Handler$RequestHandler = xenos$Handler$function({						
+						get: {
+							contentType: 'json',
+							requestType: xenos$Handler$default.requestType.asynchronous
+						},	
+						settings: {
+							beforeSend: function(request) {
+								request.setRequestHeader('Accept', 'application/json');
+							},
+							type: 'POST'
+						}
+					});
+					
+					
+					
+					
+				var accountNoEntryColumns = [		
+						{name:"<spring:message code="ref.account.label.accountnotype" htmlEscape="false"/>",   		field:"accountNoType",	id:"accountNoType", 	sortable:false},
+						{name:"<spring:message code="ref.account.label.accountno" htmlEscape="false"/>", 		    field:"accountNo",		id:"accountNo",	     	sortable:false}
+						
+					];
+					
+					var accountNoEntryGridConf = {
+						editMode 					: 	'both',	
+						editCallback 				: 	editAccountNoEntryHandler,
+						deleteCallback			    :	deleteAccountNoEntryHandler,	
+						editEnableCallback			:	isEditable,						
+						forceFitColumns				:	true
+					};
+					rowId=0;
+
+					<xenos:out escapeXml="false">
+						<c:forEach items="${commandForm.bankAccountOtherAttributes.accountXrefDynaBeans}" var="dl">
+							item = {};
+							rowId+=1;
+							item.id 			= "xenos_" + rowId;
+							item.accountNoType 	= "<c:out value="${dl.map.accountNoType}" />";
+							item.accountNo   	= "<c:out value="${dl.map.accountNo}" />";
+							accountNoEntryResult.push(item);
+						</c:forEach>
+					</xenos:out>
+									
+	                accountNoEntryGrid = $('#accountNoEntryGrid',context).xenoseditablegrid(accountNoEntryResult, accountNoEntryColumns, accountNoEntryGridConf);
+					
+					
+					var nameDetailEntryColumns = [		
+						{name:"<spring:message code="ref.account.label.langcode" htmlEscape="false"/>",   		field:"langcode",	id:"langcode", 	    sortable:false, width:288},
+						{name:"<spring:message code="ref.account.label.shortname" htmlEscape="false"/>", 		field:"shortname1",	id:"shortname1",	sortable:false, width:288},
+						{name:"<spring:message code="ref.account.label.offname1" htmlEscape="false"/>",   		field:"offname1",	id:"offname1", 	    sortable:false, width:288},
+						{name:"<spring:message code="ref.account.label.offname2" htmlEscape="false"/>", 		field:"offname2",	id:"offname2",	   	sortable:false, width:288},
+						{name:"<spring:message code="ref.account.label.offname3" htmlEscape="false"/>",   		field:"offname3",	id:"offname3", 	    sortable:false, width:288},
+						{name:"<spring:message code="ref.account.label.offname4" htmlEscape="false"/>", 		field:"offname4",	id:"offname4",	   	sortable:false, width:288}
+						
+					];
+					
+					var nameDetailEntryGridConf = {
+						editMode 					: 	'both',	
+						editCallback 				: 	editNameDetailEntryHandler,
+						deleteCallback			    :	deleteNameDetailEntryHandler,						
+						forceFitColumns				:	false
+					};
+					rowId=0;
+						
+						<xenos:out escapeXml="false">
+							<c:forEach items="${commandForm.bankAccountOtherAttributes.accountNameXrefDynaBeans}" var="dl">
+								item = {};
+								rowId+=1; 
+								item.id 			    = "xenos_" + rowId;
+								item.langcode 	        = "<c:out value="${xenosfn:escapeJS(dl.map.charsetCode)}" />";
+								item.shortname1         = "<c:out value="${xenosfn:escapeJS(dl.map.shortName)}" />";
+								item.offname1 	        = "<c:out value="${xenosfn:escapeJS(dl.map.officialName1)}" />";
+								item.offname2 	        = "<c:out value="${xenosfn:escapeJS(dl.map.officialName2)}" />";
+								item.offname3           = "<c:out value="${xenosfn:escapeJS(dl.map.officialName3)}" />";
+								item.offname4 	        = "<c:out value="${xenosfn:escapeJS(dl.map.officialName4)}" />";
+								nameDetailEntryResult.push(item);
+							</c:forEach>
+						</xenos:out>
+						
+	                nameDetailEntryGrid = $('#nameDetailEntryGrid',context).xenoseditablegrid(nameDetailEntryResult, nameDetailEntryColumns, nameDetailEntryGridConf);
+					
+					
+					/**
+					* Validate Account No Entry attributes.
+					*/
+					function validateAttributes(){
+						var validationMessages = [];
+						var accountNo = $.trim($('#accountNo',context).val());
+												
+					    if(VALIDATOR.isNullValue(accountNo)){
+							validationMessages.push(xenos$REF$i18n.account.common.account_no_empty);
+						}
+						if (validationMessages.length > 0){
+							 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+							 return false;
+						}else {
+	                           xenos.utils.clearGrowlMessage();
+						}
+						return true;
+					}
+					
+					
+					/**
+					* Validate Account No Entry attributes.
+					*/
+					function validateAttributes1(){
+						var validationMessages = [];
+						var shortName = $.trim($('#shortName',context).val());
+						var officialName1 = $.trim($('#officialName1',context).val());
+												
+					    if(VALIDATOR.isNullValue(shortName)){
+							validationMessages.push(xenos$REF$i18n.account.common.short_name_reqd);
+						}
+						if(VALIDATOR.isNullValue(officialName1)){
+							validationMessages.push(xenos$REF$i18n.account.common.office_name_reqd);
+						}
+						if (validationMessages.length > 0){
+							 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+							 return false;
+						}else {
+	                           xenos.utils.clearGrowlMessage();
+						}
+						return true;
+					}
+					
+					
+					/**
+					* Validate Account No Entry attributes.
+					*/
+					function validateAttributes2(){
+						var validationMessages = [];
+						var charsetCodeAppender = $.trim($('#charsetCodeAppender',context).val());
+						var shortNameAppender = $.trim($('#shortNameAppender',context).val());
+						var offname1Appender = $.trim($('#offname1Appender',context).val());
+												
+					    if(VALIDATOR.isNullValue(charsetCodeAppender)){
+							validationMessages.push(xenos$REF$i18n.account.common.charSet_code_empty);
+						}
+						if(VALIDATOR.isNullValue(shortNameAppender)){
+							validationMessages.push(xenos$REF$i18n.account.common.short_name_reqd);
+						}
+						if(VALIDATOR.isNullValue(offname1Appender)){
+							validationMessages.push(xenos$REF$i18n.account.common.office_name_reqd);
+						}
+						if (validationMessages.length > 0){
+							 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+							 return false;
+						}else {
+	                           xenos.utils.clearGrowlMessage();
+						}
+						return true;
+					}
+					
+				
+				/**
+				* Populate Default Account No request parameters.
+				*/
+				function populateDefaultBankAccountCodeRequestParam(){
+					var reqObj = {
+					              "bankAccountOtherAttributes.defaultAccountNo"	:	$.trim($('#defaultAcNo',context).val()),
+								};
+					return reqObj;
+				}
+				
+				/**
+				* Populate Account No request parameters.
+				*/
+				function populateAccountNoEntryRequestParam(){
+					var reqObj = {
+					              "bankAccountOtherAttributes.accountNoType"	:	$.trim($('#accountNoType',context).val()),
+								  "bankAccountOtherAttributes.accountNo"		:	$.trim($('#accountNo',context).val())
+								};
+					return reqObj;
+				}
+				
+				
+				/**
+				* Populate Default Account Name Detail request parameters.
+				*/
+				function populateNameDetailEntryRequestParam(){
+					
+					var reqObj = {
+					              "bankAccountNameXref.charsetCode"		:	$.trim($('#charsetCodeAppender',context).val()),
+								  "bankAccountNameXref.shortName"		:	$.trim($('#shortNameAppender',context).val()),
+								  "bankAccountNameXref.officialName1"	:	$.trim($('#offname1Appender',context).val()),
+								  "bankAccountNameXref.officialName2"	:	$.trim($('#offname2Appender',context).val()),
+								  "bankAccountNameXref.officialName3"	:	$.trim($('#offname3Appender',context).val()),
+								  "bankAccountNameXref.officialName4"	:	$.trim($('#offname4Appender',context).val()),
+								};
+					return reqObj;
+				}
+				
+				
+				/**
+				* Populate Account No form.
+				*/
+				function populateDefaultAccountNoEntryForm(result){
+					if(result.bankAccountOtherAttributes){
+						$('#defaultAcNo',context).val(result.bankAccountOtherAttributes.generatedAccountNo);
+					//	$('input[type=text],textarea,select', 'div.formItemBlock').filter(':enabled:visible:first').focus();
+					}
+				} 
+				
+				
+				/**
+				* Populate Account No form.
+				*/
+				function populateAccountNoEntryForm(result){
+					if(result.bankAccountOtherAttributes){
+						$('#accountNoType',context).val(result.bankAccountOtherAttributes.accountNoType);
+						$('#accountNo',context).val(result.bankAccountOtherAttributes.accountNo);
+						$('input[type=text],textarea,select', 'div.formItemBlock').filter(':enabled:visible:first').focus();
+					}
+				}
+				
+				
+				/**
+				* Populate Default Account Name Detail form.
+				*/
+				function populateNameDetailEntryForm(result){
+					if(result.bankAccountNameXref){
+						$('#charsetCodeAppender',context).val(result.bankAccountNameXref.charsetCode);
+						$('#shortNameAppender',context).val(result.bankAccountNameXref.shortName);
+						$('#offname1Appender',context).val(result.bankAccountNameXref.officialName1);
+						$('#offname2Appender',context).val(result.bankAccountNameXref.officialName2);
+						$('#offname3Appender',context).val(result.bankAccountNameXref.officialName3);
+						$('#offname4Appender',context).val(result.bankAccountNameXref.officialName4);
+						$('input[type=text],textarea,select', 'div.formItemBlock').filter(':enabled:visible:first').focus();
+					}
+				}
+				
+				
+				/**
+				* New Generated Account No add handler.
+				*/
+				function calculateAcnoEntryHandler(e){
+						var requestUrl = baseUrl + "/addDefaultBankAccountCode.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateDefaultBankAccountCodeRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertcalculateAcnoEntry( content.value[0]);
+																		xenos.utils.clearGrowlMessage();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* Insert/ Update Generated Account No.
+				*/
+				function upsertcalculateAcnoEntry(data){
+					var result = data.otherAttributes;
+					if(result){
+						populateDefaultAccountNoEntryForm(data);
+						upsertAccountNoEntry(data)
+					}
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function addAccountNoEntryHandler(e){
+					var valid = validateAttributes();
+					if(valid){
+						var requestUrl = baseUrl + "/addBankAccountNo.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateAccountNoEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertAccountNoEntry( content.value[0]);
+																		xenos.utils.clearGrowlMessage();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+					}
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function editAccountNoEntryHandler(rowIndex, dataContext){
+					
+					var requestUrl = baseUrl + "/editBankAccountNo.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																settings: {data : {"editIndexBankAccountCode" : rowIndex}},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		populateAccountNoEntryForm(content.value[0]);
+																		$('.editBtnAccountNoEntry',context).css('display','block'); 
+																		$('.addAccountNoEntry',context).css('display','none'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function deleteAccountNoEntryHandler(rowIndex, dataContext){
+					var requestUrl = baseUrl + "/deleteBankAccountNo/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertAccountNoEntry( content.value[0]);
+																		$('.editBtnAccountNoEntry',context).css('display','none'); 
+																		$('.addAccountNoEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function updateAccountNoEntryHandler(e){
+					var valid = validateAttributes();
+					if(valid){
+						var requestUrl = baseUrl + "/updateBankAccountNo.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateAccountNoEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertAccountNoEntry( content.value[0]);
+																		$('.editBtnAccountNoEntry',context).css('display','none'); 
+																		$('.addAccountNoEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+					}
+				}
+				
+				/**
+				* New Account No add handler.
+				*/
+				function cancelAccountNoEntryHandler(e){
+					var requestUrl = baseUrl + "/cancelBankAccountNo.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertAccountNoEntry( content.value[0]);
+																		$('.editBtnAccountNoEntry',context).css('display','none'); 
+																		$('.addAccountNoEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				/**
+				* A function to check whether edit or delete is possible or not.
+				*/
+				function isEditable(columnName,dataContext){
+					if($.trim(dataContext['accountNoType']) == "${commandForm.otherAttributes.defaultAccountNoType}")
+						return false;
+					return true;
+				}
+				
+				/**
+				* Insert/ Update Account No.
+				*/
+				function upsertAccountNoEntry(data){
+					
+					var result = data.bankAccountOtherAttributes.accountXrefDynaBeans;
+					if(result){
+						accountNoEntryGrid.clearData();
+						for(var i in result){
+							item = {};
+							rowId+=1;
+							item.id 				    = "xenos_" + rowId;
+							item.accountNoType 		    = $.trim(result[i].map.accountNoType);
+							item.accountNo 				= $.trim(result[i].map.accountNo);
+							
+							accountNoEntryGrid.addOrUpdateRow(item,{});
+						}
+						populateAccountNoEntryForm(data);
+					}
+				}
+				
+				
+				/**
+				* New Default Acount Name add handler.
+				*/
+				function addNameDetailEntryHandler(e){
+					var valid = validateAttributes2();
+					if(valid){
+						var requestUrl = baseUrl + "/addBankNameXrefDetail.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateNameDetailEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertNameDetailEntry( content.value[0]);
+																		xenos.utils.clearGrowlMessage();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+					}
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function editNameDetailEntryHandler(rowIndex, dataContext){
+					
+					var requestUrl = baseUrl + "/editBankNameXrefDetail.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																settings: {data : {"editIndexBankAccountNameXref" : rowIndex}},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		populateNameDetailEntryForm(content.value[0]);
+																		$('.editBtnNameDetailEntry',context).css('display','block'); 
+																		$('.addNameDetailEntry',context).css('display','none'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function deleteNameDetailEntryHandler(rowIndex, dataContext){
+					
+					var requestUrl = baseUrl + "/deleteBankNameXrefDetail/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertNameDetailEntry( content.value[0]);
+																		$('.editBtnNameDetailEntry',context).css('display','none'); 
+																		$('.addNameDetailEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function updateNameDetailEntryHandler(e){
+					var valid = validateAttributes2();
+					if(valid){
+						var requestUrl = baseUrl + "/updateBankNameXrefDetail.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : populateNameDetailEntryRequestParam()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertNameDetailEntry( content.value[0]);
+																		xenos.utils.clearGrowlMessage();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+																}
+															 }
+												);
+					}
+				}
+				
+				
+				/**
+				* New Account No add handler.
+				*/
+				function cancelNameDetailEntryHandler(e){
+					var requestUrl = baseUrl + "/cancelBankNameXrefDetail.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertNameDetailEntry( content.value[0]);
+																		$('.editBtnNameDetailEntry',context).css('display','none'); 
+																		$('.addNameDetailEntry',context).css('display','block'); 
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+				}
+				
+				
+				/**
+				* Insert/ Update Account No.
+				*/
+				function upsertNameDetailEntry(data){
+					
+					var result = data.bankAccountOtherAttributes.accountNameXrefDynaBeans;
+					if(result){
+						nameDetailEntryGrid.clearData();
+						for(var i in result){
+							item = {};
+							rowId+=1;
+							item.id 				= "xenos_" + rowId;
+							item.langcode 		    = $.trim(result[i].map.charsetCode);
+							item.shortname1 		= $.trim(result[i].map.shortName);
+							item.offname1 		    = $.trim(result[i].map.officialName1);
+							item.offname2 			= $.trim(result[i].map.officialName2);
+							item.offname3 		    = $.trim(result[i].map.officialName3);
+							item.offname4 			= $.trim(result[i].map.officialName4);
+							
+							nameDetailEntryGrid.addOrUpdateRow(item,{});
+						}
+						populateNameDetailEntryForm(data);
+					}
+				}
+				
+				
+				
+				/**
+				* Modify Grid data handler.
+				*/
+				function modifyGridData(e){
+					var requestUrl = baseUrl + "/modifyGridData.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																settings: {data : collectAccountNo()},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		upsertGridDetails( content.value[0]);
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+					$("#defaultAcSelect").prop("checked", true);
+					//$("#defaultAcSelectVal").val("true");
+					$("#actPopupDiv").hide();							
+				}
+				
+				
+				function collectAccountNo(){
+					var reqObj = {
+					              "bankAccountOtherAttributes.defaultAccountNo"		:	$.trim($('#defaultAcNo',context).val()),
+								};
+					return reqObj;
+				}
+				
+				function upsertGridDetails(data){
+					var result1 = data.bankAccount;
+					if(result1){
+						$("#finInstCode").val(result1.brokerCode);
+					}
+					var result2 = data.bankAccountOtherAttributes.accountXrefDynaBeans;
+					if(result2){
+						accountNoEntryGrid.clearData();
+						for(var i in result2){
+							item = {};
+							rowId+=1;
+							item.id 				    = "xenos_" + rowId;
+							item.accountNoType 		    = $.trim(result2[i].map.accountNoType);
+							item.accountNo 				= $.trim(result2[i].map.accountNo);
+							
+							accountNoEntryGrid.addOrUpdateRow(item,{});
+						}
+						//populateNameDetailEntryForm(data);
+					}
+				}
+				
+				
+				
+				var submitValidateHook = function() {	
+					var isValid = validateOnNextForCustodianTabEmpty();
+					return isValid;
+				}
+				
+				var nextValidateHook = function() {
+					var isValid = validateOnNextForCustodianTabEmpty();
+					return isValid;
+				}
+				
+				var previousValidateHook = function() {
+					var isValid = validateOnNextForCustodianTabEmpty();
+					return isValid;
+				};
+				
+				function addDefaultAccountEntryHandler(){
+					
+					if($(".abcd").css('display') == 'none'){
+						if(validateAttributes1()){
+							$(".abcd").css('display','block');
+						}
+					}else{
+						$(".abcd").css('display','none');
+					}
+				}
+				
+				
+				$('#calculateAcno',context).bind('click',calculateAcnoEntryHandler);
+				$('#addAccountNoEntryBtn',context).bind('click',addAccountNoEntryHandler);
+				$('#addNameDetailEntryBtn',context).bind('click',addNameDetailEntryHandler);
+				$('#addDefaultAccountEntryBtn',context).bind('click',addDefaultAccountEntryHandler);
+				
+				$('#updateAccountNoEntryBtn',context).bind('click',updateAccountNoEntryHandler);
+				$('#cancelAccountNoEntryBtn',context).bind('click',cancelAccountNoEntryHandler);
+				
+				$('#updateNameDetailEntryBtn',context).bind('click',updateNameDetailEntryHandler);
+				$('#cancelNameDetailEntryBtn',context).bind('click',cancelNameDetailEntryHandler);
+				
+				if("${commandForm.options.actionType}" == "AMEND" <![CDATA[||]]> "${commandForm.options.actionType}" == "REOPEN"){
+					$('#defaultAcNo',context).unbind('change').bind('change',modifyGridData);
+				}
+				
+				var unloadHook = function(){
+					$('#calculateAcno',context).unbind('click',calculateAcnoEntryHandler);
+					$('#addAccountNoEntryBtn',context).unbind('click',addAccountNoEntryHandler);
+					$('#addNameDetailEntryBtn',context).unbind('click',addNameDetailEntryHandler);
+					$('#addDefaultAccountEntryBtn',context).unbind('click',addDefaultAccountEntryHandler);
+					
+					$('#updateAccountNoEntryBtn',context).unbind('click',updateAccountNoEntryHandler);
+					$('#cancelAccountNoEntryBtn',context).unbind('click',cancelAccountNoEntryHandler);
+					
+					$('#updateNameDetailEntryBtn',context).unbind('click',updateNameDetailEntryHandler);
+					$('#cancelNameDetailEntryBtn',context).unbind('click',cancelNameDetailEntryHandler);
+				
+					$xenos$Wizard.deregister('submit',submitValidateHook);
+					$xenos$Wizard.deregister('next',nextValidateHook);
+					$xenos$Wizard.deregister('previous',previousValidateHook);
+					$xenos$Wizard.deregister('unload',unloadHook);
+					
+					accountNoEntryGrid.destroy();
+					nameDetailEntryGrid.destroy();
+				}
+				
+				$xenos$Wizard.register('next',nextValidateHook);
+				$xenos$Wizard.register('previous',previousValidateHook);
+				$xenos$Wizard.register('submit',submitValidateHook);
+				$xenos$Wizard.register('unload',unloadHook);
+				xenos.utils.afterFormRenderScuts();
+				
+				
+				/**
+				*	Set visibility of fields depending on CounterPartyType
+				*/
+				if("${commandForm.bankAccount.counterPartyType}" == "BROKER"){
+					$("#bankAccountTypeDiv").show();
+				}else{
+					$("#bankAccountTypeDiv").hide();
+				}
+				
+				if("${commandForm.options.actionType}" == "AMEND" <![CDATA[||]]> "${commandForm.options.actionType}" == "REOPEN"){
+					if($("#defaultAcSelect").is(':checked')){
+						$("#actPopupDiv").hide();
+					}
+					if("${commandForm.account.defaultAccountFlag}" == "Y"){
+						$("#defaultAcNo").attr("readonly",true);
+						$("#calculateAcno").hide();
+					}else{
+						$("#LMView").hide();
+					}
+				}else if("${commandForm.options.actionType}" == "ENTRY"){
+					$("#defaultAcNoDiv").show();
+					$("#defaultAcNo").show();
+					$("#actPopupDiv").hide();
+				}else if("${commandForm.options.actionType}" == "COPY"){
+					if("${commandForm.account.defaultAccountFlag}" == "Y"){
+						$("#defaultAcNoDiv").show();
+						$("#defaultAcNo").show();
+						$("#actPopupDiv").hide();
+					}else{
+						$("#LMView").hide();
+					}
+				}
+				
+				function showAccountNoPopUp() {
+					if("${commandForm.options.actionType}" == "AMEND" <![CDATA[||]]> "${commandForm.options.actionType}" == "REOPEN"){
+						if(!$("#defaultAcSelect").is(':checked')){
+							$("#actPopupDiv").show();
+						}else{
+							$("#actPopupDiv").hide();
+						}
+					}
+			    }
+				
+				if("${commandForm.options.actionType}" == "AMEND" <![CDATA[||]]> "${commandForm.options.actionType}" == "REOPEN"){
+					var defaultBankAccountFlag = "<c:out value="${commandForm.defaultBankAccountFlag}"/>";
+					if(defaultBankAccountFlag == 'true') {
+						$("#defaultAcSelect").prop("checked", true);
+						//$("#defaultAcSelectVal").val("true");
+					} else {
+						$("#defaultAcSelect").prop("checked", false);
+						//$("#defaultAcSelectVal").val("false");
+					}
+				}
+				
+				$("#actPopupDiv").click(function(e) {
+					$("#defaultAcSelect").prop("checked", true);
+					$("#actPopupDiv").hide();
+				});
+				
+			}
+				
+					
+						
+			</jsp:body>
+		</jsp:element>
+		
+		<c:if test="${success =='false'}">
+			<ul class="xenosError">
+				<c:forEach items="${value}" var="dl">		
+				<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+				</c:forEach>
+			</ul>	
+		</c:if>
+		
+		<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+		<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+		<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+		<spring:message code="form.button.label.details" htmlEscape="false" var="formdetails_label"/>
+		
+		<div>
+			<h1><spring:message code="ref.account.title" htmlEscape="false"/> - <spring:message code="ref.account.label.custodianinfo" htmlEscape="false"/></h1>
+			<div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.account.label.generalinfo" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse" id="drvMoreSection"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>
+		
+			<div class="entryBlkArea" id="LMView">
+				<div class="formItemBlock topitems twoColumns" id="generalInfo">
+					<div class="entryBlkArea">
+						<h1><spring:message code="ref.account.label.defaultaccountcode" htmlEscape="false"/></h1>
+						<div class="formItem ">
+							<form:label path="commandForm.bankAccount.counterPartyDetailType" class="required"><spring:message code="ref.account.label.counterpartytype" htmlEscape="false"/></form:label>
+                            <span><form:input id="counterpartytype" value="" path="commandForm.bankAccount.counterPartyDetailType" class="textBox" readonly="true" /></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem ">
+							<form:label path="commandForm.bankAccount.fundCode" class="required"><spring:message code="ref.account.label.fundcode" htmlEscape="false"/></form:label>
+							<form:label path="commandForm.bankAccount.fundCode" id="fundCode">${commandForm.bankAccount.fundCode}</form:label>
+						</div>
+						<div class="formItem " id="bankAccountTypeDiv">
+							<form:label path="commandForm.bankAccount.bankAccountType"><spring:message code="ref.account.label.bankAccountType" htmlEscape="false"/></form:label>
+							<form:select id="bankAccountType" path="commandForm.bankAccount.bankAccountType" class="dropdowninput" >
+									<form:option value=""/>
+									<form:options items="${commandForm.dropDownListValues.bankAccountTypeList}" itemLabel="label" itemValue="value"/>
+							</form:select>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem " id="defaultAcNoDiv">
+							<form:label path="commandForm.bankAccountOtherAttributes.defaultAccountNo"><spring:message code="ref.account.label.accountno" htmlEscape="false"/></form:label>
+							<span><form:input id="defaultAcNo" value="" path="commandForm.bankAccountOtherAttributes.defaultAccountNo" class="textBox" maxlength="35" /></span>
+							<div class="btnWrapStyle submitBtn gridAddBtn">
+								<span class="addDefaultAccountNoEntry"><input id="calculateAcno" type="button" value="${formadd_label}" class="inputBtnStyle" /></span>
+							</div>
+							<div class="popupBtn" id="actPopupDiv"><input id="actPopup" type="button" tgt="defaultAcNo" class="popupBtnIco" popType="cpAccount" stlCPTypeContext="BANK/CUSTODIAN" fundCodeContext="${commandForm.bankAccount.fundCode}" /></div>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem ">
+							<form:label path="commandForm.bankAccount.brokerCode" class="required"><spring:message code="ref.account.label.fininstcodelabel" htmlEscape="false"/></form:label>
+							<span><form:input id="finInstCode" value="" path="commandForm.bankAccount.brokerCode" class="textBox" /></span>
+							<div class="popupBtn"><input type="button" tgt="finInstCode" class="popupBtnIco" popType="finInstRoleType" bankRoles="Security Broker|Bank/Custodian|Central Depository" /></div>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<c:if test = "${(commandForm.options.actionType == 'AMEND' || commandForm.options.actionType == 'REOPEN') and commandForm.account.defaultAccountFlag == 'Y'}">
+						<div class="formItem" id="defaultAcSelectDiv">
+							<form:label path="commandForm.defaultBankAccountFlag" class="required"><spring:message code="ref.account.label.defaultbankaccount" htmlEscape="false" /></form:label>
+							<span>
+							
+							<form:checkbox id="defaultAcSelect" path="commandForm.defaultBankAccountFlag" class="excludePending" onclick="showAccountNoPopUp();" />
+							</span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						</c:if>
+					</div>
+					
+					<div class="entryBlkArea">
+						<h1><spring:message code="ref.account.label.accountcodeinfo" htmlEscape="false"/></h1>
+						<div class="formItem ">
+							<form:label path="commandForm.bankAccountOtherAttributes.accountNoType" class="required"><spring:message code="ref.account.label.accountnotype" htmlEscape="false"/></form:label>
+							<form:select id="accountNoType" path="commandForm.bankAccountOtherAttributes.accountNoType" class="dropdowninput" >
+									<form:options items="${commandForm.dropDownListValues.accountNoTypeList}" itemLabel="label" itemValue="value"/>
+							</form:select>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem ">
+							<form:label path="commandForm.bankAccountOtherAttributes.accountNo" class="required"><spring:message code="ref.account.label.accountno" htmlEscape="false"/></form:label>
+							<span><form:input id="accountNo" value="" path="commandForm.bankAccountOtherAttributes.accountNo" class="textBox" maxlength="35" /></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div id="formActionArea" class="gridBtnMargin AddBtnformActionAreaBg">
+							<div class="right">
+								<div class="btnWrapStyle submitBtn gridAddBtn">
+									<span class="addAccountNoEntry" style="display:block"><input id="addAccountNoEntryBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+								</div>
+								<span class="editBtnAccountNoEntry" style="display:none">	
+									<div class="btnWrapStyle submitBtn"><input id="updateAccountNoEntryBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+									<div class="btnWrapStyle resetBtn"><input id="cancelAccountNoEntryBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+								</span>
+							</div>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						<div class="entryGrid">
+							<div id="accountNoEntryGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			</div>
+			
+			<div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.account.label.defaultaccountnameinfo" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse" id="drvMoreSection"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>
+		
+			<div class="entryBlkArea">
+				<div class="formItemBlock topitems dottedBg" id="defaultAccountName">
+
+					<div class="formItem">
+						<form:label path="commandForm.otherAttributes.defaultCharsetCode" class="required"><spring:message code="ref.account.label.languagecode" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.otherAttributes.defaultCharsetCode">${commandForm.otherAttributes.defaultCharsetCode}</form:label>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.bankAccount.shortName" class="required"><spring:message code="ref.account.label.shortname" htmlEscape="false"/></form:label>
+						<span><form:input id="shortName" value="" path="commandForm.bankAccount.shortName" class="textBox" maxlength="35"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.bankAccount.officialName1" class="required"><spring:message code="ref.account.label.officialname1" htmlEscape="false"/></form:label>
+						<span><form:input id="officialName1" value="" path="commandForm.bankAccount.officialName1" class="textBox" maxlength="35"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.bankAccount.officialName2"><spring:message code="ref.account.label.officialname2" htmlEscape="false"/></form:label>
+						<span><form:input id="officialName2" value="" path="commandForm.bankAccount.officialName2" class="textBox" maxlength="35"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.bankAccount.officialName3"><spring:message code="ref.account.label.officialname3" htmlEscape="false"/></form:label>
+						<span><form:input id="officialName3" value="" path="commandForm.bankAccount.officialName3" class="textBox" maxlength="35"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.bankAccount.officialName4"><spring:message code="ref.account.label.officialname4" htmlEscape="false"/></form:label>
+						<span><form:input id="officialName4" value="" path="commandForm.bankAccount.officialName4" class="textBox" maxlength="35"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="right">
+						<div class="btnWrapStyle submitBtn gridAddBtn">
+							<span class="addUserIdEntry" style="display:block"><input id="addDefaultAccountEntryBtn" type="button" value="${formdetails_label}" class="inputBtnStyle"/></span>
+						</div>
+					</div>
+
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					
+					<div class="abcd formItemBlock topitems" style="display:none;">
+						<div class="formItem">
+							<form:label path="commandForm.bankAccountNameXref.charsetCode" class="required"><spring:message code="ref.account.label.languagecode" htmlEscape="false"/></form:label>
+							<form:select id="charsetCodeAppender" path="commandForm.bankAccountNameXref.charsetCode" class="dropdowninput" >
+									<form:option value=""/>
+									<form:options items="${commandForm.dropDownListValues.charsetCodeList}" />
+							</form:select>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<form:label path="commandForm.bankAccountNameXref.shortName" class="required"><spring:message code="ref.account.label.shortname" htmlEscape="false"/></form:label>
+							<span><form:input id="shortNameAppender" value="" path="commandForm.bankAccountNameXref.shortName" class="textBox" maxlength="35"/></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<form:label path="commandForm.bankAccountNameXref.officialName1" class="required"><spring:message code="ref.account.label.officialname1" htmlEscape="false"/></form:label>
+							<span><form:input id="offname1Appender" value="" path="commandForm.bankAccountNameXref.officialName1" class="textBox" maxlength="35"/></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<form:label path="commandForm.bankAccountNameXref.officialName2"><spring:message code="ref.account.label.officialname2" htmlEscape="false"/></form:label>
+							<span><form:input id="offname2Appender" value="" path="commandForm.bankAccountNameXref.officialName2" class="textBox" maxlength="35"/></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<form:label path="commandForm.bankAccountNameXref.officialName3"><spring:message code="ref.account.label.officialname3" htmlEscape="false"/></form:label>
+							<span><form:input id="offname3Appender" value="" path="commandForm.bankAccountNameXref.officialName3" class="textBox" maxlength="35"/></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="formItem">
+							<form:label path="commandForm.bankAccountNameXref.officialName4"><spring:message code="ref.account.label.officialname4" htmlEscape="false"/></form:label>
+							<span><form:input id="offname4Appender" value="" path="commandForm.bankAccountNameXref.officialName4" class="textBox" maxlength="35"/></span>
+							<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						<div id="formActionArea" class="gridBtnMargin AddBtnformActionAreaBg">
+							<div class="right">
+								<div class="btnWrapStyle submitBtn gridAddBtn">
+									<span class="addNameDetailEntry" style="display:block"><input id="addNameDetailEntryBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+								</div>
+								<span class="editBtnNameDetailEntry" style="display:none">
+									<div class="btnWrapStyle submitBtn"><input id="updateNameDetailEntryBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+									<div class="btnWrapStyle resetBtn"><input id="cancelNameDetailEntryBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+								</span>
+							</div>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						<div class="entryGrid">
+							<div id="nameDetailEntryGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+				</div>
+			</div>
+		
+			<div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.account.label.basicattributes" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse" id="drvMoreSection"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>
+			
+			<div class="entryBlkArea">
+				<div class="formItemBlock topitems dottedBg" id="basicAttribute">
+					<div class="formItem twoCols">
+						<form:label path="commandForm.bankAccount.activityStatus"><spring:message code="ref.account.label.activitystatus" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.bankAccount.activityStatus">${commandForm.bankAccount.activityStatus}</form:label>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.bankAccount.residentCountry"><spring:message code="ref.account.label.residentcountry" htmlEscape="false"/></form:label>
+						<span><form:input id="residentcountryCode" path="commandForm.bankAccount.residentCountry" size="15" class="textBox" /></span>
+						<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="residentcountryCode" popType="nationality" /></div>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.bankAccount.contractCountry"><spring:message code="ref.account.label.contractcountry" htmlEscape="false"/></form:label>
+						<span><form:input id="contractCountry" path="commandForm.bankAccount.contractCountry" size="15" class="textBox" /></span>
+						<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="contractCountry" popType="nationality" /></div>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+					</div>
+					<div class="formItem twoCols">
+						<form:label path="commandForm.bankAccount.nationality"><spring:message code="ref.account.label.nationality" htmlEscape="false"/></form:label>
+						<span><form:input id="nationality" path="commandForm.bankAccount.nationality" size="15" class="textBox" /></span>
+						<div class="popupBtn"><input type="button" class="popupBtnIco" tgt="nationality" popType="nationality" /></div>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+					</div>
+					<c:if test = "${(commandForm.options.actionType == 'AMEND' || commandForm.options.actionType == 'REOPEN') and commandForm.account.defaultAccountFlag == 'Y'}">
+					<div class="formItem" id="lastactivitydateDiv">
+						<form:label path="commandForm.lastActivityDateStr"><spring:message code="ref.account.label.lastactivitydate" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.lastActivityDateStr">${commandForm.lastActivityDateStr}</form:label>
+					</div>
+					<div class="formItem" id="laststatementdateDiv">
+						<form:label path="commandForm.lastStatementDateStr"><spring:message code="ref.account.label.laststatementdate" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.lastStatementDateStr">${commandForm.lastStatementDateStr}</form:label>
+					</div>
+					</c:if>
+					<div class="formItem">
+						<form:label path="commandForm.bankAccount.accountOpenDateStr"><spring:message code="ref.account.label.acopendate" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.bankAccount.accountOpenDateStr">${commandForm.bankAccount.accountOpenDateStr}</form:label>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.bankAccount.accountOpenedBy"><spring:message code="ref.account.label.acopenby" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.bankAccount.accountOpenedBy">${commandForm.bankAccount.accountOpenedBy}</form:label>
+					</div>
+					<c:if test = "${(commandForm.options.actionType == 'AMEND' || commandForm.options.actionType == 'REOPEN') and commandForm.account.defaultAccountFlag == 'Y'}">
+					<div class="formItem" id="accountupdatedateDiv">
+						<form:label path="commandForm.bankAccount.accountUpdateDateStr"><spring:message code="ref.account.label.accountupdatedate" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.bankAccount.accountUpdateDateStr">${commandForm.bankAccount.accountUpdateDateStr}</form:label>
+					</div>
+					<div class="formItem" id="accountupdatedbyDiv">
+						<form:label path="commandForm.bankAccount.accountUpdatedBy"><spring:message code="ref.account.label.accountupdatedby" htmlEscape="false"/></form:label>
+						<form:label path="commandForm.bankAccount.accountUpdatedBy">${commandForm.bankAccount.accountUpdatedBy}</form:label>
+					</div>
+					</c:if>
+					<div class="formItem twoCols">
+						<form:label path="commandForm.bankAccount.memo"><spring:message code="ref.account.label.memo" htmlEscape="false"/></form:label>
+						<form:input id="memo" value="" path="commandForm.bankAccount.memo" class="textBox fullWidthInputMemo" maxlength="255"/>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem twoCols labelWnoContentFix">
+						<form:label path="commandForm.bankAccount.remarks1"><spring:message code="ref.account.label.remarks" htmlEscape="false"/></form:label>
+						<span><form:input id="remarks1" value="" path="commandForm.bankAccount.remarks1" class="textBox" maxlength="255"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem twoCols labelWnoContentFix">
+						<form:label path="commandForm.bankAccount.remarks2"><spring:message text="" htmlEscape="false"/></form:label>
+						<span><form:input id="remarks2" value="" path="commandForm.bankAccount.remarks2" class="textBox" maxlength="255"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem twoCols labelWnoContentFix">
+						<form:label path="commandForm.bankAccount.remarks3"><spring:message text="" htmlEscape="false"/></form:label>
+						<span><form:input id="remarks3" value="" path="commandForm.bankAccount.remarks3" class="textBox" maxlength="255"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem twoCols labelWnoContentFix">
+						<form:label path="commandForm.bankAccount.remarks4"><spring:message text="" htmlEscape="false"/></form:label>
+						<span><form:input id="remarks4" value="" path="commandForm.bankAccount.remarks4" class="textBox" maxlength="255"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			</div>
+		</div>
+						
+		<spring:eval expression="T(java.lang.System).currentTimeMillis()" var="myId"/>
+		<input type="hidden" id="${myId}"/>
+		
+	</div>
+</jsp:root>

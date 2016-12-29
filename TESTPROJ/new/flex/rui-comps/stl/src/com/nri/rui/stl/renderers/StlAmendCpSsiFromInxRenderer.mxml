@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Item Renderer for Settlement Amendment  -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%" horizontalAlign="center" verticalAlign="middle">
+    <mx:Script>
+        <![CDATA[
+        	import mx.events.CloseEvent;            
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import com.nri.rui.core.Globals;
+            
+            import flash.display.DisplayObjectContainer;
+            import flash.events.MouseEvent;        
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            
+            private var sPopup : SummaryPopup;	
+            [Bindable] public var _mode:String = "amend";
+
+    		/**
+        	 * Mouse Click event handler to open a popup with initialization and passing values.
+        	 */ 
+            public function handleMouseClick(event:MouseEvent):void {
+        		
+        		sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+        		
+        		//Title
+        		if (data.settlementFor == "SECURITY_TRADE") {
+             		sPopup.title = this.parentApplication.xResourceManager.getKeyValue('stl.amendment.title.securitytrade');
+             	} else if (data.settlementFor == "CORPORATE_ACTION") {
+             		sPopup.title = this.parentApplication.xResourceManager.getKeyValue('stl.amendment.title.corporateaction');
+             	} else if (data.settlementFor == "SLR_TRADE") {
+             		sPopup.title = this.parentApplication.xResourceManager.getKeyValue('stl.amendment.title.slrtrade');
+             	}
+        		sPopup.owner = DisplayObjectContainer(parentDocument);
+        		sPopup.addEventListener("OkSystemConfirm", handleOkSystemConfirm, false, 0, true);
+        		sPopup.addEventListener(CloseEvent.CLOSE,closeHandler,false,0,true);
+                //set the width and height of the popup
+                sPopup.width = 850;
+        		sPopup.height = 500;    		
+        		PopUpManager.centerPopUp(sPopup);        		
+        		
+        		var queryString:String="&csiPk="+data.clientSettlementInfoPk+"&settlementFor="+data.settlementFor+"&mode="+_mode+"&eventType="+data.eventType;
+        		
+        		//Setting the Module path with some parameters which will be needed in the module for internal processing.                                                       
+        		if (data.settlementFor == "SECURITY_TRADE") {
+             		sPopup.moduleUrl = "assets/appl/stl/SettlementAmendmentSecurityTrade.swf"+ Globals.QS_SIGN +queryString;
+             	} else if (data.settlementFor == "CORPORATE_ACTION") {
+             		sPopup.moduleUrl = "assets/appl/stl/SettlementAmendmentCorporateAction.swf"+ Globals.QS_SIGN +queryString;
+             	} else if (data.settlementFor == "SLR_TRADE") {
+             		sPopup.moduleUrl = "assets/appl/stl/SettlementAmendmentSlrTrade.swf"+ Globals.QS_SIGN +queryString;
+             	}
+        	}
+        	
+        	/**
+        	 * Event Handler for the custom event "OkSystemConfirm"
+        	 */
+        	public function handleOkSystemConfirm(event:Event):void {
+        		this.parentDocument.currentState = "";
+                if(_mode == "amend")
+                  this.parentDocument.dispatchEvent(new Event("amendReset"));
+            }
+            
+            /**
+             * This method overrides the updateDisplayList method to hide the Edit icon 
+             * of the DataGrid column's element if Settlement Amendment is not permitted
+             * otherwise show the Edit icon.
+             */
+             override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void { 
+             	super.updateDisplayList(unscaledWidth, unscaledHeight);             	
+             	if((data.settlementFor == "SECURITY_TRADE" 
+             			|| data.settlementFor == "CORPORATE_ACTION" 
+             			|| data.settlementFor == "SLR_TRADE") 
+             			&& (XenosStringUtils.equals(data.unknownCpSsi,Globals.DATABASE_YES)
+             				|| (!XenosStringUtils.isBlank(data.psetNotset) 
+             					&& XenosStringUtils.isBlank(data.preferredCodetypeNotset)))) {
+             						
+             		editButton.includeInLayout = true;
+             		editButton.visible = true;
+             	} else {
+             		editButton.includeInLayout = false;
+             		editButton.visible = false;
+             	}
+             }
+             /**
+        	 * Event Handler for the custom event "OkSystemConfirm"
+        	 */
+        	public function closeHandler(event:Event):void {        		
+                if(_mode == "amend")
+                  //this.parentDocument.dispatchEvent(new Event("amendSubmit"));
+                  this.parentDocument.inxQueryRequest.send();
+                sPopup.removeMe();
+            }
+        ]]>
+    </mx:Script>
+    
+    <mx:Button id="editButton" styleName="{'BtnEdit'}" width="18" height="18" label="{'Edit'}" click="handleMouseClick(event)"/>
+</mx:VBox>

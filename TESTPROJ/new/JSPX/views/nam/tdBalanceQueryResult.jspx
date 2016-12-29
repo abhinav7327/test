@@ -1,0 +1,218 @@
+<!--$Id$-->
+<!--$Author: ArunKumar $-->
+<!--$Date: 2016-12-26 11:46:17 $--> 
+
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div class="formItemArea">
+ 
+	<jsp:directive.page contentType="text/html;charset=UTF-8" />
+	<jsp:output	omit-xml-declaration="yes" />
+	
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+ 
+	<jsp:element name="script">
+	<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			var isNext =<c:out value="${isNext}" />;
+			var isPrevious = <c:out value="${isPrevious}" />;
+            var pageNo = <c:out value="${pageNo}" />;
+            
+			var grid_result_data = [];
+			var grid_result_columns = [
+				{name:"<spring:message code="tdb.label.fundcode" htmlEscape="false"/>", field:"fundCode",id:"fundCode", width:100,sortable:true,formatter:Slick.Formatters.FundDetailViewFormatter},
+				{name:"<spring:message code="tdb.label.securitycode" htmlEscape="false"/>", field:"securityId",id:"securityId", width:190,sortable:true,formatter:Slick.Formatters.InstrumentDetailViewFormater, instrumentDetailOptions:{pkFieldName:'instrumentPk'}},
+				{name:"<spring:message code="tdb.label.securityname" htmlEscape="false"/>", field:"instrumentName",id:"instrumentName", width:300,sortable:true},
+				{name:"<spring:message code="tdb.label.issuecurrency" htmlEscape="false"/>", field:"issueCurrency", id:"issueCurrency", width:130,sortable:true},
+				{name:"<spring:message code="tdb.label.officeid" htmlEscape="false"/>", field:"officeId", id:"officeId",sortable:true},
+				{name:"<spring:message code="tdb.label.baseccy" htmlEscape="false"/>", field:"baseCcy",  id:"baseCcy",sortable:true},				
+				{name:"<spring:message code="tdb.label.balance" htmlEscape="false"/>", field:"dispBalance",id:"dispBalance", width:200,sortable:true,cssClass:'xenos-grid-number',formatter:Slick.Formatters.TDBalanceDRVFutureBalanceViewFormatter},		
+				{name:"<spring:message code="tdb.label.settled" htmlEscape="false"/>", field:"dispSettledBalance",id:"dispSettledBalance", width:155,sortable:true,cssClass:'xenos-grid-number'},
+				{name:"<spring:message code="tdb.label.margin" htmlEscape="false"/>", field:"dispMarginBalance",id:"dispMarginBalance", width:155,sortable:true,cssClass:'xenos-grid-number'},
+				{name:"<spring:message code="tdb.label.outstanding" htmlEscape="false"/>", field:"recMinusPayBalance",id:"recMinusPayBalance", width:200,sortable:true,cssClass:'xenos-grid-number'},
+				{name:"<spring:message code="tdb.label.receivable" htmlEscape="false"/>", field:"dispReceivableBalance",id:"dispReceivableBalance", width:200,sortable:true,cssClass:'xenos-grid-number',formatter:Slick.Formatters.TDBalanceReceivableViewFormatter},
+				{name:"<spring:message code="tdb.label.payable" htmlEscape="false"/>", field:"dispPayableBalance",id:"dispPayableBalance", width:200,sortable:true,cssClass:'xenos-grid-number',formatter:Slick.Formatters.TDBalancePayableViewFormatter}									
+			 ];
+			var grid_result_settings = {
+				enableToolbar:true,				
+				consolidateActionFlag:false,
+				buttons:{	
+					xls:true,	
+					xlsPref:true,
+					pdf:true,					
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					url: '/secure/nam/tdbalance/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/nam/tdbalance/query/result.json?fetch=next',
+					prevPage : '/secure/nam/tdbalance/query/result.json?fetch=previous',
+					pdfReport: '/secure/nam/tdbalance/query/report.json?outputType=pdf',					
+					xlsReport: '/secure/nam/tdbalance/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/nam/tdbalance/query/reportPref.json?outputType=xls'
+				},
+			events:{
+					onDataUpdate : function(data,callback){
+						for(i in data.value){
+							if(data.value[i].securityType!= 'CCY'){
+							    data.value[i].dispSettledBalance=null;	
+								data.value[i].dispMarginBalance=null;	
+								data.value[i].recMinusPayBalance=null;	
+								data.value[i].dispReceivableBalance=null;
+                                data.value[i].dispPayableBalance=null;
+							}
+							if(data.value[i].securityType == 'DRV-Security'){
+							    data.value[i].dispBalance=data.value[i].dispBalance + data.value[i].buySellStatus;
+							}
+							if(data.value[i].dataSource == 'SLR'){
+                                data.value[i].fundcode= data.value[i].fundcode + ' [BW]';
+							}
+							if(data.value[i].dataSource == 'DEPO'){
+                                data.value[i].fundcode= data.value[i].fundcode + ' [DEPO]';
+							}							
+							if(data.value[i].dataSource == 'FPS_OTAD'){
+                                data.value[i].fundcode= data.value[i].fundcode + ' [FPS_OTHER_ADJUST]';
+							}
+							if(data.value[i].dataSource == 'FPS_ODE'){
+                                data.value[i].fundcode= data.value[i].fundcode + ' [FPS_ODE]';
+							}
+							if(data.value[i].dataSource == 'FPS_OAS'){
+                                data.value[i].fundcode= data.value[i].fundcode + ' [FPS_OAS]';
+							}
+							if(data.value[i].dataSource == 'FPS_OINV'){
+                                data.value[i].fundcode= data.value[i].fundcode + ' [FPS_OINV]';
+							}	
+							data.value[i].date="${commandForm.date}";					
+						}
+						callback(data);
+					}
+				}				
+			};
+			var row_id = 0;			
+			var rec = {};
+			<xenos:out escapeXml="false">
+				<c:forEach items="${value}" var="dl">
+					rec = {};
+					row_id+=1;
+					rec.id = "xenos_" + row_id;
+					rec.fundPk = "<c:out value="${dl.fundPk}" />";
+					rec.instrumentPk = "<c:out value="${dl.instrumentPk}" />";
+					rec.dataSource = "<c:out value="${dl.dataSource}" />";
+                    rec.securityType = 	"<c:out value="${dl.securityType}" />";	
+                    rec.balance = 	"<c:out value="${dl.balance}" />";						
+                    rec.date = "<c:out value="${commandForm.date}" />";
+					rec.fundCode = "<c:choose>
+						 <c:when test="${dl.dataSource == 'SLR'}">
+							<c:out value="${dl.fundCode} [BW]"/>
+						 </c:when>	
+						 <c:when test="${dl.dataSource == 'DEPO'}">
+							<c:out value="${dl.fundCode} [DEPO]"/>
+						 </c:when>
+						 <c:when test="${dl.dataSource == 'FPS_OTAD'}">
+							<c:out value="${dl.fundCode} [FPS_OTHER_ADJUST]"/>
+						 </c:when>
+						 <c:when test="${dl.dataSource == 'FPS_ODE'}">
+							<c:out value="${dl.fundCode} [FPS_ODE]"/>
+						 </c:when>
+						 <c:when test="${dl.dataSource == 'FPS_OAS'}">
+							<c:out value="${dl.fundCode} [FPS_OAS]"/>
+						 </c:when>
+						 <c:when test="${dl.dataSource == 'FPS_OINV'}">
+							<c:out value="${dl.fundCode} [FPS_OINV]"/>
+						 </c:when>
+						 <c:otherwise>
+						    <c:out value="${dl.fundCode}"/>
+						</c:otherwise>
+					  </c:choose>";
+					rec.securityId = "<c:out value="${dl.securityId}" />";									
+					rec.instrumentName= "<c:out value="${dl.instrumentName}" />";
+					rec.issueCurrency= "<c:out value="${dl.issueCurrency}" />";					
+					rec.officeId="<c:out value="${dl.officeId}"/>";
+					rec.baseCcy="<c:out value="${dl.baseCcy}"/>";
+					rec.dispBalance = "<c:choose>
+						 <c:when test="${dl.securityType == 'DRV-Security'}">
+							<c:out value="${dl.dispBalance}${dl.buySellStatus}"/>
+						 </c:when>
+						<c:otherwise>
+						    <c:out value="${dl.dispBalance}"/>
+						</c:otherwise>
+					  </c:choose>";
+					rec.dispSettledBalance = "<c:choose>
+						 <c:when test="${dl.securityType!= 'CCY'}">
+							<c:out value="${null}"/>
+						 </c:when>
+						<c:otherwise>
+						    <c:out value="${dl.dispSettledBalance}"/>
+						</c:otherwise>
+					  </c:choose>";
+					rec.dispMarginBalance = "<c:choose>
+						 <c:when test="${dl.securityType!= 'CCY'}">
+							<c:out value="${null}"/>
+						 </c:when>
+						<c:otherwise>
+						    <c:out value="${dl.dispMarginBalance}"/>
+						</c:otherwise>
+					  </c:choose>";
+					rec.recMinusPayBalance = "<c:choose>
+						 <c:when test="${dl.securityType!= 'CCY'}">
+							<c:out value="${null}"/>
+						 </c:when>
+						<c:otherwise>
+						    <c:out value="${dl.recMinusPayBalance}"/>
+						</c:otherwise>
+					  </c:choose>";
+					rec.receivableBalance = "<c:choose>
+						 <c:when test="${dl.securityType != 'CCY'}">
+							<c:out value="${null}"/>
+						 </c:when>
+						<c:otherwise>
+						    <c:out value="${dl.receivableBalance}"/>
+						</c:otherwise>
+					  </c:choose>";		
+					rec.dispReceivableBalance = "<c:choose>
+						 <c:when test="${dl.securityType != 'CCY'}">
+							<c:out value="${null}"/>
+						 </c:when>
+						<c:otherwise>
+						    <c:out value="${dl.dispReceivableBalance}"/>
+						</c:otherwise>
+					  </c:choose>";	
+					rec.payableBalance = "<c:choose>
+						 <c:when test="${dl.securityType!= 'CCY'}">
+							<c:out value="${null}"/>
+						 </c:when>
+						<c:otherwise>
+						    <c:out value="${dl.payableBalance}"/>
+						</c:otherwise>
+					  </c:choose>";				  
+					rec.dispPayableBalance = "<c:choose>
+						 <c:when test="${dl.securityType!= 'CCY'}">
+							<c:out value="${null}"/>
+						 </c:when>
+						<c:otherwise>
+						    <c:out value="${dl.dispPayableBalance}"/>
+						</c:otherwise>
+					  </c:choose>";			
+					grid_result_data.push(rec);
+				</c:forEach>
+			</xenos:out>
+		</jsp:body>
+	</jsp:element>	
+</div>
+</jsp:root>

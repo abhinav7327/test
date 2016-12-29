@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Account Summary Implementation for Displaying the account information in brief -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" xmlns:controls="*" width="100%" height="100%">
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			[Bindable]	
+			public var xmlSource:XML = new XML();
+			[Bindable]
+			public var accountNoType:String = "";
+			[Bindable]
+			public var accountNo:String = "";
+			
+			public function set dataProvider(value:XML):void
+			{
+				this.xmlSource = value;
+			}
+			/**
+			 * This method is called when the accInfoColl's source data is changed.
+			 */
+			private function setup():void
+            {
+            	if(accInfoColl!= null && accInfoColl.length!= 0){            		
+	            	accountNoType = accInfoColl.getItemAt(0) != null ? accInfoColl.getItemAt(0).entry.(@key=='accountNoType').value : '';
+	            	accountNo = accInfoColl.getItemAt(0) != null ? accInfoColl.getItemAt(0).entry.(@key=='accountNo').value : '';
+            	}
+            }
+             /**
+			  * This method is used for loading Instrument Details popup module
+			  * 
+			  */  
+			  public function showInstrumentDetail():void{
+			  	var InstPkStr : String = xmlSource.executionScreenData.instrumentPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showInstrumentDetails(InstPkStr, parentApp);
+			  }
+		      /**
+			  * This method is used for loading Fund Code popup module
+			  * 
+			  */  
+			  public function showFundCode():void{
+			  	var fundPkStr : String = xmlSource.executionScreenData.fundPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showFundCodeDetails(fundPkStr,parentApp);
+			  }
+			  /**
+		      * This method is used for loading Account Details popup module
+		      * 
+		      */  
+		      public function showAccountDetail():void{
+				var accPkStr : String = xmlSource.executionScreenData.fundAccountPk;
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showAccountSummary(accPkStr,parentApp);
+		      }
+		]]>
+	</mx:Script>
+	<mx:Script source = "actionscripts/OrderSummary.as"/> 
+	
+	<mx:XMLListCollection id="accInfoColl" source="{xmlSource.otherAttributes.accountXrefDynaBeansWrapper.item}" collectionChange="setup()"/>
+	
+	<mx:VBox width="100%" height="100%" verticalGap="0" horizontalGap="0" >
+        <mx:Grid id="summaryDisp" verticalGap="0" horizontalGap="0" width="100%">
+            <mx:GridRow width="100%">
+                <mx:GridItem width="40%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.fund.code.label.tstar')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="60%">
+                    <mx:Label text="{xmlSource.executionScreenData.fundCode}" click="showFundCode()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <!--
+            <mx:GridRow width="100%">
+                <mx:GridItem width="40%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.fund.accno.label')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="60%">
+                   <mx:Label text="{xmlSource.executionScreenData.fundAccountNo}" click="showAccountDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+                </mx:GridItem>              
+            </mx:GridRow>
+            -->
+            <mx:GridRow width="100%">
+                <mx:GridItem width="40%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.fund.code.name.label')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="60%">
+                    <mx:Label id="lblFundNm" text="{xmlSource.executionScreenData.fundCodeName}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">           
+                <mx:GridItem width="40%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.sec.code.label.tstar')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="60%">
+                    <mx:Label text="{xmlSource.executionScreenData.securityId}" click="showInstrumentDetail()" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+                </mx:GridItem>              
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="40%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.sec.name.label')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="60%">
+                    <mx:Label text="{xmlSource.executionScreenData.officialName}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="40%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.execution.ref.label')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="60%">
+                    <mx:Label text="{xmlSource.executionScreenData.executionReferenceNoVersion}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="40%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.sender.refno.mt515')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="60%">
+                    <mx:Label text="{xmlSource.executionScreenData.senderReferenceNoOfMt515}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="40%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.order.buysellflag.label')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="60%">
+                    <mx:Label text="{xmlSource.executionScreenData.buySellFlagStr}" selectable="true"/>
+                </mx:GridItem>              
+            </mx:GridRow>
+            
+            <mx:GridRow width="100%">
+                <mx:GridItem width="40%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.tradedate.label')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="60%">
+                    <mx:Label text="{xmlSource.executionScreenData.tradeDateStr}" selectable="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="40%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.valuedate.label')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="60%">
+                    <mx:Label text="{xmlSource.executionScreenData.valueDateStr}" selectable="true"/>
+                </mx:GridItem>              
+            </mx:GridRow>
+           
+            <mx:GridRow width="100%">
+				<mx:GridItem width="40%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.order.noofunits.label')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="60%">
+					<mx:Label text="{xmlSource.executionScreenData.numberOfUnitsStr}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			
+			 <mx:GridRow width="100%">
+				<mx:GridItem width="40%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.order.curr.label')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="60%">
+					<mx:Label text="{xmlSource.executionScreenData.ccy}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			
+			 <mx:GridRow width="100%">
+				<mx:GridItem width="40%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.label.executed.amt')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="60%">
+					<mx:Label text="{xmlSource.executionScreenData.principalAmountStr}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow width="100%">
+				<mx:GridItem width="40%" styleName="LabelBgColor">
+					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.execution.label.priceperunit')}" styleName="FormLabelHeading" />
+				</mx:GridItem>
+				<mx:GridItem width="60%">
+					<mx:Label text="{xmlSource.executionScreenData.priceStr}" selectable="true"/>
+				</mx:GridItem>
+			</mx:GridRow>			
+            <mx:GridRow width="100%">
+                <mx:GridItem width="40%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.order.biccode.exeparty.label')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="60%">
+                    <mx:Label text="{xmlSource.executionScreenData.bicCodeOfExecParty}" selectable="true"/>
+                </mx:GridItem>                                              
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="40%" styleName="LabelBgColor">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('oms.order.label.status')}" styleName="FormLabelHeading" />
+                </mx:GridItem>
+                <mx:GridItem width="60%">
+                    <mx:Label text="{xmlSource.executionScreenData.status}" selectable="true"/>
+                </mx:GridItem>                                              
+            </mx:GridRow>           
+        </mx:Grid>	            
+    </mx:VBox> 
+</mx:Module>

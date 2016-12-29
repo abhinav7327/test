@@ -1,0 +1,299 @@
+<!--$Id$-->
+<!--$Author: himanshum $-->
+<!--$Date: 2016-12-28 13:08:37 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+<div class="entryContainer paddingFour">
+          
+    <!-- Java script include -->
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		
+        var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+        	
+	        var context = $xenos$Wizard.$context;
+			var baseUrl = xenos.context.path + context.find('form').attr('action');
+			
+			xenos.loadScript([
+				{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				{path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false},
+				{path: xenos.context.path + '/scripts/ref/instrumentEntry.js', async: false}
+			]);			
+			
+			if("${commandForm.options.actionType}" == "ENTRY"){
+				$("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','block');
+				$("#formActionArea > div > div > .wizPrev > .inputBtnStyle").css('display','block');
+			}
+			
+	        /**
+	         * A common request handler to be used server communication.
+	         */
+	         var xenos$Handler$RequestHandler = xenos$Handler$function({
+	             get: {
+	                 contentType: 'json',
+	                 requestType: xenos$Handler$default.requestType.asynchronous
+	             },  
+	             settings: {
+	                 beforeSend: function(request) {
+	                     request.setRequestHeader('Accept', 'application/json');
+	                 },
+	                 type: 'POST'
+	             }
+	         });
+        
+	         var validateHook = function() {
+			 
+	            var validationMessages = [];
+				
+				formatQuantity($('#conversionBaseQty'),15,3,validationMessages,$('#conversionBaseQty').parent().parent().find('label').text());
+				
+				formatQuantity($('#conversionAllotedQty'),15,3,validationMessages,$('#conversionAllotedQty').parent().parent().find('label').text());
+				
+				if (($("#conversionStartDateStr").val() != "" <![CDATA[&&]]> $("#conversionStartDateStr").val() != null <![CDATA[&&]]> $("#conversionStartDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#conversionStartDateStr").val())==false){
+					validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.warrent.conversion_startdate_error));
+				}
+				
+				if (($("#conversionEndDateStr").val() != "" <![CDATA[&&]]> $("#conversionEndDateStr").val() != null <![CDATA[&&]]> $("#conversionEndDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#conversionEndDateStr").val())==false){
+					validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.warrent.conversion_enddate_error));
+				}
+				
+				if (($("#conversionStartDateStr").val() != "" <![CDATA[&&]]> $("#conversionStartDateStr").val() != null <![CDATA[&&]]> $("#conversionStartDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#conversionStartDateStr").val())==true){
+					if (($("#conversionEndDateStr").val() != "" <![CDATA[&&]]> $("#conversionEndDateStr").val() != null <![CDATA[&&]]> $("#conversionEndDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#conversionEndDateStr").val())==true){
+						if ($("#conversionStartDateStr").val() > $("#conversionEndDateStr").val()){
+							validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.warrent.conversion_datecompare_error));
+						}
+					}
+				}
+				
+				formatAmount($('#conversionPriceStr'), 12, 3, validationMessages,$('#conversionPriceStr').parent().parent().find('label').text());
+				
+				formatRate($('#conversionForexRateStr'),9,7,validationMessages,$('#conversionForexRateStr').parent().parent().find('label').text());
+			
+				if ( validationMessages.length >0){    
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+					return false;
+				} else {
+					$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+				}  
+				return true;
+				
+	         };
+	        
+	         var unloadHook = function(){
+	        	$xenos$Wizard.deregister('next',validateHook);
+				$xenos$Wizard.deregister('previous',validateHook);
+				$xenos$Wizard.deregister('submit',validateHook);
+				$xenos$Wizard.deregister('unload',unloadHook);
+				
+	        };
+        
+        
+	        $xenos$Wizard.register('next',validateHook);
+			$xenos$Wizard.register('previous',validateHook);
+	        $xenos$Wizard.register('submit',validateHook);
+	        $xenos$Wizard.register('unload',unloadHook);
+        
+        };
+        
+        </jsp:body>
+    </jsp:element>
+    
+		
+	<c:if test = "${(commandForm.parentInstType == 'EQ') and (commandForm.instrumentPage.instrumentType == 'WR')}">
+		<h1><spring:message code="ref.insturment.entry.label.titleWizard" htmlEscape="false"/> <spring:message code="ref.insturment.entry.label.warrantWizard" htmlEscape="false"/></h1>
+    </c:if>
+	
+	<c:if test = "${commandForm.parentInstType == 'FI'}">
+		<h1><spring:message code="ref.label.instrument.cbinfodetails" htmlEscape="false"/></h1>
+    </c:if>
+	 
+	 <c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	<c:if test="${isSoftValidationExists =='true'}">
+	<!-- Warning message Area -->
+		<ul class="xenosWarn">
+			<c:forEach items="${softValidationList}" var="dl">		
+				<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	 
+     <div class="detailBlock paddingFour">
+         <table class="tableStyle sixCol moreTable">
+            <tr class="noBdr">
+                <td><form:label path="commandForm.defaultInstrumentCode"><spring:message code="ref.insturment.entry.label.othertab.securitycode" htmlEscape="false"/></form:label></td>
+                <td><span class="detailTxtVal">${commandForm.defaultInstrumentCode}</span></td>
+                <td><form:label path="commandForm.instrumentPage.instrumentType"><spring:message code="ref.insturment.entry.label.othertab.instrumenttype" htmlEscape="false"/></form:label></td>
+                <td><span class="detailTxtVal">${commandForm.instrumentPage.instrumentType}</span></td>
+                <td><form:label path="commandForm.defaultShortName"><spring:message code="ref.insturment.entry.label.othertab.shortname" htmlEscape="false"/></form:label></td>
+                <td><span class="detailTxtVal">${commandForm.defaultShortName}</span></td>
+            </tr>      
+         </table>
+     </div>
+	 
+	  <!-- General Information **START -->
+	 
+	  <div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.warranttab.generalinfo" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="spanInstrumentWarrantId"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	  </div>
+     
+     <div class="entryBlkArea ">
+     <div class="formItemBlock dottedBg">   
+        
+        <div class="formItem">
+            <form:label path="commandForm.instrumentPage.linkType"><spring:message code="ref.insturment.entry.label.warranttab.linkedtype" htmlEscape="false"/></form:label> 
+            <span>
+            <form:select id="linkType" path="commandForm.instrumentPage.linkType" class="dropdown">
+				 <form:option value="" />
+                 <form:options items="${commandForm.instrumentPage.linkTypeValues}"  />
+            </form:select>
+            </span>
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+        
+        <div class="formItem">
+            <form:label path="commandForm.instrumentPage.subscriptionCode"><spring:message code="ref.insturment.entry.label.warranttab.subscriptioncode" htmlEscape="false"/></form:label>
+            <span><form:input id="subscriptionCode" value="" path="commandForm.instrumentPage.subscriptionCode"  class="textBox  "/></span>
+            <div class="popupBtn">
+                <input type="button" class="popupBtnIco" tgt="subscriptionCode" popType="security" value="" />
+            </div>            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+        
+        <div class="formItem">
+            <form:label path="commandForm.instrumentPage.conversionBaseQty"><spring:message code="ref.insturment.entry.label.warranttab.conversionbaseqty" htmlEscape="false"/></form:label>
+            <span><form:input id="conversionBaseQty" value="" path="commandForm.instrumentPage.conversionBaseQty"  class="txtNormal  " onchange="return formatQuantity($('#conversionBaseQty'),15,3,null,$('#conversionBaseQty').parent().parent().find('label').text())"/></span>            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+        
+        <div class="formItem">
+            <form:label path="commandForm.instrumentPage.conversionAllotedQty"><spring:message code="ref.insturment.entry.label.warranttab.conversionallottedqty" htmlEscape="false"/></form:label>
+            <span><form:input id="conversionAllotedQty" value="" path="commandForm.instrumentPage.conversionAllotedQty"   class="txtNormal  " onchange="return formatQuantity($('#conversionAllotedQty'),15,3,null,$('#conversionAllotedQty').parent().parent().find('label').text())"/></span>            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+        
+        <div class="formItem">
+            <form:label path="commandForm.instrumentPage.convertible"><spring:message code="ref.insturment.entry.label.warranttab.convertibleflag" htmlEscape="false"/></form:label> 
+            <span>
+            <form:select id="convertible" path="commandForm.instrumentPage.convertible" class="dropdown  ">
+                <form:options items="${commandForm.instrumentPage.convertibleFlagValues}" itemLabel="label" itemValue="value"/>
+            </form:select  >
+            </span>            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+        
+        <div class="formItem">
+            <form:label path="commandForm.instrumentPage.contingent"><spring:message code="ref.insturment.entry.label.warranttab.continget" htmlEscape="false"/></form:label> 
+            <span>
+            <form:select id="contingent" path="commandForm.instrumentPage.contingent" class="dropdown  ">
+				<form:option value="" />
+                <form:options items="${commandForm.instrumentPage.contingentValues}" itemLabel="label" itemValue="value"/>
+            </form:select  >
+            </span>            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+        
+        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+     </div>
+     <!-- General Information **END -->
+     
+    <!-- CB/Warrant Details **START -->
+	<div class="moreHandle">
+		
+		<c:if test = "${(commandForm.parentInstType == 'EQ') and (commandForm.instrumentPage.instrumentType == 'WR')}">
+			<h1 class="msgHead"><spring:message code="ref.instrument.label.warrant" htmlEscape="false"/>
+				<div class="handleBlock">
+					<span class="handler collapse" id="spanInstrumentWarrantId"><spring:message text="" htmlEscape="false"/></span>
+				</div>
+			</h1>
+		</c:if>
+		
+		<c:if test = "${commandForm.parentInstType == 'FI'}">
+			<h1 class="msgHead"><spring:message code="ref.instrument.label.cb" htmlEscape="false"/>
+				<div class="handleBlock">
+					<span class="handler collapse" id="spanInstrumentCbId"><spring:message text="" htmlEscape="false"/></span>
+				</div>
+			</h1>
+		</c:if>
+		
+	</div>
+	 
+     <div class="entryBlkArea ">
+     <div class="formItemBlock dottedBg">    
+         <div class="formItem">
+            <form:label path="commandForm.instrumentPage.conversionStartDateStr"><spring:message code="ref.insturment.entry.label.warranttab.conversionstartdate" htmlEscape="false"/></form:label>
+            <span><form:input id="conversionStartDateStr" value="" path="commandForm.instrumentPage.conversionStartDateStr"  class="dateinput  " onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+        
+        <div class="formItem">
+            <form:label path="commandForm.instrumentPage.conversionEndDateStr"><spring:message code="ref.insturment.entry.label.warranttab.conversionenddate" htmlEscape="false"/></form:label>
+            <span><form:input id="conversionEndDateStr" value="" path="commandForm.instrumentPage.conversionEndDateStr"  class="dateinput  " onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+     
+        <div class="formItem">
+            <form:label path="commandForm.instrumentPage.conversionPriceStr"><spring:message code="ref.insturment.entry.label.warranttab.conversionprice" htmlEscape="false"/></form:label>
+            <span><form:input id="conversionPriceStr" value="" path="commandForm.instrumentPage.conversionPriceStr"  class="txtNormal  " onchange="return formatAmount($('#conversionPriceStr'), 12, 3, null,$('#conversionPriceStr').parent().parent().find('label').text())"/></span>            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+        
+		
+		
+        <div class="formItem">
+            <form:label path="commandForm.instrumentPage.conversionPriceCcy"><spring:message code="ref.insturment.entry.label.warranttab.conversionpriceccy" htmlEscape="false"/></form:label>
+            <span><form:input id="conversionPriceCcy" value="" path="commandForm.instrumentPage.conversionPriceCcy"  class="textBox  "/></span>
+            <div class="popupBtn">
+                <input type="button" class="popupBtnIco" tgt="conversionPriceCcy" popType="currency" value="" />
+            </div>            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+        
+        <div class="formItem">
+            <form:label path="commandForm.instrumentPage.conversionForexRateStr"><spring:message code="ref.insturment.entry.label.warranttab.conversionforexrate" htmlEscape="false"/></form:label>
+            <span><form:input id="conversionForexRateStr" value="" path="commandForm.instrumentPage.conversionForexRateStr"   class="txtNormal  " onblur="formatRate($('#conversionForexRateStr'),9,7,null,$('#conversionForexRateStr').parent().parent().find('label').text());"/></span>            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+        
+		
+        <div class="formItem">
+            <form:label path="commandForm.instrumentPage.warrantDetachType"><spring:message code="ref.insturment.entry.label.warranttab.detachtype" htmlEscape="false"/></form:label> 
+            <span>
+            <form:select id="warrantDetachType" path="commandForm.instrumentPage.warrantDetachType" class="dropdown  ">
+				<form:option value="" />
+                <form:options items="${commandForm.instrumentPage.warrantDetachTypeValues}" itemLabel="label" itemValue="value"/>
+            </form:select  >
+            </span>            
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+        
+         <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+     </div>  
+     </div>
+     <!-- CB/Warrant Details **END -->
+
+     
+</div> 
+</jsp:root>

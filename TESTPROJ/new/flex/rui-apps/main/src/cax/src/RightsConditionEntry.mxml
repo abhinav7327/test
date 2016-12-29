@@ -1,0 +1,678 @@
+<?xml version="1.0" encoding="utf-8"?>
+<containers:XenosEntryModule xmlns:mx="http://www.adobe.com/2006/mxml" 
+    xmlns:containers="com.nri.rui.core.containers.*" 
+    xmlns:flexlib="http://code.google.com/p/flexlib/" 
+    xmlns:cntrls="com.nri.rui.core.controls.*" 
+    xmlns:controls="*" 
+    xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+    xmlns:valdtrs="com.nri.rui.core.validators.*"
+    xmlns:frmtrs="com.nri.rui.core.formatters.*"
+    layout="vertical" 
+    percentWidth="100" 
+    percentHeight ="100" 
+    horizontalScrollPolicy="off" 
+    verticalScrollPolicy="off">
+    
+    <mx:Script>
+        <![CDATA[
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.Globals;
+            import mx.resources.ResourceBundle;
+            
+             /**
+              * Method to fire HttpService On change of Event Handler.
+              */            
+            private function onChangeEventTypeHandler():void {
+                var reqObj : Object = new Object();
+                reqObj['subEventType'] = (this.subEventTypeEntry.selectedItem != null? this.subEventTypeEntry.selectedItem.value : "");                             
+                changeEventType.request = reqObj;
+                if(this.mode == "entry")
+                	changeEventType.url="cax/rightsEventEntryConditionDispatch.action?method=onChangeEventType";
+                else if(this.mode == "amend")
+                	changeEventType.url="cax/RightsConditionDetailsAmendViewDispatch.action?method=onChangeEventType";
+                	
+                changeEventType.send();             
+            
+            }   
+            
+             /**
+              * Method to fire HttpService of Submit Entry only if
+              * event type is not blank.
+              */            
+            private function validateSubmit():void {
+                if(XenosStringUtils.equals(eventType,"")) {
+                    XenosAlert.error("Please Select Event Type! ");
+                } else {
+                    if(this.mode == 'entry') {
+                        this.dispatchEvent(new Event('entrySave'));
+                    } else {
+                        this.dispatchEvent(new Event('amendEntrySave'));
+                    }
+                }               
+            }
+            /**
+            * Validates the Tax rate
+            */ 
+            public function numberHandlerForTaxRate(event:FocusEvent):void{
+                var targetObj:TextInput = TextInput(event.currentTarget);
+                numVal2.source = targetObj;
+                numVal2.handleNumericField(numberFormatter);    
+            } 
+            
+                            
+        ]]>
+    </mx:Script>
+ 
+    <mx:Script source="actionscripts/RightsCondition.as"/>
+    <mx:Script source="actionscripts/RightConditionEntryTaxFeeInfo.as"/>
+    
+    <frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+    <valdtrs:XenosNumberValidator id="numVal2" requiredFieldError=""
+         invalidCharError="Please enter a valid value" 
+         exceedsMaxError="8 digits are allowed before decimal point" 
+         separationError="" property="text" 
+         allowNegative="false" domain="real" negativeError="Value cannot be negative"
+         lowerThanMinError="" maxValue="99999999" minValue="" 
+         invalidFormatCharsError="Please enter a valid value" 
+         precision="10" precisionError="10 digits are allowed after decimal point" />    
+     
+    <cntrls:XenosHTTPService id="addTaxFeeService"
+         showBusyCursor="true"
+         method="POST" 
+         result="taxAddResult(event)"
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' ' + event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="updateTaxFeeService"
+         showBusyCursor="true"
+         method="POST" 
+         result="saveEditedTaxFeeResult(event)"
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' ' + event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>  
+    <cntrls:XenosHTTPService id="editTaxFeeService"
+         showBusyCursor="true"
+         method="POST" 
+         result="showEditTaxFeeResult(event)"
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' ' + event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>      
+    <cntrls:XenosHTTPService id="cancelEditedTaxFeeService"
+         showBusyCursor="true"
+         method="POST" 
+         result="cancelEditedTaxFeeResult(event)"
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' '+ event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>      
+    <cntrls:XenosHTTPService id="removeTaxFeeService"
+         showBusyCursor="true"
+         method="POST" 
+         result="taxAddResult(event)"
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' ' + event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>   
+     
+    <containers:states>
+        <mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="entryState">
+            <mx:SetProperty target="{qry}" name="width" value="100%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="0%"/>
+        </mx:State>
+        
+        <mx:State name="cashDividend">                
+            <!-- PART 1 :: rcCashDividendPart1 -->
+            <mx:AddChild relativeTo="{part1end}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcCashDividendEntry1  id="cash1" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild> 
+                                     
+       </mx:State>    
+       <mx:State name="cashDividendConf">  
+            <!-- PART 1 :: rcCashDividendPart1 -->           
+            <mx:AddChild relativeTo="{confPart}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcCashDividendEntry1  id="cash2" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>        
+       </mx:State>
+       
+        <mx:State name="stockDividend">                
+            <!-- PART 1 :: rcStockDividend -->
+            <mx:AddChild relativeTo="{part1end}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcStockDividendEntry  id="stock1" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>  
+        </mx:State>            
+        <mx:State name="stockDividendConf">                
+            <!-- PART 1 :: rcStockDividendConf -->
+            <mx:AddChild relativeTo="{confPart}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcStockDividendEntry  id="stock2" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>                                      
+       </mx:State>   
+       
+        <mx:State name="capRedRevSplStSplShareEx">                
+            <!-- PART 1 :: rcStockDividend -->
+            <mx:AddChild relativeTo="{part1end}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcAssCapRvsplShaexStosplEntry  id="someEventsCommon1" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>  
+        </mx:State>            
+        <mx:State name="capRedRevSplStSplShareExConf">                
+            <!-- PART 1 :: rcStockDividendConf -->
+            <mx:AddChild relativeTo="{confPart}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcAssCapRvsplShaexStosplEntry  id="someEventsCommon2" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>                                      
+       </mx:State>   
+       
+        <mx:State name="cashStockOption">                           
+            <mx:AddChild relativeTo="{part1end}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcCashStockOptionEntry  id="cashStockOption1" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>  
+        </mx:State>            
+        <mx:State name="cashStockOptionConf">                
+            <mx:AddChild relativeTo="{confPart}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcCashStockOptionEntry id="cashStockOption2" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>                                      
+       </mx:State>   
+       
+        <mx:State name="couponPayment">                         
+            <mx:AddChild relativeTo="{part1end}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcCouponPaymentEntry  id="couponPayment1" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>  
+        </mx:State>            
+        <mx:State name="couponPaymentConf">                
+            <mx:AddChild relativeTo="{confPart}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcCouponPaymentEntry  id="couponPayment2" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>                                      
+       </mx:State> 
+       
+        <mx:State name="rightsAllocationExpiry">                            
+            <mx:AddChild relativeTo="{part1end}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcRightsAllocationExpiryEntry  id="rtAllocationExpiry1" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>
+            <mx:AddChild relativeTo="{part3end}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcRightsAllocationExpiryEntryEnd  id="rtAllocationExpiryEnd1" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+        	</mx:AddChild>  
+        </mx:State>            
+        <mx:State name="rightsAllocationExpiryConf">                
+            <mx:AddChild relativeTo="{confPart}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcRightsAllocationExpiryEntry  id="rtAllocationExpiry2" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>
+            <mx:AddChild relativeTo="{confPart2}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcRightsAllocationExpiryEntryEnd  id="rtAllocationExpiryEnd2" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+        	</mx:AddChild>                                      
+       </mx:State>
+       
+        <mx:State name="redemptionBond">                            
+            <mx:AddChild relativeTo="{part1end}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcRedemptionBondEntry  id="redemptionBond1" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>  
+        </mx:State>            
+        <mx:State name="redemptionBondConf">                
+            <mx:AddChild relativeTo="{confPart}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcRedemptionBondEntry  id="redemptionBond2" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>                                      
+       </mx:State>     
+       
+        <mx:State name="others">                            
+            <mx:AddChild relativeTo="{part1end}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcOthersEntry  id="others1" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>  
+        </mx:State>            
+        <mx:State name="othersConf">                
+            <mx:AddChild relativeTo="{confPart}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcOthersEntry  id="others2" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>                                      
+       </mx:State>                                       
+           
+        <mx:State name="stockMerger">                           
+            <mx:AddChild relativeTo="{part1end}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcStockMergerEntry1  id="stockMerger1" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>  
+            <mx:AddChild relativeTo="{part3end}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcStockMergerEntry2  id="stockMerger2" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>             
+        </mx:State>  
+        <mx:State name="stockMergerConf">                           
+            <mx:AddChild relativeTo="{confPart}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcStockMergerEntryConf1  id="stockMergerCnf1" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild> 
+            <mx:AddChild relativeTo="{confPart2}" position="after">
+                <mx:target>                 
+                    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" >
+                        <controls:rcStockMergerEntryConf2  id="stockMergerCnf2" width="100%" height="100%"/>
+                    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>              
+                       
+        </mx:State>                   
+           
+    </containers:states>
+    
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions>      
+    
+    
+    <cntrls:XenosHTTPService id="changeEventType" 
+        result="changeStateResultHandler(event)" 
+        showBusyCursor="true"
+        fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' ' + event.fault.faultString)"
+        useProxy="false" 
+        resultFormat="e4x">        
+    </cntrls:XenosHTTPService> 
+    
+   
+    <mx:VBox width="100%" height="100%">
+    <mx:ViewStack id="vstack" width="100%" height="100%" creationComplete="loadAll()" creationPolicy="all" >
+    <!--<mx:HBox id="hdbox1" width="100%" height="100%" styleName="Padding4" creationComplete="loadAll()"  >-->
+    <!--<containers:CollapsibleHDividedBox id="hdbox1" width="100%" height="100%" x="0" y="0" creationComplete="initPageStart()" paddingBottom="6" paddingLeft="6" paddingRight="6" paddingTop="6" >-->
+                
+        
+        <mx:VBox label="Entry Criteria" width="100%" height="100%" id="qry" borderThickness="0">
+            <mx:Label id="initLabel" text="CA Event Entry" fontWeight="bold"/>
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+        
+            <!--<flexlib:WindowShade id="ws1" tabChildren="{ws1.opened=false}" styleName="linkButtonWindowShade" label="Optional Fields - Group 1" width="100%">-->
+            
+            
+                <mx:Grid id="part1end" width="100%" borderThickness="0" >
+                    <mx:GridRow width="100%">
+                        <mx:GridItem  width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.eventtype')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0" >
+                             <mx:HBox>
+                                <mx:ComboBox id="subEventTypeEntry" labelField="label" prompt="Select" change="onChangeEventTypeHandler()"/>
+                                <mx:Label id="subEventTypeLblforAmend" text="" />
+                             </mx:HBox>   
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0" >
+                            <mx:Label id="conditionStatusLbl" visible="false" includeInLayout="false" text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.eventtypestatus')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0" >
+                           <mx:ComboBox id="conditionStatusEntry" visible="false" includeInLayout="false" labelField="label" prompt="Select" />
+                        </mx:GridItem>                         
+                    </mx:GridRow>   
+                    <mx:GridRow width="100%" id="ConditionRefNoId" visible="false" includeInLayout="false">
+                        <mx:GridItem  width="20%" borderThickness="0" >
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.rightsconditionrefno')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0" >
+                             <mx:Label id ="conditionReferenceNo" text="" selectable="true"/>   
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0" >
+                                
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0" >
+                           
+                        </mx:GridItem>                         
+                    </mx:GridRow>                    
+                  </mx:Grid>
+                    
+                    <!-- PART 1 Should be here -->
+                    
+                    <mx:Grid id="part3end" width="100%" visible="false" includeInLayout="false" borderThickness="0">
+                        <mx:GridRow width="100%">
+                            <mx:GridItem width="20%"  borderThickness="0">
+                                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.processingfrequency')}" styleName="ReqdLabel" />
+                            </mx:GridItem>
+                            <mx:GridItem width="30%"  borderThickness="0">
+                                 <mx:ComboBox id="processingFrequency" labelField="label" prompt="Select" change="onChangeProcessingFrequency()"/>
+                            </mx:GridItem>
+                            
+                            <mx:GridItem width="20%"  borderThickness="0" id ="processstartlbl">
+                                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.processstartdate')}" styleName="ReqdLabel" />
+                            </mx:GridItem>
+                            <mx:GridItem width="30%"  borderThickness="0" id ="processstart">
+                                <mx:DateField id="processStartDateStr"  formatString="YYYYMMDD" editable="true" width="90"/>
+                            </mx:GridItem>
+                        </mx:GridRow>
+                        
+                        <mx:GridRow width="100%" id ="processfreq">
+                            <mx:GridItem width="20%"  borderThickness="0">
+                                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.processenddate')}" styleName="ReqdLabel" />
+                            </mx:GridItem>
+                            <mx:GridItem width="30%"  borderThickness="0">
+                               <mx:DateField id="processEndDateStr"  formatString="YYYYMMDD" editable="true" width="90"/>
+                            </mx:GridItem>
+                            
+                            <mx:GridItem width="20%"  borderThickness="0">
+                                <mx:Label text=""  />
+                            </mx:GridItem>
+                            <mx:GridItem width="30%" borderThickness="0">
+                                <mx:Label text=""/>
+                            </mx:GridItem>
+                        </mx:GridRow>                    
+                    
+                    
+                    
+                        <mx:GridRow width="100%">
+                            <mx:GridItem width="20%"  borderThickness="0">
+                                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.extrefno')}" />
+                            </mx:GridItem>
+                            <mx:GridItem width="30%"  borderThickness="0">
+                               <mx:TextInput id="externalReferenceNo" text="" restrict="{Globals.INPUT_PATTERN}"/>   
+                            </mx:GridItem>                          
+                            <mx:GridItem width="20%"  borderThickness="0">
+                                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.corporateactiondescription')}" />
+                            </mx:GridItem>
+                            <mx:GridItem width="30%" borderThickness="0">
+                               <mx:TextInput id="description" text=""/>  
+                            </mx:GridItem>
+                        </mx:GridRow>                   
+                        <mx:GridRow width="100%">
+                            <mx:GridItem  width="20%" borderThickness="0">
+                                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.remarks')}" />
+                            </mx:GridItem>
+                            <mx:GridItem width="30%" borderThickness="0">
+                                 <mx:TextInput id="remarks" text=""/>   
+                            </mx:GridItem> 
+                            <mx:GridItem width="20%" borderThickness="0">                               
+                            </mx:GridItem>
+                            <mx:GridItem width="30%" borderThickness="0">                              
+                            </mx:GridItem>                         
+                        </mx:GridRow>                       
+                  </mx:Grid> 
+                  
+    <mx:Grid width="100%" borderThickness="0" id="taxFeeBlock" visible="false" includeInLayout="false"> 
+        <mx:GridRow width="100%" >
+            <mx:GridItem  width="100%" borderThickness="0" colSpan="4">
+                <mx:HBox width="100%" styleName="ButtonBackPanel">                                 
+                    <mx:Label  text="Tax Entry" fontWeight="bold"/>
+                </mx:HBox>
+            </mx:GridItem>                         
+        </mx:GridRow>           
+        <mx:GridRow width="100%" >
+            <mx:GridItem width="13%" borderThickness="0"> 
+                <mx:Label  text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.taxfeeid')}" styleName="ReqdLabel" />
+            </mx:GridItem>              
+            <mx:GridItem width="37%"  borderThickness="0">  
+                 <mx:ComboBox id="taxFeeId" labelField="label" prompt="Select"/>                 
+            </mx:GridItem>
+            <mx:GridItem width="13%" borderThickness="0"  >
+                <mx:Label  text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.rate')}" styleName="ReqdLabel"/>
+            </mx:GridItem>
+            <mx:GridItem width="37%" borderThickness="0">
+                 <mx:TextInput id="rate" text=""  focusOut="numberHandlerForTaxRate(event)" />                
+            </mx:GridItem>
+        </mx:GridRow>   
+    
+    
+        <mx:GridRow width="100%">
+            <mx:GridItem width="13%" borderThickness="0"  >
+                <mx:Label  text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.ratetype')}" styleName="ReqdLabel"/>
+            </mx:GridItem>
+            <mx:GridItem width="37%" borderThickness="0">
+                  <mx:ComboBox id="rateType" labelField="label" prompt="Select"/>                    
+            </mx:GridItem>
+            <mx:GridItem width="13%" borderThickness="0" >
+                
+            </mx:GridItem>
+            <mx:GridItem width="37%" borderThickness="0">                            
+            </mx:GridItem>                        
+        </mx:GridRow>
+        <mx:GridRow width="100%" id="taxFeeButton">
+            <mx:GridItem  width="100%" borderThickness="0" colSpan="4">
+                <mx:HBox width="100%" styleName="ButtonBackPanel">                                 
+                    <mx:Button label="Add" id="addTaxFeeBtn" styleName="BtnStyle" click="addTaxFeeInfo()"/>
+                    <mx:Button id="saveBtn" styleName="BtnStyle" label="Save" click="saveTaxFeeInfo()" visible="false" includeInLayout="false"/>
+                    <mx:Button id="cancelBtn" styleName="BtnStyle" label="Cancel" click="cancelTaxFeeInfo()" visible="false" includeInLayout="false"/>                                         
+                </mx:HBox>
+            </mx:GridItem>                         
+        </mx:GridRow>   
+   </mx:Grid>
+    
+    <mx:DataGrid id="taxFeeEntrySummary" dataProvider="{addedTaxFeeSummaryResult}" width="100%" height="40%" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="on" visible="false" includeInLayout="false" rowCount="3"> 
+        <mx:columns>
+            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.taxfeeid')}"  width="120" dataField="taxFeeId" />
+            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.entitlement.label.taxRate')}" width="120" dataField="chargeRate" />
+            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.entitlement.label.rateType')}"   width="120" dataField="rateType" />
+            
+            <mx:DataGridColumn headerText="" width="150" textAlign="center">            
+                <mx:itemRenderer>
+                    <mx:Component>
+                        <mx:HBox>                                           
+                             <mx:Button id="editTax"  styleName="BtnStyle" label="Edit" enabled ="{outerDocument.dataVisible == true?true:false}" click="outerDocument.editTaxFeeInfo(data)"/>
+                             <mx:Button id="deleteTax"  styleName="BtnStyle" label="Delete" enabled ="{outerDocument.dataVisible == true?true:false}" click="outerDocument.removeTaxFeeInfo(data)"/>                                            
+                        </mx:HBox>
+                    </mx:Component>                 
+                </mx:itemRenderer>
+            </mx:DataGridColumn>
+       </mx:columns>
+    </mx:DataGrid>  
+                  
+                  
+                  <!-- PART 3 Should be here -->                 
+            <mx:HBox width="100%" styleName="ButtonBackPanel" id="Btn1">
+                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle"  click="validateSubmit()"/>
+                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" id="reset" styleName="BtnStyle" click ="{this.mode == 'entry' ?  this.dispatchEvent(new Event('entryReset')) : this.dispatchEvent(new Event('amendEntryReset'))}"/>                           
+            </mx:HBox>
+    
+        </mx:VBox>
+        
+        <mx:VBox width="100%" height="100%" id="rslt" styleName="HDivideStyle" verticalGap="0" horizontalGap="0">
+        <cntrls:XenosErrors id="errConf" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" visible="true" includeInLayout="true"/>                    
+         <mx:HBox id="uConfLabel" styleName="ButtonBackPanel" width="100%" height="32" verticalAlign="middle" includeInLayout="false" visible="false">
+            <mx:Image id="uConfImg" source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+            <mx:Label id="usrCnfMessage" textAlign="left" fontWeight="bold" text="{this.parentApplication.xResourceManager.getKeyValue('cax.confirm.cancel')}" width="100%" selectable="true"/>            
+        </mx:HBox>
+        <mx:HBox id="sConfLabel" styleName="ButtonBackPanel" width="100%" height="32" verticalAlign="middle" includeInLayout="false" visible="false">
+                <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>            
+                <mx:Label id="txnMessage" textAlign="left" fontWeight="bold" text="{this.parentApplication.xResourceManager.getKeyValue('cax.transaction.reference.no')}{referenceNo}." selectable="true"/>                  
+        </mx:HBox>                                                      
+                <mx:Grid id="confPart" verticalGap="0" horizontalGap="0" width="100%"  >
+                    <mx:GridRow width="100%">
+                        <mx:GridItem  width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.eventtype')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" >
+                              <mx:Label id="subEventTypeConf"  text=""/>
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label   text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.eventtypestatus')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" >
+                          <mx:Label id="conditionStatusConf"  text=""/>
+                        </mx:GridItem>                         
+                    </mx:GridRow>   
+                    <mx:GridRow width="100%" id="ConditionRefNoConfId" visible="false" includeInLayout="false" >
+                        <mx:GridItem  width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.rightsconditionrefno')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%"  >
+                             <mx:Label id ="conditionReferenceNoConf" text="" selectable="true"/>   
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%"  styleName="LabelBgColor">
+                            
+                        </mx:GridItem>
+                        <mx:GridItem width="30%"  >
+                           
+                        </mx:GridItem>                         
+                    </mx:GridRow>                    
+                    
+                  </mx:Grid>
+                    
+                    <!-- PART 1 Should be here -->
+                    
+                    <mx:Grid id="confPart2" verticalGap="0" horizontalGap="0" width="100%" >
+                        <mx:GridRow width="100%">
+                            <mx:GridItem width="20%"  styleName="LabelBgColor">
+                                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.processingfrequency')}" styleName="FormLabelHeading" />
+                            </mx:GridItem>
+                            <mx:GridItem width="30%"  >
+                                 <mx:Label id="processingFrequencyConf"  text=""/>
+                            </mx:GridItem>
+                            
+                            <mx:GridItem width="20%"  styleName="LabelBgColor">
+                                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.processstartdate')}" styleName="FormLabelHeading" />
+                            </mx:GridItem>
+                            <mx:GridItem width="30%"  >
+                                <mx:Label id="processStartDateConf"  text=""/>
+                            </mx:GridItem>
+                        </mx:GridRow>
+                        
+                        <mx:GridRow width="100%" >
+                            <mx:GridItem width="20%"  styleName="LabelBgColor">
+                                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.processenddate')}" styleName="FormLabelHeading" />
+                            </mx:GridItem>
+                            <mx:GridItem width="30%"  >
+                               <mx:Label id="processEndDateConf"  text=""/>
+                            </mx:GridItem>
+                            
+                            <mx:GridItem width="20%" styleName="LabelBgColor" >
+                                <mx:Label text=""  />
+                            </mx:GridItem>
+                            <mx:GridItem width="30%" >
+                                <mx:Label text=""/>
+                            </mx:GridItem>
+                        </mx:GridRow>
+                   
+                    
+                     <!-- PART 2 Should be here -->
+                    
+
+                        <mx:GridRow width="100%">
+                            <mx:GridItem width="20%"  styleName="LabelBgColor">
+                                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.extrefno')}" styleName="FormLabelHeading"/>
+                            </mx:GridItem>
+                            <mx:GridItem width="30%"  >
+                              <mx:Label id="extReferenceNoConf"  text=""/>
+                            </mx:GridItem>                          
+                            <mx:GridItem width="20%"  styleName="LabelBgColor">
+                                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.corporateactiondescription')}" styleName="FormLabelHeading" />
+                            </mx:GridItem>
+                            <mx:GridItem width="30%" >
+                               <mx:TextArea id="descriptionConf" wordWrap="true" text="" width="100%" borderStyle="none" backgroundAlpha="0" editable="false" selectable="true"/>                                                          
+                            </mx:GridItem>
+                        </mx:GridRow>                   
+                        <mx:GridRow width="100%">
+                            <mx:GridItem  width="20%" styleName="LabelBgColor">
+                                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.remarks')}" styleName="FormLabelHeading"/>
+                            </mx:GridItem>
+                            <mx:GridItem width="30%" >
+                                 <mx:TextArea id="remarksConf" wordWrap="true" text="" width="100%" borderStyle="none" backgroundAlpha="0" editable="false" selectable="true"/>                         
+                            </mx:GridItem> 
+                            <mx:GridItem width="20%" styleName="LabelBgColor">                              
+                            </mx:GridItem>
+                            <mx:GridItem width="30%" >                             
+                            </mx:GridItem>                         
+                    </mx:GridRow>   
+                  </mx:Grid>
+                            
+                    <mx:DataGrid id="taxFeeEntrySummaryConf" dataProvider="{taxFeeSummaryConfResult}" width="100%" height="100%" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="on" visible="false" includeInLayout="false" rowCount="3"> 
+                        <mx:columns>
+                            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightsdetail.label.taxfeeid')}"  width="200" dataField="taxFeeId" />
+                            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.entitlement.label.taxRate')}"  width="220" dataField="chargeRate" />
+                            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.entitlement.label.rateType')}" width="150" dataField="rateType" />
+                       </mx:columns>
+                    </mx:DataGrid>   
+                                             
+
+            <mx:HBox width="100%" styleName="ButtonBackPanel" paddingTop="5" paddingBottom="5">
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="back" styleName="BtnStyle" click="doBack()"/>
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uConfSubmit" styleName="BtnStyle" click="{this.mode == 'entry' ?  this.dispatchEvent(new Event('entryConf')) :  this.dispatchEvent(new Event('amendEntryConf'))}" /> 
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="cancelSubmit" styleName="BtnStyle" click=" {this.dispatchEvent(new Event('cancelEntrySave'))}" includeInLayout="false" visible="false"/> 
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uCancelConfSubmit" styleName="BtnStyle" click="{this.dispatchEvent(new Event('cancelEntryConf'))}" includeInLayout="false" visible="false"/>  
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.sysconfirm')}" id="sConfSubmit" styleName="BtnStyle" click="{this.mode == 'entry' ?  this.dispatchEvent(new Event('entrySysConf')) : ( mode == 'amend' ? this.dispatchEvent(new Event('amendEntrySysConf')): this.dispatchEvent(new Event('cancelEntrySysConf')))}" includeInLayout="false" visible="false"/>               
+            </mx:HBox>
+
+
+        </mx:VBox>      
+        
+    </mx:ViewStack>
+    </mx:VBox>
+    
+   
+</containers:XenosEntryModule>

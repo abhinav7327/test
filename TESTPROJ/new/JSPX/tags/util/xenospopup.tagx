@@ -1,0 +1,109 @@
+<jsp:root xmlns:jsp="http://java.sun.com/JSP/Page" 
+			xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+			xmlns:spring="http://www.springframework.org/tags"
+			xmlns:form="http://www.springframework.org/tags/form" 
+			xmlns:c="http://java.sun.com/jsp/jstl/core" version="2.0">
+  <jsp:output omit-xml-declaration="yes" />
+  
+  <jsp:directive.tag dynamic-attributes="dynaAttr" />
+  <jsp:directive.attribute name="id" type="java.lang.String" required="true" rtexprvalue="true" description="The identifier for this tag (do not change!)" />
+  <jsp:directive.attribute name="displayColumns" type="java.lang.String" required="false" rtexprvalue="true" description="Numbers of column as per css" />
+  <jsp:directive.attribute name="requiredClass" type="java.lang.String" required="false" rtexprvalue="true" description="Class to make field mandatory" />
+  <jsp:directive.attribute name="path" type="java.lang.String" required="true" rtexprvalue="true" description="The path where data will be mapped (required)" />
+  <jsp:directive.attribute name="code" type="java.lang.String" required="false" rtexprvalue="true" description="Spring localized message code" />
+  <jsp:directive.attribute name="event" type="java.lang.String" required="true" rtexprvalue="true" description="UI event to bind for action" />
+  <jsp:directive.attribute name="endpoint" type="java.lang.String" required="true" rtexprvalue="true" description="End point to hit for data" />
+  <jsp:directive.attribute name="showResolvedName" type="java.lang.Boolean" required="true" rtexprvalue="true" description="Whether resolved name should be shown or not" />
+  <jsp:directive.attribute name="otherTgt" type="java.lang.String" required="false" rtexprvalue="true" description="Selected result should be distribute among other target elements" />
+  <jsp:directive.attribute name="preResolveHook" type="java.lang.String" required="false" rtexprvalue="true" description="Hook that will be called before name resolution" />
+  <jsp:directive.attribute name="postResolveHook" type="java.lang.String" required="false" rtexprvalue="true" description="Hook that will be called after successful name resolution" />
+  <jsp:directive.attribute name="unresolveHook" type="java.lang.String" required="false" rtexprvalue="true" description="Hook that will be called if name is not resolved" />
+  <jsp:directive.attribute name="preMarkup" type="java.lang.String" required="false" rtexprvalue="true" description="Hook that will be called if name is not resolved" />
+  <jsp:directive.attribute name="postMarkup" type="java.lang.String" required="false" rtexprvalue="true" description="Hook that will be called if name is not resolved" />
+  
+  <jsp:element name="script">
+       <jsp:attribute name="type">text/javascript</jsp:attribute>
+       <jsp:attribute name="src">
+         <c:url value="/scripts/ref/nameResolverRequestHandler.js"/>
+       </jsp:attribute>
+       <jsp:body></jsp:body>
+   </jsp:element>
+  
+    <span><form:input value="" id="tgt${id }" path="${path}" class="textBox"/></span>
+    <span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+    <div class="popupBtn"><input id="${id}" type="button" class="popupBtnIco" value="" map="${dynaAttr}" /></div>
+    <label id="placeHolder${id}" class="label-right"></label>
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+          //assume that jQuery library is loaded...
+          var id = "<c:out value="${id}"/>";
+          var inputEle = "tgt" + id;
+          var $targetElement = $('#' + id);
+          var dynamicAttr = {};
+          var otherTarget = '';
+          <c:forEach items="${dynaAttr}" var="a">
+            dynamicAttr["${a.key}"] = "${a.value}";
+          </c:forEach>
+          $.each(dynamicAttr , function(key, value){
+            $targetElement.attr(key, value);
+          });
+          //we will provide 'tgt' attribute, we will not honor any 'tgt' attribute provided...
+          $targetElement.removeAttr('tgt');
+          $targetElement.removeAttr('map');
+          <c:if test="${ not empty otherTgt }">
+          	otherTarget = "<c:out value="${otherTgt }"/>";
+          </c:if>
+          if ( $.trim( otherTarget ) !== '' ) {
+          	inputEle += ',' + otherTarget;
+          }
+          $targetElement.attr('tgt', inputEle);
+          <c:if test="${showResolvedName}">
+            new xenos$nameResolver$Request$Handler()
+               .target($('input#tgt${id }'))
+               .result($('#placeHolder${id}'))
+               .bindEvents("${event}")
+               .urlEndpoint("${endpoint}")
+               <c:if test="${not empty preResolveHook}">
+               .preResolve(${preResolveHook})
+               </c:if>
+               <c:if test="${not empty postResolveHook}">
+               .postResolve(${postResolveHook})
+               </c:if>
+               <c:if test="${not empty unresolveHook}">
+               .unresolve(${unresolveHook})
+               </c:if>
+               .init();
+          </c:if>
+          //API to remove values...
+            if (typeof $xenospopup$remove !== 'function') {
+              $xenospopup$remove = function(id, type) {
+                var inputElement = $('#tgt' + id);
+                var resolvedLabel = $('#placeHolder' + id);
+                if ( type === 'both' ){
+                  inputElement.val('');
+                  resolvedLabel.html('');
+                } else if ( type === 'input' ) {
+                  inputElement.val('');
+                } else if ( type === 'resolvedName' ) {
+                  resolvedLabel.html('');
+                }
+              }
+            }
+          
+          <c:if test="${not empty preMarkup}">
+            (function() {
+              var markup = ${preMarkup}();
+              $(markup).insertBefore($('#${id}').closest('.popupBtn'));
+            })();
+          </c:if>
+          
+          <c:if test="${not empty postMarkup}">
+            (function() {
+              var markup = ${postMarkup}();
+              $(markup).insertAfter($('#${id}').closest('.popupBtn'));
+            })();
+          </c:if>
+        </jsp:body>
+    </jsp:element>
+</jsp:root>

@@ -1,0 +1,134 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [
+				{name:"<spring:message code="gle.journal.query.label.ledgerCodeName" htmlEscape="false"/>", field:"ledgerShortName",id:"ledgerShortName", width:300, sortable:true},
+				{name:"<spring:message code="gle.journal.query.label.securityCode" htmlEscape="false"/>", field:"securityId",id:"securityId", width:300, sortable:true, formatter:Slick.Formatters.InstrumentDetailViewFormater},
+				{name:"<spring:message code="gle.journal.query.label.securityName" htmlEscape="false"/>", field:"securityName",id:"securityName", width:300, sortable:true},
+				{name:"<spring:message code="gle.journal.query.label.date" htmlEscape="false"/>", field:"entryDateStr",id:"entryDateStr", cssClass:'xenos-grid-date', width:95, sortable:true},
+				{name:"<spring:message code="gle.journal.query.label.subLedgerCode" htmlEscape="false"/>", field:"subLedgerCode",id:"subLedgerCode", width:180, sortable:true},
+				{name:"<spring:message code="gle.journal.query.label.referenceNumber" htmlEscape="false"/>", field:"referenceNo",id:"referenceNo", width:150, sortable:true, formatter:Slick.Formatters.GleTransactionFormater},
+				{name:"<spring:message code="gle.journal.query.label.debitAmount" htmlEscape="false"/>", field:"debitAmountStr",id:"debitAmountStr", cssClass:'xenos-grid-number', width:250, sortable:true},
+				{name:"<spring:message code="gle.journal.query.label.creditAmount" htmlEscape="false"/>", field:"creditAmountStr",id:"creditAmountStr", cssClass:'xenos-grid-number', width:250, sortable:true},
+				{name:"<spring:message code="gle.journal.query.label.balance" htmlEscape="false"/>", field:"balanceQuantityStr",id:"balanceQuantityStr", cssClass:'xenos-grid-number', width:600, sortable:true}
+			];
+	          var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				forceFitColumns:false,
+				emptyColumnCheck : false,
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,
+					xlsPref:true,
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+					url: '/secure/gle/journal/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/gle/journal/query/result.json?fetch=next',
+					prevPage : '/secure/gle/journal/query/result.json?fetch=previous',
+					pdfReport: '/secure/gle/journal/query/report.json?outputType=pdf',
+					xlsReport: '/secure/gle/journal/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/gle/journal/query/reportPref.json?outputType=xls'
+				},
+				afterRenderComplete : function(grid,$context){
+					grid.resizeCanvas();
+					if (grid.getOptions().forceFitColumns) {
+						grid.autosizeColumns();
+					}
+					grid.setColumns(grid.getColumns(), true);
+				},
+				getItemMetadata : function(row){
+					var  rowData = this.getItem(row); 
+					if(rowData.rowInformation <![CDATA[&&]]> rowData.rowInformation.spanRequired == 'Y'){
+						return {
+							"columns": {
+								'shortName': {
+								  "colspan": "${colsTot}"
+								},
+								
+								'debitAmountStr' : {
+									"colspan": "${colsVal}"
+								}
+							},
+							cssClasses : rowData.rowInformation.cssClasses
+						};
+					}
+				},
+				
+				events:{
+					onDataUpdate : function(data,callback){
+						var resultObj = [];
+						var row_id = 0;
+						var rec = {};
+						for(i in data.value){
+							rec = {};
+							row_id+=1;
+							rec.id = "xenos_" + row_id;
+							rec.ledgerShortName = data.value[i].ledgerShortName;
+							rec.securityId = data.value[i].securityId;
+							rec.securityName = data.value[i].securityName;
+							rec.entryDateStr = data.value[i].entryDateStr;
+							rec.subLedgerCode = data.value[i].subLedgerCode;
+							rec.transactionPk = data.value[i].transactionPk;
+							rec.instrumentPk= data.value[i].instrumentPk;
+							rec.referenceNo = data.value[i].referenceNo;
+							rec.debitAmountStr= data.value[i].debitAmountStr;
+							rec.creditAmountStr = data.value[i].creditAmountStr;
+							rec.balanceQuantityStr = data.value[i].balanceQuantityStr;							
+							resultObj.push(rec);
+						}					
+						callback({value:resultObj, isNext:data.isNext, isPrevious:data.isPrevious});
+					}
+				},
+				defaultInvisibleColumns: ["securityId","securityName"]
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+				<c:forEach items="${value}" var="dl">
+					rec = {};
+					row_id+=1;
+					rec.id = "xenos_" + row_id;
+					rec.transactionPk = "<c:out value="${dl.transactionPk}" />";
+					rec.securityId = "<c:out value="${dl.securityId}" />";
+					rec.securityName = "<c:out value="${dl.securityName}" />";
+					rec.instrumentPk= "<c:out value="${dl.instrumentPk}" />";
+					rec.ledgerShortName = "<c:out value="${dl.ledgerShortName}" />";
+					rec.entryDateStr = "<c:out value="${dl.entryDateStr}" />";
+					rec.subLedgerCode = "<c:out value="${dl.subLedgerCode}" />";
+					rec.referenceNo = "<c:out value="${dl.referenceNo}" />";
+					rec.debitAmountStr= "<c:out value="${dl.debitAmountStr}" />";
+					rec.creditAmountStr = "<c:out value="${dl.creditAmountStr}" />";
+					rec.balanceQuantityStr = "<c:out value="${dl.balanceQuantityStr}" />";
+					grid_result_data.push(rec);
+				</c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+</jsp:root>

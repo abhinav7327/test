@@ -1,0 +1,1573 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- MXML module for displaying the Movement Detail for a specific movementPk and movementType.  -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" 
+    xmlns:cntrls="com.nri.rui.core.controls.*"
+    xmlns:famCntrls="com.nri.rui.fam.controls.*"
+    xmlns:flexlib="http://code.google.com/p/flexlib/"  
+    width="100%" height="100%" creationComplete="init()">
+    <mx:Script>
+        <![CDATA[
+        	import mx.controls.Label;
+            import mx.binding.utils.BindingUtils;
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.controls.XenosAlert;
+            import mx.managers.FocusManager;
+            import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+            import mx.rpc.events.FaultEvent;
+            import mx.controls.Alert;
+            import com.nri.rui.core.Globals;
+            import com.nri.rui.core.utils.PrintUtils;
+            import com.nri.rui.core.controls.XenosHTTPServiceForSpring;
+            
+            import mx.core.UIComponent;
+            import com.nri.rui.core.utils.XenosPopupUtils;
+            import com.nri.rui.fam.FamConstants;
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import com.nri.rui.fam.controls.NumberLabel;
+           
+            [Bindable]private var summaryResult:ArrayCollection = new ArrayCollection;
+            
+            [Bindable]private var transactionPk : String = XenosStringUtils.EMPTY_STR;
+            
+            [Bindable]
+            private var objAudit:Object = null;
+            [Bindable]
+            private var objTxn:Object = null;
+            [Bindable]
+            private var settlementCurrency:Object = null;
+            [Bindable]
+            private var instrumentCode : Object = null;
+            [Bindable]
+            private var instShortName:Object = null;
+            [Bindable]
+            private var processDescription:Object = null;
+            
+            [Bindable]
+            private var commandForm:Object = null;
+           
+            [Bindable]
+            private var movDetails:Object = null;
+            
+            [Bindable]
+            private var commandFormId:String = XenosStringUtils.EMPTY_STR;
+            [Bindable]
+            private var movementPk:String = XenosStringUtils.EMPTY_STR;
+            [Bindable]
+            private var movementType:String = XenosStringUtils.EMPTY_STR;
+            
+            [Bindable]
+            private var lcJournalData:ArrayCollection = new ArrayCollection();
+            
+            [Bindable]
+            private var bcJournalData:ArrayCollection = new ArrayCollection();
+
+            /**
+             * Extracts the parameters and set them to some variables for query criteria from the Module Loader Info.
+             * 
+             */ 
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if (tempA[0] == FamConstants.FAM_MOVEMENT_PK) {
+                            movementPk = tempA[1];
+                        }
+                        if (tempA[0] == FamConstants.MOVEMENT_TYPE) {
+                            movementType= tempA[1];
+                        }
+                        if (tempA[0] == Globals.COMMAND_FORM_ID) {
+                            commandFormId= tempA[1];
+                        }    
+                    }
+                } catch (e:Error) {
+                    trace(e);
+                }
+               
+            }
+            /**
+             * Initializes the module and send the submit request.
+             * 
+             */     
+            private function init():void{
+                parseUrlString();
+                var rndNo:Number = Math.random();
+                httpService.url= "fam/transactionQuery.spring?rnd=" + rndNo;
+                
+                var req : Object = new Object();
+                req.method="viewMovementDetails";
+                req[FamConstants.FAM_MOVEMENT_PK]=this.movementPk; 
+                req[FamConstants.MOVEMENT_TYPE]=this.movementType; 
+                
+				
+				onBalanceAssetWs.includeInLayout=false;
+            	onBalanceAssetWs.visible=false;
+                derivativesWs.includeInLayout=false;
+                derivativesWs.visible=false; 
+				cashWs.includeInLayout=false;
+            	cashWs.visible=false; 
+				rcvIncomeBalanceWs.includeInLayout=false;
+				rcvIncomeBalanceWs.visible=false;
+				adjustmentIncomeWs.includeInLayout=false;
+				adjustmentIncomeWs.visible=false;
+				
+				
+                if(XenosStringUtils.equals(movementType , FamConstants.MOVEMENT_TYPE_CASH)){
+                	 cashWs.includeInLayout=true;
+            	     cashWs.visible=true; 
+                }else if(XenosStringUtils.equals(movementType , FamConstants.MOVEMENT_TYPE_DRV)){
+                	  derivativesWs.includeInLayout=true;
+                      derivativesWs.visible=true; 
+                }else if(XenosStringUtils.equals(movementType , FamConstants.MOVEMENT_TYPE_ONBALANCE)){
+                	  onBalanceAssetWs.includeInLayout=true;
+            	      onBalanceAssetWs.visible=true;
+                }else if(XenosStringUtils.equals(movementType , FamConstants.MOVEMENT_TYPE_AJUSTMENT_INCOME)){
+				       adjustmentIncomeWs.includeInLayout=true;
+				       adjustmentIncomeWs.visible=true;     
+				}else { 
+				      rcvIncomeBalanceWs.includeInLayout=true;
+				      rcvIncomeBalanceWs.visible=true;
+				}
+              
+                httpService.request=req;
+                httpService.send();
+                PopUpManager.centerPopUp(this);
+            }
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function httpService_fault(evt:FaultEvent):void {            	 
+                XenosAlert.error(evt.fault.faultDetail);
+            }
+            /**
+             * Result handler for the submit Request. 
+             * 
+             */ 
+            private function httpService_result(event:ResultEvent):void {
+            	var result:XML = XML(event.result);  
+                errPage.clearError(event);
+                	
+            	if (result.child("Errors").length() > 0) {
+	                  var errorInfoList : ArrayCollection = new ArrayCollection();
+	                  //populate the error info list              
+	                  for each (var error:XML in result.Errors.error) {
+	                     errorInfoList.addItem(error.toString());
+	                  }
+	                  errPage.showError(errorInfoList);//Display the error
+		    	  
+	            } else {
+	            	errPage.clearError(event);  
+                    commandForm = result;     
+                    
+                    if(XenosStringUtils.equals(movementType,FamConstants.MOVEMENT_TYPE_CASH )&& commandForm.cashMovementInfo!=null){
+            	       movDetails=commandForm.cashMovementInfo;
+                    }else if(XenosStringUtils.equals(movementType,FamConstants.MOVEMENT_TYPE_DRV ) && commandForm.drvMovementInfo!=null){
+            	       movDetails=commandForm.drvMovementInfo;
+                    }else if(XenosStringUtils.equals(movementType,FamConstants.MOVEMENT_TYPE_AJUSTMENT_INCOME )&& commandForm.adjustmentIncome!=null){
+            	       movDetails=commandForm.adjustmentIncome;
+					}else if(XenosStringUtils.equals(movementType,FamConstants.MOVEMENT_TYPE_RECEIVABLE_INCOME_BALANCE) && commandForm.rcvIncomeBalance!=null){
+            	       movDetails=commandForm.rcvIncomeBalance;
+					}else if(commandForm.movementInfo!=null){
+            	       movDetails=commandForm.movementInfo;
+                    }                       
+                    
+                    populate();
+                    
+                    // setting row count of data grids
+                    journalBcSummaryResult.rowCount = bcJournalData.length <=1? 1 : bcJournalData.length;
+                    journalLcSummaryResult.rowCount = lcJournalData.length <=1? 1 : lcJournalData.length;	            	
+	            }	            
+          }
+            
+	     // Populates lcJournalData and bcJournalData
+	     private function populate():void{
+		   	  lcJournalData.removeAll();
+		   	  bcJournalData.removeAll();  	  
+		   	  if(this.commandForm.lcJournalList!=null){
+		   	  	 fillCollection(lcJournalData, this.commandForm.lcJournalList.lcJournal); 
+		   	  }
+		   	  
+		   	  if(this.commandForm.bcJournalList!=null){
+		   	  	 fillCollection(bcJournalData, this.commandForm.bcJournalList.bcJournal); 
+		   	  }
+	   	  
+	     }   
+	   
+	   // Fills 'collection' from 'object'
+	   private function fillCollection(collection:ArrayCollection, object:Object):void{
+	   	   if(object != null && object is XMLList){         
+             	 var tempList:XMLList = object as XMLList;
+             	   for each (var itemXml : XML in tempList) {
+             	   	   addCommandFormId(itemXml);//Adds the property 'commandFormId'
+	   	 	           collection.addItem(itemXml);
+	   	           }         
+            }
+	   } 
+	   
+	   // Adds the property 'commandFormId' to the object 'obj'
+	   private function addCommandFormId(parent:XML):void{
+	   	     var child:XML =
+             <commandFormId>{commandFormId}</commandFormId>
+             parent.appendChild(child);    
+	   }
+	  
+	   // This method is used for loading Instrument Details popup module   
+	   private function showInstrumentDetails(insPk:String):void{	   			
+				var parentApp :UIComponent = UIComponent(this.parentApplication);
+				XenosPopupUtils.showInstrumentDetails(insPk, parentApp);
+	   }
+	   // Displays Account Details window
+	   private function showAccountDetails(accPk:String):void{
+	   	    var parentApp :UIComponent = UIComponent(this.parentApplication);
+	   	    XenosPopupUtils.showAccountSummary(accPk,parentApp, this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.label.result')); 
+	   }
+
+	   
+        ]]>
+    </mx:Script>
+
+    <cntrls:XenosHTTPServiceForSpring id="httpService" commandFormId="{commandFormId}" 
+            useProxy="false" resultFormat="xml"
+            fault="httpService_fault(event);"
+            result="httpService_result(event)" showBusyCursor="true">
+     </cntrls:XenosHTTPServiceForSpring>
+     
+     <mx:VBox width="100%" height="0%">
+	    <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+	        <mx:Button id="Print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetail(this.detail)"/>
+	    </mx:HBox>
+    </mx:VBox>
+     
+    <mx:Canvas width="100%" height="100%">
+    	<mx:VBox width="100%" height="100%" id="detail">
+		
+        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>
+        
+        <!-- Movement Detail Screen of On-Balance Asset -->
+        <flexlib:WindowShade id="onBalanceAssetWs" tabChildren="{onBalanceAssetWs.opened}" styleName="linkButtonWindowShade" label="Movement Details" width="100%">
+            <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+               
+                <!--Base Date & Security Code -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.basedate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.baseDateStr==null? '' : movDetails.baseDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.label.securitycode')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.securityIdStr==null? '' : movDetails.securityIdStr}" click="showInstrumentDetails(movDetails.instrumentPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true" />
+                    </mx:GridItem>                   
+                </mx:GridRow>
+                
+                <!--Balance Type  & LS -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.balancetype')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.balanceTypeStr==null? '' : movDetails.balanceTypeStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.ls')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.longShortFlagStr==null? '' : movDetails.longShortFlagStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Local Ccy & Base Ccy -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.localccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.localCcyStr==null? '' : movDetails.localCcyStr}"  selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.baseccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.baseCcyStr==null? '' : movDetails.baseCcyStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Movement Qty  & Qty after Movement -->   
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.quantity')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementQuantityStr==null? '' : movDetails.movementQuantityStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.quantity.after')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.quantityAfterMovementStr==null? '' : movDetails.quantityAfterMovementStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow> 
+                
+                <!--Movement BV (LC)  & BV after Movement (LC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movementbvlc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementBvLcStr==null? '' : movDetails.movementBvLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.bvaftermovementlc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.bvAfterMovementLcStr==null? '' : movDetails.bvAfterMovementLcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Realized PL (LC)  & Book Cost (LC) -->                
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.realizedpl.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.realizedPlLcStr==null? '' : movDetails.realizedPlLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.bookcost.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.bookCostLcStr==null? '' : movDetails.bookCostLcStr}" selectable="true" />
+                    </mx:GridItem>
+                 </mx:GridRow>
+                
+                <!--Movement BV (BC)  & BV after Movement (BC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movementbvbc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementBvBcStr==null? '' : movDetails.movementBvBcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.bvaftermovementbc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.bvAfterMovementBcStr==null? '' : movDetails.bvAfterMovementBcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Realized PL (BC)  & Ex Rate --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.realizedpl.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.realizedPlBcStr==null? '' : movDetails.realizedPlBcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.label.exrate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.exchangeRateLcToBcStr==null? '' : movDetails.exchangeRateLcToBcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Forex PL (BC) & Book Cost (BC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.forexplbc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.forexPlBcStr==null? '' : movDetails.forexPlBcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.bookcost.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.bookCostBcStr==null? '' : movDetails.bookCostBcStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--EOD Flag & Status --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.eodflag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.eodFlagStr==null? '' : movDetails.eodFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.status')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.statusStr==null? '' : movDetails.statusStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Base Qty & Other Adjustment (BC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.base.qty')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.baseQuantityStr==null? '' : movDetails.baseQuantityStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.other.adjustment.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.otherAdjustmentBcStr==null? '' : movDetails.otherAdjustmentBcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Base BV (LC) &  Base BV (BC)--> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.base.bv.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.baseBvLcStr==null? '' : movDetails.baseBvLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.base.bv.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.baseBvBcStr==null? '' : movDetails.baseBvBcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Movement Book Cost (LC) &  Movement Book Cost (BC)--> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movement.bookcost.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementBookCostLcStr==null? '' : movDetails.movementBookCostLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movement.bookcost.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementBookCostBcStr==null? '' : movDetails.movementBookCostBcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- P/L & Forex P/L --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.pl.indicator')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.plIndicatorStr==null? '' : movDetails.plIndicatorStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.forex.pl.indicator')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.forexPlIndicatorStr==null? '' : movDetails.forexPlIndicatorStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Processed Flag &  Calc Mechanism (LC BC)--> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.processed.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.processedFlagStr==null? '' : movDetails.processedFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.calc.mechanism.lc.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.calcMechanismLcBcStr==null? '' : movDetails.calcMechanismLcBcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Movement TIR BV (LC)  & Movement TIR BV (BC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movement.tir.bv.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementTirBvLcStr==null? '' : movDetails.movementTirBvLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movement.tir.bv.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementTirBvBcStr==null? '' : movDetails.movementTirBvBcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- TIR BV after Movement (LC) & TIR BV after Movement (BC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.tir.bv.after.movement.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.tirBvAfterMovementLcStr==null? '' : movDetails.tirBvAfterMovementLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.tir.bv.after.movement.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.tirBvAfterMovementBcStr==null? '' : movDetails.tirBvAfterMovementBcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Movement TIP BV (LC) & Movement TIP BV (BC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movement.tip.bv.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementTipBvLcStr==null? '' : movDetails.movementTipBvLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movement.tip.bv.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementTipBvBcStr==null? '' : movDetails.movementTipBvBcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- TIP BV after Movement (LC) & TIP BV after Movement (BC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.tip.bv.after.movement.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.tipBvAfterMovementLcStr==null? '' : movDetails.tipBvAfterMovementLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.tip.bv.after.movement.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.tipBvAfterMovementBcStr==null? '' : movDetails.tipBvAfterMovementBcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                               
+                
+                <!--Entry Date & Last Entry Date --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.appRegiDateStr==null? '' : movDetails.appRegiDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate.last')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.appUpdDateStr==null? '' : movDetails.appUpdDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Entry Date (Time) & Last Entry Date (Time) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.creationDateStr==null? '' : movDetails.creationDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time.last')}" styleName="FormLabelHeading"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.updateDateStr==null? '' : movDetails.updateDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                 <!--Entry By & Last Entry By -->    
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entryby')}" styleName="FormLabelHeading"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.createdBy==null? '' : movDetails.createdBy}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.lastentryby')}" styleName="FormLabelHeading"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.updatedBy==null? '' : movDetails.updatedBy}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>            
+               </mx:Grid>               
+        </flexlib:WindowShade>
+        
+         <!-- Movement Detail Screen of Cash -->
+        <flexlib:WindowShade id="cashWs" tabChildren="{cashWs.opened}" styleName="linkButtonWindowShade" label="Movement Details" width="100%">
+            <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+               
+                <!--Base Date & Ccy (Local Ccy) -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.basedate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.baseDateStr==null? '' : movDetails.baseDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.ccy.local')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.localCcyStr==null? '' : movDetails.localCcyStr}" selectable="true" />
+                    </mx:GridItem>                   
+                </mx:GridRow>
+                
+                <!--Balance Type  & LS -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.balancetype')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.balanceTypeStr==null? '' : movDetails.balanceTypeStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.ls')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.longShortFlagStr==null? '' : movDetails.longShortFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+               
+                <!--Movement BV (LC)  & BV after Movement (LC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movementbvlc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementBvLcStr==null? '' : movDetails.movementBvLcStr}"   selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.bvaftermovementlc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.bvAfterMovementLcStr==null? '' : movDetails.bvAfterMovementLcStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                              
+                <!--Movement BV (BC)  & BV after Movement (BC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movementbvbc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementBvBcStr==null? '' : movDetails.movementBvBcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.bvaftermovementbc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.bvAfterMovementBcStr==null? '' : movDetails.bvAfterMovementBcStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Base Ccy  & Forex PL (BC) --> 
+                <mx:GridRow width="100%">
+                   <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.baseccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.baseCcyStr==null? '' : movDetails.baseCcyStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.forexplbc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.forexPlBcStr==null? '' : movDetails.forexPlBcStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--EOD Flag & Status --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.eodflag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.eodFlagStr==null? '' : movDetails.eodFlagStr}"  selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.status')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.statusStr==null? '' : movDetails.statusStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Open Reference No &  --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.open.reference.no')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.openReferenceNo==null? '' : movDetails.openReferenceNo}"  selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text=""  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Movement Qty & Qty after Movement --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movement.qty')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementQuantityStr==null? '' : movDetails.movementQuantityStr}"  selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.qty.after.movement')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.quantityAfterMovementStr==null? '' : movDetails.quantityAfterMovementStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Base BV (LC) & Base BV (BC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.base.bv.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.baseBvLcStr==null? '' : movDetails.baseBvLcStr}"  selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.base.bv.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.baseBvBcStr==null? '' : movDetails.baseBvBcStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Realized PL (LC) & Realized PL (BC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.realized.pl.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.realizedPlLcStr==null? '' : movDetails.realizedPlLcStr}"  selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.realized.pl.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.realizedPlBcStr==null? '' : movDetails.realizedPlBcStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Processed Flag & Forex P/L --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.processed.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.processedFlagStr==null? '' : movDetails.processedFlagStr}"  selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.forex.pl.indicator')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.forexPlIndicatorStr==null? '' : movDetails.forexPlIndicatorStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Entry Date & Last Entry Date --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.appRegiDateStr==null? '' : movDetails.appRegiDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate.last')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.appUpdDateStr==null? '' : movDetails.appUpdDateStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Entry Date (Time) & Last Entry Date (Time) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.creationDateStr==null? '' : movDetails.creationDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time.last')}" styleName="FormLabelHeading"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.updateDateStr==null? '' : movDetails.updateDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                 <!--Entry By & Last Entry By -->    
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entryby')}" styleName="FormLabelHeading"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.createdBy==null? '' : movDetails.createdBy}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.lastentryby')}" styleName="FormLabelHeading"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.updatedBy==null? '' : movDetails.updatedBy}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>            
+               </mx:Grid>               
+        </flexlib:WindowShade>
+        
+        <!-- Movement Detail Screen of Derivatives -->
+        <flexlib:WindowShade id="derivativesWs" tabChildren="{derivativesWs.opened}" styleName="linkButtonWindowShade" label="Movement Details" width="100%">
+            <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+               
+                <!--Base Date & Security Code -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.basedate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.baseDateStr==null? '' : movDetails.baseDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.security')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.securityIdStr==null? '' : movDetails.securityIdStr}" 
+						         click="showInstrumentDetails(movDetails.instrumentPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true" />
+                    </mx:GridItem>                   
+                </mx:GridRow>
+                
+                <!--Balance Type  & LS -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.balancetype')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.balanceTypeStr==null? '' : movDetails.balanceTypeStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.ls')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.longShortFlagStr==null? '' : movDetails.longShortFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Local Ccy & Base Ccy -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.localccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.localCcyStr==null? '' : movDetails.localCcyStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.baseccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.baseCcyStr==null? '' : movDetails.baseCcyStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Movement Qty  & Qty after Movement -->   
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.quantity')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementQuantityStr==null? '' : movDetails.movementQuantityStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.quantity.after')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.quantityAfterMovementStr==null? '' : movDetails.quantityAfterMovementStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow> 
+                
+                <!--Movement BV (LC)  & BV after Movement (LC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movementbvlc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementBvLcStr==null? '' : movDetails.movementBvLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.bvaftermovementlc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.bvAfterMovementLcStr==null? '' : movDetails.bvAfterMovementLcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Realized PL (LC)  & Book Cost (LC) -->                
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.realizedpl.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.realizedPlLcStr==null? '' : movDetails.realizedPlLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.bookcost.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.bookCostLcStr==null? '' : movDetails.bookCostLcStr}" selectable="true" />
+                    </mx:GridItem>
+                 </mx:GridRow>
+                 
+                <!--Mov Prin Amt (LC)  & Prin Amt after MV (LC) -->                
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.mov.prin.amt.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movPrincipalAmtLcStr==null? '' : movDetails.movPrincipalAmtLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.mov.prin.amt.after.mv.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.afterMovPrincipalAmtLcStr==null? '' : movDetails.afterMovPrincipalAmtLcStr}" selectable="true" />
+                    </mx:GridItem>
+                 </mx:GridRow>
+                 
+                <!--Unit Cost (LC) &  -->                
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.unit.cost.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.unitCostLcStr==null? '' : movDetails.unitCostLcStr}" selectable="true"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="" />
+                    </mx:GridItem>
+                 </mx:GridRow>
+                
+                
+                <!--Movement BV (BC)  & BV after Movement (BC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.movementbvbc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementBvBcStr==null? '' : movDetails.movementBvBcStr}"  selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.bvaftermovementbc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.bvAfterMovementBcStr==null? '' : movDetails.bvAfterMovementBcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Realized PL (BC)  & Ex Rate --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.realizedpl.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.realizedPlBcStr==null? '' : movDetails.realizedPlBcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.label.exrate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.exchangeRateLcToBcStr==null? '' : movDetails.exchangeRateLcToBcStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Forex PL (BC) & Book Cost (BC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.forexplbc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.forexPlBcStr==null? '' : movDetails.forexPlBcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.bookcost.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.bookCostBcStr==null? '' : movDetails.bookCostBcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Mov Prin Amt (BC)  & Prin Amt after MV (BC) -->                
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.mov.prin.amt.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movPrincipalAmtBcStr==null? '' : movDetails.movPrincipalAmtBcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.mov.prin.amt.after.mv.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.principalAmtAfterMovBcStr==null? '' : movDetails.principalAmtAfterMovBcStr}" selectable="true" />
+                    </mx:GridItem>
+                 </mx:GridRow>
+                
+                <!--EOD Flag & Status --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.eodflag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.eodFlagStr==null? '' : movDetails.eodFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.status')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.statusStr==null? '' : movDetails.statusStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Open Reference No & Open Trade Date --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.open.reference.no')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.openReferenceNo==null? '' : movDetails.openReferenceNo}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.open.trade.date')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.openTradeDateStr==null? '' : movDetails.openTradeDateStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Mov Unit Cost (LC)  & Mov Unit Cost (BC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.mov.unit.cost.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementUnitCostLcStr==null? '' : movDetails.movementUnitCostLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.mov.unit.cost.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementUnitCostBcStr==null? '' : movDetails.movementUnitCostBcStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Unit Cost (BC)   & Open Broker Account  --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.unit.cost.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.unitCostBcStr==null? '' : movDetails.unitCostBcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.open.broker.account')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.openBrokerAccountNo==null? '' : movDetails.openBrokerAccountNo}" click="showAccountDetails(movDetails.openBrokerAccountPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Mov Book Cost (LC) & Mov Book Cost (BC) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.mov.book.cost.lc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementBookCostLcStr==null? '' : movDetails.movementBookCostLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.mov.book.cost.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.movementBookCostBcStr==null? '' : movDetails.movementBookCostBcStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Calc Mechanism (LC BC)  & Processed Flag --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.calc.mechanism.lc.bc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.calcMechanismLcBcStr==null? '' : movDetails.calcMechanismLcBcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.processed.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.processedFlagStr==null? '' : movDetails.processedFlagStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- P/L  & Forex P/L  --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.pl.indicator')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.plIndicatorStr==null? '' : movDetails.plIndicatorStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.forex.pl.indicator')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.forexPlIndicatorStr==null? '' : movDetails.forexPlIndicatorStr}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Entry Date & Last Entry Date --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.appRegiDateStr==null? '' : movDetails.appRegiDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate.last')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.appUpdDateStr==null? '' : movDetails.appUpdDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Entry Date (Time) & Last Entry Date (Time) --> 
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.creationDateStr==null? '' : movDetails.creationDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time.last')}" styleName="FormLabelHeading"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.updateDateStr==null? '' : movDetails.updateDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                 <!--Entry By & Last Entry By -->    
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entryby')}" styleName="FormLabelHeading"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.createdBy==null? '' : movDetails.createdBy}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.lastentryby')}" styleName="FormLabelHeading"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.updatedBy==null? '' : movDetails.updatedBy}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>            
+               </mx:Grid>               
+        </flexlib:WindowShade>
+               
+  
+        <!-- Movement Detail Screen of adjustmentIncome -->
+        <flexlib:WindowShade id="adjustmentIncomeWs" tabChildren="{adjustmentIncomeWs.opened}" styleName="linkButtonWindowShade" label="Movement Details" width="100%">
+            <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+               
+                <!--Base Date & Security Code -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.basedate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.baseDateStr==null? '' : movDetails.baseDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.secuirty.code')}" styleName="FormLabelHeading" />
+				                                                                                              
+						                                                                                                        
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.securityIdStr==null? '' : movDetails.securityIdStr}"
+                                 click="showInstrumentDetails(movDetails.instrumentPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true" />
+                    </mx:GridItem>                   
+                </mx:GridRow>
+                
+                <!--Balance Type  & LS -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.balancetype')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.balanceTypeStr==null? '' : movDetails.balanceTypeStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.ls')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.longShortFlagStr==null? '' : movDetails.longShortFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Local Ccy & Base Ccy -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.localccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.localCcyStr==null? '' : movDetails.localCcyStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.baseccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.baseCcyStr==null? '' : movDetails.baseCcyStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!--Ex Date & Payment Date -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.exdate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.exDateStr==null? '' : movDetails.exDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.paymentdate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.paymentDateStr==null? '' : movDetails.paymentDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                 <!--Eligible Quantity & Allotted Amount -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.eligible.qty')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.eligibleQuantityStr==null? '' : movDetails.eligibleQuantityStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.allotted.amount')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.allottedAmountStr==null? '' : movDetails.allottedAmountStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                  
+                  <!--Adjustment Amount (LC)  & Adjustment Amount (BC) -->   
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.adjustment.amountLc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.adjustmentAmountLcStr==null? '' : movDetails.adjustmentAmountLcStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.adjustment.amountBc')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.adjustmentAmountBcStr==null? '' : movDetails.adjustmentAmountBcStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow> 
+                
+                  <!--EOD Flag & Status --> 
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.eodflag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.eodFlagStr==null? '' : movDetails.eodFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.status')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.statusStr==null? '' : movDetails.statusStr}"  selectable="true" />
+                    </mx:GridItem>
+                 </mx:GridRow>
+                
+                  <!--Entry Date & Last Entry Date --> 
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.appRegiDateStr==null? '' : movDetails.appRegiDateStr}" selectable="true" /> 
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate.last')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.appUpdDateStr==null? '' : movDetails.appUpdDateStr}" selectable="true" />
+                    </mx:GridItem>
+                 </mx:GridRow>
+                
+                  <!--Entry Date (Time) & Last Entry Date (Time) --> 
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.creationDateStr==null? '' : movDetails.creationDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time.last')}" styleName="FormLabelHeading"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.updateDateStr==null? '' : movDetails.updateDateStr}" selectable="true" />
+                    </mx:GridItem>
+                 </mx:GridRow>
+                
+                  <!--Entry By & Last Entry By -->    
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entryby')}" styleName="FormLabelHeading"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.createdBy==null? '' : movDetails.createdBy}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.lastentryby')}" styleName="FormLabelHeading"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.updatedBy==null? '' : movDetails.updatedBy}" selectable="true" />
+                    </mx:GridItem>
+                 </mx:GridRow> 
+                            
+               </mx:Grid>   
+        </flexlib:WindowShade>
+        
+         <!-- Movement Detail Screen of rcvIncomeBalance -->
+        <flexlib:WindowShade id="rcvIncomeBalanceWs" tabChildren="{rcvIncomeBalanceWs.opened}" styleName="linkButtonWindowShade" label="Movement Details" width="100%">
+            <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+               
+                <!--Base Date & Security Code -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.basedate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.baseDateStr==null? '' : movDetails.baseDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.security')}"  styleName="FormLabelHeading"/>
+									
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.securityIdStr==null? '' : movDetails.securityIdStr}"
+						click="showInstrumentDetails(movDetails.instrumentPk)" useHandCursor="true" styleName="TextLink" buttonMode="true" mouseChildren="false" selectable="true"/>
+                    </mx:GridItem>                   
+                </mx:GridRow>
+                
+                <!--Local Ccy  & LS -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.localccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.localCcyStr==null? '' : movDetails.localCcyStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.ls')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.longShortFlagStr==null? '' : movDetails.longShortFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+        
+                
+                <!--Ex Date & Payment Date -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.exdate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.exDateStr==null? '' : movDetails.exDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.paymentdate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.paymentDateStr==null? '' : movDetails.paymentDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                 <!--Eligible Quantity & Allotted Amount -->
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.eligible.qty')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.eligibleQuantityStr==null? '' : movDetails.eligibleQuantityStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.allotted.amount')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.allottedAmountStr==null? '' : movDetails.allottedAmountStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                  
+                  <!--Receivable Amount  & Settlement Quantity -->   
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.receivable.amount')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.receivableAmountStr==null? '' : movDetails.receivableAmountStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.sattlement.qty')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.settlementQuantityStr==null? '' : movDetails.settlementQuantityStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow> 
+                
+                   <!--Remaining Qty  & Remaining Rcv Amount -->   
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.remaining.qty')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.remainingQuantityStr==null? '' : movDetails.remainingQuantityStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.remaining.rcv.amount')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <famCntrls:NumberLabel text="{movDetails.remainingReceivableAmountStr==null? '' : movDetails.remainingReceivableAmountStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow> 
+                
+                  <!--EOD Flag & Status --> 
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.eodflag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.eodFlagStr==null? '' : movDetails.eodFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.status')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.statusStr==null? '' : movDetails.statusStr}"  selectable="true" />
+                    </mx:GridItem>
+                 </mx:GridRow>
+                
+                  <!--Entry Date & Last Entry Date --> 
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.appRegiDateStr==null? '' : movDetails.appRegiDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate.last')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.appUpdDateStr==null? '' : movDetails.appUpdDateStr}" selectable="true" />
+                    </mx:GridItem>
+                 </mx:GridRow>
+                
+                  <!--Entry Date (Time) & Last Entry Date (Time) --> 
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.creationDateStr==null? '' : movDetails.creationDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time.last')}" styleName="FormLabelHeading"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.updateDateStr==null? '' : movDetails.updateDateStr}" selectable="true" />
+                    </mx:GridItem>
+                 </mx:GridRow>
+                
+                  <!--Entry By & Last Entry By -->    
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entryby')}" styleName="FormLabelHeading"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.createdBy==null? '' : movDetails.createdBy}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.lastentryby')}" styleName="FormLabelHeading"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{movDetails.updatedBy==null? '' : movDetails.updatedBy}" selectable="true" />
+                    </mx:GridItem>
+                 </mx:GridRow> 
+                            
+               </mx:Grid>   
+        </flexlib:WindowShade>
+       
+        <flexlib:WindowShade id="journalListLcWs" tabChildren="{journalListLcWs.opened}" styleName="linkButtonWindowShade" label="Journal List (LC)" width="100%" opened="true">
+            <mx:DataGrid id="journalLcSummaryResult" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" dataProvider="{this.lcJournalData}">
+                <mx:columns>  
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.base.date')}" textAlign="left" dataField="baseDateStr"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.postingtype')}" textAlign="left" dataField="postingTypeStr"/>
+                   <mx:DataGridColumn headerText="" textAlign="center" itemRenderer="com.nri.rui.fam.renderers.JournalDetailsRenderer" dataField="journalPk" />                              
+                </mx:columns> 
+             </mx:DataGrid>
+        </flexlib:WindowShade>
+        
+        <flexlib:WindowShade id="journalListBcWs" tabChildren="{journalListBcWs.opened}" styleName="linkButtonWindowShade" label="Journal List (BC)" width="100%" opened="true">
+            <mx:DataGrid id="journalBcSummaryResult" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" dataProvider="{this.bcJournalData}">
+                <mx:columns>  
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.base.date')}" textAlign="left" dataField="baseDateStr"/>
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.postingtype')}" textAlign="left" dataField="postingTypeStr"/>
+                   <mx:DataGridColumn headerText="" textAlign="center" dataField="journalPk" itemRenderer="com.nri.rui.fam.renderers.JournalDetailsRenderer"/>                              
+                </mx:columns>
+             </mx:DataGrid>
+        </flexlib:WindowShade>
+     </mx:VBox>
+   </mx:Canvas>
+</mx:Module>

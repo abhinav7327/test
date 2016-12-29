@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Account Detail Implementation for Displaying the account information in full detail -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute"
+	 xmlns:controls="*" creationComplete="init()" width="100%" height="100%">
+	
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.controls.XenosAlert;
+			import mx.controls.Alert;
+			import com.nri.rui.core.Globals;
+			import mx.rpc.events.ResultEvent;
+			
+			[Bindable]
+            private var accNo:String;    
+            [Bindable]       
+			private var xmlObj:XML = null;
+			
+            public var o:Object = {};
+            
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split("&"); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if (tempA[0] == Globals.ACCOUNT_PK) {
+                            o.accPk = tempA[1];
+                            accNo = o.accPk;
+                        }                        
+                    }
+                } catch (e:Error) {
+                    trace(e);
+                }               
+            }
+			
+			private function init():void
+			{
+				xmlObj = this.parentDocument.xmlData;
+				//XenosAlert.info("xmlObj : " + xmlObj);
+				if(xmlObj == null)
+					XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('ref.account.msg.error.load.accountinfo', new Array(accNo)));
+				parseUrlString();
+				//initializeMovementQuery.url = "ref/accountDispatch.action?method=viewAccountDetails";
+				//RefQueryRequest.send();
+			}
+			
+			private function initPage(event:ResultEvent):void 
+			{
+				
+				xmlObj = event.result as XML;
+				//Alert.show("initPage.."+xmlObj.toXMLString());
+			}
+		]]>
+	</mx:Script>
+	
+	<!--mx:HTTPService id="RefQueryRequest" url="ref/accountDispatch.action?method=viewAccountDetails"
+        result="initPage(event)" showBusyCursor="true" method="POST" useProxy="false"
+        fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)));" resultFormat="e4x">
+        <mx:request>
+        	<accountPk>{accNo}</accountPk>
+        </mx:request>
+    </mx:HTTPService-->
+	
+	<controls:accountTabsInc width="100%" height="100%" dataProvider="{this.xmlObj}">
+	</controls:accountTabsInc>
+</mx:Module>

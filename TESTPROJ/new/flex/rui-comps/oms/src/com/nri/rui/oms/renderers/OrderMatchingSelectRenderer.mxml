@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" horizontalAlign="center" creationComplete="init();">
+	<mx:Script>
+        <![CDATA[
+        	import com.nri.rui.core.utils.XenosStringUtils;
+        	import com.nri.rui.core.controls.XenosAlert;
+        
+            import mx.core.Application;
+            import flash.events.Event;
+	    	import mx.controls.Alert;  
+        
+            public function init():void{
+            	//	cbSelect.selected = (data.selected == "true")?true:false;
+            	
+            }          
+        	
+        	
+        	private function clickRecordHandler(event:Event):void {
+        		var isSelected:Boolean = (data.selected == 'true')?true:false;
+        		data.selected=!isSelected;
+        		//Get Selected Record Row Num
+        		//trace("indx:1"+parentDocument);
+        		parentDocument.checkSelectToModify(data, !isSelected);
+        		//trace("indx:2");
+        		if(data.matchStatus == "UNMATCH" || (data.matchStatus == "UNPAIRED" && 
+        				XenosStringUtils.isBlank(data.orderPk) && 
+        				!XenosStringUtils.isBlank(data.executionPk))){
+        			parentDocument.saveRecordForForceMatch(data, !isSelected); // Force Match
+        		}
+        		else if(data.matchStatus == "FORCEMATCH"){
+        			parentDocument.saveRecordForCxlForceMatch(data, !isSelected); // CXL Force Match
+        			parentDocument.saveRecordForIgnore(data, !isSelected); // Force Match Record can also be Ingored
+        		}
+        		else if(data.matchStatus == "MATCH"){
+        			parentDocument.saveRecordForIgnore(data, !isSelected); // Ignore
+        		} 
+        		else if(data.matchStatus == "IGNORE"){
+        			parentDocument.saveRecordForCxlIgnore(data, !isSelected);// CXL Ignore
+        		}
+        		else if(data.matchStatus == "UNPAIRED" && 
+        				!XenosStringUtils.isBlank(data.orderPk) && 
+        				XenosStringUtils.isBlank(data.executionPk)  ){
+        			parentDocument.saveRecordForUnpairedOrder(data, !isSelected);// Unpaired Order
+        		}
+        		
+        	}
+        		
+        	
+        ]]>
+    </mx:Script>
+	<mx:CheckBox id="cbSelect" selected="{(data.selected == 'true')?true:false}" buttonMode="true" toggle="true" useHandCursor="true" click="clickRecordHandler(event)" />
+</mx:VBox>

@@ -1,0 +1,137 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:xenos="http://www.nri.co.jp/xenos" 
+	 xmlns:esjs="http://www.nri.co.jp/jstl/functions"
+	 xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+<div class="formItemArea entryContainerConfirm paddingFour">
+	 
+	<jsp:directive.page contentType="text/html;charset=UTF-8"/>
+    <jsp:output omit-xml-declaration="yes"/>
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+			var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;			
+			var grid_result_data = [];
+            var grid_result_columns = [
+				{name:"<spring:message code="ref.mktPrice.xls.upload.base.date" htmlEscape="false"/>", field:"formattedBaseDate",id:"baseDate",width:100,sortable:true},
+				{name:"<spring:message code="ref.mktPrice.xls.upload.security.code" htmlEscape="false"/>", field:"securityCode",id:"securityCode",width:100,sortable:true},
+				{name:"<spring:message code="ref.mktPrice.xls.upload.security.code.type" htmlEscape="false"/>", field:"securityCodeType",id:"securityCodeType",width:130,sortable:true},
+				{name:"<spring:message code="ref.mktPrice.xls.upload.market.code" htmlEscape="false"/>", field:"marketCode",id:"marketCode",width:100,sortable:true},
+				{name:"<spring:message code="ref.mktPrice.xls.upload.market.code.type" htmlEscape="false"/>", field:"marketCodeType",id:"marketCodeType",width:100,sortable:true},
+				{name:"<spring:message code="ref.mktPrice.xls.upload.price.type" htmlEscape="false"/>", field:"priceType",id:"priceType",width:100,sortable:true},
+				{name:"<spring:message code="ref.mktPrice.xls.upload.input.price" htmlEscape="false"/>", field:"formattedInputPrice",id:"formattedInputPrice",cssClass:'xenos-grid-number',width:150,sortable:true},
+				{name:"<spring:message code="ref.mktPrice.xls.upload.input.price.format" htmlEscape="false"/>", field:"inputPriceFormat",id:"inputPriceFormat",width:130,sortable:true},
+				{name:"<spring:message code="ref.mktPrice.xls.upload.data.source" htmlEscape="false"/>", field:"dataSource",id:"dataSource",width:100,sortable:true},
+				{name:"<spring:message code="ref.mktPrice.xls.upload.status" htmlEscape="false"/>", field:"status",id:"status",width:100,sortable:true}
+            ];
+			
+			var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				<c:if test="${commandForm.screenId =='MPXLU'}">
+				buttons:{
+					columnPicker:true,	
+					save:true
+				},
+				</c:if>
+				pagingInfo:{
+					isPrevious : isPrevious,
+					isNext : isNext,
+					pageNo : pageNo,
+					url: 'secure/ref/marketprice/file/upload/count.json'
+				},
+				urls:{
+					nextPage : '/secure/ref/marketprice/file/upload/result.json?fetch=next',
+					prevPage : '/secure/ref/marketprice/file/upload/result.json?fetch=previous'
+				},
+				saverTarget :'div#content,div#wizard-page'
+			};
+			
+            var row_id = 0;
+            var rec = {};
+            <xenos:out escapeXml="false">
+	            <c:forEach items="${commandForm.xlsBeanList}" var="dl">
+	                var item = {};
+	                row_id+=1;
+	                item.id = "xenos_" + row_id;	                
+					item.formattedBaseDate = "<c:out value="${dl.formattedBaseDate}" />";
+					item.securityCode = "<c:out value="${dl.securityCode}" />";
+	                item.securityCodeType = "<c:out value="${dl.securityCodeType}" />";
+	                item.marketCode = "<c:out value="${dl.marketCode}" />";
+	                item.marketCodeType = "<c:out value="${dl.marketCodeType}" />";
+	                item.priceType = "<c:out value="${dl.priceType}" />";
+	                item.formattedInputPrice = "<c:out value="${dl.formattedInputPrice}" />";
+	                item.inputPriceFormat = "<c:out value="${dl.inputPriceFormat}" />";
+	                item.dataSource = "<c:out value="${dl.dataSource}" />";
+	                item.status = "<c:out value="${dl.status}" />";
+	                grid_result_data.push(item);
+	            </c:forEach>
+            </xenos:out>
+		</jsp:body>
+	</jsp:element>
+	
+	
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+		var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+			var grid;
+			var scripts = [
+				{path: xenos.context.path + '/scripts/xenos.grid.js'},
+				{path: xenos.context.path + '/scripts/xenos.columnpicker.js'}
+			];
+			var context = $xenos$Wizard.$context;
+			xenos.loadScript(scripts, {
+				ordered: true,
+				success : function() {
+					grid_result_settings.height=$('div#content').height()-150;
+					grid_result_settings.height = (grid_result_settings.height - 20) - $('#wizard-result-header').height() ;
+					grid = $('#mktPriceXlsUpload',context).xenosgrid(grid_result_data, grid_result_columns, grid_result_settings);
+					if("${commandForm.screenId}" =='MPXLS') {
+						$('.btnsArea').find('.queryColumnsReset').hide();
+					}
+				}
+			});
+			var unloadHook = function(){
+				$xenos$Wizard.deregister('unload',unloadHook);
+				if(grid){
+					grid.destroy();
+					delete grid;
+				}
+			}
+			$xenos$Wizard.register('unload',unloadHook);
+		};
+	</jsp:body>
+    </jsp:element>	
+	
+    <c:if test="${success =='false'}">
+        <!-- Error message Area -->
+        <ul class="xenosError">
+            <c:forEach items="${value}" var="dl">
+                <li><spring:message text="${dl}" htmlEscape="false"/></li>
+            </c:forEach>
+        </ul>
+    </c:if>
+	<c:if test="${commandForm.screenId =='MPXLS'}">
+		<div id="wizard-result-header" class="detailBlock paddingFour queryDetailBlck">
+			<h2><spring:message code="ref.mktPrice.uploadconfirm.totalrecords" htmlEscape="false"/>${commandForm.noOfMessageProcessed}</h2>
+		</div>
+	</c:if>
+	<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+	<div id="mktPriceXlsUpload" class="xenos-grid" style="padding:2px 2px 0px 2px;"><spring:message text="" htmlEscape="false"/></div>
+	<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+</div>
+</jsp:root>

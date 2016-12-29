@@ -1,0 +1,80 @@
+<!--$Id$-->
+<!--$Author: sumand $-->
+<!--$Date: 2016-12-23 19:07:21 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:util="urn:jsptagdir:/WEB-INF/tags/util">
+
+  <jsp:directive.page contentType="text/html;charset=UTF-8"/>
+  <jsp:output omit-xml-declaration="yes"/>
+  
+	<c:if test="${commandForm.entryOperation}">
+		<div id="resultActionArea">
+			<div class="left">
+				<spring:message code="ref.ssi.query.label.add" htmlEscape="false" var="formadd_label"/>
+				<div class="resultBtnBlock">
+					<div class="btnWrapStyle submitBtn addCpSsiBtnBlock">                
+						<input type="submit" id="addSsi" value="${formadd_label}" class="inputBtnStyle"/>
+					</div>
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+		
+		<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+    
+	      xenos$onReady$Array.push(function() {
+	        
+	        var $context = $('#formContainer');
+	        
+	        var xenos$Handler$redirectToEntry = xenos$Handler$function({
+	            get: {
+	              requestType: xenos$Handler$default.requestType.asynchronous,
+	              target: jQuery('#content')
+	            },
+	            settings: {
+	              beforeSend: function(request) {
+	                request.setRequestHeader('Accept', 'text/html;type=ajax');
+	              },
+	              data: {fragments: 'content'}
+	            },
+	            callback : {
+	              success : function (evt, options) {
+	                if(options) {
+	                  $.each(options['gridInstance'] || [], function (ind, grid) {
+	                    grid.destroy();
+	                  });
+	                }
+	              }
+	            }
+	        });
+	                    
+	        function redirectToEntry(e) {
+	          e.preventDefault();
+	          var $form = $context.find('form#queryResultForm');
+	          var entryPageUrl = xenos.context.path + $form.attr('action').replace('back','redirect');
+	          entryPageUrl += "?commandFormId="+$('[name=commandFormId]',$form).val();
+	          var gridInstanceArray = [];
+	          var grids = $("[class*=slickgrid_]", $form);
+	            
+	          $.each(grids, function (ind, grid) {
+	            gridInstanceArray.push($(grid).data("gridInstance"));
+	          });
+	          
+	          xenos$Handler$redirectToEntry.generic(undefined, {requestUri: entryPageUrl,'gridInstance' : gridInstanceArray});
+	        }
+	          
+	        $('.addCpSsiBtnBlock', $context).unbind('click');
+	        $('.addCpSsiBtnBlock', $context).bind('click', redirectToEntry);
+	      });
+        </jsp:body>
+        </jsp:element>
+	</c:if>
+</jsp:root>

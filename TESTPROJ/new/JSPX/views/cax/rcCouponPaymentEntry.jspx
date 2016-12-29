@@ -1,0 +1,575 @@
+<!--$Id$-->
+<!--$Author: shalinis $-->
+<!--$Date: 2016-12-27 11:13:15 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:xenos="http://www.nri.co.jp/xenos"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+     
+	 <jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	 <jsp:output	omit-xml-declaration="yes" />
+	  
+     <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		xenos.loadLocalizedScript([
+                  {path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+                  {path: xenos.context.path + '/scripts/cax/xenos-cax-i18n', async: false}
+				 
+              ]);
+			//Loading Required scripts before validator is called.
+              xenos.loadScript([
+                  {path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},                  
+                  {path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				  {path: xenos.context.path + '/scripts/cax/xenos/caxEventEntry.js', async: false}
+              ]);  
+
+		$('#processingFrequency').unbind('change',xenos$cax$event$entry$rcCouponPayment$processingFrequencyHandler)
+						                             .bind('change',xenos$cax$event$entry$rcCouponPayment$processingFrequencyHandler)
+													 .trigger('change'); 
+
+		function xenos$cax$event$entry$rcCouponPayment$processingFrequencyHandler(e){
+					
+					var value = $(e.target).val();
+					if(value == "" || value == "MANUAL"){
+						$context.find('#processStartDateValue').val("");
+						$context.find('#processEndDateValue').val("");
+						$context.find('#processStartDateLable').hide();
+						$context.find('#processEndDateLable').hide();
+					}
+					if(value == "DAILY"){
+						$context.find('#processStartDateLable').show();
+						$context.find('#processEndDateLable').show();
+					}
+					if(value == "TRIGGER"){
+						$context.find('#processStartDateLable').show();
+						$context.find('#processEndDateValue').val("");
+						$context.find('#processEndDateLable').hide();
+					}
+				}
+
+		
+			function xenos$cax$event$entry$populateTaxEntryFields() {
+				var item = {},
+					rowId =0,
+					taxGridData =[];
+
+				var taxDetailGridConf = {
+					editMode 					: 	'both',	
+					emptyColumnCheck 			: 	false,					
+					editCallback 				: 	xenos$cax$event$entry$rcCouponPayment$editConditionTaxFeeHandler,
+					deleteCallback				:	xenos$cax$event$entry$rcCouponPayment$deleteConditionTaxFeeHandler,
+					forceFitColumns				:	true
+				};
+				
+				var taxDetailColumns = [		
+						{name:"<spring:message code="cax.rightscondition.label.taxfeeid" htmlEscape="false"/>", 	field:"taxFeeId",	id:"taxFeeId",sortable:false},
+						{name:"<spring:message code="cax.rightscondition.label.rate" htmlEscape="false"/>", 	field:"rate",	id:"rate", 	sortable:false},
+						{name:"<spring:message code="cax.rightscondition.label.ratetype" htmlEscape="false"/>", 	field:"rateType",	id:"rateType", sortable:false}
+					];
+					
+					<c:forEach items="${commandForm.conditionTaxFeeList}" var="dl">
+						item = {};
+						rowId+=1;
+						item.id 			= "xenos_" + rowId;
+						item.taxFeeId 	= "<c:out value="${dl.taxFeeId}" />";
+						item.rate 		= "<c:out value="${dl.chargeRate}" />";
+						item.rateType 	= "<c:out value="${dl.rateType}" />";
+						taxGridData.push(item);
+					</c:forEach>
+					
+					var taxGrid = $("#taxListDetailGrid").xenoseditablegrid(taxGridData, taxDetailColumns, taxDetailGridConf);
+					
+					var baseUrl = xenos.context.path + context.find('form').attr('action');
+				
+				/**
+					* A common request handler to be used server communication.
+					*/
+					var xenos$Handler$RequestHandlerJson = xenos$Handler$function({
+						get: {
+							contentType: 'json',
+							requestType: xenos$Handler$default.requestType.asynchronous
+						},	
+						settings: {
+							beforeSend: function(request) {
+								request.setRequestHeader('Accept', 'application/json');
+							},
+							type: 'POST'
+						}
+					});
+				
+				/**
+				* Populate Tax.
+				*/
+				function xenos$cax$event$entry$rcCouponPayment$populateTax(result){
+					
+					if(result){
+						$('#taxFeeId').val(result.taxFeeId);
+						$('#rate').val(result.rate);
+						$('#rateType').val(result.rateType);
+						$('#taxFeeId').focus();
+					}
+				}				
+				/**
+				* Insert/ Update Tax(s).
+				*/
+				function xenos$cax$event$entry$rcCouponPayment$upsertTax(data){
+					
+					var result = data.conditionTaxFeeList;
+					if(result){
+						taxGrid.clearData();
+						for(var i in result){
+							item = {};
+							rowId+=1;
+							item.id = "xenos_" + rowId;
+							item.taxFeeId =  $.trim(result[i].taxFeeId);
+							item.rate = $.trim(result[i].chargeRate);
+							item.rateType =  $.trim(result[i].rateType);
+							item.readOnly 			=  	$.trim(result[i].readOnly);
+							
+							taxGrid.addOrUpdateRow(item,{});
+						}
+						xenos$cax$event$entry$rcCouponPayment$populateTax(data);
+						
+						xenos.utils.clearGrowlMessage();
+					}
+				}				
+				/**
+				* Insert/ Update Tax Fee.
+				*/
+				function xenos$cax$event$entry$rcCouponPayment$upsertTaxFee(data){
+					
+					var result = data.taxFeeAmounts;
+					if(result){
+						taxFeeGrid.clearData();
+						for(var i in result){
+							item = {};
+							rowId+=1;
+							item.id 		= 	"xenos_" + rowId;
+							item.taxFeeId 	= $.trim(result[i].taxFeeId);
+							item.rate 		= $.trim(result[i].chargeRate);
+							item.rateType 	= $.trim(result[i].rateType);
+							//item.amountStr 	= $.trim(result[i].amountStr);
+							taxFeeGrid.addOrUpdateRow(item,{});
+						}
+						xenos$cax$event$entry$rcCouponPayment$populateTaxFeeForm(data);
+					}
+					xenos.utils.clearGrowlMessage();
+				};
+
+				/**
+				* New Tax add handler.
+				*/
+				function xenos$cax$event$entry$rcCouponPayment$addConditionTaxFeeHandler(e){
+					
+					var valid = xenos$cax$event$entry$rcCouponPayment$validateConditionTaxFee();
+					if(valid){
+						var requestUrl = baseUrl + "/addConditionTaxFee.json?commandFormId=" + $('[name=commandFormId]').val();
+						if($.trim($(e.target).val()) != ""){
+							
+						}
+						xenos$Handler$RequestHandlerJson.generic(e, {	requestUri: requestUrl,
+															settings: {
+																	   type: 'POST',
+																	   data : xenos$cax$event$entry$rcCouponPayment$populateTaxRequestParam()
+																	  },
+															onJsonContent :  function(e, options, $target, content) {
+																		
+																	if(content.success == true){
+																		xenos$cax$event$entry$rcCouponPayment$upsertTax(content.value[0]);
+																		$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+															}
+						});
+					}
+				}			
+				/**
+				* Tax Edit handler
+				*/
+				function xenos$cax$event$entry$rcCouponPayment$editConditionTaxFeeHandler(rowIndex, dataContext){
+						
+						var requestUrl = baseUrl + "/editConditionTaxFee.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandlerJson.generic(undefined, {
+														requestUri: requestUrl,
+														requestType: xenos$Handler$default.requestType.asynchronous,
+														settings: {
+																   type: 'POST',
+																   data : {"editIndexTaxFeeNo" : rowIndex}
+																  },
+														contentType: xenos$Handler$default.contentType.json,
+														onJsonContent: function (e, options, $target, content) {
+																if(content.success == true){
+																		xenos$cax$event$entry$rcCouponPayment$populateTax(content.value[0]);
+																		$('.gridEditBtn').show(); 
+																		$('.gridAddBtn').hide(); 
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																	}
+														}
+							});
+				}
+				/**
+				* Tax Cancel handler
+				*/
+				function xenos$cax$event$entry$rcCouponPayment$cancelConditionTaxFeeHandler(e){
+					
+					var requestUrl = baseUrl + "/cancelConditionTaxFee.json?commandFormId=" + $('[name=commandFormId]').val();
+					xenos$Handler$RequestHandlerJson.generic(undefined, {
+														requestUri: requestUrl,
+														requestType: xenos$Handler$default.requestType.asynchronous,
+														settings: {
+																   type: 'POST'
+																  },
+														contentType: xenos$Handler$default.contentType.json,
+														onJsonContent: function (e, options, $target, content) {
+																if(content.success == true){
+																		xenos$cax$event$entry$rcCouponPayment$upsertTax(content.value[0]);
+																		$('.gridEditBtn').hide(); 
+																		$('.gridAddBtn').show();
+																		
+																} else {
+																	xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																}
+														}
+							});
+				}
+				/**
+				* Tax Delete handler
+				*/
+				function xenos$cax$event$entry$rcCouponPayment$deleteConditionTaxFeeHandler(rowIndex, dataContext){
+					
+					var requestUrl = baseUrl + "/deleteConditionTaxFee/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+					xenos$Handler$RequestHandlerJson.generic(undefined, {
+														requestUri: requestUrl,
+														requestType: xenos$Handler$default.requestType.asynchronous,
+														settings: {
+																   type: 'POST'
+																  },
+														contentType: xenos$Handler$default.contentType.json,
+														onJsonContent: function (e, options, $target, content) {
+																if(content.success == true){
+																		xenos$cax$event$entry$rcCouponPayment$upsertTax(content.value[0]);
+																} else {
+																	xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																}
+														}
+							});
+				}
+				
+				/**
+				* Tax Update handler
+				*/
+				 function xenos$cax$event$entry$rcCouponPayment$updateConditionTaxFeeHandler(e){
+					
+					var valid = xenos$cax$event$entry$rcCouponPayment$validateConditionTaxFee();
+					if(valid){
+						var requestUrl = baseUrl + "/updateConditionTaxFee.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandlerJson.generic(undefined, {
+															requestUri: requestUrl,
+															requestType: xenos$Handler$default.requestType.asynchronous,
+															settings: {
+																	   type: 'POST',
+																	   data : xenos$cax$event$entry$rcCouponPayment$populateTaxRequestParam()
+																	  },
+															contentType: xenos$Handler$default.contentType.json,
+															onJsonContent: function (e, options, $target, content) {
+																	if(content.success == true){
+																		xenos$cax$event$entry$rcCouponPayment$upsertTax(content.value[0]);
+																		$('.gridEditBtn').hide(); 
+																		$('.gridAddBtn').show();
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																	}
+															}
+								});
+					}
+				} 	
+				/**
+				* Validator method to validate mandatory fields and 
+				* format before add and update condition tax fee.
+				*/
+				function xenos$cax$event$entry$rcCouponPayment$validateConditionTaxFee(){
+				
+				var instrumentCode 	= $.trim($('#instrumentCode').val());
+				var taxFeeId = $.trim($('#taxFeeId').val());
+				var rate = $.trim($('#rate').val());
+				var rateType = $.trim($('#rateType').val());
+				
+				var validationMsgForConditionTaxFee = [];
+				
+				//Security Code
+				if(VALIDATOR.isNullValue(instrumentCode)) {
+					validationMsgForConditionTaxFee.push(xenos$CAX$i18n.rightsConditionEntry.enter_securityCode);
+				} 
+				
+				// Tax Fee ID 
+				if(VALIDATOR.isNullValue(taxFeeId)) {
+					validationMsgForConditionTaxFee.push(xenos$CAX$i18n.rightsConditionEntry.enter_taxFeeId);
+				} 
+				
+				// Rate
+				if(VALIDATOR.isNullValue(rate)) {
+					validationMsgForConditionTaxFee.push(xenos$CAX$i18n.rightsConditionEntry.enter_taxRate);
+				} 
+				
+				// Rate Type
+				if(VALIDATOR.isNullValue(rateType)) {
+					validationMsgForConditionTaxFee.push(xenos$CAX$i18n.rightsConditionEntry.enter_taxRateType);
+				} 
+				
+				// Invalid Rate
+				formatRate($('#rate'),8,10,validationMsgForConditionTaxFee,$('#rate').parent().parent().find('label').text());
+				
+				if (validationMsgForConditionTaxFee.length > 0){
+					 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMsgForConditionTaxFee);
+					 return false;
+				}else {
+						xenos.utils.clearGrowlMessage();
+				}
+				return true;
+				}
+			
+				/**
+				* Populate Tax request parameters.
+				*/
+				function xenos$cax$event$entry$rcCouponPayment$populateTaxRequestParam(){
+					
+					var reqObj = {	"taxFeeId"				:	$.trim($('#taxFeeId').val()),
+									"rate"		            :	$.trim($('#rate').val()),
+									"rateType"				:	$.trim($('#rateType').val()),
+									"instrumentCode"		:	$.trim($('#instrumentCode').val())
+								};
+					return reqObj;
+				}
+				
+				$('#addTaxFeeBtn').unbind('click');
+				$('#addTaxFeeBtn').bind('click',xenos$cax$event$entry$rcCouponPayment$addConditionTaxFeeHandler);
+				$('#updateTaxFeeBtn').unbind('click');
+				$('#updateTaxFeeBtn').bind('click',xenos$cax$event$entry$rcCouponPayment$updateConditionTaxFeeHandler);
+				$('#editCallback').unbind('click');
+				$('#editCallback').bind('click',xenos$cax$event$entry$rcCouponPayment$editConditionTaxFeeHandler);
+				$('#deleteCallback').unbind('click');
+				$('#deleteCallback').bind('click',xenos$cax$event$entry$rcCouponPayment$deleteConditionTaxFeeHandler);
+				$('#cancelTaxFeeBtn').unbind('click');
+				$('#cancelTaxFeeBtn').bind('click',xenos$cax$event$entry$rcCouponPayment$cancelConditionTaxFeeHandler);
+			}
+		
+        </jsp:body>
+    </jsp:element>
+    
+		<!-- Security Code -->
+    		<div class="formItem">
+				<form:label path="commandForm.instrumentCode" class="required"><spring:message code="cax.rightscondition.label.instrumentcode" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.instrumentCode" class="textBox" id="instrumentCode"/></span>
+				<div class="popupBtn">
+					<input type="button" class="popupBtnIco" tgt="instrumentCode" popType="security" value="" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Record Date -->
+			<div class="formItem">
+				<form:label path="commandForm.recordDateStr" class="required"><spring:message code="cax.rightscondition.label.recorddate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.recordDateStr" class="dateinput" id="recordDate" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Coupon Date -->	
+			<div class="formItem">
+				<form:label path="commandForm.couponDateStr" class="required"><spring:message code="cax.rightscondition.label.coupondate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.couponDateStr" class="dateinput" id="couponDateValue" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Allotment Ccy -->	
+			<div class="formItem">
+				<form:label path="commandForm.allottedCurrency" class="required"><spring:message code="cax.rightscondition.label.allotmentcurrency" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.allottedCurrency" class="textBox" id="allottedInstrument"/></span>
+				<div class="popupBtn">
+					<input type="button" class="popupBtnIco" tgt="allottedInstrument" popType="currency" value="" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Coupon Rate -->	
+			<div class="formItem">
+				<form:label path="commandForm.couponRateStr" class="required"><spring:message code="cax.rightscondition.label.couponrate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.couponRateStr" class="txtNormal" id="couponRateValue" onchange="return formatRate($('#couponRateValue'),11,7,null,$('#couponRateValue').parent().parent().find('label').text())"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Payment Date -->	
+			<div class="formItem">
+				<form:label path="commandForm.paymentDateStr" class="required"><spring:message code="cax.rightscondition.label.paymentdate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.paymentDateStr" class="dateinput" id="paymentDateValue" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Allotment Amount -->	
+			<div class="formItem">
+				<form:label path="commandForm.allotmentAmountStr"><spring:message code="cax.rightscondition.label.allotmentamount" htmlEscape="false"/></form:label>
+				<span><form:input value="" id="allotmentAmountQty" path="commandForm.allotmentAmountStr" class="txtNormal" onchange="formatQuantity($('#allotmentAmountQty'),11,9,null,$('#allotmentAmountQty').parent().parent().find('label').text())" /></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Original Face Value -->	
+			<div class="formItem">
+				<form:label path="commandForm.perShareStr"><spring:message code="cax.rightscondition.label.peroriginalfacevalue" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.perShareStr" id = "perShareStr" class="txtNormal" onchange="formatQuantity($('#perShareStr'),11,9,null,$('#perShareStr').parent().parent().find('label').text())"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Credit Date -->	
+			<div class="formItem">
+				<form:label path="commandForm.creditDateStr"><spring:message code="cax.rightscondition.label.creditdate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.creditDateStr" class="dateinput" id="creditDt" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}" /></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Original Record Date --> 	
+			<div class="formItem">
+				<form:label path="commandForm.originalRecordDateStr"><spring:message code="cax.rightscondition.label.originalrecorddate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.originalRecordDateStr" class="dateinput" id="originalRecordDateValue" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Previous Factor -->	
+			<div class="formItem">
+				<form:label path="commandForm.previousFactorStr"><spring:message code="cax.rightscondition.label.previousfactor" htmlEscape="false"/></form:label>
+				<span><form:input id="previousFactorStr" value="" path="commandForm.previousFactorStr" class="txtNormal" onchange="formatAmount($('#previousFactorStr'),1,8,null,$('#previousFactorStr').parent().parent().find('label').text())"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Current Factor -->	
+			<div class="formItem">
+				<form:label path="commandForm.currentFactorStr"><spring:message code="cax.rightscondition.label.currentfactor" htmlEscape="false"/></form:label>
+				<span><form:input id="currentFactorStr" value="" path="commandForm.currentFactorStr" class="txtNormal" onchange="formatAmount($('#currentFactorStr'),1,8,null,$('#currentFactorStr').parent().parent().find('label').text())"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		
+		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			
+		<!-- Common Footer -->
+	
+		<!-- Processing Frequency -->	
+		<div class="formItem" id="processFreq">
+			    <form:label path="commandForm.processingFrequency" class="required"><spring:message code="cax.rightscondition.label.processingfrequency" htmlEscape="false"/></form:label> 
+				<span>
+					<xenos:select id="processingFrequency" path="commandForm.processingFrequency" class="dropdowninput" >
+					  <form:options items="${commandForm.processingFrequencyDropdownList}" itemLabel="label" itemValue="value"/>
+					</xenos:select>
+				</span>           
+			    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>	
+	
+	<!-- Process Start Date -->
+		<div class="formItem" id="processStartDateLable" style="display: none" >
+				<form:label path="commandForm.processStartDateStr" class="required"><spring:message code="cax.rightscondition.label.processstartdate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.processStartDateStr" class="dateinput" id="processStartDateValue" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	 <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	
+	<!-- Process End Date -->
+	<div class="formItem twoCols" id="processEndDateLable" style="display: none">
+				<form:label path="commandForm.processEndDateStr" class="required hiddenOnManual"><spring:message code="cax.rightscondition.label.processenddate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.processEndDateStr" class="dateinput" id="processEndDateValue" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	 
+	<!-- External Reference No --> 
+	 <div class="formItem" id="extRef">
+				<form:label path="commandForm.externalReferenceNo"><spring:message code="cax.rightscondition.label.extrefno" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.externalReferenceNo" class="textBox" maxlength="20" id="extRefNo"/></span>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	
+	<!-- Corporate Action ID Description -->
+	<div class="formItem" id="corpIdDesc" >
+				<form:label path="commandForm.description"><spring:message code="cax.rightscondition.label.corporateActionDescription" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.description" class="txtNormal" maxlength="100"/></span>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	<!-- Remarks -->
+	<div class="formItem" id="remarks" >
+				<form:label path="commandForm.remarks"><spring:message code="cax.rightscondition.label.remarks" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.remarks" class="txtNormal" maxlength="100"/></span>
+		  <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+	
+	<div class="entryBlkArea" id ="taxFeeEntryDiv">
+	
+		<div class="moreHandle">
+			<h1 class="msgHead"><spring:message code="cax.rightscondition.label.taxentry" htmlEscape="false"/></h1>
+		</div>
+		
+		<div class="formItemBlock dottedBg">
+			<div class="formItem">
+				<form:label path="commandForm.taxFeeId" class="required"><spring:message code="cax.rightscondition.label.taxfeeid" htmlEscape="false"/></form:label> 
+				<span>
+					<form:select path="commandForm.taxFeeId" class="dropdowninput" id="taxFeeId" >
+					  <form:options items="${commandForm.taxFeeIdDropdownList}" />
+					</form:select>
+				</span>           
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="formItem">
+				<form:label path="commandForm.rate" class="required"><spring:message code="cax.rightscondition.label.rate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.rate" class="txtNormal" id="rate"  onchange="return formatRate($('#rate'),8,10,null,$('#rate').parent().parent().find('label').text())"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="formItem twoCols">
+				<form:label path="commandForm.rateType" class="required"><spring:message code="cax.rightscondition.label.ratetype" htmlEscape="false"/></form:label> 
+				<span>
+					<xenos:select path="commandForm.rateType" class="dropdowninput" id="rateType">
+					  <form:options items="${commandForm.rateTypeDropdownList}" itemLabel="label" itemValue="value"/>
+					</xenos:select>
+				</span>           
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			
+			<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+			<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+			<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+		
+			<div id="formActionArea" class="gridBtnMargin trdEntryBtnBg">
+				<div class="left">
+					<div class="btnWrapStyle submitBtn gridAddBtn">
+						<span class="addTaxFee" style="display: block"><input id="addTaxFeeBtn" type="button" value="${formadd_label}" class="inputBtnStyle" /></span>
+					</div>
+					<span class="gridEditBtn" style="display: none">
+						<div class="btnWrapStyle submitBtn">
+							<input id="updateTaxFeeBtn" type="button"
+								value="${formsave_label}" class="inputBtnStyle" />
+						</div>
+						<div class="btnWrapStyle resetBtn">
+							<input id="cancelTaxFeeBtn" type="button"
+								value="${formcancel_label}" class="inputBtnStyle" />
+						</div>
+					</span>
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		</div>
+		<!-- New Approach -->	
+		<div class="entryGrid">
+			<div id="taxListDetailGrid" class="xenos-grid" style="width:100%;height:110px;"><spring:message text="" htmlEscape="false"/></div>	
+		</div>
+	</div>
+
+			
+</jsp:root>

@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:containers="com.nri.rui.core.containers.*" 
+	xmlns:flexlib="http://code.google.com/p/flexlib/" 
+	xmlns:cntrls="com.nri.rui.core.controls.*" 
+	xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+	layout="vertical" 
+	percentWidth="100" 
+	percentHeight ="100" 
+	horizontalScrollPolicy="off" 
+	verticalScrollPolicy="off" 
+	creationComplete="init()">
+	
+	
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.controls.XenosAlert;
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.rpc.events.ResultEvent;
+			import com.nri.rui.core.Globals;
+			
+			[Bindable]private var selectedItemArray:Array = new Array();
+			[Bindable] private var queryResult:ArrayCollection = new ArrayCollection();
+			private var rndNo:Number = 0;
+			
+			private function init():void{
+				parseUrlString();
+				var obj:Object=new Object();
+				rndNo = Math.random();
+				obj.rnd = rndNo + "";
+				obj.SCREEN_KEY = "12005";
+				obj.method="loadAmendUserConfirmation";
+				var rowNoArray:Array = new Array();
+				var flagArray:Array = new Array();
+	            for(var index:int=0; index < selectedItemArray.length; index++ ) {
+	                rowNoArray.push(this.parentDocument.owner.queryResult[selectedItemArray[index]].rowNum);
+	                flagArray.push(this.parentDocument.owner.queryResult[selectedItemArray[index]].backSystemPendingFlag);
+	            }
+				obj.selector = rowNoArray;
+				obj.selectedFlag = flagArray;
+				loadUserConf.request = obj;
+				loadUserConf.send();
+			}
+			
+		    public function parseUrlString():void {
+		        try {
+		            var myPattern:RegExp = /.*\?/; 
+		            var s:String = this.loaderInfo.url.toString();
+		            s = s.replace(myPattern, "");
+		            var params:Array = s.split(Globals.AND_SIGN); 
+		            if(params != null){
+		                for (var i:int = 0; i < params.length; i++) {
+		                    var tempA:Array = params[i].split("=");
+		                    if(tempA[0] == "selectedItems"){
+		                        this.selectedItemArray = (tempA[1] as String).split(",");
+		                    }
+		                }                        
+		            } 
+		        } catch (e:Error) {
+		            trace(e);
+		        }
+		    }
+			
+    		private function goToSystemConfirmation():void {
+    			btnConfirm.enabled = false;
+    			btnOk.enabled = true;
+    			var obj:Object=new Object();
+				rndNo = Math.random();
+				obj.rnd = rndNo + "";
+				obj.SCREEN_KEY = "12006";
+				obj.method="loadSystemConfirmation";
+				loadSystemConf.request = obj;
+				loadSystemConf.send();
+    		}
+    		
+    		private function closePopup():void {
+    			this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+    		}
+    		
+    		private function loadUserConfirmation(event:ResultEvent):void {
+				if (null != event) {
+					if(event.result != null){
+						if(event.result.tradeBackSystemInfoAmendQryActionForm != null){
+							if(event.result.tradeBackSystemInfoAmendQryActionForm.selectedTradeList!= null) {
+								btnConfirm.visible = true;
+							 	btnConfirm.includeInLayout = true;
+							 	btnOk.visible = false;
+							 	btnOk.includeInLayout = false;
+							 	btnConfirm.enabled = true;
+    							btnOk.enabled = true;
+								if(event.result.tradeBackSystemInfoAmendQryActionForm.selectedTradeList.selectedTrade != null){
+									errPage.clearError(event);
+						            queryResult.removeAll();
+						            if(event.result.tradeBackSystemInfoAmendQryActionForm.selectedTradeList.selectedTrade is ArrayCollection){
+						            	queryResult = event.result.tradeBackSystemInfoAmendQryActionForm.selectedTradeList.selectedTrade;
+						            }else{
+						            	queryResult.addItem(event.result.tradeBackSystemInfoAmendQryActionForm.selectedTradeList.selectedTrade);
+						            }
+								}else {
+								 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+								 	queryResult.removeAll();
+								 	errPage.removeError();
+								 }
+							 } 
+						}else if(event.result.XenosErrors != null) {
+						 	queryResult.removeAll(); 
+						 	var errorInfoList : ArrayCollection = new ArrayCollection();
+			                if(event.result.XenosErrors.Errors != null){
+			                	if(event.result.XenosErrors.Errors.error is ArrayCollection){
+			                		errorInfoList = event.result.XenosErrors.Errors.error;
+			                	}else{
+			                		errorInfoList.addItem(event.result.XenosErrors.Errors.error);
+			                	}
+			                }		 	
+						 	errPage.showError(errorInfoList);
+						 } else {
+						 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+						 	queryResult.removeAll(); 
+						 	errPage.removeError(); 
+						 }
+					}
+		        }
+	       }
+	       
+	       private function loadSystemConfirmation(event:ResultEvent):void {
+				if (null != event) {
+					if(event.result != null){
+						if(event.result.tradeBackSystemInfoAmendQryActionForm != null){
+							if(event.result.tradeBackSystemInfoAmendQryActionForm.selectedTradeList!= null) {
+								lblTitle.text = this.parentApplication.xResourceManager.getKeyValue('trd.back.system.info.amend.screen.title.system.confirmation');
+							 	btnConfirm.visible = false;
+							 	btnConfirm.includeInLayout = false;
+							 	btnOk.visible = true;
+							 	btnOk.includeInLayout = true;
+							 	btnConfirm.enabled = true;
+    							btnOk.enabled = true;
+								if(event.result.tradeBackSystemInfoAmendQryActionForm.selectedTradeList.selectedTrade != null){
+									errPage.clearError(event);
+						            queryResult.removeAll();
+						            if(event.result.tradeBackSystemInfoAmendQryActionForm.selectedTradeList.selectedTrade is ArrayCollection){
+						            	queryResult = event.result.tradeBackSystemInfoAmendQryActionForm.selectedTradeList.selectedTrade;
+						            }else{
+						            	queryResult.addItem(event.result.tradeBackSystemInfoAmendQryActionForm.selectedTradeList.selectedTrade);
+						            }
+								}else {
+								 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+								 	queryResult.removeAll();
+								 	errPage.removeError();
+								 }
+							 } 
+						}else if(event.result.XenosErrors != null) {
+						 	lblTitle.text = this.parentApplication.xResourceManager.getKeyValue('trd.back.system.info.amend.screen.title.user.confirmation');
+						 	btnConfirm.visible = true;
+						 	btnConfirm.includeInLayout = true;
+						 	btnOk.visible = false;
+						 	btnOk.includeInLayout = false;
+						 	btnConfirm.enabled = true;
+							btnOk.enabled = true;
+						 	//queryResult.removeAll(); 
+						 	var errorInfoList : ArrayCollection = new ArrayCollection();
+			                if(event.result.XenosErrors.Errors.error != null){
+			                	if(event.result.XenosErrors.Errors.error is ArrayCollection){
+			                		errorInfoList = event.result.XenosErrors.Errors.error;
+			                	}else{
+			                		errorInfoList.addItem(event.result.XenosErrors.Errors.error);
+			                	}
+			                }		 	
+						 	errPage.showError(errorInfoList);
+						 } else {
+						 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+						 	queryResult.removeAll(); 
+						 	errPage.removeError(); 
+						 }
+					}
+		        }
+	       }
+		]]>
+	</mx:Script>
+	<cntrls:XenosHTTPService id="loadUserConf" 
+         url="trd/trdBackSysInfoAmendDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         result="loadUserConfirmation(event)" 
+         showBusyCursor="true" 
+         method="POST">
+    </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="loadSystemConf" 
+         url="trd/trdBackSysInfoAmendDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         result="loadSystemConfirmation(event)" 
+         showBusyCursor="true"
+         method="POST">
+    </cntrls:XenosHTTPService>
+    
+    <mx:VBox width="100%" height="100%" id="rslt" styleName="HDivideStyle">
+    	<mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%"/>
+    	<mx:Label id="lblTitle" fontWeight="bold" text="{this.parentApplication.xResourceManager.getKeyValue('trd.back.system.info.amend.screen.title.user.confirmation')}"/>
+    	<mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%"/>		
+		<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		<mx:DataGrid id="tradeRcvdQueryResult" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto">
+			<mx:columns> 
+               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.backsyspendingflag')}" dataField="backSystemPendingFlag"/>
+	    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.fund.label.fundcode')}" dataField="fundCode"/>
+	    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.txndetailquery.label.fundaccountno')}" dataField="inventoryAccountNo"/>
+	    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.tradedate')}" dataField="tradeDateStr"/>
+	    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.valuedate')}" dataField="valueDateStr"/>
+	    	   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.securitycode')}" dataField="securityIdStr"/>
+               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradeentryaction.label.buysellflag')}" dataField="buySellOrientation" width="80"/>
+               <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.quantity')}" dataField="quantityStr"/>
+               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradefeed.label.tradereferenceno')}" dataField="referenceNo"/>
+               <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.price')}"  dataField="priceStr"/>
+               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.tradeccy')}" dataField="tradingCcyCode"/>
+               <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.rcvdconf.label.principalamount')}" dataField="principalAmountStr"/>
+               <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.rcvdconf.label.netamount')}" dataField="netAmountStr"/>
+               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.execqueryaction.label.tradetype')}" dataField="tradeType"/>
+               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('trd.tradequeryaction.label.status')}" dataField="status"/>
+            </mx:columns>
+     	</mx:DataGrid>
+     	<mx:HBox>
+     		<mx:Button id="btnConfirm" styleName="BtnStyle" click="goToSystemConfirmation()" label="{this.parentApplication.xResourceManager.getKeyValue('trd.cnf.btn.confirm')}"/>
+     		<mx:Button id="btnOk" visible="false" styleName="BtnStyle" includeInLayout="false" click="closePopup()" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}"/>
+     	</mx:HBox>
+	</mx:VBox>
+	
+</mx:Module>

@@ -1,0 +1,114 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+    <jsp:element name="script">
+    <jsp:attribute name="type">text/javascript</jsp:attribute>
+    <jsp:body>
+			
+	<c:choose>
+		<c:when test="${fn:length(commandForm.resultData) eq 0 }">
+			var grid_result_columns = [];
+			var grid_result_data = [];
+			var grid_result_settings = {
+						enableToolbar:true,
+						consolidateActionFlag:false,
+						forceFitColumns : false,
+						isHeaderColumnRequired : false,
+						buttons: {
+							print:false,	
+							xls:false,	
+							pdf:false,	
+							columnPicker:false,	
+							save:false	
+						},
+						pagingInfo:{
+							isNext : false,
+							url: '/secure/ref/multiPurposeReport/query/count.json'
+						},
+						urls:{
+							
+						}
+			};
+			
+		</c:when>
+		<c:otherwise>
+				var isNext = <c:out value="${isNext}" />;
+				var grid_result_columns = [];
+				<c:set var="cssClassMap" value="${commandForm.cssClassMap}"/>
+				<xenos:out escapeXml="false">
+				 <c:forEach items="${commandForm.columnNamesMap}" var="columnName" varStatus="loopStatus">
+					grid_result_columns.push({
+						name: "<c:out value="${columnName.value}"/>",
+						field: "<c:out value="${columnName.key}"/>",
+						id: "<c:out value="${columnName.key}"/>",
+						sortable:true,
+						width: 100,
+						cssClass:'<c:out value="${cssClassMap[columnName.key]}"/>'
+				   });
+				</c:forEach>
+				
+				 var grid_result_data = [];
+				 var result_id = 0;
+				
+				 <c:forEach items="${commandForm.resultData}" var="row">
+				   var result = {};
+				   result_id += 1;
+				   result.id = "xenos_" + result_id;
+				   <c:forEach items="${row}" var="entry">
+						result["<c:out value="${entry.key}"/>"] = "<c:out value="${entry.value}"/>";
+				   </c:forEach>
+					grid_result_data.push(result);
+				 </c:forEach>
+				</xenos:out>
+				 var grid_result_settings = {
+						enableToolbar:true,
+						consolidateActionFlag:false,
+						forceFitColumns : false,
+						buttons: {
+							print:true,	
+							xls:true,	
+							pdf:true,	
+							columnPicker:false,	
+							save:false	
+						},
+						pagingInfo:{
+							isNext : isNext,
+							url: '/secure/ref/multiPurposeReport/query/count.json'
+						},
+						urls:{
+							nextPage : '/secure/ref/multiPurposeReport/query/result.json?fetch=next',
+							prevPage : '/secure/ref/multiPurposeReport/query/result.json?fetch=previous',
+							pdfReport: '/secure/ref/multiPurposeReport/query/report.json?outputType=pdf',
+							xlsReport: '/secure/ref/multiPurposeReport/query/report.json?outputType=xls'
+						},
+						events:{
+							onDataUpdate : function(data,callback){
+								var resultObj = [];
+								var value = data.value[0].resultData || [];
+								for(var index in value){
+									resultObj.push(value[index]);
+								}
+								callback({value:resultObj, isNext:data.isNext, isPrevious:data.isPrevious});
+							}
+						}
+				};
+		</c:otherwise>
+	</c:choose>
+
+	</jsp:body>
+   </jsp:element>
+	 
+</jsp:root>

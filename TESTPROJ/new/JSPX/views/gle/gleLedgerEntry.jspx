@@ -1,0 +1,311 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+<jsp:root version="2.0"
+	 xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles"
+	 xmlns:util="urn:jsptagdir:/WEB-INF/tags/util">
+
+	<div id="formContainer" class="entryContainer paddingFour">
+		<jsp:element name="script">
+			<jsp:attribute name="type">text/javascript</jsp:attribute>
+			<jsp:attribute name="src"><c:url value="/scripts/inf/fieldvalidator.js"/></jsp:attribute>
+			<jsp:body></jsp:body>
+	    </jsp:element>
+		<jsp:element name="script">
+			<jsp:attribute name="type">text/javascript</jsp:attribute>
+			<jsp:attribute name="src">
+				<c:url value="/scripts/inf/utilCommons.js"/>
+			</jsp:attribute>
+			<jsp:body></jsp:body>
+		</jsp:element>	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+			var actionType = "<c:out value="${commandForm.actionType}"/>";
+			 
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+				var $context = $xenos$Wizard.$context;
+				var cached = xenos$Cache.get('globalPrefs');
+				var evenRowColor = cached.zebraColorEven ? cached.zebraColorEven:'#F9F9F9';
+				var oddRowColor = cached.zebraColorOdd ?cached.zebraColorOdd:'#E5E9ED';
+				$('tr.evenRowColor',$context).css('background-color',evenRowColor);
+				$('tr.oddRowColor',$context).css('background-color',oddRowColor); 
+	        /**
+	         * A common request handler to be used server communication.
+	         */
+	        
+				var xenos$Handler$RequestHandler = xenos$Handler$function({
+					 get: {
+						 contentType: 'json',
+						 requestType: xenos$Handler$default.requestType.asynchronous
+					 },  
+					 settings: {
+						 beforeSend: function(request) {
+							 request.setRequestHeader('Accept', 'text/html;type=ajax');
+						 },
+						 type: 'POST'
+					 }
+				});
+							
+				/*************************** page load hooks ****************************/
+							
+				var validateHook = function() {
+					var validationMessages = [];
+	        	
+					if($.trim(actionType).toUpperCase() == "AMEND"){
+						if(VALIDATOR.isNullValue($.trim($('#ledgerCode').text()))){                
+							validationMessages.push(xenos$GLE$i18n.ledgerEntry.enter_ledgerCode);
+						}
+					} else {
+						if(VALIDATOR.isNullValue($.trim($('#ledgerCode').val()))){                
+							validationMessages.push(xenos$GLE$i18n.ledgerEntry.enter_ledgerCode);
+						}
+					}
+					
+					if(VALIDATOR.isNullValue($.trim($('#ledgerType').val()))){                
+						validationMessages.push(xenos$GLE$i18n.ledgerEntry.enter_ledgerType);
+					}
+					
+					if(VALIDATOR.isNullValue($.trim($('#shortName').val()))){                
+						validationMessages.push(xenos$GLE$i18n.ledgerEntry.enter_shortName);
+					}				
+					
+					if(validationMessages.length >0){
+						validationMessages.push(xenos$GLE$i18n.ledgerEntry.enter_nullEntry);
+						xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);			
+						return false;
+					}
+					
+					return true;
+				};
+				
+				var unloadHook = function(){
+					$context.find("[name=selector]").unbind('change',checkBoxHandler);
+					$xenos$Wizard.deregister('submit',validateHook);
+					$xenos$Wizard.deregister('unload',unloadHook);				
+				};
+				
+				function checkBoxHandler(e){
+					var value = $(e.target).val();
+					
+					if(value == 0){
+						enableDisableItems($('.strategyItem',$context), !$(e.target).is(':checked'));
+					}
+					if(value == 1){
+						enableDisableItems($('.accountItem',$context), !$(e.target).is(':checked'));
+					}
+					if(value == 2){
+						enableDisableItems($('.productItem',$context), !$(e.target).is(':checked'));
+					}
+					if(value == 3){
+						enableDisableItems($('.affiliateItem',$context), !$(e.target).is(':checked'));
+					}
+					if(value == 4){
+						enableDisableItems($('.rrnumberItem',$context), !$(e.target).is(':checked'));
+					}
+				}
+				
+				function enableDisableItems($items, enable){
+					$items.prop('disabled', enable);
+				}
+				$context.find("[name=selector]").unbind('change',checkBoxHandler).bind('change',checkBoxHandler).trigger('change');
+				
+				$xenos$Wizard.register('submit',validateHook);
+				$xenos$Wizard.register('unload',unloadHook);
+				
+			}; 
+			/* code end */		
+		</jsp:body>
+    </jsp:element>
+		<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+			<ul class="xenosError">
+				<c:forEach items="${value}" var="dl">		
+					<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+				</c:forEach>
+			</ul>	
+		</c:if>
+		<spring:message code="form.button.label.add" htmlEscape="false"	var="formadd_label" />
+		<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label" />
+		<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label" />
+		<div class="width100Perc">
+			<div class="entryBlkArea">
+				<div class="formItemBlock dottedBg">
+
+					<!--Form Item for ledgerCode-->
+					
+					<c:choose>
+						<c:when test="${commandForm.options.actionType=='AMEND'}">
+							<div class="formItem">
+								<form:label path="commandForm.ledgerOb.ledgerCode" class="required">
+									<spring:message code="gle.ledgerEntry.label.ledger_code" htmlEscape="false" />
+								</form:label>
+								<form:label id="ledgerCode" for="ledgerCode" name="ledgerCode" path="commandForm.ledgerOb.ledgerCode">${commandForm.ledgerOb.ledgerCode}</form:label>
+								<div class="clear"><spring:message text="" htmlEscape="false" /></div>
+							</div>
+						</c:when>
+						<c:otherwise>
+							<div class="formItem">
+								<form:label class="required" path="commandForm.ledgerOb.ledgerCode">
+									<spring:message code="gle.ledgerEntry.label.ledger_code" htmlEscape="false" />
+								</form:label>
+								<span><form:input id="ledgerCode" value="" path="commandForm.ledgerOb.ledgerCode" class="textBox txtNormal" maxlength="20" /></span>
+								<div class="clear"><spring:message htmlEscape="false" text="" /></div>
+							</div>
+						</c:otherwise>
+					</c:choose>
+
+					<div class="formItem">
+						<form:label path="commandForm.ledgerOb.ledgerType" class="required"><spring:message code="gle.ledgerEntry.label.ledger_type" htmlEscape="false"/></form:label> 
+						<span>
+							<xenos:select id="ledgerType" path="commandForm.ledgerOb.ledgerType" class="dropdowninput">
+								<form:options items="${commandForm.ledgerTypeValues}" itemLabel="label" itemValue="value" />
+							</xenos:select>
+						</span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+			
+					<div class="formItem">
+						<form:label path="commandForm.ledgerOb.shortName" class="required"><spring:message code="gle.ledgerEntry.label.short_name" htmlEscape="false"/></form:label> 
+						<span><form:input id="shortName" value="" path="commandForm.ledgerOb.shortName" class="textBox txtNormal" maxlength="30"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+			
+					<div class="formItem">
+						<form:label path="commandForm.ledgerOb.subcodeType"><spring:message code="gle.ledgerEntry.label.subcodetype" htmlEscape="false"/></form:label>
+						<xenos:select id="subcodeType" path="commandForm.ledgerOb.subcodeType" class="dropdowninput">
+							<form:option value="" />
+							<form:options items="${commandForm.subCodeTypeValues}" itemLabel="label" itemValue="value" />
+						</xenos:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					
+					<div class="formItem">
+						<form:label path="commandForm.ledgerOb.longName"><spring:message code="gle.ledgerEntry.label.long_name" htmlEscape="false"/></form:label>
+						<span><form:input id="longName" value="" path="commandForm.ledgerOb.longName" maxlength="255" class="textBox txtNormal" /></span>			
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			<div class="lineHide"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</div>
+	<!--/Ledger Block -->
+	<!--Ledger Sub-Code Block -->
+	<h1><spring:message code="gle.ledgerEntry.label.ledgersub_detail" htmlEscape="false"/></h1>
+	<div class="detailBlock entrySingleCol">
+			<h2><spring:message text="" htmlEscape="false"/></h2>
+			<table class="reportTbl" width="100%" border="0" cellspacing="1" cellpadding="0">
+				<tr>
+					<th width="20%"><spring:message code="gle.ledgerEntry.label.subcode" htmlEscape="false"/></th>
+					<th width="10%"><spring:message code="gle.ledgerEntry.label.add" htmlEscape="false"/></th>
+					<th width="20%"><spring:message code="gle.ledgerEntry.label.required" htmlEscape="false"/></th>
+					<th width="30%"><spring:message code="gle.ledgerEntry.label.subcodetype" htmlEscape="false"/></th>
+					<th width="20%"><spring:message code="gle.ledgerEntry.label.defaultvalue" htmlEscape="false"/></th>						
+				</tr>
+				<tr class="evenRowColor">
+					<td width="20%"><spring:message code="gle.ledgerEntry.label.strategy" htmlEscape="false"/></td>
+					<td width="10%"><form:checkbox value="0" path="commandForm.selector"/></td>
+					<td width="20%">
+						<span>
+							<xenos:select id="subcodeReqd" value="" path="commandForm.strategyLedgerSubcode.subcodeReqd" class="dropdowninput strategyItem">
+								<form:options items="${commandForm.requiredStrategyValues}" itemLabel="label" itemValue="value" />
+							</xenos:select>
+						</span>
+					</td>
+					<td width="30%">
+						<span>
+							<xenos:select id="strategyLedgerSubcodeTypePk" value="" path="commandForm.strategyLedgerSubcode.ledgerSubcodeTypePk" class="dropdowninput strategyItem">
+								<form:options items="${commandForm.strategyValues}" itemLabel="label" itemValue="value" />
+							</xenos:select>
+						</span>
+					</td>
+					<td width="20%">
+						<span><form:input id="defaultSubcode" path="commandForm.strategyLedgerSubcode.defaultSubcode" class="txtUpper strategyItem" maxlength="20"/></span>
+					</td>
+				</tr>
+				<tr class="oddRowColor">
+					<td><spring:message code="gle.ledgerEntry.label.account" htmlEscape="false"/></td>
+					<td width="10%"><form:checkbox value="1" path="commandForm.selector"/></td>
+					<td width="20%">
+						<span>
+							<xenos:select id="subcodeReqd" path="commandForm.accountLedgerSubcode.subcodeReqd" class="dropdowninput accountItem">
+								<form:options items="${commandForm.requiredStrategyValues}" itemLabel="label" itemValue="value" />
+							</xenos:select>
+						</span>
+					</td>
+					<td width="30%">
+						<span>
+							<xenos:select id="accountLedgerSubcodeTypePk" path="commandForm.accountLedgerSubcode.ledgerSubcodeTypePk" class="dropdowninput accountItem">
+								<form:options items="${commandForm.accountValues}" itemLabel="label" itemValue="value" />
+							</xenos:select>
+						</span>
+					</td>
+					<td width="20%"></td>
+				</tr>
+							
+				<tr class="evenRowColor">
+					<td><spring:message code="gle.ledgerEntry.label.product" htmlEscape="false"/></td>
+					<td width="10%"><form:checkbox value="2" path="commandForm.selector"/></td>
+					<td width="20%">
+						<span>
+							<xenos:select id="subcodeReqd" path="commandForm.productLedgerSubcode.subcodeReqd" class="dropdowninput productItem">
+								<form:options items="${commandForm.requiredStrategyValues}" itemLabel="label" itemValue="value" />
+							</xenos:select>
+						</span>
+					</td>
+					<td width="30%">
+						<input type="hidden" name="productLedgerSubcode.ledgerSubcodeTypePk" value="${commandForm.productValue}" class="productItem"/>
+					</td>
+					<td width="20%"></td>
+				</tr>
+							
+				<tr class="oddRowColor">
+					<td><spring:message code="gle.ledgerEntry.label.affiliate" htmlEscape="false"/></td>
+					<td width="10%"><form:checkbox value="3" path="commandForm.selector"/></td>
+					<td width="20%">
+						<span>
+							<xenos:select id="subcodeReqd" path="commandForm.affiliateLedgerSubcode.subcodeReqd" class="dropdowninput affiliateItem">
+								<form:options items="${commandForm.requiredStrategyValues}" itemLabel="label" itemValue="value" />
+							</xenos:select>
+						</span>
+					</td>
+					<td width="30%"><input type="hidden" name="affiliateLedgerSubcode.ledgerSubcodeTypePk" value="${commandForm.affiliateValue}" class="affiliateItem"/></td>
+					<td width="20%"></td>
+				</tr>
+							
+				<tr class="evenRowColor">
+					<td><spring:message code="gle.ledgerEntry.label.rrnumber" htmlEscape="false"/></td>
+					<td width="10%"><form:checkbox value="4" path="commandForm.selector"/></td>
+					<td width="20%">
+						<span>
+							<xenos:select id="subcodeReqd" path="commandForm.rrnumberLedgerSubcode.subcodeReqd" class="dropdowninput rrnumberItem">
+								<form:options items="${commandForm.requiredStrategyValues}" itemLabel="label" itemValue="value" />
+							</xenos:select>
+						</span>
+					</td>
+					<td width="30%"><input type="hidden" name="rrnumberLedgerSubcode.ledgerSubcodeTypePk" value="${commandForm.rrnumberValue}" class="rrnumberItem"/></td>
+					<td width="20%"></td>
+				</tr>
+			</table>
+		</div>
+		<!--Import for JavaScript file-->
+
+		<jsp:element name="script">
+            <jsp:attribute name="type">text/javascript</jsp:attribute>
+            <jsp:attribute name="src">
+                <c:url value="scripts/gle/gleLedgerEntry.js" />
+            </jsp:attribute>
+            <jsp:body />
+        </jsp:element>
+	</div>
+</jsp:root>

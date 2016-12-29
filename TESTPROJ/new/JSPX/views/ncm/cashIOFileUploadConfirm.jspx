@@ -1,0 +1,142 @@
+<!--$Id$-->
+<!--$Author: sumitag $-->
+<!--$Date: 2016-12-24 21:02:45 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+	 <c:if test="${success =='false'}">
+        <!-- Error message Area -->
+        <ul class="xenosError">
+            <c:forEach items="${value}" var="dl">
+                <li><spring:message text="${dl}" htmlEscape="false"/></li>
+            </c:forEach>
+        </ul>
+    </c:if>
+	 
+     <div class="formItemArea entryContainer paddingFour">
+	 
+	<jsp:directive.page contentType="text/html;charset=UTF-8"/>
+	<jsp:output omit-xml-declaration="yes"/>
+	
+	
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+			var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;			
+			var grid_result_data = [];
+            var grid_result_columns = [
+            	{name:"<spring:message code="ncm.label.fundcode" htmlEscape="false"/>", field:"fundCode",id:"fundCode",width:120,sortable:false},
+				{name:"<spring:message code="ncm.label.adjustmenttype" htmlEscape="false"/>", field:"adjustmentType",id:"adjustmentType",width:120,sortable:false},
+				{name:"<spring:message code="ncm.label.transactionDate" htmlEscape="false"/>", field:"formattedDate",id:"transactionDate",width:120,sortable:false},
+				{name:"<spring:message code="ncm.label.currencycode" htmlEscape="false"/>", field:"ccyCode",id:"ccyCode",width:120,sortable:false},
+				{name:"<spring:message code="ncm.label.bankcode" htmlEscape="false"/>", field:"bankCode",id:"bankCode",width:180,sortable:false},
+				{name:"<spring:message code="ncm.label.bankaccountno" htmlEscape="false"/>", field:"bankAccountNo",id:"bankAccountNo",width:180,sortable:false},
+				{name:"<spring:message code="ncm.label.gleledgercode" htmlEscape="false"/>", field:"gleLedgerCode",id:"gleLedgerCode",width:120,sortable:false},
+				{name:"<spring:message code="ncm.label.xlsUpload.amount" htmlEscape="false"/>", field:"formattedLcAmount",id:"lcAmount",width:150,cssClass:'xenos-grid-number',formatter:Slick.Formatters.NegetiveBalanceFormatter,sortable:false},
+				{name:"<spring:message code="ncm.label.status" htmlEscape="false"/>", field:"status",id:"status",width:120,sortable:false},
+				{name:"<spring:message code="ncm.label.refNoOriginal" htmlEscape="false"/>", field:"refNoOriginal",id:"refNoOriginal",width:200,sortable:false},
+				{name:"<spring:message code="ncm.label.remarks" htmlEscape="false"/>", field:"remarks",id:"remarks",width:200,sortable:false},
+				{name:"<spring:message code="ncm.label.reasonCode" htmlEscape="false"/>", field:"adjustmentReasonCode",id:"adjustmentReasonCode",width:220,sortable:false}
+            ];
+            
+			var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+			    buttons:{
+			    <c:if test="${commandForm.screenId =='NMNSC'}">
+					columnPicker:false,	
+					save:false	
+				</c:if>
+				<c:if test="${commandForm.screenId =='NMNUC'}">
+					columnPicker:true,	
+					save:true	
+				</c:if>
+				},
+				pagingInfo:{
+					isPrevious : isPrevious,
+					isNext : isNext,
+					pageNo : pageNo,
+					url: 'secure/ncm/nostro/file/upload/count.json'
+				},
+				urls:{
+					nextPage : '/secure/ncm/nostro/file/upload/result.json?fetch=next',
+					prevPage : '/secure/ncm/nostro/file/upload/result.json?fetch=previous'
+				},
+				saverTarget :'div#content,div#wizard-page'
+			};
+			
+			var row_id = 0;
+            var rec = {};
+            <xenos:out escapeXml="false">
+	            <c:forEach items="${commandForm.xlsBeanList}" var="dl">
+	                var item = {};
+	                row_id+=1;
+	                item.id = "xenos_" + row_id;
+	                item.fundCode = "<c:out value="${dl.fundCode}" />";
+					item.adjustmentType = "<c:out value="${dl.adjustmentType}" />";
+	                item.formattedDate = "<c:out value="${dl.formattedDate}" />";
+	                item.ccyCode = "<c:out value="${dl.ccyCode}" />";
+	                item.bankCode = "<c:out value="${dl.bankCode}" />";
+	                item.bankAccountNo = "<c:out value="${dl.bankAccountNo}" />";
+	                item.gleLedgerCode = "<c:out value="${dl.gleLedgerCode}" />";
+	                item.formattedLcAmount = "<c:out value="${dl.formattedLcAmount}" />";
+	                item.status = "<c:out value="${dl.status}" />";
+	                item.refNoOriginal = "<c:out value="${dl.refNoOriginal}" />";
+	                item.remarks = "<c:out value="${dl.remarks}" />";
+	                item.adjustmentReasonCode = "<c:out value="${dl.adjustmentReasonCode}" />";
+	                grid_result_data.push(item);            
+				</c:forEach>
+            </xenos:out>
+			
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+				var grid = false;
+				var scripts = [
+					{path: xenos.context.path + '/scripts/xenos.grid.js'},
+					{path: xenos.context.path + '/scripts/xenos.columnpicker.js'}
+				];
+				var context = $xenos$Wizard.$context;
+				xenos.loadScript(scripts, {
+					ordered: true,
+					success : function() {
+						grid_result_settings.height=$('div#content').height()-150;
+						grid_result_settings.height = grid_result_settings.height - ($('#wizard-result-header').height() - 10);
+						grid = $('#cashIOXlsUpload',context).xenosgrid(grid_result_data, grid_result_columns, grid_result_settings);
+						if("${commandForm.screenId}" =='NMNSC') {
+							$('.btnsArea').find('.queryColumnsReset').hide();
+						}
+					}
+				});
+				var unloadHook = function(){
+					$xenos$Wizard.deregister('unload',unloadHook);
+					if(grid){
+						grid.destroy();
+						delete grid;
+					}
+				}
+				$xenos$Wizard.register('unload',unloadHook);
+			};
+			
+		</jsp:body>
+	</jsp:element>
+    <c:if test="${commandForm.screenId =='NMNSC'}">
+		<div class="detailBlock" style="padding:0px 4px 2px 2px;">
+			<h2><spring:message code="ncm.files.uploaded.complete" htmlEscape="false"/>${commandForm.noOfMessageProcessed}</h2>
+		</div>
+	</c:if>
+	<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+	<div id="cashIOXlsUpload" class="xenos-grid" style="padding:2px 2px 0px 2px;"><spring:message text="" htmlEscape="false"/></div>
+	<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+</div>
+</jsp:root>	

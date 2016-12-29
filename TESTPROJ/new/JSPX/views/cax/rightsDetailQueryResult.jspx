@@ -1,0 +1,179 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root xmlns:c="http://java.sun.com/jsp/jstl/core" xmlns:fn="http://java.sun.com/jsp/jstl/functions" xmlns:jsp="http://java.sun.com/JSP/Page" xmlns:spring="http://www.springframework.org/tags" xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" xmlns:xenos="http://www.nri.co.jp/xenos" xmlns:xenosfn="http://www.nri.co.jp/jstl/functions" version="2.0">
+   <div class="formItemArea">
+		<jsp:directive.page contentType="text/html;charset=UTF-8"/> 
+		<jsp:output omit-xml-declaration="yes"/>
+		
+		<!--Consolidated Action Area-->
+		
+		<div class="consolidateActionArea" id="consolidateAct" style="display:none;">	  
+			<c:forEach items="${navAction}" var="record">
+				  <a class="consolidateActLink" href="${record.actionUrl}">
+					<c:choose>
+						<!-- Action id for amend and cancel needs to be added manually -->
+						<c:when test="${fn:containsIgnoreCase(record.actionId, 'CAXENTAM')}">
+                            <img alt="Amend" id="amend" src="${pageContext.request.contextPath}/images/xenos/icon/ca-amendIco.png" status="ready" title="${record.actionName}"/>
+                        </c:when>
+						<c:when test="${fn:containsIgnoreCase(record.actionId, 'CAXENTCX')}">
+                            <img alt="Cancel" id="cancel" src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" status="ready" title="${record.actionName}"/>
+                        </c:when>
+						<c:otherwise>
+                            <img alt="${record.actionId}" src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}"/>
+                        </c:otherwise>
+					</c:choose>
+				  </a>
+			</c:forEach>	  
+		</div>
+	
+
+		<!--Start Javascript for Grid configurations-->
+
+		<jsp:element name="script">
+            <jsp:attribute name="type">text/javascript</jsp:attribute>
+            <jsp:body>
+				var isNext = <c:out value="${isNext}" />;
+				var grid_result_data = []; 
+				var grid_result_columns = [
+					{name:"<spring:message code="cax.rights.detail.query.label.entitlementrefno" htmlEscape="false"/>", field: "detailReferenceNo", id: "detailReferenceNo", width: 130, sortable: true, formatter:Slick.Formatters.RightsDetailViewFormatter},
+					{name:"<spring:message code="cax.rights.detail.query.label.fundcode" htmlEscape="false"/>", field: "fundCode", id: "fundCode", width: 120, sortable: true}, 
+					{name:"<spring:message code="cax.rights.detail.query.result.label.fundname" htmlEscape="false"/>", field: "fundName", id: "fundName", width: 130, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.label.fundaccountno" htmlEscape="false"/>", field: "accountNo", id: "accountNo", width: 140, sortable: true, formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'fundAccountPk'}},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.fundaccountname" htmlEscape="false"/>", field: "accountName", id: "accountName", width: 160, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.label.bankcode" htmlEscape="false"/>", field: "bankNo", id: "bankNo", width: 110, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.bankname" htmlEscape="false"/>", field: "bankName", id: "bankName", width: 160, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.label.bankaccountno" htmlEscape="false"/>", field: "bankAccountNo", id: "bankAccountNo", width: 140, sortable: true, formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'bankAccountPk'}},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.bankaccountname" htmlEscape="false"/>", field: "bankAccountName", id: "bankAccountName", width: 160, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.label.eventrefno" htmlEscape="false"/>", field: "conditionReferenceNo", id: "conditionReferenceNo", width: 120, sortable: true, formatter:Slick.Formatters.EventDetailViewFormater},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.adjustmentdate" htmlEscape="false"/>", field: "adjustmentDateStr", id: "adjustmentDateStr", width: 120, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.label.eventtype" htmlEscape="false"/>", field: "subEventTypeDescription", id: "subEventTypeDescription", width: 140, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.eventtypename" htmlEscape="false"/>", field: "eventTypeName", id: "eventTypeName", width: 170, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.label.allotmentsecurityccycode" htmlEscape="false"/>", field: "allotmentInstCode", id: "allotmentInstCode", width: 180, sortable: true,formatter:Slick.Formatters.AllotmentInstrumentDetailViewFormater},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.allotmentsecurityccyname" htmlEscape="false"/>", field: "baseInstrumentName", id: "baseInstrumentName", width: 240, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.alternateallotmentsecurity" htmlEscape="false"/>", field: "alternateAllottedSecurity", id: "alternateAllottedSecurity", width: 180, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.label.securitycode" htmlEscape="false"/>", field: "instrumentCode", id: "instrumentCode", width: 100, sortable: true, formatter:Slick.Formatters.InstrumentDetailViewFormater},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.securityname" htmlEscape="false"/>", field: "allotedInstrumentName", id: "allotedInstrumentName", width: 220, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.alternatesecurityid" htmlEscape="false"/>", field: "alternateSecurity", id: "alternateSecurity", width: 150, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.cashrate" htmlEscape="false"/>", field: "allottedAmountStr", id: "allottedAmountStr", width: 100, sortable: true, cssClass: 'xenos-grid-number', formatter:Slick.Formatters.NegetiveBalanceFormatter},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.couponrate" htmlEscape="false"/>", field: "allotmentPercentage", id: "allotmentPercentage", width: 100, sortable: true, cssClass: 'xenos-grid-number', formatter:Slick.Formatters.NegetiveBalanceFormatter},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.allotmentquantity" htmlEscape="false"/>", field: "allottedQuantityStr", id: "allottedQuantityStr", width: 150, sortable: true, cssClass: 'xenos-grid-number', formatter:Slick.Formatters.NegetiveBalanceFormatter},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.netamount" htmlEscape="false"/>", field: "netAmountStr", id: "netAmountStr", width: 100, sortable: true, cssClass: 'xenos-grid-number', formatter:Slick.Formatters.NegetiveBalanceFormatter},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.taxamount" htmlEscape="false"/>", field: "taxAmountStr", id: "taxAmountStr", width: 100, sortable: true, cssClass: 'xenos-grid-number', formatter:Slick.Formatters.NegetiveBalanceFormatter},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.securitybalance" htmlEscape="false"/>", field: "securityBalanceStr", id: "securityBalanceStr", width: 150, sortable: true, cssClass: 'xenos-grid-number', formatter:Slick.Formatters.NegetiveBalanceFormatter},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.deliverreceiveflag" htmlEscape="false"/>", field: "deliverReceiveFlag", id: "deliverReceiveFlag", width: 150, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.label.exceptionflag" htmlEscape="false"/>", field: "exceptionFlag", id: "exceptionFlag", width: 100, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.label.temporarybalanceflag" htmlEscape="false"/>", field: "isForTempBalance", id: "isForTempBalance", width: 170, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.pricerate" htmlEscape="false"/>", field: "stockRateStr", id: "stockRateStr", width: 100, sortable: true, cssClass: 'xenos-grid-number', formatter:Slick.Formatters.NegetiveBalanceFormatter},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.exdate" htmlEscape="false"/>", field: "executionDateStr", id: "executionDateStr", width: 100, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.paymentdate" htmlEscape="false"/>", field: "paymentDateStr", id: "paymentDateStr", width: 100, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.result.label.availabledate" htmlEscape="false"/>", field: "availableDateStr", id: "availableDateStr", width: 100, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.label.finalizedflag" htmlEscape="false"/>", field: "finalizedFlag", id: "finalizedFlag", width: 100, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.label.inconsistencyflag" htmlEscape="false"/>", field: "inconsistencyFlag", id: "inconsistencyFlag", width: 130, sortable: true},
+					{name:"<spring:message code="cax.rights.detail.query.label.status" htmlEscape="false"/>", field: "status", id: "status", width: 100, sortable: true, formatter:Slick.Formatters.CancelRecordFormatter}
+				];
+		
+				var grid_result_settings = {
+					enableToolbar:true,
+					consolidateActionFlag:true,
+					buttons:{ 
+						print:true, 
+						xls:true, 
+						pdf:true, 
+						xlsPref:true,
+						columnPicker:true, 
+						save:true 
+					},
+					pagingInfo:{ 
+						isNext : isNext, 
+						url: 'secure/cax/entitlement/query/count.json' 
+					}, 
+					urls:{
+						nextPage : '/secure/cax/entitlement/query/result.json?fetch=next', 
+						prevPage : '/secure/cax/entitlement/query/result.json?fetch=previous', 
+						pdfReport: '/secure/cax/entitlement/query/report.json?outputType=pdf', 
+						xlsReport: '/secure/cax/entitlement/query/report.json?outputType=xls',
+                        xlsCurrent: '/secure/cax/entitlement/query/reportPref.json?outputType=xls'						
+					},
+					events:{
+						onDataUpdate: function(data,continueUpdate){
+							for(i in data.value){
+								data.value[i].fundAccountPk = data.value[i].accountPk;
+							}
+							continueUpdate(data);
+						}
+					},
+					
+					defaultInvisibleColumns: ["accountName", "bankAccountName","adjustmentDateStr", "exceptionFlag", "isForTempBalance",  "availableDateStr"]	
+				};
+		
+				var row_id = 0; 
+				var rec = {};
+				<xenos:out escapeXml="false"> 
+					<c:forEach items="${value}" var="dl">
+						rec = {};
+						row_id+=1;
+						rec.id = "xenos_" + row_id;
+						rec.fundAccountPk = "<c:out value="${dl.accountPk}" />";
+						rec.bankAccountPk= "<c:out value="${dl.bankAccountPk}" />";
+						rec.allotmentInstPk= "<c:out value="${dl.allotmentInstPk}" />";
+						rec.instrumentPk= "<c:out value="${dl.instrumentPk}" />";
+						rec.rightsDetailPk = "<c:out value="${dl.rightsDetailPk}" />";
+						rec.rightsConditionPk = "<c:out value="${dl.rightsConditionPk}" />";
+					
+						rec.detailReferenceNo= "<c:out value="${dl.detailReferenceNo}" />";
+						rec.fundCode= "<c:out value="${dl.fundCode}" />";
+						rec.fundName= "<c:out value="${dl.fundName}" />";
+						rec.accountNo= "<c:out value="${dl.accountNo}" />";
+						rec.accountName= "<c:out value="${dl.accountName}" />";
+						rec.bankNo= "<c:out value="${dl.bankNo}" />";
+						rec.bankName= "<c:out value="${dl.bankName}" />";
+						rec.bankAccountNo= "<c:out value="${dl.bankAccountNo}" />";
+						rec.bankAccountName= "<c:out value="${dl.bankAccountName}" />";
+						rec.conditionReferenceNo= "<c:out value="${dl.conditionReferenceNo}" />";
+						rec.adjustmentDateStr= "<c:out value="${dl.adjustmentDateStr}" />";
+						rec.subEventTypeDescription= "<c:out value="${dl.subEventTypeDescription}" />";
+						rec.eventTypeName= "<c:out value="${dl.eventTypeName}" />";
+						rec.allotmentInstCode= "<c:out value="${dl.allotmentInstCode}" />";
+						rec.baseInstrumentName= "<c:out value="${dl.baseInstrumentName}" />";
+						rec.alternateAllottedSecurity= "<c:out value="${dl.alternateAllottedSecurity}" />";
+						rec.instrumentCode= "<c:out value="${dl.instrumentCode}" />";
+						rec.allotedInstrumentName= "<c:out value="${dl.allotedInstrumentName}" />";
+						rec.alternateSecurity= "<c:out value="${dl.alternateSecurity}" />";
+						rec.allottedAmountStr= "<c:out value="${dl.allottedAmountStr}" />";
+						rec.allotmentPercentage= "<c:out value="${dl.allotmentPercentage}" />";
+						rec.allottedQuantityStr= "<c:out value="${dl.allottedQuantityStr}" />";
+						rec.netAmountStr= "<c:out value="${dl.netAmountStr}" />";
+						rec.taxAmountStr= "<c:out value="${dl.taxAmountStr}" />";
+						rec.securityBalanceStr= "<c:out value="${dl.securityBalanceStr}" />";
+						rec.deliverReceiveFlag= "<c:out value="${dl.deliverReceiveFlag}" />";
+						rec.exceptionFlag= "<c:out value="${dl.exceptionFlag}" />";
+						rec.isForTempBalance= "<c:out value="${dl.isForTempBalance}" />";
+						rec.stockRateStr= "<c:out value="${dl.stockRateStr}" />";
+						rec.executionDateStr= "<c:out value="${dl.executionDateStr}" />";
+						rec.paymentDateStr= "<c:out value="${dl.paymentDateStr}" />";
+						rec.availableDateStr= "<c:out value="${dl.availableDateStr}" />";
+						rec.finalizedFlag= "<c:out value="${dl.finalizedFlag}" />";
+						rec.inconsistencyFlag= "<c:out value="${dl.inconsistencyFlag}" />";
+						rec.status= "<c:out value="${dl.status}" />";
+						grid_result_data.push(rec); 
+					</c:forEach> 
+				</xenos:out> 
+		</jsp:body>
+        </jsp:element>
+
+		<!--End Javascript for Grid configurations-->
+
+		<!--Import for JavaScript file-->
+		
+		<jsp:element name="script">
+            <jsp:attribute name="type">text/javascript</jsp:attribute>
+            <jsp:attribute name="src">
+                <c:url value="/scripts/cax/xenos/rightsDetailQueryResult.js"/>
+            </jsp:attribute>
+            <jsp:body/>
+        </jsp:element>
+
+		
+    </div>
+</jsp:root>

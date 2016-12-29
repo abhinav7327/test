@@ -1,0 +1,1009 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- MXML module for Audit View.  -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+    xmlns:cntrls="com.nri.rui.core.controls.*"
+    xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"
+    percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" 
+    verticalScrollPolicy="off" creationComplete="init()">
+    <mx:Script>
+        <![CDATA[
+        	import mx.controls.dataGridClasses.DataGridColumn;
+        	import mx.controls.Text;
+            
+        	import mx.utils.StringUtil;
+            import mx.events.StateChangeEvent;
+            import flash.events.Event;
+            import mx.events.CloseEvent;
+            import mx.collections.XMLListCollection;
+            import mx.controls.advancedDataGridClasses.AdvancedDataGridColumn;
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.binding.utils.BindingUtils;
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.controls.XenosAlert;
+            import mx.managers.FocusManager;
+            import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+            import mx.rpc.events.FaultEvent;
+            import mx.controls.Alert;
+            import com.nri.rui.core.Globals;
+             import mx.events.CloseEvent;
+            
+ 	        [Bindable]
+ 	        public var displayEdit : cashEditRemarks;
+ 	        [Bindable]
+ 	        public var displayForceMatchEdit : cashEditForceMatch;
+            
+            [Bindable]private var rowNum : String = "";
+            
+            [Bindable]
+            private var objForm:Object = null;
+            [Bindable]
+            private var remarksAuditPopupView:ArrayCollection  = new ArrayCollection();
+            [Bindable]
+            private var adjustmentEntryAuditPopupView:ArrayCollection  = new ArrayCollection();
+            [Bindable]
+            private var forceMatchAuditPopupView:ArrayCollection = new ArrayCollection();
+            [Bindable]
+            private var movInfo:ArrayCollection = new ArrayCollection();
+            [Bindable]
+            private var objActQryView:Object = null;
+            
+            [Bindable]private var custBalStr : String = "";
+            
+            [Bindable]private var ncmBalStr : String = "";
+		    
+		    [Bindable]
+		    private var rs:XML = new XML();
+
+            /**
+             * Extracts the parameters and set them to some variables for query criteria from the Module Loader Info.
+             * 
+             */ 
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if(tempA[0] == "rowNum"){
+                            rowNum = tempA[1];
+//                            XenosAlert.info("rowNum = " + rowNum);
+                        } 
+                    }
+                } catch (e:Error) {
+                    trace(e);
+                }               
+            }
+            /**
+             * Initializes the module and send the submit request.
+             * 
+             */     
+            private function init():void{
+                
+                parseUrlString();
+                
+                var rndNo:Number = Math.random();
+                auditViewInitHttpService.url= "rec/cashReferResultDispatch.action?rnd=" + rndNo;
+                
+                var req : Object = new Object();
+                req.method="viewAuditPopUp";
+                req.rowNum=rowNum;
+                auditViewInitHttpService.request=req;
+                
+                auditViewInitHttpService.send();
+                PopUpManager.centerPopUp(this);
+            }
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function initHttpService_fault(evt:FaultEvent):void {
+                XenosAlert.error("Unable to Perform the requested operation." + evt.fault.faultString + evt.fault.faultDetail);
+            }
+            /**
+             * Result handler for the init submit Request. 
+             * 
+             */ 
+            private function initHttpService_result(event:ResultEvent):void { 
+		 		rs = XML(event.result);
+		 		
+                var tempResult:ArrayCollection = new ArrayCollection();     
+		 		if (null != event) {
+		 			if(rs.child("Errors").length()>0){ 
+						// i.e. Must be error, display it .
+						var errorInfoList : ArrayCollection = new ArrayCollection();
+						//populate the error info list 			 	
+						for each ( var error:XML in rs.Errors.error ) {
+							errorInfoList.addItem(error.toString());
+						}
+						errPage.showError(errorInfoList);//Display the error
+			      	}else {
+			      	 	errPage.removeError();	      	 	
+                        
+                        objForm = rs;
+                        
+                        if(rs.child("forceMatchAuditPopUpViewList").child("forceMatchAuditPopUpView").length()>0){
+                        	forceMatchAuditPopupView.removeAll();
+	                        for each ( var rec3:XML in rs.forceMatchAuditPopUpViewList.forceMatchAuditPopUpView ) {
+	                        	forceMatchAuditPopupView.addItem(rec3);
+							}                    
+                        
+                        	forceMatchCont.visible=true;
+                        	forceMatchCont.includeInLayout=true;
+                        }else{
+                        	forceMatchCont.visible=false;
+                        	forceMatchCont.includeInLayout=false;
+                        }
+                        if(rs.child("remarksAuditPopUpViewList").child("remarksAuditPopUpView").length()>0){
+                        	remarksAuditPopupView.removeAll();
+	                        for each ( var rec1:XML in rs.remarksAuditPopUpViewList.remarksAuditPopUpView ) {
+	                        	remarksAuditPopupView.addItem(rec1);
+							}                    
+                        
+                        	remarksCont.visible=true;
+                        	remarksCont.includeInLayout=true;
+                        }else{
+                        	remarksCont.visible=false;
+                        	remarksCont.includeInLayout=false;
+                        }
+                        if(rs.child("adjustmentEntryAuditPopUpViewList").child("adjustmentEntryAuditPopUpView").length()>0){
+                        	adjustmentEntryAuditPopupView.removeAll();
+	                        for each ( var rec2:XML in rs.adjustmentEntryAuditPopUpViewList.adjustmentEntryAuditPopUpView ) {
+	                        	adjustmentEntryAuditPopupView.addItem(rec2);
+							}                    
+                        
+                        	adjustmentEntryCont.visible=true;
+                        	adjustmentEntryCont.includeInLayout=true;
+                        }else{
+                        	adjustmentEntryCont.visible=false;
+                        	adjustmentEntryCont.includeInLayout=false;
+                        }
+                        // RUI-1139
+                        if(rs.child("dtlObjInForAudit").length()>0){
+                        
+			                if(!XenosStringUtils.isBlank(rs.dtlObjInForAudit.custBalDisp) && rs.dtlObjInForAudit.custBalDisp.charAt(0)=="F"){
+			                    if(rs.dtlObjInForAudit.custBalDisp.length == 1)
+			                        custBalStr = XenosStringUtils.EMPTY_STR;
+			                    else
+			                        custBalStr = rs.dtlObjInForAudit.custBalDisp.substring(1);
+			                }else{
+			                    custBalStr = rs.dtlObjInForAudit.custBalDisp;                    
+			                }
+			                if(objForm.frxOutObjType == "NCM"){				                	
+				                if(!XenosStringUtils.isBlank(rs.dtlObjOutForAudit.ncmBalDisp) && rs.dtlObjOutForAudit.ncmBalDisp.charAt(0)=="F"){
+				                    if(rs.dtlObjOutForAudit.ncmBalDisp.length == 1)
+				                        ncmBalStr = XenosStringUtils.EMPTY_STR;
+				                    else
+				                        ncmBalStr = rs.dtlObjOutForAudit.ncmBalDisp.substring(1);
+				                }else{
+				                    ncmBalStr = rs.dtlObjOutForAudit.ncmBalDisp;                    
+				                }
+			                }else{
+			                	
+			                if(!XenosStringUtils.isBlank(rs.dtlObjOutForAudit.custBalDisp) && rs.dtlObjOutForAudit.custBalDisp.charAt(0)=="F"){
+			                    if(rs.dtlObjOutForAudit.custBalDisp.length == 1)
+			                        ncmBalStr = XenosStringUtils.EMPTY_STR;
+			                    else
+			                        ncmBalStr = rs.dtlObjOutForAudit.custBalDisp.substring(1);
+			                }else{
+			                    ncmBalStr = rs.dtlObjOutForAudit.custBalDisp;                    
+			                }
+			                }
+                        	forexTrnfCont.visible=true;
+                        	forexTrnfCont.includeInLayout=true;
+                        }else{                     	
+	                        //XenosAlert.info("I am invisible");
+                        	forexTrnfCont.visible=false;
+                        	forexTrnfCont.includeInLayout=false;
+                        }
+                        
+                        movInfo.removeAll();
+	                    for each ( var rec:XML in rs.movementInfo ) {
+	                        movInfo.addItem(rec);
+						}     
+                        //XenosAlert.info("movInfo.length"+movInfo.length);
+                        var movItr:int=0;
+                        for(movItr=0;movItr<movInfo.length;movItr++){
+                        	movInfo[movItr].bankName=rs.recCashReferResultActQueryView.bankName;
+                        	movInfo[movItr].fundCode=rs.auditPopUpView.fundCode;
+                        	movInfo[movItr].accountNo=rs.auditPopUpView.accountNo;
+                        	
+                            //XenosAlert.info("basedateCloseDisp : "+event.result.recCashReferResultActionForm.recCashReferResultActQueryView.basedateCloseDisp);
+                        	movInfo[movItr].date=rs.recCashReferResultActQueryView.basedateCloseDisp;
+                        }
+                        
+                        var forceItr:int=0;
+                        for(forceItr=0;forceItr<forceMatchAuditPopupView.length;forceItr++){
+                        	
+                        	forceMatchAuditPopupView[forceItr].rowNo=forceItr;
+			        	    if(forceMatchAuditPopupView[forceItr].status=="CANCEL" || movInfo[0].matchStatus == "FORCE_MATCHED" ){
+			        	    	forceMatchAuditPopupView[forceItr].show = false;
+			        	    }else{
+			        	    	forceMatchAuditPopupView[forceItr].show = true;
+			        	    	
+			        	    }
+                        }
+                        var remarkItr:int=0;
+                        for(remarkItr=0;remarkItr<remarksAuditPopupView.length;remarkItr++){
+                        	remarksAuditPopupView[remarkItr].rowNo=remarkItr;
+			        	    if(remarksAuditPopupView[remarkItr].status=="CANCEL"){
+			        	    	remarksAuditPopupView[remarkItr].show = false;
+			        	    }else{
+			        	    	remarksAuditPopupView[remarkItr].show = true;
+			        	    	
+			        	    }
+                        }
+                        
+                    } 
+                }
+            }
+            /**
+             * Close this window.
+             */ 
+            private function doClose(event:MouseEvent):void{
+                this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+            }
+
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function submit_fault(evt:FaultEvent):void {
+                XenosAlert.error("Unable to Perform the requested operation." + evt.fault.faultString + evt.fault.faultDetail);
+            }
+            
+            
+            private function getMatchStatus(item:Object, column:AdvancedDataGridColumn):String {
+                if(item.matchStatus == "UNMATCHED"){                   
+                   return "UNMATCHED";
+                }else if(item.matchStatus == "UNPAIRED"){                   
+                   return "UNPAIRED";
+                }else if(item.matchStatus == "FORCE_MATCHED"){                   
+                   return "FORCE MATCHED";
+                }else if(item.matchStatus == "MATCHED"){                   
+                   return " ";
+                }else{
+                    return "";
+                }
+                
+            }
+            /**
+             * Result handler for the submit Request. 
+             * 
+             */ 
+            private function submit_result(event:ResultEvent):void { 
+                
+                if (null != event) {  
+                    if(null == event.result.recCashReferResultActionForm){ 
+                        if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+                            errPage.clearError(event); //clears the errors if any
+                            XenosAlert.info("No Result Found!");
+                        } else { // Must be error
+                            errPage.displayError(event);    
+                        }                                   
+                    }else {
+                        errPage.clearError(event);
+                        
+                        objForm = event.result.recCashReferResultActionForm;
+                        
+                        if(objForm != null){
+                            if(objForm.submitFlg == true){
+                                if(objForm.errorFlg == false){
+                                    
+                                    this.parentDocument.dispatchEvent(new Event("RefreshChanges"));
+                                    this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+                                }
+                            }
+                        }
+                    } 
+             }
+        }           
+        
+        public function editRemarks(event:Event,obj:Object):void {
+        	
+        	displayEdit = cashEditRemarks (
+        	PopUpManager.createPopUp(this, cashEditRemarks, true));
+        	PopUpManager.centerPopUp(displayEdit);
+	        displayEdit.title="Remarks Edit Popup";
+	        displayEdit.showCloseButton=true;
+	        displayEdit.addEventListener("close", removeRemarksPopup);
+	        displayEdit["cancelButton"].addEventListener("click", removeRemarksPopup);  
+	        displayEdit["okButton"].addEventListener("click", editRemarksConf);
+	        //displayEdit.uId=obj.userId;
+	        displayEdit.userIdPopUp.employeeText.text=obj.userId;
+	        displayEdit.remarks=obj.remarks;
+	        displayEdit.cashAdjustPk=obj.cashAdjustPkStr;
+	        displayEdit.rowNumber=obj.rowNo;
+	        
+        }     
+        public function deleteRemarks(event:Event,obj:Object):void {
+                var rndNo:Number = Math.random();
+	        	deleteAuditPopupConf.url="rec/cashReferResultDispatch.action?rnd=" + rndNo;
+	        	
+		        var requestObj :Object = new Object;
+		        
+		        requestObj.method="deleteRemarks";
+		        requestObj.auditType="REMARKS";
+		        requestObj.rowNum=obj.rowNo;
+		        requestObj.cashAdjjustPk=obj.cashAdjustPkStr;
+		        
+		        deleteAuditPopupConf.request=requestObj;
+		        //deleteAuditPopupConf.send();
+		       
+		       XenosAlert.confirm("Are you sure you want to delete?",confirmHandler);
+	        
+        }      
+        
+        
+    /**
+     * Remove popup
+      */                     
+	  private function removeRemarksPopup(event:Event):void {
+		PopUpManager.removePopUp(displayEdit);
+	  } 
+        public function editRemarksConf(event:Event):void {
+        	
+        	
+	        var validationMessage:String = "";    	
+	        var validationMessageCommon:String = " cannot be blank";
+        	
+	        if(XenosStringUtils.isBlank(displayEdit.remarkTxt.text)){
+	        	validationMessage="remarks "+validationMessageCommon;
+	        }
+//	        if(XenosStringUtils.isBlank(displayEdit.userIdPopUp.employeeText.text)){
+//	        	validationMessage="userId "+validationMessageCommon;
+//	        }
+	        if(validationMessage!=""){
+	        	XenosAlert.error(validationMessage);
+	        }else{
+	        	
+                var rndNo:Number = Math.random();
+	        	editAuditPopupConf.url="rec/cashReferResultDispatch.action?rnd=" + rndNo;
+	        	
+		        var requestObj :Object = new Object;
+		        
+		        requestObj.method="editRemarks";
+		        requestObj.auditType="REMARKS";
+		        requestObj.rowNum=displayEdit.rowNumber;
+		        requestObj.remarks=displayEdit.remarkTxt.text;
+		        requestObj.userId=displayEdit.userIdPopUp.employeeText.text;
+		        requestObj.cashAdjjustPk=displayEdit.cashAdjustPk;
+		        
+		        editAuditPopupConf.request=requestObj;
+		        
+		        editAuditPopupConf.send();	        
+	        	
+	        }
+	        
+        }
+		        
+		private function confirmHandler(event:CloseEvent):void {
+		     if (event.detail == Alert.YES) {
+		     	deleteAuditPopupConf.send();
+		     }
+		}
+        
+       public function editConfResult(event:ResultEvent):void {
+       	   remarksAuditPopupView.removeAll();
+       	  // init();
+       	  
+            if(event.result.recCashReferResultActionForm == null){           	
+                if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+                    displayEdit.errPage.clearError(event);
+                    removeRemarksPopup(new MouseEvent(MouseEvent.CLICK));
+                }else{
+                   displayEdit.errPage.displayError(event);
+                }
+                init();
+            	remarksCont.visible=true;
+            	remarksCont.includeInLayout=true;
+            }else{            	
+            	if(event.result.recCashReferResultActionForm.remarksAuditPopUpViewList!=null){
+                	
+	            	displayEdit.errPage.clearError(event);
+	                	
+                if(event.result.recCashReferResultActionForm.remarksAuditPopUpViewList.remarksAuditPopUpView is ArrayCollection){
+                	remarksAuditPopupView=event.result.recCashReferResultActionForm.remarksAuditPopUpViewList.remarksAuditPopUpView as ArrayCollection;
+                }else{
+                	remarksAuditPopupView.addItem(event.result.recCashReferResultActionForm.remarksAuditPopUpViewList.remarksAuditPopUpView);
+                }
+	       	        removeRemarksPopup(new MouseEvent(MouseEvent.CLICK));
+	            	
+            	remarksCont.visible=true;
+            	remarksCont.includeInLayout=true;
+                  }
+            }
+        
+            var remarkItr:int=0;
+            for(remarkItr=0;remarkItr<remarksAuditPopupView.length;remarkItr++){
+            	remarksAuditPopupView[remarkItr].rowNo=remarkItr;
+        	    if(remarksAuditPopupView[remarkItr].status=="CANCEL"){
+        	    	remarksAuditPopupView[remarkItr].show = false;
+        	    }else{
+        	    	remarksAuditPopupView[remarkItr].show = true;
+        	    	
+        	    }
+            }
+       }	
+       
+       public function deleteConfResult(event:ResultEvent):void {
+       	   //removeRemarksPopup(new MouseEvent(MouseEvent.CLICK));
+       	   remarksAuditPopupView.removeAll();
+       	  // init();
+       	  
+            if(event.result.recCashReferResultActionForm.remarksAuditPopUpViewList!=null){
+                	
+                if(event.result.recCashReferResultActionForm.remarksAuditPopUpViewList.remarksAuditPopUpView is ArrayCollection){
+                	remarksAuditPopupView=event.result.recCashReferResultActionForm.remarksAuditPopUpViewList.remarksAuditPopUpView as ArrayCollection;
+                }else{
+                	remarksAuditPopupView.addItem(event.result.recCashReferResultActionForm.remarksAuditPopUpViewList.remarksAuditPopUpView);
+                }
+            	remarksCont.visible=true;
+            	remarksCont.includeInLayout=true;
+            }else{
+            	remarksCont.visible=false;
+            	remarksCont.includeInLayout=false;
+            }
+            
+            var remarkItr:int=0;
+            for(remarkItr=0;remarkItr<remarksAuditPopupView.length;remarkItr++){
+            	remarksAuditPopupView[remarkItr].rowNo=remarkItr;
+        	    if(remarksAuditPopupView[remarkItr].status=="CANCEL"){
+        	    	remarksAuditPopupView[remarkItr].show = false;
+        	    }else{
+        	    	remarksAuditPopupView[remarkItr].show = true;
+        	    	
+        	    }
+            }
+       }
+       
+       
+       //force match
+       
+        public function editForceMatch(event:Event,obj:Object):void {
+        	
+        	displayForceMatchEdit = cashEditForceMatch (
+        	PopUpManager.createPopUp(this, cashEditForceMatch, true));
+        	PopUpManager.centerPopUp(displayForceMatchEdit);
+	        displayForceMatchEdit.title="Force Match Edit Popup";
+	        displayForceMatchEdit.showCloseButton=true;
+	        displayForceMatchEdit.addEventListener("close", removeForceMatchPopup);
+	        displayForceMatchEdit["cancelButton"].addEventListener("click", removeForceMatchPopup);  
+	        displayForceMatchEdit["okButton"].addEventListener("click", editForceMatchConf);
+	        //displayForceMatchEdit.uId=obj.userId;
+	        //displayForceMatchEdit.userIdPopUp.employeeText.text=obj.userId;
+	        displayForceMatchEdit.remarks=obj.remarks;
+	        displayForceMatchEdit.cashAdjustPk=obj.cashAdjustPkStr;
+	        displayForceMatchEdit.rowNumber=obj.rowNo;
+	        
+        }     
+        public function deleteForceMatch(event:Event,obj:Object):void {
+                var rndNo:Number = Math.random();
+	        	editForceAuditPopupConf.url="rec/cashReferResultDispatch.action?rnd=" + rndNo;
+	        	
+		        var requestObj :Object = new Object;
+		        
+		        requestObj.method="deleteRemarks";
+		        requestObj.auditType="FORCEMATCH";
+		        requestObj.rowNum=obj.rowNo;
+		        requestObj.cashAdjjustPk=obj.cashAdjustPkStr;
+		        
+		        editForceAuditPopupConf.request=requestObj;
+		        //editForceAuditPopupConf.send();
+		       
+		       XenosAlert.confirm("Are you sure you want to delete?",confirmForceMatchHandler);
+	        
+        }      
+        
+        
+    /**
+     * Remove popup
+      */                     
+	  private function removeForceMatchPopup(event:Event):void {
+		PopUpManager.removePopUp(displayForceMatchEdit);
+	  } 
+        public function editForceMatchConf(event:Event):void {
+        	
+        	
+	        var validationMessage:String = "";    	
+	        var validationMessageCommon:String = " cannot be blank";
+        	
+	        if(XenosStringUtils.isBlank(displayForceMatchEdit.remarkTxt.text)){
+	        	validationMessage="remarks "+validationMessageCommon;
+	        }
+	        if(validationMessage!=""){
+	        	XenosAlert.error(validationMessage);
+	        }else{
+	        	
+                var rndNo:Number = Math.random();
+	        	editForceAuditPopupConf.url="rec/cashReferResultDispatch.action?rnd=" + rndNo;
+	        	
+		        var requestObj :Object = new Object;
+		        
+		        requestObj.method="editRemarks";
+		        requestObj.auditType="FORCEMATCH";
+		        requestObj.rowNum=displayForceMatchEdit.rowNumber;
+		        requestObj.remarks=displayForceMatchEdit.remarkTxt.text;
+		        requestObj.userId="";
+		        requestObj.cashAdjjustPk=displayForceMatchEdit.cashAdjustPk;
+		        
+		        editForceAuditPopupConf.request=requestObj;
+		        
+		        editForceAuditPopupConf.send();	        
+	        	
+	        }
+	        
+        }
+		        
+		private function confirmForceMatchHandler(event:CloseEvent):void {
+		     if (event.detail == Alert.YES) {
+		     	editForceAuditPopupConf.send();
+		     }
+		}
+        
+       public function editForceConfResult(event:ResultEvent):void {
+       	  	forceMatchAuditPopupView.removeAll();//remove list 	
+
+            if(event.result.recCashReferResultActionForm == null 
+            		|| event.result.recCashReferResultActionForm.forceMatchAuditPopUpViewList==null){
+            	if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+                    displayForceMatchEdit.errPage.clearError(event);
+                    removeForceMatchPopup(new MouseEvent(MouseEvent.CLICK));
+                }else{
+                	displayForceMatchEdit.errPage.displayError(event);                    
+                }
+                init();
+            	forceMatchCont.visible=true;
+            	forceMatchCont.includeInLayout=true;
+            	
+        	}else{
+        		
+           		if(event.result.recCashReferResultActionForm.forceMatchAuditPopUpViewList.forceMatchAuditPopUpView is ArrayCollection){
+                	forceMatchAuditPopupView=event.result.recCashReferResultActionForm.forceMatchAuditPopUpViewList.forceMatchAuditPopUpView as ArrayCollection;
+                }else{
+                	forceMatchAuditPopupView.addItem(event.result.recCashReferResultActionForm.forceMatchAuditPopUpViewList.forceMatchAuditPopUpView);
+                } 	                        
+            
+            	forceMatchCont.visible=true;
+            	forceMatchCont.includeInLayout=true;
+            	
+            	var forceItr:int=0;
+		        for(forceItr=0;forceItr<forceMatchAuditPopupView.length;forceItr++){
+		        	
+		        	forceMatchAuditPopupView[forceItr].rowNo=forceItr;
+		    	    if(forceMatchAuditPopupView[forceItr].status=="CANCEL"){
+		    	    	forceMatchAuditPopupView[forceItr].show = false;
+		    	    }else{
+		    	    	forceMatchAuditPopupView[forceItr].show = true;
+		    	    }
+		        }
+            }
+       }	
+       
+       public function deleteForceConfResult(event:ResultEvent):void {
+       	   forceMatchAuditPopupView.removeAll();
+       	  // init();
+ 
+            if(event.result.recCashReferResultActionForm.forceMatchAuditPopUpViewList!=null){
+            	
+                if(event.result.recCashReferResultActionForm.forceMatchAuditPopUpViewList.forceMatchAuditPopUpView is ArrayCollection){
+                	forceMatchAuditPopupView=event.result.recCashReferResultActionForm.forceMatchAuditPopUpViewList.forceMatchAuditPopUpView as ArrayCollection;
+                }else{
+                	forceMatchAuditPopupView.addItem(event.result.recCashReferResultActionForm.forceMatchAuditPopUpViewList.forceMatchAuditPopUpView);
+                } 	                        
+            
+            	forceMatchCont.visible=true;
+            	forceMatchCont.includeInLayout=true;
+            }else{
+            	forceMatchCont.visible=false;
+            	forceMatchCont.includeInLayout=false;
+            }
+	
+	        var forceItr:int=0;
+	        for(forceItr=0;forceItr<forceMatchAuditPopupView.length;forceItr++){
+	        	
+	        	forceMatchAuditPopupView[forceItr].rowNo=forceItr;
+	    	    if(forceMatchAuditPopupView[forceItr].status=="CANCEL"){
+	    	    	forceMatchAuditPopupView[forceItr].show = false;
+	    	    }else{
+	    	    	forceMatchAuditPopupView[forceItr].show = true;
+	    	    	
+	    	    }
+	        }
+       }
+            
+			/**
+             * Extract the value of the colum cell removing the prefix added at '0'th index.
+             */ 
+            private function extractPrecisionedValue(item:Object, column:AdvancedDataGridColumn):String{
+                var strData:String = item[column.dataField];
+                if(!XenosStringUtils.isBlank(strData) && strData.charAt(0)=="F"){
+                    if(strData.length == 1)
+                        return XenosStringUtils.EMPTY_STR;
+                    else
+                        return strData.substring(1);
+                }else{
+                    return item[column.dataField];                    
+                }
+            }
+            
+			/**
+             * Extract the value of the colum cell removing the prefix added at '0'th index.
+             */ 
+            private function extractPrecisionedValueForDataGrid(item:Object, column:DataGridColumn):String{
+                var strData:String = item[column.dataField];
+                if(!XenosStringUtils.isBlank(strData) && strData.charAt(0)=="F"){
+                    if(strData.length == 1)
+                        return XenosStringUtils.EMPTY_STR;
+                    else
+                        return strData.substring(1);
+                }else{
+                    return item[column.dataField];                    
+                }
+            }
+            
+            /**
+             * Label Function for the date column in the result.
+             * 
+             */   
+            private function getDate(item:Object, column:AdvancedDataGridColumn):String {
+                if(item.ncmBdate == null || XenosStringUtils.isBlank(item.ncmBdate)){                   
+                   return item.custBdate;
+                }else{
+                    return item.ncmBdate;
+                }
+                
+            }
+        ]]>
+    </mx:Script>    
+    
+    <cntrls:XenosHTTPService id="auditViewInitHttpService" 
+            useProxy="false"
+            fault="initHttpService_fault(event);"
+            result="initHttpService_result(event)" showBusyCursor="true" resultFormat="xml">
+          <!--  <mx:request>
+                <method>viewAuditPopUp</method>
+                <rowNum>{rowNum}</rowNum>
+            </mx:request> -->
+     </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="editAuditPopupConf" 
+            useProxy="false"
+            fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+            result="editConfResult(event)" showBusyCursor="true">
+     </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="deleteAuditPopupConf" 
+            useProxy="false"
+            fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+            result="deleteConfResult(event)" showBusyCursor="true">
+     </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="editForceAuditPopupConf" 
+            useProxy="false"
+            fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+            result="editForceConfResult(event)" showBusyCursor="true">
+     </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="deleteForceAuditPopupConf" 
+            useProxy="false"
+            fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+            result="deleteForceConfResult(event)" showBusyCursor="true">
+     </cntrls:XenosHTTPService>
+     
+     <mx:DateFormatter id="dateFormatter" formatString="YYYYMMDD"/>
+     
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    	
+    <mx:VBox width="100%" height="100%" id="rslt" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    
+        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>
+	       
+	        <mx:VBox id="moveCont">
+	        <mx:Label text="Movement Information" width="100%" fontWeight="bold"/>
+	        <mx:AdvancedDataGrid id="cashReferDtlDG" dataProvider="{movInfo}" width="100%" height="100%" variableRowHeight="true" rowCount="{movInfo.length + 2}">
+	            <mx:groupedColumns>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.cash.re.query.label.date')}" dataField="" labelFunction="getDate"/>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.cash.re.query.label.fundcode')}" dataField="fundCode"/>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.cash.re.query.label.accountno')}" dataField="accountNo"/>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.cash.re.query.label.bankname')}" dataField="bankName"/>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ccy')}" dataField="ccy"/>
+	                <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.amount')}">
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncm')}" dataField="ncmBalDisp"   labelFunction="extractPrecisionedValue"/>
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.cust')}" dataField="custBalDisp"   labelFunction="extractPrecisionedValue"/>
+	                </mx:AdvancedDataGridColumnGroup>
+	                <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.trntype')}">
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncm')}" dataField="ncmTrn"/>
+	                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.cust')}" dataField="custTrn"/>
+	                </mx:AdvancedDataGridColumnGroup>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.mtchstatus')}" dataField="matchStatus" labelFunction="getMatchStatus"/>                 
+	            </mx:groupedColumns>
+	        </mx:AdvancedDataGrid>	        	
+	        </mx:VBox>
+	        
+	        <mx:VBox id="remarksCont" visible="false" includeInLayout="false">
+	        	       	
+	           <mx:Label text="Remarks" width="100%" fontWeight="bold" />
+	            
+	        <mx:DataGrid id="remarksAuditPopupViewDg" width="100%" height="100%" dataProvider="{remarksAuditPopupView}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="off" rowCount="{remarksAuditPopupView.length + 2}">
+	        	<mx:columns>
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.userid')}" dataField="userId" />
+	        		<!--<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.remarks')}" dataField="remarks" />-->
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.remarks')}">
+         					<mx:itemRenderer>
+         						<mx:Component>
+         							<mx:VBox maxHeight="100" maxWidth="200" >
+         								<mx:TextArea text="{data.remarks}" width="100%" maxHeight="100" editable="false" selectable="true"/>	
+         							</mx:VBox>         						
+         						</mx:Component>
+         					</mx:itemRenderer>
+         			</mx:DataGridColumn>
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.creationDate')}" dataField="creationDate" />
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.createdBy')}" dataField="createdBy"/>
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.status')}" dataField="status"/>
+	        		<mx:DataGridColumn headerText="" width="40">
+	        			<mx:itemRenderer>
+	        				<mx:Component>	        				
+				               <mx:HBox width="100%" height="100%">
+	        					     <mx:Button id="editRemarks" visible="{data.show}" includeInLayout="{data.show}" styleName="BtnEdit" width="18" height="18" label="Edit" click="parentDocument.editRemarks(event,data)"/>				               	
+				               </mx:HBox>
+	        				</mx:Component>
+	        			</mx:itemRenderer>
+	        		</mx:DataGridColumn>
+	        		<!--mx:DataGridColumn headerText="" width="40">	        			
+	        			<mx:itemRenderer>
+	        				<mx:Component>
+	        				     <mx:HBox width="100%" height="100%">
+	        				     	<mx:Button id="deleteRemarks" visible="{data.show}" includeInLayout="{data.show}" styleName="BtnDelete" width="18" height="18" label="Delete" click="parentDocument.deleteRemarks(event,data)"/>
+	        				     </mx:HBox>
+	        				</mx:Component>
+	        			</mx:itemRenderer>
+	        		</mx:DataGridColumn-->
+	        	</mx:columns>
+	         </mx:DataGrid> 
+	        </mx:VBox>
+	        <mx:VBox id="forceMatchCont"  visible="false" includeInLayout="false">
+	           <mx:Label text="Force Match" width="100%" fontWeight="bold"/>
+			    <mx:HBox width="100%" styleName="ButtonBackPanel">
+			    	  	
+		        <mx:AdvancedDataGrid id="foceMatchDG" dataProvider="{forceMatchAuditPopupView}" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" wordWrap="true" rowCount="{forceMatchAuditPopupView.length + 2}">
+		            <mx:groupedColumns>
+		                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ccy')}" dataField="ccy"/>
+		                <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.amount')}">
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncm')}" dataField="ncmBalDisp"   labelFunction="extractPrecisionedValue"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.cust')}" dataField="custBalDisp"   labelFunction="extractPrecisionedValue"/>
+		                </mx:AdvancedDataGridColumnGroup>
+		                <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.trntype')}">
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncm')}" dataField="ncmTrn"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.cust')}" dataField="custTrn"/>
+		                </mx:AdvancedDataGridColumnGroup>
+		                <mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.date')}">
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncm')}" dataField="ncmBdate"/>
+		                    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.cust')}" dataField="custBdate"/>
+		                </mx:AdvancedDataGridColumnGroup>
+		                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.mtchstatus')}" dataField="matchStatus" labelFunction="getMatchStatus"/> 
+		                <!--mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.remarks')}" dataField="remarks" /--> 
+		                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.authorize.status')}" dataField="authStatus" /> 
+		                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.creationDate')}" dataField="creationDate" />  
+		                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.createdBy')}" dataField="createdBy" />  
+		                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.status')}" dataField="status" />
+		                <!--mx:AdvancedDataGridColumn headerText="" width="40">
+	        			 <mx:itemRenderer>
+	        				<mx:Component>
+				                <mx:HBox width="100%" height="100%">
+	        					    <mx:Button id="editFM" visible="{data.show}" includeInLayout="{data.show}" styleName="BtnEdit" width="18" height="18" label="Edit" click="parentDocument.editForceMatch(event,data)"/>				                	
+				                </mx:HBox>
+	        				</mx:Component>
+	        			 </mx:itemRenderer>
+	        		   </mx:AdvancedDataGridColumn>
+	        		   <mx:AdvancedDataGridColumn headerText="" width="40">	        			
+	        			 <mx:itemRenderer>
+	        				<mx:Component>
+				               <mx:HBox width="100%" height="100%">
+	        					   <mx:Button id="deleteFM" visible="{data.show}" includeInLayout="{data.show}" styleName="BtnDelete" width="18" height="18" label="Delete" click="parentDocument.deleteForceMatch(event,data)"/>				               	
+				               </mx:HBox>
+	        				</mx:Component>
+	        			 </mx:itemRenderer>
+	        		   </mx:AdvancedDataGridColumn-->                  
+		            </mx:groupedColumns>
+		        </mx:AdvancedDataGrid>
+	                <mx:VBox width="300" height="100%">
+		                <mx:Text text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.remarks')}" width="100%" height="{foceMatchDG.headerHeight}" textAlign="center" fontWeight="bold"/>
+	                	<mx:TextArea id="remarks" width="100%" height="50" maxChars="100" text="{forceMatchAuditPopupView.getItemAt(0).remarks}" editable="false"/>	
+	                </mx:VBox>          
+	                <mx:VBox width="40" height="100%">
+		                <mx:Text text="" width="100%" height="{foceMatchDG.headerHeight}" textAlign="center" fontWeight="bold"/>
+	                	<mx:Button id="editFM" visible="{forceMatchAuditPopupView.getItemAt(0).show}" includeInLayout="{forceMatchAuditPopupView.getItemAt(0).show}" styleName="BtnEdit" width="18" height="18" label="Edit" click="editForceMatch(event,forceMatchAuditPopupView[0])"/>	
+	                </mx:VBox>          
+	                <!--mx:VBox width="40" height="100%">
+		                <mx:Text text="" width="100%" height="{foceMatchDG.headerHeight}" textAlign="center" fontWeight="bold"/>
+	                	<mx:Button id="deleteFM" visible="{forceMatchAuditPopupView.getItemAt(0).show}" includeInLayout="{forceMatchAuditPopupView.getItemAt(0).show}" styleName="BtnDelete" width="18" height="18" label="Delete" click="deleteForceMatch(event,forceMatchAuditPopupView[0])"/>	
+	                </mx:VBox-->              
+			    </mx:HBox>     
+	        </mx:VBox>
+	        <mx:VBox id="adjustmentEntryCont"  visible="false" includeInLayout="false">	        	
+	           <mx:Label text="Adjustment Entry" width="100%" fontWeight="bold"/>
+	            
+	        <mx:DataGrid id="adjustmentEntryAuditPopupViewDg" width="100%" height="100%" dataProvider="{adjustmentEntryAuditPopupView}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="off" rowCount="{adjustmentEntryAuditPopupView.length + 2}">
+	        	<mx:columns>
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.adjustmenttype')}" dataField="adjType" width="165"/>
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.adjustmentreason')}" dataField="rsnCode" />
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.gleldgrcode')}"  dataField="ldgrCode" />
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.amount')}" dataField="amountDisp" labelFunction="extractPrecisionedValueForDataGrid"/>
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.remarks')}" dataField="remarks" />
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.creationDate')}" dataField="creationDate" />
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.createdBy')}" dataField="createdBy"/>
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.status')}" dataField="status"/>
+	        		<!--mx:DataGridColumn headerText="" width="40">
+	        			<mx:itemRenderer>
+	        				<mx:Component>	        				    
+				                <mx:HBox width="100%" height="100%">
+	        					    <mx:Button id="editAdjust" styleName="BtnEdit" width="18" height="18" label="Edit"/>				                	
+				                </mx:HBox>
+	        				</mx:Component>
+	        			</mx:itemRenderer>
+	        		</mx:DataGridColumn>
+	        		<mx:DataGridColumn headerText="" width="40">	        			
+	        			<mx:itemRenderer>
+	        				<mx:Component>	        				
+				                <mx:HBox width="100%" height="100%">
+	        					    <mx:Button id="deleteAdjust" styleName="BtnDelete" width="18" height="18" label="Delete"/>				                	
+				                </mx:HBox>
+	        				</mx:Component>
+	        			</mx:itemRenderer>
+	        		</mx:DataGridColumn-->
+	        	</mx:columns>
+	         </mx:DataGrid> 
+	        </mx:VBox>   
+	        
+	        <mx:VBox width="100%" height="100%" id="forexTrnfCont"  visible="false" includeInLayout="false">	        	
+	           <mx:Label text="Forex Transfer" width="100%" fontWeight="bold"/>
+        		
+                 <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.file.fund.label.fundcode')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.fundCode}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.adjustmentdt')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.frxOutObjType == 'NCM' ? ((objForm.dtlObjOutForAudit.ncmBdate==null || objForm.dtlObjOutForAudit.ncmBdate=='')? objForm.dtlObjInForAudit.custBdate : objForm.dtlObjOutForAudit.ncmBdate) : ((objForm.dtlObjOutForAudit.custBdate==null || objForm.dtlObjOutForAudit.custBdate=='') ? objForm.dtlObjInForAudit.custBdate : objForm.dtlObjOutForAudit.custBdate) }" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.bank')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{(objForm.dtlObjOutForAudit.bankCode==null || objForm.dtlObjOutForAudit.bankCode=='')? objForm.dtlObjInForAudit.bankCode : objForm.dtlObjOutForAudit.bankCode}" />                            
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Bank Name" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.bankName}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.adjustmentreason')}" styleName="LabelBgColor" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" >
+	                        <mx:Text text="{objForm.reasonCode}" />                        
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.remarks')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                     <mx:GridItem width="30%">
+	                        <mx:Text text="{objForm.cashAdjForAudit.remarks}" />
+	                    </mx:GridItem>             
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="Creation Date" styleName="LabelBgColor" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" >
+	                        <mx:Text text="{dateFormatter.format(objForm.cashAdjForAudit.creationDate)}" />                        
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="Entry By" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                     <mx:GridItem width="30%">
+	                        <mx:Text text="{objForm.cashAdjForAudit.createdBy}" />
+	                    </mx:GridItem>             
+                    </mx:GridRow>
+                    
+                </mx:Grid>
+                 
+                <mx:HBox width="100%">
+                	<mx:Grid width="100%">                    
+	                    <mx:GridRow width="100%">
+		                    <mx:GridItem width="50%">
+		                        <mx:Label text="IN ( Custodian )" textAlign="center" />
+		                    </mx:GridItem>
+		                    <mx:GridItem width="50%">
+		                        <mx:Label text="OUT ( {objForm.frxOutObjType} )" textAlign="center" />
+		                    </mx:GridItem>           
+	                    </mx:GridRow>                	
+                    </mx:Grid>
+                </mx:HBox>
+        
+                <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.bankactno')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjInForAudit.act}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.bankactno')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjOutForAudit.act}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Bank Account Name" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjInForAudit.actName}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Bank Account Name" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjOutForAudit.actName}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Currency Code" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjInForAudit.ccy}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Currency Code" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjOutForAudit.ccy}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Amount" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{custBalStr}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Amount" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{ncmBalStr}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                </mx:Grid>
+	           
+	        </mx:VBox>           
+            
+     </mx:VBox>
+    </mx:Canvas>
+</mx:Module>

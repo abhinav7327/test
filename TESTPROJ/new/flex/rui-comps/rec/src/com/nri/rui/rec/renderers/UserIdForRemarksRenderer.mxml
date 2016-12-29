@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" horizontalGap="0" xmlns:xenos="com.nri.rui.core.controls.*" creationComplete="init()">
+    
+     <!-- The Employee popup control-->
+     <mx:TextInput id="employeeText"  text="{data.userId}"  width="100" focusOut="populateUserId();" dataChange="populateUserId();" click="setRowIndexAtClick(event)"/>
+     <mx:Image id="employeePopup" source="@Embed('../../../../../assets/popup_icon.png')" 
+               verticalAlign="middle" horizontalAlign="center" click="setRowIndexAtClick(event);showPopUp(recContextItem,retContextItem);" />    
+     
+     <mx:Script>
+        <![CDATA[
+        	import mx.utils.StringUtil;
+        	import com.nri.rui.core.utils.XenosStringUtils;
+        	import com.nri.rui.core.Globals;
+        	import mx.controls.listClasses.ListData;
+        
+        //start of script   
+        import mx.managers.PopUpManager;
+        import com.nri.rui.core.utils.HiddenObject;
+        import com.nri.rui.ref.popupImpl.EmployeePopup;
+        import mx.collections.ArrayCollection;
+        import mx.core.UIComponent;	
+		import mx.controls.TextInput;
+   		import com.nri.rui.core.controls.XenosAlert;
+        
+           [Bindable]
+           //Items returning through context - Non display objects
+           public var retContextItem:ArrayCollection = new ArrayCollection();
+           [Bindable]
+           //Items receiving through context - Non display objects
+           public var recContextItem:ArrayCollection = new ArrayCollection();
+           
+           private var rowIndex:int = 0;
+   
+        /*
+         * Open the Employee PopUp Window.
+         * Cast the return value of the createPopUp() method
+         * to FinInstitutePopup, the name of the component containing
+         *  the PopupWindow container
+         */
+        private function showPopUp(recCtxItems:ArrayCollection,
+                                   retCtxItem:ArrayCollection):void {
+            
+            
+            if (recCtxItems == null){
+                recCtxItems = new ArrayCollection();
+            }
+            
+            if (retCtxItem == null){
+                retCtxItem = new ArrayCollection();
+            }
+            //create the Employee popup        
+            var employeePopup:EmployeePopup=EmployeePopup
+            (PopUpManager.createPopUp( UIComponent(this.parentApplication), EmployeePopup , true));
+            //Center the Popup Window in the Application's container
+            PopUpManager.centerPopUp(employeePopup);
+            /* Pass a reference to the AutoComplete control
+             * to the PopUpWindow container so that the 
+             * PopUpWindow container can return data to the main application.
+             */
+            employeePopup.retTxtInput=employeeText;
+            // Pass a reference to the returnning context items
+            employeePopup.returnContextItems = retCtxItem;
+            // Pass a reference to the popup context items
+            employeePopup.receiveCtxItems = recCtxItems;
+            //initialize the fin inst popup
+            employeePopup.initPopup();
+            //this.employeeText.setFocus();
+           
+           setRowIndex();
+           
+        } 
+        /*
+         * populate User Id array for Remarks Entry
+         */
+        private function populateUserId():void {
+        	if(employeeText.text != null) {       	   	
+				parentDocument.usrIdArray[rowIndex] = StringUtil.trim(employeeText.text);
+				data.userId =StringUtil.trim(employeeText.text);
+        	}
+				     
+        }
+        private function setRowIndex():void{
+        	rowIndex = parentDocument.adjEntryDg.selectedIndex;
+        }
+        private function setRowIndexAtClick(event:MouseEvent):void{
+        	rowIndex = parentDocument.adjEntryDg.selectedIndex;
+        }
+        private function init():void{
+        	// As renderer called One time extra By Default
+        	if(parentDocument.isIncremented){
+        		parentDocument.indexCounter = (parentDocument.indexCounter +1);        		
+        	}
+        	if(employeeText.text != null){
+        		if(parentDocument.usrIdArray != null)
+        			parentDocument.usrIdArray[parentDocument.indexCounter] = StringUtil.trim(employeeText.text);
+        	}
+        	    	
+        	employeeText.addEventListener("ValueChanged",populateUserIdbyEvent);
+        	parentDocument.isIncremented = true;
+        }
+        private function populateUserIdbyEvent(event:Event):void {
+        	if(employeeText.text != null){        	   	
+				parentDocument.usrIdArray[rowIndex] = StringUtil.trim(employeeText.text);
+				data.userId =StringUtil.trim(employeeText.text);
+        	}
+        }         
+        //end of script
+        ]]>
+    </mx:Script>
+</mx:HBox>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Settlement Query Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="loadAll()">
+
+	<mx:Script>
+		<![CDATA[
+			import mx.containers.TitleWindow;
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.controls.CheckBox;
+			import mx.managers.PopUpManager;
+			
+			import com.nri.rui.core.controls.XenosAlert;
+						
+			[Embed(source="../../assets/img/inf/addcolunm.png")]
+			[Bindable]
+			private var icoColumns:Class;
+            public static var popupColumns:TitleWindow = null;
+            public var gridColumns:ArrayCollection = new ArrayCollection();
+
+			private function getReferenceNo(item:Object,column : DataGridColumn):String {
+            	
+            	return item.settlementReferenceNo+"-"+item.versionNo;
+            	
+            }
+            
+            private function getFundAccountNo(item:Object, column : DataGridColumn):String {
+            	return item.fundAccountNo;
+            }
+            
+            private function getSecurityCode(item:Object, column : DataGridColumn):String{
+            	var obj:XML = XML(item);
+				
+				if(obj.child("instrumentCode").length()>0) 
+					return item.instrumentCode;
+				else 
+					return item.correspondingSecurityId;
+					
+            	/*if(item.instrumentCode == null || item.instrumentCode == '')
+            		return item.correspondingSecurityId;
+            	else
+            		return item.instrumentCode;*/
+            }
+            
+            private function getSettleStatus(item:Object, column : DataGridColumn):String {            	
+        		if(item.failStatus == "FAIL") {
+        			return item.failStatus;
+        		} else {
+        			return item.settleStatusString;
+        		}
+            }
+			
+		]]>
+	</mx:Script>
+	
+	<mx:Script source="actionscripts/SettlementQueryPopupSummaryForTrade.as"/>
+    <cntrls:XenosHTTPService id="settlementQueryRequest" 
+         url="stl/settlementQueryPopupTrade.action?method=doQuery" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         result="LoadResultPage(event)" showBusyCursor="true" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+  
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%">
+	<mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true"   >
+	<!--<containers:CollapsibleHDividedBox id="hdbox1" width="100%" height="100%" x="0" y="0" liveDragging="true" creationComplete="initPageStart()" paddingBottom="6" paddingLeft="6" paddingRight="6" paddingTop="6" >-->
+		
+		<mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >
+					
+			<mx:DataGrid id="settlementQueryResult" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" >
+				<mx:columns>
+				   <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.settlementrefno')}" dataField="" labelFunction="getReferenceNo" itemRenderer="com.nri.rui.stl.renderers.SettlementDetailRenderer"/>           
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundcode')}" dataField="fundCode" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer" visible="true"/>
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundaccountno')}" dataField="inventoryAccountPk" labelFunction="getFundAccountNo" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer" visible="true"/>
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.tradedate')}" dataField="tradeDateStr"  showDataTips="true" visible="true"/>
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.valuedate')}" dataField="valueDateStr" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer" visible="true"/>
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.tradetype')}" dataField="tradeType" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer" visible="true"/>
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.instrqry.label.securitycode')}" dataField="instrumentPkUi" labelFunction="getSecurityCode" visible="true" itemRenderer="com.nri.rui.core.renderers.AdvInstrumentDetailsRenderer"/>
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.altSecurityId')}" dataField="altSecurityDisplayString" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer" visible="true"/>
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.securityname')}"  showDataTips="true" itemRenderer="com.nri.rui.stl.renderers.SecurityNameRenderer"/>
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.instructiontype')}" dataField="instructionTypeDisplay" visible="true"/>
+				   <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.outstandingsecurity')}" dataField="outstandingQuantityStr" visible="true" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer"/>
+				   <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.originalsecurity')}" dataField="originalQuantityStr" visible="true" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer"/>
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.ccy')}" dataField="ccyCode" visible="true" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer"/>
+				   <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.outstandingcash')}"  dataField="outstandingAmountStr" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer" visible="true"/>
+				   <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.originalcash')}"  dataField="originalAmountStr" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer" visible="true"/>
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.senderrefno')}" dataField="swiftReferenceNo" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" visible="true"/>
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.amendment.label.firmsettlementaccount')}" dataField="firmAccNoDisplayString" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" visible="true"/>
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.corporateactioneventtype')}" dataField="subEventTypeDisplayString" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer" visible="true"/>
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.settlestatus')}" dataField=""  labelFunction="getSettleStatus" itemRenderer="com.nri.rui.core.renderers.NullValueRenderer" visible="true"/>
+				   <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.status')}" dataField="statusString" itemRenderer="com.nri.rui.core.renderers.StatusRenderer" color="red"/>
+	            </mx:columns>
+	     	</mx:DataGrid>
+			
+		</mx:VBox>
+	<!--</containers:CollapsibleHDividedBox>-->
+	</mx:HDividedBox>
+    </mx:VBox>
+    </mx:Canvas>
+</mx:Module>

@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Grid xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*"
+		 xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+
+	<mx:Script>
+		<![CDATA[
+		
+		    import com.nri.rui.core.Globals;
+			import com.nri.rui.core.controls.XenosAlert;
+			import mx.collections.ArrayCollection;
+			import mx.events.ListEvent;
+			
+			//Mode= Add, Add button clicked
+			public static const ADD:String = "add";
+			//Mode= Edit, Edit button clicked 
+			public static const EDIT:String = "edit"; 
+			//Mode= Delete, Delete button clicked 
+			public static const DELETE:String = "delete"; 
+			public static const selectedFundCodeString:String =Globals.EMPTY_STRING;
+			public static const allFundCodeString:String=Globals.EMPTY_STRING;
+			
+            /*
+               Holds the index of the fund code to be edited, it should contain a 
+               value greater than equal to zero, if the fund code is meant to be edited 
+            */    
+			private var editFundCodeIndex:int=-1;
+
+			private var _operationFunction:Function=null;
+
+			[Bindable]
+			private var _resultData:ArrayCollection=new ArrayCollection();
+			
+			// Set Fund Code 
+			public function setFundCode(str:String):void{
+				this.fundPopUp.fundCode.text = str;
+			}
+			
+			// Returns Fund Code
+			public function getFundCode():String{
+				return this.fundPopUp.fundCode.text;
+			}
+            
+            // Set Function which handles ADD, EDIT and DELETE
+			public function set operationFunction(func:Function):void
+			{
+				_operationFunction=func;
+			}
+            
+            // Sets the data provider of fundCodeSummary of CustomDataGrid
+			public function set resultData(data:ArrayCollection):void
+			{
+				_resultData=data;
+			}
+            
+            
+			private function handleFundCodeSelection(event:Event):void
+			{
+				if (event.target == selectFundRadio)
+				{
+					addFundCodeBtn.enabled=true;
+					gridRow.enabled=true;
+					
+				}
+				else if (event.target == allFundRadio)
+				{
+					addFundCodeBtn.enabled=false;
+					gridRow.enabled=false;
+				}
+			}
+
+			private function addFundCode():void
+			{
+
+				if (_operationFunction != null)
+				{
+					 editFundCodeIndex=-1; //reset
+					_operationFunction(ADD, fundPopUp.fundCode.text);
+					
+				}
+			}
+
+			public function editFundCode(obj:Object):void
+			{
+				if (_operationFunction != null)
+				{
+					 editFundCodeIndex=obj["index"];
+					_operationFunction(EDIT, fundPopUp.fundCode.text, obj["index"]);
+				}
+
+			}
+
+			public function deleteFundCode(obj:Object):void
+			{
+				if (_operationFunction != null)
+				{	
+					 editFundCodeIndex=-1; //reset				
+					_operationFunction(DELETE, fundPopUp.fundCode.text, obj["index"]);
+				}
+
+			}
+
+			public function enableEditDelete(data:Object):Boolean
+			{
+				
+				if (data["index"] == editFundCodeIndex)
+				{
+					
+					return false;
+				}
+				else
+				{
+					
+					return true;
+				}
+
+			}
+			
+			// Resets the component to its initial state
+			public function reset():void
+			{
+				selectFundRadio.selected=true;
+				allFundRadio.selected=false;
+				addFundCodeBtn.enabled=true;
+				gridRow.enabled=true;								
+			}
+			
+			// Returns true if All Fund Radio Button 
+			public function isAllFundSelected():Boolean{
+				return allFundRadio.selected;
+			} 
+			   		   
+			//end of script
+		]]>
+	</mx:Script>   
+    <!-- RadioButton -->
+    <mx:GridRow width="100%">
+      <mx:GridItem width="50%" borderThickness="0" colSpan="2">
+		<mx:HBox width="100%">
+			<mx:RadioButton id="selectFundRadio" selected="true" groupName="fundRadioGroup" label="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.radio.label.selectfund')}"
+						click="handleFundCodeSelection(event);"/>
+			<mx:RadioButton id="allFundRadio" groupName="fundRadioGroup" label="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.radio.label.allfund')}"
+						click="handleFundCodeSelection(event);"/>
+			</mx:HBox>
+			</mx:GridItem>
+	</mx:GridRow>
+	
+	<!-- FundPopUpHbox -->
+	<mx:GridRow width="100%">
+			<mx:GridItem width="40%" borderThickness="0">
+				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}"/>
+			</mx:GridItem>
+			<mx:GridItem width="60%" borderThickness="0">
+				<xenospopup:FundPopUpHbox id="fundPopUp"/>
+				<cntrls:XenosButton id="addFundCodeBtn" label="{this.parentApplication.xResourceManager.getKeyValue('fam.button.add')}" click="addFundCode();" styleName="BtnStyle"/>
+			</mx:GridItem>
+	</mx:GridRow>
+	
+	<!-- CustomDataGrid -->
+	<mx:GridRow width="100%" id="gridRow" >
+		<mx:GridItem width="100%" borderThickness="0" colSpan="2">
+		<cntrls:CustomDataGrid id="fundCodeSummary" width="80%"   horizontalScrollPolicy="auto" sortableColumns="false" variableRowHeight="true"  rowCount="3" dataProvider="{_resultData}" selectable="true" useRollOver="true">
+		<cntrls:columns>
+			<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.code')}" width="250" dataField="fundCode"/>
+			<mx:DataGridColumn headerText="" textAlign="center" width="100" id="buttonColumn">
+				<mx:itemRenderer>
+					<mx:Component>
+						<mx:HBox>
+							<mx:Button id="editBtn" styleName="BtnEdit" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.edit')}"
+									   click="outerDocument.editFundCode(data)" enabled="{outerDocument.enableEditDelete(data)}" width="18" height="18"/>
+
+							<mx:Button id="deleteBtn" styleName="BtnDelete" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.delete')}"
+									   click="outerDocument.deleteFundCode(data)" enabled="{outerDocument.enableEditDelete(data)}" width="18" height="18"/>
+						</mx:HBox>
+					</mx:Component>
+			    </mx:itemRenderer>
+			</mx:DataGridColumn>
+		</cntrls:columns>
+		</cntrls:CustomDataGrid>
+    	</mx:GridItem>
+    </mx:GridRow>
+</mx:Grid>

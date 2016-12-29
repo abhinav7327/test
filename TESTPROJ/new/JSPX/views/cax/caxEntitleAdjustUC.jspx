@@ -1,0 +1,366 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0" xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+	xmlns:spring="http://www.springframework.org/tags"
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util"
+	xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:display="http://displaytag.sf.net"
+	xmlns:valueDifference="http://www.nri.co.jp/valueDifference"
+	xmlns:xenosfn="http://www.nri.co.jp/jstl/functions"
+	xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	xmlns:tiles="http://tiles.apache.org/tags-tiles"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<div class="formItemArea entryContainerConfirm paddingFour">
+	
+		<jsp:directive.page contentType="text/html;charset=UTF-8" />
+		<jsp:output omit-xml-declaration="yes" />
+		
+		<c:if test="${success =='false'}">
+			<!-- Error message Area -->
+			<ul class="xenosError">
+				<c:forEach items="${value}" var="dl">
+					<li><spring:message text="${dl}" htmlEscape="false" /></li>
+				</c:forEach>
+			</ul>
+		</c:if>
+		
+		<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+			
+			var isEditableFlag = "false";
+			var isIncomeFlag = "false";
+			var isIncome = '${commandForm.isIncome}';
+			var actionType = '${commandForm.actionType}';
+			var corporateActionId = '${commandForm.corporateActionId}';
+			
+			if(isIncome == "true"){    	  	
+				$('#cashPartAvailableDate').css('display','none');
+				$('#stockPartAvailableDate').css('display','none');
+			}
+			
+			 // calling the state change handler to load the appropriate mxml file. 
+			stateChangeHandler(); 
+			
+			//For Others Event type    
+		   if(corporateActionId == "OTHERS") {
+			 loadOthersEventPart();
+		   }  
+			}; 
+			
+ 		/**
+		  * Method to populate others detail type
+		  * @param Object - The keyList containg the key and the value.
+		  */   
+		  function loadOthersEventPart() {
+		 
+			var isFlagForCash = '${commandForm.flagForCash}';
+			
+			$('#stockPartFractionalShareStrRow').css('display','none');
+		  };
+			
+		/**
+		  * This Handler method alters the states on the basis of corporate action id .
+		  */
+		  function stateChangeHandler() {
+			var corporateActionId = '${commandForm.corporateActionId}';
+			var stockOptionFlag = '${commandForm.stockOptionFlag}';
+			var currentState = "";					
+			 switch(corporateActionId) {
+				case "CASH_DIVIDEND":      
+					currentState = "CashRelatedEntitlement"; 
+					$('#tax').css('display','block');
+				 	case "COUPON_PAYMENT":      
+					currentState = "CashRelatedEntitlement"; 
+					$('#tax').css('display','block');
+ 					
+				break;      
+				case "CAPITAL_REPAYMENT":
+					currentState = "CashRelatedEntitlement";
+				break;
+				case "REDEMPTION_BOND":
+					if(stockOptionFlag == "true") {
+						currentState = "StockRelatedEntitlement";
+					} else {
+						currentState = "CashRelatedEntitlement";    	
+					}        
+				case "OPTIONAL_STOCK_DIV":
+					if(stockOptionFlag == "true") {
+						currentState = "StockRelatedEntitlement";
+					} else {
+						currentState = "CashRelatedEntitlement";    	
+					}        
+				case "DIV_REINVESTMENT":
+					if(stockOptionFlag == "true") {
+						currentState = "StockRelatedEntitlement";
+					} else {
+						currentState = "CashRelatedEntitlement";    	
+					}
+					
+				break;      
+				case "STOCK_SPLIT":
+					currentState = "StockRelatedEntitlement";
+				case "STOCK_DIVIDEND":
+					currentState = "StockRelatedEntitlement";
+				case "BONUS_ISSUE":
+					currentState = "StockRelatedEntitlement";
+				case "SPIN_OFF":
+					currentState = "StockRelatedEntitlement";
+				case "NAME_CHANGE":
+					currentState = "StockRelatedEntitlement";
+				case "REVERSE_STOCK_SPLIT":
+					currentState = "StockRelatedEntitlement";
+				case "STOCK_MERGER":
+					currentState = "StockRelatedEntitlement";
+				case "RIGHTS_ALLOCATION":
+					currentState = "StockRelatedEntitlement";
+				case "OTHERS":
+					currentState = "StockRelatedEntitlement";
+				case "RIGHTS_EXPIRY":   
+					currentState = "StockRelatedEntitlement";	
+				break;
+			   }
+				if (currentState == 'StockRelatedEntitlement') {	
+					loadStockPartConfirm();
+				} else if (currentState == 'CashRelatedEntitlement') {
+					loadCashPartConfirm();
+				}
+  		  }; 
+		  
+		 /**
+		  * Method to populate data for cash related entitlements for the amend screen.
+		  * @param mapObj - The keyList containing the key and the value.
+		  * @param detailType - Detail Type RIGHTS_DETAIL' or 'NCM_RIGHTS_DETAIL'
+		  */ 
+		  function loadCashPartConfirm() {
+		  
+			var initcol = [];
+			var index = 0;
+			var item = null;
+			var corporateActionId = '${commandForm.corporateActionId}';
+ 			$('#cashPartGiveUpIndicator').css('display','block');
+			$('#cashPartGiveUpIndicatorSpan').css('display','block');
+			$('#cashPartInConsistencyFlag').css('display','none');
+			$('#cashPartInConsistencyFlagLbl').css('display','none');
+
+			 switch(corporateActionId) { 
+				case "CASH_DIVIDEND":
+				case "CAPITAL_REPAYMENT": 
+				case "OPTIONAL_STOCK_DIV":
+				case "DIV_REINVESTMENT":
+				break;
+				case "COUPON_PAYMENT":
+					$('#cashPartSplAmountOrQtyStr').css('display','none');
+				case "REDEMPTION_BOND":
+					$('#cashPartSplAmountOrQtyStr').css('display','none');
+				break;          
+			}      
+		  };
+		  
+		 /**
+		  * Method to populate data for stock related entitlements for the amend screen.
+		  * @param mapObj - The keyList containing the key and the value.
+		  * @param detailType - Detail Type RIGHTS_DETAIL' or 'NCM_RIGHTS_DETAIL'* 
+		  */ 
+		  function loadStockPartConfirm() {
+			
+			var corporateActionId = '${commandForm.corporateActionId}';
+
+			$('#stockPartInConsistencyFlag').css('display','none');
+			$('#stockPartInConsistencyFlagLbl').css('display','none');
+
+			/** Populating cashInLieuLabel : for NAME_CHANGE its should be hidden
+			 *  For rest - should be visible.
+			 */ 
+			 if(corporateActionId == "NAME_CHANGE"){
+				$('#stockPartCashInLieuFlag').css('display','none');
+				$('#stockPartCashInLieuFlagSpan').css('display','none');
+			} else {
+				$('#stockPartCashInLieuFlag').css('display','block');
+				$('#stockPartCashInLieuFlagSpan').css('display','block');
+			}
+			 ;
+
+			/** Populating splAmountOrQtyRow : for Stock Dividend its should be visible
+			 *  For Stock Split - should be hidden.
+			 */
+			 switch(corporateActionId) {  
+			   case "STOCK_DIVIDEND": 
+			   case "BONUS_ISSUE":
+			   case "STOCK_MERGER":
+			   case "RIGHTS_ALLOCATION":
+			   case "RIGHTS_EXPIRY":
+			  break;
+			  case "STOCK_SPLIT":
+					$('#stockPartSplAmtOrQtyStr').css('display','none');
+			  case "NAME_CHANGE":
+					$('#stockPartSplAmtOrQtyStr').css('display','none');
+			  case "SPIN_OFF":
+					$('#stockPartSplAmtOrQtyStr').css('display','none');
+			  case "REVERSE_STOCK_SPLIT": 
+					$('#stockPartSplAmtOrQtyStr').css('display','none');
+			  case "OTHERS":
+					$('#stockPartSplAmtOrQtyStr').css('display','none');
+			  break;            
+			} 
+		  };
+			</jsp:body>
+    </jsp:element>
+
+		<div class="detailBlock">
+			<div>
+				<c:choose>
+					<c:when test="${commandForm.options.mode == 'CONFIRM'}">
+						<h1>
+							<spring:message
+								code="cax.entitlement.label.userConf.rightsdetailheader"
+								htmlEscape="false" />
+						</h1>
+					</c:when>
+					<c:otherwise>
+						<h1>
+							<spring:message
+								code="cax.entitlement.label.sysConf.rightsdetailheader"
+								arguments="${commandForm.rdReferenceNo}" htmlEscape="false" />
+						</h1>
+					</c:otherwise>
+				</c:choose>
+			</div>
+		</div>
+		<div class="detailBlock entrySingleCol dtlInfoBlock">
+			<div class="detailBlock entrySingleCol">
+
+				<table class="tableStyle sixCol">
+					<tr>
+						<td><label><spring:message
+									code="cax.entitlement.label.eventRefNo" htmlEscape="false" /></label></td>
+						<td><span class="detailTxtVal">${commandForm.rcReferenceNo}</span></td>
+						<td><label><spring:message
+									code="cax.entitlement.label.fundAccount" htmlEscape="false" /></label></td>
+						<td><span class="detailTxtVal">${commandForm.accountNo}</span></td>
+					</tr>
+					<tr>
+						<td><label><spring:message
+									code="cax.entitlement.label.eventType" htmlEscape="false" /></label></td>
+						<td><span class="subEventTypeDescription">${commandForm.subEventTypeDescription}</span></td>
+						<td><label><spring:message
+									code="cax.entitlement.label.eventStatus" htmlEscape="false" /></label></td>
+						<td><span class="conditionStatus">${commandForm.conditionStatus}</span></td>
+					</tr>
+					<tr>
+						<td><label><spring:message
+									code="cax.entitlement.label.securityCode" htmlEscape="false" /></label></td>
+						<td><span class="instrumentCode">${commandForm.instrumentCode}</span></td>
+						<td><label><spring:message
+									code="cax.entitlement.label.securityName" htmlEscape="false" /></label></td>
+						<td><span class="instrumentName">${commandForm.instrumentName}</span></td>
+					</tr>
+					<tr>
+						<td><label><spring:message
+									code="cax.entitlement.label.allottedSecurityCode"
+									htmlEscape="false" /></label></td>
+						<td><span class="allottedInstrument">${commandForm.allottedInstrument}</span></td>
+						<td><label><spring:message
+									code="cax.entitlement.label.allottedSecurityName"
+									htmlEscape="false" /></label></td>
+						<td><span class="allottedInstrumentName">${commandForm.allottedInstrumentName}</span></td>
+					</tr>
+					<tr>
+						<td><label><spring:message
+									code="cax.entitlement.label.securityBalance" htmlEscape="false" /></label></td>
+						<td><span class="securityBalanceStr">${commandForm.securityBalanceStr}</span></td>
+						<td><label></label></td>
+						<td><span></span></td>
+					</tr>
+					<tr>
+						<td><label><spring:message
+									code="cax.rightsdetail.label.paymentdate" htmlEscape="false" /></label></td>
+						<td><span class="paymentDate">${commandForm.paymentDate}</span></td>
+						<td><label></label></td>
+						<td><span></span></td>
+					</tr>
+					<tr>
+						<td><label><spring:message
+									code="cax.entitlement.adjustment.entry.undersecbookval"
+									htmlEscape="false" /></label></td>
+						<td><span class="underlineSecurityBV">${commandForm.underlineSecurityBV}</span></td>
+						<td><label></label></td>
+						<td><span></span></td>
+					</tr>
+
+					<c:if
+						test="${commandForm.corporateActionId =='STOCK_SPLIT' || commandForm.corporateActionId =='STOCK_DIVIDEND' || commandForm.corporateActionId == 'SPIN_OFF' ||
+				commandForm.corporateActionId == 'NAME_CHANGE' || commandForm.corporateActionId =='REVERSE_STOCK_SPLIT' || commandForm.corporateActionId =='BONUS_ISSUE'
+				|| commandForm.corporateActionId == 'STOCK_MERGER' || commandForm.corporateActionId == 'RIGHTS_ALLOCATION' || commandForm.corporateActionId == 'OTHERS' ||
+				commandForm.corporateActionId == 'RIGHTS_EXPIRY' }">
+						<tiles:insertAttribute name="stockEntitlementEntryUC" />
+					</c:if>
+					<c:if
+						test="${commandForm.corporateActionId =='CASH_DIVIDEND' || commandForm.corporateActionId =='COUPON_PAYMENT' || 
+				commandForm.corporateActionId =='CAPITAL_REPAYMENT'}">
+						<tiles:insertAttribute name="cashEntitlementEntryUC" />
+					</c:if>
+					<c:if
+						test="${commandForm.corporateActionId =='REDEMPTION_BOND' || commandForm.corporateActionId =='OPTIONAL_STOCK_DIV' || 
+				commandForm.corporateActionId =='DIV_REINVESTMENT'}">
+						<c:choose>
+							<c:when test="${commandForm.stockOptionFlag == true}">
+								<tiles:insertAttribute name="stockEntitlementEntryUC" />
+							</c:when>
+							<c:when test="${commandForm.stockOptionFlag == false}">
+								<tiles:insertAttribute name="cashEntitlementEntryUC" />
+							</c:when>
+						</c:choose>
+					</c:if>
+
+				</table>
+
+			</div>
+		</div>
+		<div class="clear clear-block">
+			<spring:message text="" htmlEscape="false" />
+		</div>
+
+		<!-- Tax Fee Information Start -->
+	<div class="detailBlock entrySingleCol dtlInfoBlock" id="tax" style= "display: none">
+		<div>
+			<h1 class="msgHead">
+				<spring:message code="cax.entitlement.label.taxDetail" htmlEscape="false"/>
+				<span class="toggleHandle collapse"></span>
+			</h1>
+		</div>
+		<div class="detailBlock">
+			<c:if test="${not empty commandForm.detailTaxFeeList}">
+			
+			<table class="reportTbl">
+				<tr>
+					<th width='10'><spring:message code="cax.entitlement.label.taxFeeId" htmlEscape="false" /></th>
+					<th><spring:message code="cax.entitlement.label.taxRate" htmlEscape="false" /></th>
+					<th><spring:message code="cax.entitlement.label.rateType" htmlEscape="false" /></th>
+					<th><spring:message code="cax.entitlement.label.amount" htmlEscape="false" /></th>
+				</tr>
+				<c:forEach items="${commandForm.detailTaxFeeList}" var="dl"
+					varStatus="loopStatus">
+					<tr
+						class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">
+						<td>${dl.taxFeeId}</td>
+						<td class="xenos-grid-number">${dl.chargeRate}</td>
+						<td>${dl.rateType}</td>
+						<td class="xenos-grid-number">${dl.taxFeeAmountStr}</td>
+					</tr>
+				</c:forEach>
+			</table>
+				
+		</c:if>
+		</div>
+	</div>
+	<div class="clear clear-block">
+		<spring:message text="" htmlEscape="false" />
+	</div>
+
+	</div>
+</jsp:root>

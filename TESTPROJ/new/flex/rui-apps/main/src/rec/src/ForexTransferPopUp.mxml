@@ -1,0 +1,682 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- MXML module for Remarks Entry.  -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+    xmlns:cntrls="com.nri.rui.core.controls.*" 
+	xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+    percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" 
+    verticalScrollPolicy="off" creationComplete="init()">
+    <mx:Script>
+        <![CDATA[
+        	import com.nri.rui.core.startup.XenosApplication;
+        	import mx.validators.StringValidator;
+        	import mx.utils.StringUtil;
+            import mx.events.CloseEvent;            
+            import mx.controls.advancedDataGridClasses.AdvancedDataGridColumn;
+        	import com.nri.rui.core.utils.XenosStringUtils;            
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.controls.XenosAlert;            
+            import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+            import mx.rpc.events.FaultEvent;            
+            import com.nri.rui.core.Globals;
+
+            [Bindable]private var cashDtlQueryViewsColl:ArrayCollection;
+            [Bindable]private var recCashDtlQueryRemarksViews:ArrayCollection =new ArrayCollection();
+            [Bindable]
+            private var objForm:Object = null;
+            
+            [Bindable]private var movArray : Array = new Array();
+            [Bindable]private var fromPage : String = "";
+            
+            [Bindable]public var rmksArray : Array ;//= new Array();
+            
+            [Bindable]public var usrIdArray : Array; // = new Array();   
+            
+            [Bindable]private var custBalStr : String = "";
+            
+            [Bindable]private var ncmBalStr : String = "";    
+		    
+		    [Bindable]
+		    private var rs:XML = new XML();
+		    
+		    [Bindable]
+		    private var rsUsrConf:XML = new XML();
+		    //XPI-137
+		    [Bindable]private var forexTransfer : String = "FOREX_TRANSFER"; 
+		          
+           
+            /**
+             * Extracts the parameters and set them to some variables for query criteria from the Module Loader Info.
+             * 
+             */ 
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if (tempA[0] == "movArray") {
+                            //XenosAlert.info("movArray param = " + tempA[1]);
+                            movArray = tempA[1].split(",");
+                        }else if(tempA[0] == "fromPage"){
+                            fromPage = tempA[1];
+                        } 
+                    }                    
+
+                } catch (e:Error) {
+                    trace(e);
+                }               
+            }
+            /**
+             * Initializes the module and send the submit request.
+             * 
+             */     
+            private function init():void{
+                
+                parseUrlString();
+                
+                var rndNo:Number = Math.random();
+                cashRefDtlHttpService.url= "rec/cashReferResultDispatch.action?rnd=" + rndNo;
+                
+                var req : Object = new Object();
+                req.SCREEN_KEY = 11013;
+                req.method="showForexTransferResult";
+                req.movArray=movArray;
+                req.fromPage="fromPage";
+                cashRefDtlHttpService.request=req;
+                
+                cashRefDtlHttpService.send();
+                PopUpManager.centerPopUp(this);
+                remarksEntry.selectedChild = rslt;
+            }
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function httpService_fault(evt:FaultEvent):void {                
+                XenosAlert.error("Unable to Perform the requested operation." + evt.fault.faultString + evt.fault.faultDetail);
+            }
+            /**
+             * Result handler for the submit Request. 
+             * 
+             */ 
+            private function httpService_result(event:ResultEvent):void {                  
+                var selIndex:int = 0;
+                var i:int = 0;
+                var defaultReasonCode:String = "";      
+		 		rs = XML(event.result);
+                var tempResult:ArrayCollection = new ArrayCollection();     
+		 		if (null != event) {
+		 			if(rs.child("Errors").length()>0){ 
+						// i.e. Must be error, display it .
+						var errorInfoList : ArrayCollection = new ArrayCollection();
+						//populate the error info list 			 	
+						for each ( var error:XML in rs.Errors.error ) {
+							errorInfoList.addItem(error.toString());
+						}
+						errPage.showError(errorInfoList);//Display the error
+			      	}else {
+			      	 	errPage.removeError();	      	 	
+                        
+                        objForm = rs;
+                        //accNo = objForm.recCashReferResultActQueryView.accountNo;
+                            //defaultReasonCode = objForm.reasonCode;
+                            if(!XenosStringUtils.isBlank(objForm.dtlObjIn.custBalDisp) && objForm.dtlObjIn.custBalDisp.charAt(0)=="F"){
+			                    if(objForm.dtlObjIn.custBalDisp.length == 1)
+			                        custBalStr = XenosStringUtils.EMPTY_STR;
+			                    else
+			                        custBalStr = objForm.dtlObjIn.custBalDisp.substring(1);
+			                }else{
+			                    custBalStr = objForm.dtlObjIn.custBalDisp;                    
+			                }
+			                if(objForm.frxOutObjType == "NCM"){			                	
+				                if(!XenosStringUtils.isBlank(objForm.dtlObjOut.ncmBalDisp) && objForm.dtlObjOut.ncmBalDisp.charAt(0)=="F"){
+				                    if(objForm.dtlObjOut.ncmBalDisp.length == 1)
+				                        ncmBalStr = XenosStringUtils.EMPTY_STR;
+				                    else
+				                        ncmBalStr = objForm.dtlObjOut.ncmBalDisp.substring(1);
+				                }else{
+				                    ncmBalStr = objForm.dtlObjOut.ncmBalDisp;                    
+				                }
+			                }else{
+			                	 if(!XenosStringUtils.isBlank(objForm.dtlObjOut.custBalDisp) && objForm.dtlObjOut.custBalDisp.charAt(0)=="F"){
+				                    if(objForm.dtlObjOut.custBalDisp.length == 1)
+				                        ncmBalStr = XenosStringUtils.EMPTY_STR;
+				                    else
+				                        ncmBalStr = objForm.dtlObjOut.custBalDisp.substring(1);
+				                }else{
+				                    ncmBalStr = objForm.dtlObjOut.custBalDisp;                    
+				                }
+			                }
+                            /*if(null != objForm.reasonCodeList && null != objForm.reasonCodeList.item){
+                                var reasonCodeColl:ArrayCollection = new ArrayCollection();
+                                
+                        
+							    for each ( var rec:XML in rs.reasonCodeList.item ) {
+				 				    reasonCodeColl.addItem(rec);
+							    }*/
+                                /* if(objForm.reasonCodeList.item is ArrayCollection){
+                                	
+                                	XenosAlert.info("I am objForm.reasonCodeList.item is ArrayCollection");
+                                	
+                                    reasonCodeColl = objForm.reasonCodeList.item as ArrayCollection;
+                                }else{
+                                	
+                                	XenosAlert.info("I am objForm.reasonCodeList.item NOOOOOOT ArrayCollection");
+                                	
+                                    reasonCodeColl = new ArrayCollection();
+                                    reasonCodeColl.addItem(objForm.reasonCodeList.item);
+                                } */
+                                
+                                /*selIndex = 0;
+                                for(i = 0; i<reasonCodeColl.length; i++) {
+                                    //Get the default value object's index
+                                    if(XenosStringUtils.equals((reasonCodeColl[i].value),defaultReasonCode)){                    
+                                        selIndex = i;
+                                    }           
+                                }                                 
+                                reasonCode.dataProvider = reasonCodeColl;
+                                reasonCode.selectedItem = reasonCodeColl.getItemAt(selIndex);                            
+                            }else{
+                                XenosAlert.error("Unable to initialize the reasonCodes.");
+                            }*/
+                                                
+                    } 
+                }else {
+                    XenosAlert.info("No Results Found");
+                }
+            }
+            /**
+             * Request for the User Confirmation Page.
+             */           
+            private function viewUserConfirm(event:MouseEvent):void{
+            	            	
+                var reqObj : Object = new Object();
+                reqObj.SCREEN_KEY = 11014;
+            	reqObj.method = "viewForexTransferUsrConfirm";
+            	//reqObj['reasonCode'] = this.reasonCode.selectedItem != null ?  this.reasonCode.selectedItem.value : "" ;
+            	reqObj['remarks'] = this.remarks.text;            	
+                var rndNo:Number = Math.random();
+                cashRefDtlHttpServiceUsrCnfrm.url= "rec/cashReferResultDispatch.action?rnd=" + rndNo;
+                cashRefDtlHttpServiceUsrCnfrm.request = reqObj;
+                cashRefDtlHttpServiceUsrCnfrm.send();
+                
+            }
+            /**
+             * Go back to the previous page with the modifications done.
+             * 
+             */  
+            private function backDtlQuery(event:MouseEvent):void{
+                
+                this.parentDocument.dispatchEvent(new Event("RefreshChanges"));   
+                this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+            }
+            
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function usrCnfrm_fault(evt:FaultEvent):void {
+            	if(submitCnf!=null)
+            	{
+            		submitCnf.enabled=true;
+            	}
+                XenosAlert.error("Unable to Perform the requested operation." + evt.fault.faultString + evt.fault.faultDetail);
+            }
+            /**
+             * Result handler for the submit Request. 
+             * 
+             */ 
+            private function usrCnfrm_result(event:ResultEvent):void {    
+            	if(submitCnf!=null)
+            	{
+            		submitCnf.enabled=true;
+            	} 
+		 		rsUsrConf = XML(event.result);
+                var tempResult:ArrayCollection = new ArrayCollection();     
+		 		if (null != event) {
+		 			if(rsUsrConf.child("Errors").length()>0){ 
+						// i.e. Must be error, display it .
+						var errorInfoList : ArrayCollection = new ArrayCollection();
+						//populate the error info list 			 	
+						for each ( var error:XML in rsUsrConf.Errors.error ) {
+							errorInfoList.addItem(error.toString());
+						}
+						errPage.showError(errorInfoList);//Display the error
+			      	}else {
+			      	 	errPage.removeError();	 
+                        objForm = rsUsrConf;
+                        
+                        
+                        if(XenosStringUtils.equals("userConfirm",objForm.modeOfOperation)){
+                            remarksEntry.selectedChild = userConfirm;
+                            parentDocument.title = "Forex Transfer" + " " + "User Confirmation";
+                        }else if(XenosStringUtils.equals("systemConfirm",objForm.modeOfOperation)){
+                            remarksEntry.selectedChild = userConfirm;
+                            parentDocument.title = "Forex Transfer" + " " + "System Confirmation";
+                            currentState = "confirm";
+                            parentDocument.showCloseButton = false;
+                        }
+                        
+                        /* if(event.result.recCashReferResultActionForm.recCashDtlQueryRemarksViews != null && event.result.recCashReferResultActionForm.recCashDtlQueryRemarksViews.recCashDtlQueryRemarksView != null){ 
+                        	if(event.result.recCashReferResultActionForm.recCashDtlQueryRemarksViews.recCashDtlQueryRemarksView is ArrayCollection) {
+	                                tempResult = event.result.recCashReferResultActionForm.recCashDtlQueryRemarksViews.recCashDtlQueryRemarksView as ArrayCollection;
+	                        } else {
+	                        		tempResult.removeAll();
+	                                tempResult.addItem(event.result.recCashReferResultActionForm.recCashDtlQueryRemarksViews.recCashDtlQueryRemarksView);
+	                        }
+                        } */
+                                             
+                        
+					    for each ( var rec:XML in rsUsrConf.recCashDtlQueryRemarksViews.recCashDtlQueryRemarksView ) {
+		 				    tempResult.addItem(rec);
+					    }
+                        
+                        recCashDtlQueryRemarksViews = tempResult;
+                    } 
+                }else {
+                    recCashDtlQueryRemarksViews.removeAll();
+                    XenosAlert.info("No Results Found");
+                }
+                       
+            }
+            /**
+             * Request for submitUserConfirm i.e. for System confirmation
+             * 
+             */ 
+            private function submitUserConfirm(event:MouseEvent):void{
+            	if(submitCnf!=null)
+            	{
+            		submitCnf.enabled=false;
+            	}
+                var rndNo:Number = Math.random();
+                cashRefDtlHttpServiceSysCnfrm.url= "rec/cashReferResultDispatch.action?rnd=" + rndNo;
+                
+                var req : Object = new Object();
+                req.SCREEN_KEY = 11015;
+                req.method="submitForexTransferConfirm";
+                cashRefDtlHttpServiceSysCnfrm.request=req;
+                
+                cashRefDtlHttpServiceSysCnfrm.send();                
+            }
+            /**
+             * Go back to the user confirmation page.
+             */ 
+            private function backToUserConfirm(event:MouseEvent):void{                
+                remarksEntry.selectedChild = rslt;
+                parentDocument.title="Forex Transfer"                
+            }
+            /**
+             * Request for the System Confirmation completion.
+             * 
+             */  
+            private function submitSysConfirm(event:MouseEvent):void{
+                var rndNo:Number = Math.random();
+                cashRefDtlHttpServiceOkSysCnfrm.url= "rec/cashReferResultDispatch.action?rnd=" + rndNo;
+                
+                var req : Object = new Object();
+                req.method="submitSysConfirm";
+                cashRefDtlHttpServiceOkSysCnfrm.request=req;
+                                
+                cashRefDtlHttpServiceOkSysCnfrm.send();                 
+                               
+            }
+            /**
+             * Result handler for the System Confirmation completion. 
+             * After System Confirmation completion we need to go back to the Query page.
+             * 
+             */ 
+            private function sysOkCnfrm_result(event:ResultEvent):void {                 
+                if(null != event){
+                    if(null == event.result.recCashReferResultActionForm){
+                        if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+                            errPage.clearError(event); //clears the errors if any
+                            XenosAlert.info("No Result Found!");
+                        } else { // Must be error
+                            errPage.displayError(event);
+                        }          
+                    }
+                    this.parentDocument.dispatchEvent(new Event("OkSystemConfirm"));
+                    this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+                }      
+            }            
+        ]]>
+    </mx:Script>
+    
+    <mx:states>
+        <mx:State name="confirm">
+            <mx:SetProperty target="{submitCnf}" name="includeInLayout" value="false"/>
+            <mx:SetProperty target="{submitCnf}" name="visible" value="false"/>
+            <mx:SetProperty target="{backCnf}" name="includeInLayout" value="false"/>
+            <mx:SetProperty target="{backCnf}" name="visible" value="false"/>
+            <mx:SetProperty target="{okCnf}" name="includeInLayout" value="true"/>
+            <mx:SetProperty target="{okCnf}" name="visible" value="true"/>
+        </mx:State>
+    </mx:states> 
+    
+    <cntrls:XenosHTTPService id="cashRefDtlHttpService" 
+            useProxy="false"
+            fault="httpService_fault(event);"
+            result="httpService_result(event)" showBusyCursor="true"  resultFormat="xml">
+         <!--   <mx:request >
+                <method>showForexTransferResult</method>
+                <movArray>{movArray}</movArray>
+                <fromPage>fromPage</fromPage>
+            </mx:request> -->
+     </cntrls:XenosHTTPService>
+     <cntrls:XenosHTTPService id="cashRefDtlHttpServiceRefresh" url="rec/cashReferResultDispatch.action?"
+            useProxy="false"
+            fault="httpService_fault(event);"
+            result="httpService_result(event)" showBusyCursor="true"  resultFormat="xml">
+            <!--<mx:request >
+                <method>backUserConfirm</method>
+            </mx:request>     -->
+     </cntrls:XenosHTTPService>
+     <cntrls:XenosHTTPService id="cashRefDtlHttpServiceUsrCnfrm"
+            useProxy="false"
+            fault="usrCnfrm_fault(event);"
+            result="usrCnfrm_result(event)" showBusyCursor="true"  resultFormat="xml">
+          <!--  <mx:request>
+                <method>viewForexTransferUsrConfirm</method>
+            </mx:request>  -->
+     </cntrls:XenosHTTPService>
+     <cntrls:XenosHTTPService id="cashRefDtlHttpServiceSysCnfrm"
+            useProxy="false"
+            fault="usrCnfrm_fault(event);"
+            result="usrCnfrm_result(event)" showBusyCursor="true"  resultFormat="xml">
+           <!-- <mx:request>
+                <method>submitForexTransferConfirm</method>
+            </mx:request>  -->
+     </cntrls:XenosHTTPService>
+     <cntrls:XenosHTTPService id="cashRefDtlHttpServiceOkSysCnfrm"
+            useProxy="false"
+            fault="usrCnfrm_fault(event);"
+            result="sysOkCnfrm_result(event)" showBusyCursor="true">
+          <!--  <mx:request>
+                <method>submitSysConfirm</method>
+            </mx:request>  -->
+     </cntrls:XenosHTTPService>
+    
+    <mx:VBox width="100%" height="100%" id="adjustment" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        
+        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>
+           
+        <mx:ViewStack id="remarksEntry" width="100%" height="100%" >   
+
+            <mx:VBox width="100%" height="100%" id="rslt" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        
+                <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.file.fund.label.fundcode')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.fundCode}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.adjustmentdt')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.frxOutObjType == 'NCM' ? (objForm.dtlObjOut.ncmBdate==null? objForm.dtlObjIn.custBdate : objForm.dtlObjOut.ncmBdate) : (objForm.dtlObjOut.custBdate==null? objForm.dtlObjIn.custBdate : objForm.dtlObjOut.custBdate) }" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.bank')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjIn.bankCode}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Bank Name" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.bankName}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.adjustmentreason')}" styleName="LabelBgColor" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" >
+	                        <!--<mx:ComboBox id="reasonCode" labelField="label" width="200" itemRenderer="mx.controls.Label"/>-->	                        
+	                        <mx:Text text="{forexTransfer}" />                        
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.remarks')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                     <mx:GridItem width="30%">
+	                        <!--<mx:TextInput id="remarks" text="" width="100%"/>-->
+	                        <mx:TextArea id="remarks" width="100%" height="50" maxChars="100"/>
+	                    </mx:GridItem>             
+                    </mx:GridRow>
+                    
+                </mx:Grid>
+                
+                <mx:HBox width="100%">
+                	<mx:Grid width="100%">                    
+	                    <mx:GridRow width="100%">
+		                    <mx:GridItem width="50%">
+		                        <mx:Label text="IN ( Custodian )" textAlign="center" />
+		                    </mx:GridItem>
+		                    <mx:GridItem width="50%">
+		                        <mx:Label text="OUT ({objForm.frxOutObjType})" textAlign="center" />
+		                    </mx:GridItem>           
+	                    </mx:GridRow>                	
+                    </mx:Grid>
+                </mx:HBox>
+        
+                <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.bankactno')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjIn.act}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.bankactno')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjOut.act}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Bank Account Name" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjIn.actName}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Bank Account Name" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjOut.actName}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Currency Code" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjIn.ccy}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Currency Code" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjOut.ccy}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Amount" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{custBalStr}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Amount" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{ncmBalStr}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                </mx:Grid>
+                
+                <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="left">            
+                    <mx:Button id="usrConfBtn" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="viewUserConfirm(event)"/>
+                    <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('rec.form.button.label.back')}" styleName="BtnStyle" click="backDtlQuery(event)"/>
+                </mx:HBox>
+             
+            </mx:VBox>
+            
+            <mx:VBox width="100%" height="100%" id="userConfirm" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        
+                 <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.file.fund.label.fundcode')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.fundCode}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.adjustmentdt')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.frxOutObjType == 'NCM' ? (objForm.dtlObjOut.ncmBdate==null? objForm.dtlObjIn.custBdate : objForm.dtlObjOut.ncmBdate) : (objForm.dtlObjOut.custBdate==null? objForm.dtlObjIn.custBdate : objForm.dtlObjOut.custBdate) }" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.bank')}" styleName="FormLabelHeading"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjIn.bankCode}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Bank Name" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.bankName}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.adjustmentreason')}" styleName="LabelBgColor" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" >
+	                        <!--<mx:Text text="{objForm.reasonCode}" /> -->
+	                        <mx:Text text="{forexTransfer}" />
+	                                               
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.remarks')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                     <mx:GridItem width="30%">
+	                        <mx:Text text="{objForm.cashAdjustObj.remarks}" />
+	                    </mx:GridItem>             
+                    </mx:GridRow>
+                    
+                </mx:Grid>
+                
+                <mx:HBox width="100%">
+                	<mx:Grid width="100%">                    
+	                    <mx:GridRow width="100%">
+		                    <mx:GridItem width="50%">
+		                        <mx:Label text="IN ( Custodian )" textAlign="center" />
+		                    </mx:GridItem>
+		                    <mx:GridItem width="50%">
+		                        <mx:Label text="OUT ( {objForm.frxOutObjType} )" textAlign="center" />
+		                    </mx:GridItem>           
+	                    </mx:GridRow>                	
+                    </mx:Grid>
+                </mx:HBox>
+        
+                <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.bankactno')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjIn.act}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.bankactno')}" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjOut.act}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Bank Account Name" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjIn.actName}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Bank Account Name" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjOut.actName}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Currency Code" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjIn.ccy}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Currency Code" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{objForm.dtlObjOut.ccy}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Amount" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{custBalStr}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="20%" styleName="LabelBgColor">
+                            <mx:Label text="Amount" styleName="FormLabelHeading" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%">
+                            <mx:Text text="{ncmBalStr}" />
+                        </mx:GridItem>
+                    </mx:GridRow>
+                </mx:Grid>
+                
+                <mx:HBox id="hbConfirm" width="100%" styleName="ButtonBackPanel" horizontalAlign="left">            
+                    <mx:Button id="submitCnf" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="submitUserConfirm(event)"/>
+                    <mx:Button id="backCnf" label="{this.parentApplication.xResourceManager.getKeyValue('rec.form.button.label.back')}" styleName="BtnStyle" click="backToUserConfirm(event)"/>
+                    <mx:Button id="okCnf" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" click="submitSysConfirm(event)" visible="false" includeInLayout="false"/>
+                </mx:HBox>
+             
+            </mx:VBox>
+        </mx:ViewStack>    
+    </mx:VBox>
+</mx:Module>

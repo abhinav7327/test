@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+
+
+-->
+
+<!--Mxml file for Cam Movement Query Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="loadAll()">
+
+    <mx:Script>
+        <![CDATA[        	
+        	import mx.events.AdvancedDataGridEvent;
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.containers.TitleWindow;
+            import mx.collections.ArrayCollection;
+            import mx.events.CloseEvent;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import mx.controls.CheckBox;
+            import mx.managers.PopUpManager;
+            
+            import com.nri.rui.core.controls.XenosAlert;
+            
+            private function changeCurrentState():void{
+                currentState = "result";
+                app.submitButtonInstance = null;
+            }
+           
+           /**
+ 			*  datagrid header release event handler to handle datagridcolumn sorting
+ 			*/
+			public function dataGrid_headerRelease(evt:AdvancedDataGridEvent):void {				
+				var dg:AdvancedDataGrid = AdvancedDataGrid(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];                                	
+			}
+            
+			/**
+             * Extract the value of the colum cell removing the prefix added at '0'th index.
+             */ 
+            private function extractPrecisionedValue(item:Object, column:AdvancedDataGridColumn):String{
+                var strData:String = item[column.dataField];
+                if(!XenosStringUtils.isBlank(strData) && strData.charAt(0)=="F"){
+                    if(strData.length == 1)
+                        return XenosStringUtils.EMPTY_STR;
+                    else
+                        return strData.substring(1);
+                }else{
+                    return item[column.dataField];                    
+                }
+            }
+            
+            /**
+             * Extract the value of the colum cell removing the prefix added at '0'th index.
+             */ 
+            private function getSecurityId(item:Object, column:AdvancedDataGridColumn):String{
+               
+                    return item.ccy;               
+                
+            }
+        ]]>
+    </mx:Script>
+    
+    <mx:Script source="actionscripts/SecRemarksQuery.as"/>
+   
+ 	<mx:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+        	<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </mx:states>
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+          <!--  <mx:Parallel id="t1" targets="{[qry,rslt]}">-->
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                
+            <!-- </mx:Parallel>-->
+        </mx:Transition>
+    </mx:transitions>
+
+    <cntrls:XenosHTTPService id="initializeRemarksQuery" fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString)" 
+             method="POST" useProxy="false" result="initPage(event)" showBusyCursor="true"/>    
+
+	<cntrls:XenosHTTPService id="loadBankAndBankAccountForFund" fault="XenosAlert.error('Error Occured  :  ' + event.fault.faultDetail)" url="rec/recSecRemarksDispatch.action?method=loadBankAndBankAccountFromFund"
+             result="populateBankAndBankAccount(event)" showBusyCursor="true" resultFormat="xml"/>        
+    
+    <cntrls:XenosHTTPService id="loadBankAccount" fault="XenosAlert.error('Error Occured  :  ' + event.fault.faultDetail)" url="rec/recSecRemarksDispatch.action?method=loadBankAccountFromBank"
+             result="populateBankAccount(event)" showBusyCursor="true" />
+             
+    <cntrls:XenosHTTPService id="resetBank" fault="XenosAlert.error('Error Occured  :  ' + event.fault.faultDetail)" url="rec/recSecRemarksDispatch.action?method=resetBank"
+             result="populateBankAccount(event)" showBusyCursor="true" />         
+    <cntrls:XenosHTTPService id="secRemarksQueryRequest" url="rec/recSecRemarksDispatch.action?method=resetQuery"
+        result="initPage(event)" showBusyCursor="true">
+    </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="secRemarksQueryRequestresult" 
+         url="rec/recSecRemarksDispatch.action?" 
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+         result="LoadSummaryPage(event)" showBusyCursor="true" resultFormat="xml">
+   
+    </cntrls:XenosHTTPService>
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;" />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>    	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    
+    <mx:VBox width="100%" height="100%" verticalScrollPolicy="off" horizontalScrollPolicy="off">    
+    <mx:HDividedBox id="hdbox1" styleName="Padding4" width="100%" height="100%" liveDragging="true" creationComplete="initPageStart()" verticalScrollPolicy="off" horizontalScrollPolicy="off">
+        
+        <mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        <mx:VBox label="Query Criteria" width="100%" height="100%" styleName="HDivideStyle" >
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+            <mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+                <mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.label.DateFormTo')}" />
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox width="100%">
+                                   <mx:DateField id="dateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                                   <mx:DateField id="dateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                            </mx:HBox>
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.label.CreationDateFormTo')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                            <mx:HBox width="100%">
+                                   <mx:DateField id="creationDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                                   <mx:DateField id="creationDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                            </mx:HBox>
+                        </mx:GridItem> 
+                        
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+					 		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" />
+					 	</mx:GridItem>
+					 	<mx:GridItem width="30%" borderThickness="0">
+					 		<xenospopup:FundPopUpHbox id="fundPopUp" focusOut="inputHandler();"/>
+					 	</mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+					 		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.label.custodianCode')}" />
+					 	</mx:GridItem>
+					 	<mx:GridItem width="30%" borderThickness="0">
+					 		<xenospopup:finInstForFundPopUpHBox id="fininstPopUp" retContextItem="{returnFinContext}" recContextItem="{populatefinRoleContext()}"/>
+					 	</mx:GridItem>
+					 	
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+                    	<mx:GridItem width="20%" borderThickness="0">
+					 		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.label.accountNo')}" />
+					 	</mx:GridItem>
+					 	<mx:GridItem id="grdItem" width="30%" borderThickness="0">
+					 		<xenospopup:AccountPopUpHbox id="stlAccForFundPopUp" retContextItem="{returnContextItem}" recContextItem="{stlAccForFundContextList}" />
+					 	</mx:GridItem>
+					 	<mx:GridItem width="20%" borderThickness="0">
+					 		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.label.userId')}" />
+					 	</mx:GridItem>
+					 	<mx:GridItem id="grdItem1" width="30%" borderThickness="0">
+					 		<xenospopup:EmployeePopUpHbox id="userIdPopUp" />
+					 	</mx:GridItem>
+				    </mx:GridRow>
+				    <mx:GridRow width="100%">
+				    <mx:GridItem width="20%" borderThickness="0">
+				        <!--<mx:CheckBox label="{this.parentApplication.xResourceManager.getKeyValue('rec.label.remainingStatus')}" name="remstatus" id="chkbox1"/>-->
+				        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.label.secCode')}" />
+				    </mx:GridItem>
+				     <mx:GridItem width="30%" borderThickness="0">
+				     	<xenospopup:InstrumentPopUpHbox id="instPopUp"/>
+				     </mx:GridItem>
+				     <mx:GridItem width="20%" borderThickness="0"/>
+				     <mx:GridItem width="30%" borderThickness="0"/>
+				    </mx:GridRow>
+				    
+                    
+                </mx:Grid>    
+                <flexlib:WindowShade id="ws3" tabChildren="{ws3.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.sortorder.fields')}" opened="true" width="100%">
+				<mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="100%" borderThickness="0">
+                            <mx:HBox width="100%" >
+								<mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()"> </mx:ComboBox>
+								<mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()"> </mx:ComboBox>
+								<mx:ComboBox id="sortField3" labelField="label" change="sortOrder3Update()"> </mx:ComboBox>
+								<mx:ComboBox id="sortField4" labelField="label"> </mx:ComboBox>
+							</mx:HBox>
+						</mx:GridItem>		
+					</mx:GridRow>					
+				</mx:Grid>
+			</flexlib:WindowShade>                            
+            
+           
+            <mx:HBox width="100%" styleName="ButtonBackPanel">            
+                <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="this.submitQuery();" />
+                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle"  click="this.resetQuery();"/>                    
+            </mx:HBox>
+            
+        </mx:VBox>
+        </mx:Canvas>
+        <mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >            
+                             
+	        <cntrls:QueryResultHeaderForAdvancedDataGrid id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" width="100%" />
+	        <mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text=""/>
+	                
+	         <mx:AdvancedDataGrid id="movementSummary" width="100%" height="100%" variableRowHeight="true" dataProvider="{summaryResult}" sortableColumns="true" headerRelease="dataGrid_headerRelease(event)" horizontalScrollPolicy="on" creationComplete="bindDataGrid()">
+         		<mx:groupedColumns>
+         		    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.userId')}" dataField="userId" sortCompareFunction="sortUtil.sortString"/>
+         		    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" dataField="fundCode"  itemRenderer="com.nri.rui.core.renderers.FundDetailsRendererAdg" sortCompareFunction="sortUtil.sortString"/>
+         		    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.re.query.label.bankname')}" dataField="bank" sortCompareFunction="sortUtil.sortString" itemRenderer="com.nri.rui.core.renderers.FinancialInstitutionDetailsRendererAdg"/>
+         		    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.re.query.label.accountno')}" dataField="accountNo" sortCompareFunction="sortUtil.sortString" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRendererAdg"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.date')}" dataField="adjustmentDateDisp" sortCompareFunction="sortUtil.sortString"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.rcvd.data.label.creationDate')}" dataField="creationDateDisp" sortCompareFunction="sortUtil.sortString"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.securitycode')}" dataField="ccy" itemRenderer="com.nri.rui.rec.renderers.SecurityDetailsRendererAdg" sortCompareFunction="sortUtil.sortString"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.securityname')}" dataField="securityName"  sortCompareFunction="sortUtil.sortString"/>
+ 					<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.common.label.alternatesecurityid')}" dataField="alternateSecurityCodeDisp" sortCompareFunction="sortUtil.sortString" />
+	               	<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.Quantity')}" dataField="">
+     					<mx:AdvancedDataGridColumn textAlign="right" headerText="NCM" dataField="ncmAmountDisp" sortCompareFunction="sortUtil.sortNumeric"    labelFunction="extractPrecisionedValue"/>
+     					<mx:AdvancedDataGridColumn textAlign="right" headerText="CUST" dataField="custAmountDisp" sortCompareFunction="sortUtil.sortNumeric"    labelFunction="extractPrecisionedValue"/>
+     				</mx:AdvancedDataGridColumnGroup>
+     				<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.matchingStatus')}" dataField="matchStatus" color="#FF0000" sortCompareFunction="sortUtil.sortString"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.remarks')}" sortCompareFunction="sortUtil.sortString">
+         				<mx:itemRenderer>
+         					<mx:Component>
+         						<mx:VBox maxHeight="100" maxWidth="200" >
+         							<mx:TextArea text="{data.remarks}" width="100%" maxHeight="100" editable="false" selectable="true"/>	
+         						</mx:VBox>         						
+         					</mx:Component>
+         				</mx:itemRenderer>
+         			</mx:AdvancedDataGridColumn>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.enterBy')}" dataField="createdBy" sortCompareFunction="sortUtil.sortString"/>
+         			<!-- <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.status')}" dataField="status" color="#FF0000" sortCompareFunction="sortUtil.sortString"/> -->
+         			<!--<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.remainingStatus')}" dataField="remainingStatus" visible="{selectifAny}" color="#FF0000" sortCompareFunction="sortUtil.sortString"/> -->
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.unknownsecurity')}" dataField="unknownSecurityName"  sortCompareFunction="sortUtil.sortString"/>
+ 					
+				</mx:groupedColumns>
+         	</mx:AdvancedDataGrid>
+	         
+	              
+        </mx:VBox>
+            
+    </mx:HDividedBox>
+    
+    </mx:VBox>
+    
+    </mx:Canvas> 
+    
+</mx:Module>

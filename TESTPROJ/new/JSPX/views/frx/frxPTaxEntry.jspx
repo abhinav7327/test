@@ -1,0 +1,245 @@
+<!--$Id$-->
+<!--$Author: Debojyoti Mukherjee $-->
+<!--$Date: 2016-12-23 19:26:28 $-->
+<jsp:root version="2.0" xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+	xmlns:spring="http://www.springframework.org/tags"
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util"
+	xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:display="http://displaytag.sf.net"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+
+	<div class="entryContainer paddingFour">
+		<!-- Java script include -->
+		<jsp:element name="script">
+        <jsp:body>
+			xenos.loadLocalizedScript([
+					{path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+					{path: xenos.context.path + '/scripts/frx/xenos-frx-i18n', async: false},
+				]);
+			
+			xenos.loadScript([
+					{path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},
+					{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+					{path: xenos.context.path + '/scripts/frx/xenos/frxEntryValidator.js', async: false}
+				]);
+				
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+			
+				var context = $xenos$Wizard.$context;
+				loadCalMechForSpotRate();
+				
+				//populate exchange rate Dropdownlist for Spot rate	
+				function loadCalMechForSpotRate(e){
+					var temp1 = '${commandForm.frxTrdData.againstCcy}' + '/' + '${commandForm.frxTrdData.baseCcy}';
+					var temp2 = '${commandForm.frxTrdData.baseCcy}' + '/' + '${commandForm.frxTrdData.againstCcy}';
+					var $target = context.find('#spotCalcMechanism');
+					var $option = $('<option />');
+					$option.attr('value', temp1).text(temp1);							
+					$target.empty();													
+					$target.append($option);
+					$option = $('<option />');
+					$option.attr('value', temp2).text(temp2);
+					$target.append($option);
+				}
+				
+				var validateHook = function() {
+					return submitValidateHook();
+				}
+				var unloadHook = function(){					
+					$xenos$Wizard.deregister('submit',validateHook);
+					$xenos$Wizard.deregister('unload',unloadHook);
+				};	
+					
+				function submitValidateHook () {
+						var validationMessages = [];
+						var spotDate = $('#spotDate').val();
+						var dateFormatValidationFails = false;						
+						if(dateFormatValidationFails==false &amp;&amp; spotDate.length>0 &amp;&amp; isDateCustom(spotDate)==false) {
+								dateFormatValidationFails = true;
+								validationMessages.push(xenos.utils.evaluateMessage(xenos$FRX$i18n.frxEntry.dateTime.spot_date_format , [spotDate]));
+						}
+						if ( validationMessages.length >0){  
+							xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+							return false;
+						}else{
+							xenos.utils.clearGrowlMessage();
+						}
+						return true;	
+				};
+					
+				$xenos$Wizard.register('submit',validateHook);
+				$xenos$Wizard.register('unload',unloadHook);
+				xenos.utils.afterFormRenderScuts();
+			};
+		</jsp:body>
+	</jsp:element>
+		<c:if test="${success =='false'}">
+			<!-- Error message Area -->
+			<ul class="xenosError">
+				<c:forEach items="${value}" var="dl">
+					<li><spring:message text="${dl}" htmlEscape="false" /></li>
+				</c:forEach>
+			</ul>
+		</c:if>
+
+		<spring:message code="form.button.label.add" htmlEscape="false"
+			var="formadd_label" />
+		<spring:message code="form.button.label.save" htmlEscape="false"
+			var="formsave_label" />
+		<spring:message code="form.button.label.cancel" htmlEscape="false"
+			var="formcancel_label" />
+
+		<div class="entryBlkArea">
+			<div class="formItemBlock dottedBg">
+				<!-- Inventory Account Number -->
+				<div>
+					<form:hidden id="mode" path="commandForm.frxTrdData.mode"/>
+				</div>
+				<div class="formItem twoCols">
+					<form:label path="commandForm.frxTrdData.inventoryAccountNo">
+						<spring:message code="frx.label.inventoryaccountno" htmlEscape="false" />
+					</form:label>
+					<span class="detailTxtVal">${commandForm.frxTrdData.inventoryAccountNo}</span>
+					<span class="detailTxtVal">${commandForm.frxTrdData.fundAccName}</span>
+				</div>
+				<!-- CP Account Number -->
+				<div class="formItem twoCols">
+					<form:label path="commandForm.frxTrdData.accountNo">
+						<spring:message code="frx.label.counterpartycode" htmlEscape="false" />
+					</form:label>
+					<span class="detailTxtVal">${commandForm.frxTrdData.accountNo}</span>
+					<span class="detailTxtVal">${commandForm.frxTrdData.cpAccName}</span>
+				</div>
+				<!-- Trade Type -->
+				<div class="formItem twoCols">
+					<form:label path="commandForm.frxTrdData.tradeType">
+						<spring:message code="frx.label.tradetype" htmlEscape="false" />
+					</form:label>
+					<span class="detailTxtVal">${commandForm.frxTrdData.tradeType}</span>
+				</div>
+				<!-- Trade Date and Time -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.tradeDate">
+						<spring:message code="frx.label.tradedatetime" htmlEscape="false" />
+					</form:label>
+					<span class="detailTxtVal">${commandForm.frxTrdData.tradeDate}</span>
+					<span class="detailTxtVal">${commandForm.frxTrdData.tradeTime}</span>
+				</div>
+				<!-- Value Date -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.valueDate">
+						<spring:message code="frx.label.valuedate" htmlEscape="false" />
+					</form:label>
+					<span class="detailTxtVal">${commandForm.frxTrdData.valueDate}</span>
+				</div>
+				<!-- Base Ccy -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.baseCcy">
+						<spring:message code="frx.label.baseccy" htmlEscape="false" />
+					</form:label>
+					<span class="detailTxtVal">${commandForm.frxTrdData.baseCcy}</span>
+				</div>
+				<!-- Base Ccy Amount -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.baseCcyAmount">
+						<spring:message code="frx.label.baseccyamount" htmlEscape="false" />
+					</form:label>
+					<span id="baseCcy" class="detailTxtVal">${commandForm.frxTrdData.baseCcyAmount}</span>
+				</div>
+				<!-- Against Ccy -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.againstCcy">
+						<spring:message code="frx.label.againstccy" htmlEscape="false" />
+					</form:label>
+					<span class="detailTxtVal">${commandForm.frxTrdData.againstCcy}</span>
+				</div>
+				<!-- Against Ccy Amount -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.againstCcyAmount">
+						<spring:message code="frx.label.againstccyamount"
+							htmlEscape="false" />
+					</form:label>
+					<span class="detailTxtVal">${commandForm.frxTrdData.againstCcyAmount}</span>
+				</div>
+				<!-- Exchange Rate Dropdownlist -->
+				<div class="formItem">
+					<form:label id="exchangeRateLbl"
+						path="commandForm.frxTrdData.calcMechanism">
+						<spring:message code="frx.label.exchangerate" htmlEscape="false" />
+					</form:label>
+					<span class="detailTxtVal">${commandForm.frxTrdData.calcMechanismStr}</span>
+					<span class="detailTxtVal">${commandForm.frxTrdData.exchangeRate}</span>
+				</div>
+				<!-- Settlement Ccy -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.settleCcy">
+						<spring:message code="frx.label.settleccy" htmlEscape="false" />
+					</form:label>
+					<span class="detailTxtVal">${commandForm.frxTrdData.settleCcy}</span>
+				</div>
+				<!-- Stl Exchange Rate -->
+				<div class="formItem">
+					<form:label id="exchangeRateStl"
+						path="commandForm.frxTrdData.calcMechForStlCcy">
+						<spring:message code="frx.label.ExchangeRateForStlCcy" htmlEscape="false" />
+					</form:label>
+					<span class="detailTxtVal">${commandForm.frxTrdData.calcMechForStlCcyStr}</span>
+					<span class="detailTxtVal">${commandForm.frxTrdData.exchangeRateForStlCcy}</span>
+				</div>
+				<!-- NDF Close Date -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.spotDate">
+						<spring:message code="frx.label.ptaxdate" htmlEscape="false" />
+					</form:label>
+					<span><form:input id="spotDate" value=""
+							path="commandForm.frxTrdData.spotDate" class="dateinput" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$FRX$i18n.frxEntry.dateTime.spot_date_format, [this.value]))}
+										else{
+									xenos.ns.views.frxTradeEntry.formatDate(this.value,$('#spotDate'))
+								  };" /></span>
+				</div>
+				<!-- Reference Number -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.referenceNo">
+						<spring:message code="frx.label.referenceno" htmlEscape="false" />
+					</form:label>
+					<span class="detailTxtVal">${commandForm.frxTrdData.referenceNo}</span>
+				</div>
+				<!-- NDF Close Rate -->
+				<div class="formItem">
+					<form:label class="required" path="commandForm.frxTrdData.calcMechForSpotRate">
+						<spring:message code="frx.label.spotrate" htmlEscape="false" />
+					</form:label>
+					<span><form:select id="spotCalcMechanism" 
+							path="commandForm.frxTrdData.calcMechForSpotRate" class="dropdowninput">
+							<form:option value="" />
+						</form:select></span> 
+					<span><form:input id="spotRate" value=""
+							path="commandForm.frxTrdData.spotRate"
+							class="txtNormal"
+							onchange="return formatRate($('#spotRate'),10,10,null,$('#spotRate').parent().parent().find('label').text())" /></span>
+					<span class="remove" title="Remove this field"
+						style="display: none;"><spring:message text=""
+							htmlEscape="false" /></span>
+					<div class="clear">
+						<spring:message text="" htmlEscape="false" />
+					</div>
+				</div>
+				<!-- Status -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.status">
+						<spring:message code="frx.label.status" htmlEscape="false" />
+					</form:label>
+					<span class="detailTxtVal">${commandForm.frxTrdData.status}</span>
+				</div>
+				<!-- Profit/Loss -->
+				<div class="formItem">
+					<form:label path="commandForm.frxTrdData.swapPl">
+						<spring:message code="frx.label.swappl" htmlEscape="false" />
+					</form:label>
+					<span class="detailTxtVal">${commandForm.frxTrdData.swapPl}</span>
+				</div>
+			</div>
+		</div>
+	</div>
+</jsp:root>

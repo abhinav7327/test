@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" 
+	implements="mx.controls.listClasses.IDropInListItemRenderer" width="100%" height="100%" preinitialize ="init();"
+		>
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import com.nri.rui.core.controls.XenosHTTPService;
+			import mx.resources.ResourceBundle;
+		import mx.controls.dataGridClasses.DataGridColumn;
+		import mx.utils.ObjectUtil;
+		import com.nri.rui.core.controls.XenosAlert;
+		import mx.events.ValidationResultEvent;
+		import com.nri.rui.core.controls.XenosEntryDataGrid;
+		import mx.validators.Validator;
+		import mx.collections.ArrayCollection;
+		import mx.controls.DataGrid;
+		import mx.controls.dataGridClasses.DataGridListData;
+		import mx.controls.listClasses.BaseListData;
+		
+		
+		private var addService:XenosHTTPService=new XenosHTTPService();
+		private var editService:XenosHTTPService=new XenosHTTPService();
+		private var deleteService:XenosHTTPService=new XenosHTTPService();
+				
+		// Make the listData property bindable.
+    	[Bindable("dataChange")]
+		private var _listData : BaseListData;    
+		
+		[Bindable]
+		private var buttonLabel:String="";
+		
+		[Bindable]
+		private var btnvisible:Boolean=true;
+		
+		[Bindable]
+		private var toggleButtonLabel:String="Edit";
+		
+		[Bindable]
+		private var previous_Data:Object=null;
+		
+		[Bindable]
+		private var dProvider:ArrayCollection=null;
+		
+		private var rowIndex:int;
+		private var indx : int;
+		[Embed(source="../../../../../assets/add.png")]
+		private static var addIcon:Class;
+		[Embed(source="../../../../../assets/delete.png")]
+		private static var removeIcon:Class;
+		
+		protected var dgrid:XenosEntryDataGrid;
+		public function get listData() : BaseListData
+		{
+			return _listData;            
+		}                                        
+	
+		public function set listData( value : BaseListData ) : void
+		{
+			_listData = value;
+			
+			if(listData)
+			{
+				dgrid = XenosEntryDataGrid(listData.owner);
+				dProvider=dgrid.dataProvider as ArrayCollection ;
+			}
+				
+		}
+		
+		public function init():void {
+		 	addEventListener("dataChange", handleDataChanged);
+		 	
+        }  
+        
+        //resetting buttons due to flex reuse of item renderers
+        
+		 public function handleDataChanged(event:Event):void {
+		 	var index:int = dProvider.getItemIndex(data);
+		 	//trace("index:"+index+":dgrid.editedRowIndex:"+dgrid.editedRowIndex );
+			//if(dgrid.editedRowIndex==-1 ){
+			 if(dgrid.editedRowIndex == index){
+				//current row is in edit mode
+		 		editsave.selected=true;
+		 		editsave.label="Save";
+		 		cancel.visible=true;
+		 		cancel.includeInLayout=true;
+		 		
+		 	}
+		 	
+		 	else 
+		 	{
+		 		editsave.selected=false;
+		 		editsave.label="Edit";
+		 		cancel.visible=false;
+		 		cancel.includeInLayout=false;
+		 	}
+			
+		}   
+
+		/* public function doClick(e:Event):void{
+			
+			var validatorObj:Validator = dgrid.validatorInstance;
+			var validationResult:ValidationResultEvent = new ValidationResultEvent(ValidationResultEvent.VALID);
+			if(validatorObj!=null) {
+				validationResult = validatorObj.validate(data);
+			}
+			// Show the error 
+			if(validationResult.type==ValidationResultEvent.INVALID){
+	            var errorMsg:String=validationResult.message;
+	            XenosAlert.error(errorMsg);
+       		 }else{
+       		 	var obj :Object = new Object();
+				obj.index = dgrid.dataProvider.length;
+				dProvider.addItem(obj);
+				callLater(validateDataGrid);
+				
+				indx = listData.rowIndex + dgrid.verticalScrollPosition;
+				dgrid.editedItemPosition ={rowIndex:indx+1,columnIndex:1};
+       		 }
+		} */
+		public function doRemove(e:Event):void{
+			indx = dProvider.getItemIndex(data);
+			
+			//resetting buttons due to flex bug 
+			if(dgrid.editedRowIndex==indx){		
+				editsave.label="Edit";
+				editsave.selected=false;
+				cancel.visible=false;
+				cancel.includeInLayout=false;
+			}
+			
+			if(!(data.isFreshObject as Boolean)){
+				//send delete request to server
+			deleteService.addEventListener(ResultEvent.RESULT,deleteResultHandler);	
+			deleteService.addEventListener(FaultEvent.FAULT,faultHandler);		
+			deleteService.url=dgrid.deleteServiceURL;
+			deleteService.method="POST";
+			
+			//set edited item index
+			var deleteObj:Object=data;
+			deleteObj[dgrid.editedIndexPropertyName]=indx;
+			
+			deleteService.request=deleteObj;	
+			deleteService.resultFormat="xml";
+			deleteService.send();	
+			
+			}
+			else{
+				//only remove from client side list
+				if(dgrid.editedRowIndex==indx){				
+					dgrid.editedRowIndex=-1;
+				}else if(dgrid.editedRowIndex>indx)
+				{
+						//decrease index by 1
+						dgrid.editedRowIndex--;						
+				}				
+				dProvider.removeItemAt(indx);
+				dProvider.refresh();				
+				setNonEditableColumns(true);
+			}
+			
+			
+		}
+		public function validateDataGrid():void{
+			if(dgrid){
+				dgrid.validateNow();
+				dgrid.verticalScrollPosition = dgrid.maxVerticalScrollPosition;
+			}
+		}
+		private function deleteResultHandler(result:ResultEvent):void{
+			//remove data from client side
+			indx = dProvider.getItemIndex(data);
+			if(dgrid.editedRowIndex==indx){				
+					dgrid.editedRowIndex=-1;
+			}
+			else if(dgrid.editedRowIndex>indx)
+			{
+					//decrease index by 1
+					dgrid.editedRowIndex--;						
+			}	
+			dProvider.removeItemAt(indx);
+			dProvider.refresh();
+			
+			//reset all non-editable columns
+			setNonEditableColumns(true);
+			
+		}
+		
+		private function doEditSave(e:Event):void{	
+			indx = dProvider.getItemIndex(data);	
+			if (dgrid.editedRowIndex==-1 ||dgrid.editedRowIndex==indx){
+				
+				if(editsave.selected){
+					//do editing
+					
+					setNonEditableColumns();
+					
+					//backup previuos data for cancel
+					previous_Data=ObjectUtil.copy(this.data);
+					cancel.visible=true;
+					cancel.includeInLayout=true;
+					dgrid.editedItemPosition={rowIndex:indx,columnIndex:getFirstEditableColumn()};
+					editsave.label="Save";
+					dgrid.editedRowIndex=indx;					
+				}
+				else
+				{
+					//Call validator to validate Records
+					if(validateRecord()){
+						 cancel.visible=false;
+						 cancel.includeInLayout=false; 
+						
+						//toggle
+						editsave.label="Edit";
+						if(data.isFreshObject as Boolean){
+							//send add request
+							doAdd();						
+						}
+						else{
+							//send edit request
+							doEdit();
+							//dgrid.editedRowIndex=-1;
+						}
+					}
+					else{
+						editsave.selected=true;
+						editsave.label="Save";
+						dgrid.editedItemPosition={rowIndex:dgrid.editedRowIndex,columnIndex:getFirstEditableColumn()};
+						
+					}
+				}
+			}
+			else
+			{				
+				editsave.selected=false;
+				XenosAlert.error("You must save changes first.");								
+			}
+		}
+		
+		private function doAdd():void{
+			//call validator first
+			
+			addService.addEventListener(ResultEvent.RESULT,addResultHandler);	
+			addService.addEventListener(FaultEvent.FAULT,faultHandler);		
+			addService.url=dgrid.addServiceURL;
+			addService.method="POST";
+			addService.request=data;	
+			addService.resultFormat="xml";
+			addService.send();		
+		}
+		private function doEdit():void{
+			
+			//reset non-editable columns of dgrid
+			setNonEditableColumns(true);
+			
+			//editedIndex property name?
+			editService.addEventListener(ResultEvent.RESULT,addResultHandler);	
+			editService.addEventListener(FaultEvent.FAULT,faultHandler);		
+			editService.url=dgrid.editServiceURL;
+			editService.method="POST";
+			
+			//set edited item index
+			var editedObj:Object=ObjectUtil.copy(data);
+			editedObj[dgrid.editedIndexPropertyName]= dProvider.getItemIndex(data);;
+			
+			editService.request=editedObj;	
+			editService.resultFormat="xml";
+			editService.send();
+		}
+		
+		private function addResultHandler(event:ResultEvent):void{
+			var rs:XML = XML(event.result);
+			if(rs.child("Errors").length()>0) {                
+			 	var errorInfoList : ArrayCollection = new ArrayCollection();
+                //populate the error info list 			 	
+			 	for each ( var error:XML in rs.Errors.error ) {
+	 			   errorInfoList.addItem(error.toString());
+				}
+				//show errors
+				dgrid.errorPage.showError(errorInfoList);
+				editsave.selected=true;
+				editsave.label="Save";
+				dgrid.editedItemPosition={rowIndex:dgrid.editedRowIndex,columnIndex:getFirstEditableColumn()};
+				cancel.visible=true;
+				cancel.includeInLayout=true; 
+			}
+			else{
+				
+				dgrid.errorPage.clearError(event);
+				dgrid.editedRowIndex=-1;
+				data.isFreshObject=false;
+				/* cancel.visible=false;
+				cancel.includeInLayout=false; */
+			}
+		}
+		
+		private function faultHandler(e:FaultEvent):void{
+			XenosAlert.error(e.fault.faultString);
+		}
+		
+		private function validateRecord():Boolean{
+			var validatorObj:Validator = dgrid.validatorInstance;
+			var validationResult:ValidationResultEvent = new ValidationResultEvent(ValidationResultEvent.VALID);
+			if(validatorObj!=null) {
+				validationResult = validatorObj.validate(data);
+			}
+			// Show the error 
+			if(validationResult.type==ValidationResultEvent.INVALID){
+	            var errorMsg:String=validationResult.message;
+	            XenosAlert.error(errorMsg);
+	            return false;
+       		 }
+       		return true;
+		}
+		
+		private function getFirstEditableColumn():int{
+			
+			var i:int=0;
+			for(i=0;i<dgrid.columns.length;i++){
+				if((dgrid.columns[i] as DataGridColumn).editable)
+					return i;			
+			}
+			return 1;
+		}
+		
+		private function doCancel():void{
+			dgrid.editedRowIndex=-1;			
+			//this.data=previous_Data;
+			
+			var index:int=dProvider.getItemIndex(data);
+			dProvider.setItemAt(previous_Data,index);
+			dProvider.refresh();
+			
+			//trace("previous_Data11"+ObjectUtil.toString(previous_Data));
+			//trace("Data"+ObjectUtil.toString(this.data));
+			editsave.selected=false;
+			editsave.label="Edit";
+			cancel.visible=false;
+			cancel.includeInLayout=false;
+			
+		}
+		
+		
+		//method to set/reset the non-editable columns during entry
+		private function setNonEditableColumns(reset:Boolean=false):void{
+			if(dgrid.dataGridMode=="entry" || dgrid.dataGridMode=="amend"){
+				if(dgrid.nonEditableColumns!=null && !(data.isFreshObject as Boolean)){
+					for each(var index:int in dgrid.nonEditableColumns){
+						var dgc:DataGridColumn=dgrid.columns[index] as DataGridColumn;
+						dgc.editable=reset;
+					}
+				}
+			}
+		}		
+		
+		]]>
+	</mx:Script>
+	
+	<mx:Image source="@Embed('../../../../../assets/delete.png')" id="addRemove" click="doRemove(event);" includeInLayout="true" visible="true" toolTip="Delete"/>
+	
+	<!-- <mx:Image source="@Embed('../../../../../assets/add.png')" id="add" click="doClick(event);" includeInLayout="{btnvisible}" visible="{btnvisible}" /> 
+	label="{editsave.selected?'Save':'Edit'}"
+	styleName="BtnStyle"
+	-->
+	<mx:Button styleName="XenosGridEditBtnStyle" id="editsave" toggle="true" label="Edit" click="doEditSave(event);" width="18" height="18" />
+	<mx:Image source="@Embed('../../../../../assets/cancel2.png')" id="cancel" click="doCancel();" includeInLayout="{cancel.visible}" visible="false" toolTip="Cancel Changes"/>
+</mx:HBox>

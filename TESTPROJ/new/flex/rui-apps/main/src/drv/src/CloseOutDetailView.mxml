@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:flexlib="http://code.google.com/p/flexlib/" layout="vertical" 
+	xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:controls="*" width="100%" height="100%" creationComplete="submitQueryResult()">
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.RendererFectory;
+			import mx.managers.PopUpManager;
+    		import mx.collections.ArrayCollection;
+    		import com.nri.rui.core.controls.XenosAlert;
+    		import com.nri.rui.core.utils.PrintUtils;
+    		import com.nri.rui.drv.rendrers.TradeDetailsRenderer;
+			
+			[Bindable]
+			public var actionMode:String = "query";
+			
+			 public function submitQueryResult():void{
+		    	parseUrlString();
+		    	var requestObj :Object = populateRequestParams();
+	         	drvCloseOutDetailRequest.request = requestObj; 
+		    	drvCloseOutDetailRequest.send();
+			    PopUpManager.centerPopUp(this);
+		    }
+			
+		]]>
+	</mx:Script>
+	<mx:Script source = "actionscripts/CloseOutDetailView.as"/>  
+	 <cntrls:XenosHTTPService id="drvCloseOutDetailRequest"
+     	 showBusyCursor="true"
+     	 method="POST" 
+     	 url="drv/drvTradeDetailsView.action?method=viewCloseOutDetails" 
+         result="LoadResultPage(event)" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>
+    
+    <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+     <mx:Button id="Print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getkeyvalue('inf.form.button.lable.print')}" click="PrintUtils.printDetail(this.closeoutdetailsview)"/>
+    </mx:HBox>
+    
+	<mx:XMLListCollection id="closeOutData" source="{xmlSource.closeOutDetailViewLists.closeOutDetailViewList}"/> 
+    <mx:VBox id="closeoutdetailsview" width="100%" height="100%" styleName="Padding">
+    		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.contractinformation')+ ' [ '+ this.parentApplication.xResourceManager.getKeyValue('drv.label.contractreferenceno')+ ' - ' + queryResult.contractReferenceNo + ']'}" styleName="FormLabelHeading" width="100%"/>
+		    <mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundcode')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.fundCode}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundaccountno')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.fundAccountNo}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.brokeraccountno')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.cpAccountNo}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securitycode')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.securityCode}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securityshortname')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.securityName}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.underlyingshortname')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.underLyingSecurityName}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%">
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('drv.label.expirystatus')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text="{queryResult.expiryStatus}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="20%" styleName="LabelBgColor">
+						<mx:Label text="" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="30%">
+						<mx:Label text=""/>
+					</mx:GridItem>
+				</mx:GridRow>
+			</mx:Grid>
+	       <mx:AdvancedDataGrid id="adg" width="100%" height="100%" dataProvider="{closeOutData}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto">
+         		<mx:groupedColumns>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.closeoutreferenceno')}" dataField="referenceNo"/>
+     				<mx:AdvancedDataGridColumnGroup headerText="" dataField="buyTradeDetails">
+     					<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.opentrade')}" dataField="buyTradeDetails">
+         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradereferenceno')}" dataField="tradeReferenceNo" itemRenderer="{new RendererFectory(TradeDetailsRenderer,'OPEN')}" width="120"/>
+         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.closeoutqty')}" dataField="quantityStr"/>
+         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.price')}" dataField="priceStr"/>
+         				</mx:AdvancedDataGridColumnGroup>
+     				</mx:AdvancedDataGridColumnGroup>
+     				<mx:AdvancedDataGridColumnGroup headerText="" dataField="sellTradeDetails">
+     					<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.closetrade')}" dataField="sellTradeDetails">
+         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradereferenceno')}" dataField="tradeReferenceNo" itemRenderer="{new RendererFectory(TradeDetailsRenderer,'')}" width="120"/>
+         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.closeoutqty')}" dataField="quantityStr"/>
+         					<mx:AdvancedDataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.price')}" dataField="priceStr"/>
+         				</mx:AdvancedDataGridColumnGroup>
+     				</mx:AdvancedDataGridColumnGroup>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.pl')}" dataField="realizedPL"/>
+         			<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.status')}" dataField="status"/>
+				</mx:groupedColumns>
+         	</mx:AdvancedDataGrid>
+    		
+    </mx:VBox>
+</mx:Module>

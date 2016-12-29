@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+           xmlns:cntrls="com.nri.rui.core.controls.*"
+           xmlns:containers="com.nri.rui.core.containers.*" 
+           xmlns:flexlib="http://code.google.com/p/flexlib/"
+           xmlns:frmtrs="com.nri.rui.core.formatters.*"
+           xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+           xmlns:utils="com.nri.rui.core.utils.*"
+           layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="initPage()">
+    
+    <mx:Script>
+        <![CDATA[
+            import com.nri.rui.frx.constants.Constants;
+            import com.nri.rui.core.Globals;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import mx.rpc.events.ResultEvent;
+            import mx.containers.FormItem;
+            import mx.containers.Form;
+            import mx.controls.Alert;
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.utils.XenosStringUtils;     
+            import com.nri.rui.core.controls.XenosAlert;
+            import flash.events.*;
+            
+            private function initPage():void{
+//              filePath.setFocus();
+                fc.btnUpload.addEventListener(MouseEvent.CLICK, openPopup);
+            }
+            
+            private function getLabelFromBody(item:Object,column : DataGridColumn):String{
+                //XenosAlert.info("column.dataField :: " + column.dataField);
+                return item.Body[column.dataField];
+                
+            }
+            private function getInventoryAccno(item:Object,column : DataGridColumn):String{            	 
+            	var prefix:String =  item.Body.InventoryAccountCrossRef.AccountXRef.Prefix;
+            	var accountNo:String =  item.Body.InventoryAccountCrossRef.AccountXRef.AccountNo;
+            	var accountNoType:String =  item.Body.InventoryAccountCrossRef.AccountXRef.AccountNoType;
+            	return prefix + Globals.ACCOUNT_PREFIX_SEPARATOR + accountNo + Globals.ACCOUNT_CODETYPE_SEPARATOR + accountNoType;
+            	
+            }
+            private function getCounterPartyAccno(item:Object,column : DataGridColumn):String{
+            	var prefix:String =  item.Body.AccountCrossRef.AccountXRef.Prefix;
+            	var accountNo:String =  item.Body.AccountCrossRef.AccountXRef.AccountNo;
+            	var accountNoType:String =  item.Body.AccountCrossRef.AccountXRef.AccountNoType;
+            	if(XenosStringUtils.isBlank(prefix))
+				{
+					return accountNo + Globals.ACCOUNT_CODETYPE_SEPARATOR + accountNoType;            		
+				} else {
+					return prefix + Globals.ACCOUNT_PREFIX_SEPARATOR 
+				      + accountNo + Globals.ACCOUNT_CODETYPE_SEPARATOR + accountNoType;
+            	}            	
+            }
+            private function getBaseCcyCode(item:Object,column : DataGridColumn):String{
+            	var cCY:String = item.Body.BaseCCYCrossRef.CcyXRef.CCY;
+            	var cCYType:String = item.Body.BaseCCYCrossRef.CcyXRef.CCYType;
+            	return cCY + Globals.SECURITY_CODETYPE_SEPARATOR + cCYType;
+            	
+            }
+            private function getAgainstCcyCode(item:Object,column : DataGridColumn):String{
+                var cCY:String = item.Body.AgainstCCYCrossRef.CcyXRef.CCY;
+                var cCYType:String = item.Body.AgainstCCYCrossRef.CcyXRef.CCYType;
+                return cCY + Globals.SECURITY_CODETYPE_SEPARATOR + cCYType;
+                
+            }
+            
+            private function getSettlementCcyCode(item:Object,column : DataGridColumn):String{
+                var cCY:String = item.Body.SettlementCCYCrossRef.CcyXRef.CCY;
+                var cCYType:String = item.Body.SettlementCCYCrossRef.CcyXRef.CCYType;
+                
+                if(cCYType && cCYType.length > 0)
+                    return cCY + Globals.SECURITY_CODETYPE_SEPARATOR + cCYType;
+                else
+                    return cCY;
+            }
+            private function getAgainstCCYAmount(item:Object,column : DataGridColumn):String{
+		var againstCcyAmt:String = item.Body.AgainstCCYAmount;
+		return numberFormatter.format(againstCcyAmt);            	
+	    }
+	    private function getBaseCCYAmount(item:Object,column : DataGridColumn):String{
+		var baseCcyAmt:String = item.Body.BaseCCYAmount;
+		return numberFormatter.format(baseCcyAmt);            	
+            }
+            
+            private function getNdfCloseDate(item:Object,column : DataGridColumn):String{
+            	var status:String = item.Body.Status;
+            	var openCloseFlag:String = item.Body.PosEffect;
+            	
+            	if (status == Constants.NORMAL && openCloseFlag == Constants.CLOSE) {
+                    return item.Body.CloseDate;
+                } else {
+                    return XenosStringUtils.EMPTY_STR;
+                }
+            }
+
+            private function getNdfCloseRate(item:Object,column : DataGridColumn):String{
+                var status:String = item.Body.Status;
+                var openCloseFlag:String = item.Body.PosEffect;
+                
+                if (status == Constants.NORMAL && openCloseFlag == Constants.CLOSE
+                    && item.Body.Swap && item.Body.Swap.SwapRate) {
+                    return  numberFormatter.format(item.Body.Swap.SwapRate);
+                } else {
+                    return XenosStringUtils.EMPTY_STR;
+                }           
+            }
+
+            private function getNdfCloseCalcMethod(item:Object,column : DataGridColumn):String{
+                var status:String = item.Body.Status;
+                var openCloseFlag:String = item.Body.PosEffect;
+                
+                if (status == Constants.NORMAL && openCloseFlag == Constants.CLOSE
+                    && item.Body.Swap && item.Body.Swap.SwapCalcMethod) {
+                    return item.Body.Swap.SwapCalcMethod;
+                } else {
+                    return XenosStringUtils.EMPTY_STR;
+                }             
+            }
+            
+            public var documentTypesFilters:FileFilter = new FileFilter("Documents (*.xls)",("*.xls"));
+            public var documentTypesFilterXlsx:FileFilter = new FileFilter("Documents (*.xlsx)",("*.xlsx"));
+            public var filter:Array = new Array(documentTypesFilters, documentTypesFilterXlsx);
+        ]]>
+    </mx:Script>
+    
+    <mx:Script source="actionscripts/FrxFxFileLoad.as"/>
+
+    <cntrls:XenosHTTPService id="fxFileLoad" 
+        url="frx/frxExecutionLoadDispatch.action?method=doSubmit" 
+        fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)" 
+        result="prest(event)" 
+        showBusyCursor="true" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="fxFileLoadConfirm" 
+        url="frx/frxExecutionLoadDispatch.action?method=doSubmitConfirm" 
+        fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)" 
+        result="submitConfirmResult(event)" 
+        showBusyCursor="true" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+     
+    <frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+      
+    <mx:Canvas  width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    
+    <mx:VBox width="100%" height="100%">
+        
+        <mx:VBox id="mt" label="File Upload" width="100%" height="100%">
+            <!--<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.mandatory.fields')}" fontWeight="bold"/>-->
+            <!--mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.xls.fileload.entry.title')}" fontWeight="bold"/-->
+            <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+            
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+            
+            <mx:HBox id="hfbox" width="100%" >
+                <!-- <mx:Label text="Enter File" id="lbl1" enabled="true" styleName="ReqdLabel"/>
+                <mx:TextInput width="250" id="filePath"/> --> 
+            <!--<cntrls:FileUpload FilesToFiles="new FileFilter(Documents (*.pdf), (*.doc), (*.rtf), (*.txt), (*.xls),(*.pdf; *.doc; *.rtf, *.txt, *.xls));"  maxfilesize="1024000" Url="frx/frxExecutionLoadDispatch.action?method=init" />-->
+            <!--<cntrls:FileUpload FilesToFilter="filter" maxfilesize="1024000" UploadDestination="frx/frxExecutionLoadDispatch.action?method=init" uploadsfinished="completeHandler" />
+                <mx:Button label="Browse" styleName="BtnStyle" id="btnBrowse" enabled="true" click="browseFile()"/>-->
+            </mx:HBox>
+
+            <cntrls:FileUploadControl id="fc" uploadUrl="frx/frxExecutionLoadDispatch.action?method=init"  uploadToFiled="fileName" httpProcess="{fxFileLoad}"
+            maxNumOfFiles="1" _filter = "{filter}"
+            uploadComplete="Alert.show(this.parentApplication.xResourceManager.getKeyValue('frx.files.uploaded.success'), 'Upload successful')" 
+            uploadIOError="Alert.show(this.parentApplication.xResourceManager.getKeyValue('frx.files.uploaded.failure.io'), 'Error')" 
+            uploadSecurityError="Alert.show(this.parentApplication.xResourceManager.getKeyValue('frx.files.uploaded.failure.security'), 'Error')"/>
+            
+             
+            <mx:HBox width="100%" styleName="ButtonBackPanel">
+                   <!--<mx:Button label="Submit" styleName="BtnStyle" click="this.confirmFile()"/>-->
+                   <!--<mx:Button label="Submit" styleName="BtnStyle" click="this.submitFile()" />-->
+                   <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle"  click="this.unselectFile()" />
+                   
+            </mx:HBox>
+            
+            
+            
+        </mx:VBox>
+        
+        
+        <!--<mx:VBox id="cnf" width="100%" height="100%" visible="false" includeInLayout="false">
+            <mx:HBox width="100%" >
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.xls.fileload.confirm.title')}" fontWeight="bold"/>
+            </mx:HBox>
+            <mx:HBox id="chfbox" width="100%">
+                <mx:Label text="Confirm File"  width="50%" id="lbl2" enabled="true"/>
+                <mx:TextInput text="" width="100%" id="cnfPath" editable="false"/>
+            </mx:HBox>
+            <mx:HBox width="100%" styleName="ButtonBackPanel">
+                   <mx:Button label="Submit" styleName="BtnStyle" click="this.submitFile()" />
+                   <mx:Button label="Reset" styleName="BtnStyle"  click="this.unselectFile()" />
+            </mx:HBox>
+        </mx:VBox>-->
+        
+        
+        
+        
+        
+            <mx:VBox width="100%" height="100%" id="cnf" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" visible="false" includeInLayout="false">
+                <cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" width="100%"/>
+                <!--mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text=""/-->
+                <!--<mx:HBox width="100%" >
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('frx.label.xls.fileload.confirm.title')}" fontWeight="bold"/>
+                </mx:HBox>
+                <mx:HBox id="chfbox" width="100%">
+                    <mx:Label text="Confirm File"  width="50%" id="lbl2" enabled="true"/>
+                    <mx:TextInput text="" width="100%" id="cnfPath" editable="false"/>
+                </mx:HBox> -->
+                <cntrls:SoftWarningControl id="softWarn" width="100%" color="#0000FF" backgroundAlpha="0" borderStyle="none" fontWeight="bold"/>    
+                <utils:FXCPager id="fxcPager" pageIndex="{currentPage}" pageSize="{pageSize}" dataProvider="{summaryResult}" />
+                <mx:DataGrid width="100%" height="100%" id="confirmResultSummary" sortableColumns="false" dataProvider="{fxcPager.pageData}" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindAll()">
+                    <mx:columns>
+                       <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" /> 
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.brokerreferenceno')}" dataField="BrokerReferenceNo" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.inventoryaccountno')}" dataField="" labelFunction="getInventoryAccno"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.counterpartycode')}" dataField="" labelFunction="getCounterPartyAccno"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.buysellflag')}" dataField="BuySellFlag" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.tradetype')}" dataField="TradeType" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.tradedate')}" dataField="TradeDate" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.tradetime')}" dataField="TradeTime" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.valuedate')}" dataField="ValueDate" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.baseccy')}" dataField="" labelFunction="getBaseCcyCode"/>   
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.baseccyamount')}" dataField="" labelFunction="getBaseCCYAmount" textAlign="right"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.againstccy')}" dataField="" labelFunction="getAgainstCcyCode"/>                      
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.againstccyamount')}" dataField="" labelFunction="getAgainstCCYAmount" textAlign="right"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.exchangerate')}" dataField="Rate" labelFunction="getLabelFromBody" textAlign="right"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.calculationmethod')}" dataField="CalcMethod" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.status')}" dataField="Status" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.confirmationstatus')}" dataField="ConfirmationStatus" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.xenosrefno.original')}" dataField="OriginalReferenceNo" labelFunction="getLabelFromBody"/>                       
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.extrefno')}" dataField="ExternalReferenceNo" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.extrefno.original')}" dataField="ExternalReferenceNoOriginal" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.ndfopencloseflag')}" dataField="PosEffect" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.settlementccy')}" dataField="" labelFunction="getSettlementCcyCode"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.ndfclosedate')}" dataField="" labelFunction="getNdfCloseDate"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.ndfcloserate')}" dataField="" labelFunction="getNdfCloseRate" textAlign="right"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.ndfclosecalculationmethod')}" dataField="" labelFunction="getNdfCloseCalcMethod"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.underlyingassetflag')}" dataField="UnderlyingAssetType" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.instructionblockflag')}" dataField="InstructionBlockFlag" labelFunction="getLabelFromBody"/>
+                    </mx:columns>
+                 </mx:DataGrid>
+                 <mx:HBox width="60%" horizontalAlign="right">
+                    <cntrls:FXCPagerBar id="fxc_pageNav2" pager="{fxcPager}" totalPages="{Math.ceil(summaryResult.length/pageSize)}" maxVisiblePages="{navSize}" buttonMode="true"/>
+                    <mx:NumericStepper value="{this.pageSize}" change="this.pageSize = event.target.value" maximum="50000"/>                        
+                </mx:HBox>
+                 <mx:HBox width="100%" styleName="ButtonBackPanel">
+                    <mx:Button id="confirmSubmitFileButton" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="this.confirmSubmitFile()" />
+                    <mx:Button id="cxlUploadUC" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.cancel')}" styleName="BtnStyle"  click="this.unselectFile()" />
+                </mx:HBox>
+            </mx:VBox>
+            
+            
+            
+            <mx:VBox width="100%" height="100%" id="submitCnf" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" visible="false" includeInLayout="false">
+                <mx:HBox styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle">
+                    <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+                    <mx:Label text="{noOfMsgCreatedStr}" fontWeight="bold" selectable="true"/>  
+                </mx:HBox>
+                <mx:DataGrid width="100%" height="100%" sortableColumns="false" dataProvider="{summaryResult}" variableRowHeight="true" horizontalScrollPolicy="auto">
+                    <mx:columns> 
+                       <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" />
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.referenceno')}" dataField="ReferenceNo" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.brokerreferenceno')}" dataField="BrokerReferenceNo" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.inventoryaccountno')}" dataField="" labelFunction="getInventoryAccno"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.counterpartycode')}" dataField="" labelFunction="getCounterPartyAccno"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.buysellflag')}" dataField="BuySellFlag" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.tradetype')}" dataField="TradeType" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.tradedate')}" dataField="TradeDate" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.tradetime')}" dataField="TradeTime" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.valuedate')}" dataField="ValueDate" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.baseccy')}" dataField="" labelFunction="getBaseCcyCode"/>   
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.baseccyamount')}" dataField="" labelFunction="getBaseCCYAmount" textAlign="right"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.againstccy')}" dataField="" labelFunction="getAgainstCcyCode"/>                      
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.againstccyamount')}" dataField="" labelFunction="getAgainstCCYAmount" textAlign="right"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.exchangerate')}" dataField="Rate" labelFunction="getLabelFromBody" textAlign="right"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.calculationmethod')}" dataField="CalcMethod" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.status')}" dataField="Status" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.confirmationstatus')}" dataField="ConfirmationStatus" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.xenosrefno.original')}" dataField="OriginalReferenceNo" labelFunction="getLabelFromBody"/>                       
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.extrefno')}" dataField="ExternalReferenceNo" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.extrefno.original')}" dataField="ExternalReferenceNoOriginal" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.ndfopencloseflag')}" dataField="PosEffect" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.settlementccy')}" dataField="" labelFunction="getSettlementCcyCode"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.ndfclosedate')}" dataField="" labelFunction="getNdfCloseDate"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.ndfcloserate')}" dataField="" labelFunction="getNdfCloseRate" textAlign="right"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.ndfclosecalculationmethod')}" dataField="" labelFunction="getNdfCloseCalcMethod"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.underlyingassetflag')}" dataField="UnderlyingAssetType" labelFunction="getLabelFromBody"/>
+                       <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('frx.label.instructionblockflag')}" dataField="InstructionBlockFlag" labelFunction="getLabelFromBody"/>
+                    </mx:columns>
+                 </mx:DataGrid>
+                 
+                 <mx:HBox width="100%" styleName="ButtonBackPanel">
+                    <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" click="this.goToInitialPage()" />
+                </mx:HBox>
+            </mx:VBox>
+            
+    </mx:VBox>
+    
+    </mx:Canvas>
+</mx:Module>

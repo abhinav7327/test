@@ -1,0 +1,597 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles"
+	 xmlns:util="urn:jsptagdir:/WEB-INF/tags/util">
+	 
+<div class="entryContainer">
+		<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	    <jsp:output	omit-xml-declaration="yes" />
+		
+	<input type="hidden" id="actionType" value="${commandForm.options.actionType}"/>
+
+	<style type="text/css">
+		body{
+			min-width:1340px;
+		}
+	</style>
+
+	<!-- Java script include -->
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>		
+        <jsp:body>
+			xenos.loadLocalizedScript([
+                  {path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+                  {path: xenos.context.path + '/scripts/slr/xenos-slr-i18n', async: false}
+              ]);
+			//Loading Required scripts before validator is called.
+              xenos.loadScript([
+                  {path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},                  
+                  {path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				  {path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false},
+				  {path: xenos.context.path + '/scripts/slr/xenos/borrowReturnEntryValidator.js', async: false}
+              ]);
+			  
+			  var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+					var context = $xenos$Wizard.$context;
+					$borrowreturnEntry$context = $('#commandForm');
+					
+					var currentStatus = $("#currentPageStatus").attr("value");
+					
+					if(currentStatus=="init"){
+						xenos$ns$views$slrBorrowReturnEntry$populateAttributes();
+					}else if(currentStatus=="entry"){
+					/*	onGeneralEntrySubmit();		*/
+						 $("#formActionArea .btnsArea .wizPrev").show();
+					}else{
+						 $("#formActionArea .btnsArea .wizPrev").hide();
+					}
+					
+					var xenos$ns$views$slrBorrowReturnEntry$validateHook = function() {
+						var valid = false;
+						if($("#currentPageStatus").attr("value") == "init"){
+							valid = xenos.ns.views.borrowReturnEntry.validateSubmit();
+						}
+						if(valid){						
+							return true;
+						}else{
+							return false;
+						}	
+					};
+				
+					var xenos$ns$views$slrBorrowReturnEntry$unloadHook = function(){
+						$xenos$Wizard.deregister('submit',xenos$ns$views$slrBorrowReturnEntry$validateHook);
+						$xenos$Wizard.deregister('unload',xenos$ns$views$slrBorrowReturnEntry$unloadHook);
+					}
+					
+					var xenos$ns$views$slrBorrowReturnEntry$changeTradeType = function(){
+						if(this.value == "RT"){
+							$('#cnc').val("");
+							$('#callableDate').val("");
+							$('#ptf').val("");
+							$('#ldngdsk').val("");
+							$('#mcf').val("");
+							$('#cornc').hide();
+							$('#callDate').hide();
+							$('#ptflag').hide();
+							$('#lendingdsk').hide();
+							$('#mdcntrtflg').hide();
+						}else{
+							$('#cornc').show();
+							$('#callDate').show();
+							$('#ptflag').show();
+							$('#lendingdsk').show();
+							$('#mdcntrtflg').show();
+							$('#cnc').val('NC');
+						}
+					}
+					
+					$('#tradetype').unbind('change');
+					$('#tradetype').bind('change',xenos$ns$views$slrBorrowReturnEntry$changeTradeType);
+
+					$xenos$Wizard.register('submit',xenos$ns$views$slrBorrowReturnEntry$validateHook);
+					$xenos$Wizard.register('unload',xenos$ns$views$slrBorrowReturnEntry$unloadHook);
+					
+			};
+			
+			function xenos$ns$views$slrBorrowReturnEntry$populateAttributes(){
+				
+				    var context = $("#content");
+					/**
+					 * A common request handler to be used server communication.
+					 */
+					var xenos$Handler$RequestHandler = xenos$Handler$function({
+							get: {
+								contentType: 'json',
+								requestType: xenos$Handler$default.requestType.asynchronous
+							},	
+							settings: {
+								beforeSend: function(request) {
+									request.setRequestHeader('Accept', 'application/json');
+								},
+								type: 'POST'
+							}
+						});
+					var baseUrl = xenos.context.path + "/secure/slr/borrowreturn";
+					var gridAcionUrl;
+					if($("#actionType").val()=="ENTRY"){
+						gridAcionUrl = baseUrl + "/entry";
+					}else{
+						gridAcionUrl = baseUrl + "/amend";
+					}
+					
+					// Start the securities grid implementation part.	 
+					var securitiesEntryResult = [],
+						rowId1 = 0,		
+						item1 = {},
+						securitiesEntryGrid = null,
+						securitiesEntryList = [];
+					
+					var securitiesEntryColumns = [		
+							{name:"<spring:message code="slr.sbr.action.label.securitycode" htmlEscape="false"/>", field:"secCodeDisp", id:"secCodeDisp", sortable:false},
+							{name:"<spring:message code="slr.sbr.action.label.securityName" htmlEscape="false"/>", field:"secCodeNameDisp", id:"secCodeNameDisp",	sortable:false},
+							{name:"<spring:message code="slr.sbr.contract.label.tradetype" htmlEscape="false"/>", field:"tradeTypeDisp", id:"tradeTypeDisp", sortable:false},
+							{name:"<spring:message code="slr.sbr.instrument.label.quantity" htmlEscape="false"/>", field:"quantityDisp", id:"quantityDisp", cssClass:'xenos-grid-number', sortable:false},
+							{name:"<spring:message code="slr.sbr.action.label.rate" htmlEscape="false"/>", field:"rateDisp", id:"rateDisp", cssClass:'xenos-grid-number', sortable:false},
+							{name:"<spring:message code="slr.sbr.cornc" htmlEscape="false"/>", field:"callableFlag", id:"callableFlag",	sortable:false},
+							{name:"<spring:message code="slr.sbr.callabledate" htmlEscape="false"/>", field:"callableDateStr", id:"callableDateStr", sortable:false},
+							{name:"<spring:message code="slr.sbr.putthroughflag" htmlEscape="false"/>", field:"putThroughFlag", id:"putThroughFlag", sortable:false},
+							{name:"<spring:message code="slr.sbr.lendingdesk" htmlEscape="false"/>", field:"lendingDesk", id:"lendingDesk", sortable:false},
+							{name:"<spring:message code="slr.sbr.externalrefno" htmlEscape="false"/>", field:"externalRefNo", id:"externalRefNo",	sortable:false},
+							{name:"<spring:message code="slr.sbr.modifiedcontractflag" htmlEscape="false"/>", field:"modifiedContractFlag", id:"modifiedContractFlag", sortable:false},
+							{name:"<spring:message code="slr.sbr.contract.label.remarks" htmlEscape="false"/>", field:"remarks", id:"remarks", sortable:false}
+						];
+					var securitiesEntryGridConf = {
+							editMode 					: 	'both',																
+							editCallback 				: 	xenos$ns$views$slrBorrowReturnEntry$editsecuritiesEntryHandler,
+							deleteCallback				:	xenos$ns$views$slrBorrowReturnEntry$deletesecuritiesEntryHandler,
+							emptyColumnCheck            :   false,
+							forceFitColumns				:	true
+						};
+					<xenos:out escapeXml="false">
+					<c:forEach items="${commandForm.securities}" var="dl">
+						item1 = {};
+						rowId1+=1;
+						item1.id 					= "xenos_" + rowId1;
+						item1.secCodeDisp 			= "<c:out value="${dl.secCodeDisp}" />";
+						item1.secCodeNameDisp 		= "<c:out value="${dl.secCodeNameDisp}" />";
+						item1.tradeTypeDisp 		= "<c:out value="${dl.tradeTypeDisp}" />";
+						item1.quantityDisp 			= "<c:out value="${dl.quantityDisp}" />";
+						item1.rateDisp  			= "<c:out value="${dl.rateDisp}" />";
+						item1.callableFlag 			= "<c:out value="${dl.callableFlag}" />";
+						item1.callableDateStr  		= "<c:out value="${dl.callableDateStr}" />";
+						item1.putThroughFlag 		= "<c:out value="${dl.putThroughFlag}" />";
+						item1.lendingDesk 			= "<c:out value="${dl.lendingDesk}" />";
+						item1.externalRefNo 		= "<c:out value="${dl.externalRefNo}" />";
+						item1.modifiedContractFlag  = "<c:out value="${dl.modifiedContractFlag}" />";
+						item1.remarks 				= "<c:out value="${dl.remarks}" />";
+						securitiesEntryResult.push(item1);
+					</c:forEach>
+					</xenos:out>	
+	                securitiesEntryGrid = $('#securitiesEntryGrid').xenoseditablegrid(securitiesEntryResult, securitiesEntryColumns, securitiesEntryGridConf);
+					/**
+					 * New securities add handler.
+					 */
+					function xenos$ns$views$slrBorrowReturnEntry$addsecuritiesEntryHandler(e){
+							var valid = xenos$ns$views$slrBorrowReturnEntry$validateSecuritiesAttributes();
+							if(valid){
+								var requestUrl = gridAcionUrl + "/addSecurity.json?commandFormId=" + $('[name=commandFormId]').val();
+										   
+								xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																		settings: {data : xenos$ns$views$slrBorrowReturnEntry$populateSecuritiesEntryRequestParam()},
+																		onJsonContent :  function(e, options, $target, content) {
+																			if(content.success == true){
+																				xenos$ns$views$slrBorrowReturnEntry$upsertSecuritiesEntry( content.value[0]);
+																			} else {
+																				xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																			}
+																		}
+																	 }
+														);
+							}
+						}
+					   /**
+						* Validate Securities Entry attributes.
+						*/
+						function xenos$ns$views$slrBorrowReturnEntry$validateSecuritiesAttributes(){
+								var securityCode = $.trim($('#tgtsecurityCode',$borrowreturnEntry$context).val());
+								var tradetype = $.trim($('#tradetype',$borrowreturnEntry$context).val());
+								var quantity = $.trim($('#quantity',$borrowreturnEntry$context).val());
+								var rate = $.trim($('#rate',$borrowreturnEntry$context).val());
+								var callableDate = $.trim($('#callableDate',$borrowreturnEntry$context).val());
+								var validationMessages = [];
+								
+								if(VALIDATOR.isNullValue(securityCode)){
+									validationMessages.push(xenos$SLR$i18n.borrowreturnentry.security_code_empty);
+								}
+								if(VALIDATOR.isNullValue(tradetype)){
+									validationMessages.push(xenos$SLR$i18n.borrowreturnentry.trade_type_empty);
+								}
+								if(VALIDATOR.isNullValue(quantity)){
+									validationMessages.push(xenos$SLR$i18n.borrowreturnentry.quantity_empty);
+								}
+								if(callableDate.length>0 &amp;&amp; isDateCustom(callableDate)==false){
+									validationMessages.push(xenos$SLR$i18n.borrowreturnentry.callable_date_invalid);
+								}
+								if(validationMessages.length > 0){
+									$('.formHeader').find('.formTabErrorIco').css('display', 'block');
+									$('.formHeader').find('.formTabErrorIco').off('click');
+									$('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, validationMessages, true));
+									return false;
+								}else{
+									if(!formatQuantity($('#quantity'),15,3,null,$('#quantity').parent().parent().find('label').text())) {
+									/*	xenos.utils.displayGrowlMessage(xenos.notice.type.error, xenos$SLR$i18n.borrowreturnentry.quantity_invalid); */
+										return false;
+									}
+									if(rate.length>0 &amp;&amp; !formatQuantity($('#rate'),5,7,null,$('#rate').parent().parent().find('label').text())) {
+									/*	xenos.utils.displayGrowlMessage(xenos.notice.type.error, xenos$SLR$i18n.borrowreturnentry.rate_invalid); 	*/
+										return false;
+									}
+									return true;
+								}
+						  }
+							/**
+							 * Populate Securities request parameters.
+							 */
+							function xenos$ns$views$slrBorrowReturnEntry$populateSecuritiesEntryRequestParam(){
+								var reqObj = {
+												"tradeVo.modifiedContractFlag"	:	$.trim($('#mcf',$borrowreturnEntry$context).val()),
+												"tradeVo.remarks"				:	$.trim($('#remarks',$borrowreturnEntry$context).val()),
+												"tradeVo.tradeTypePk"			:	$.trim($('#tradetype',$borrowreturnEntry$context).val()),
+												"tradeVo.tradeDateDisp"			:	$.trim($('#tradeDate',$borrowreturnEntry$context).val()),
+												"tradeVo.valueDateDisp"			:	$.trim($('#valueDate',$borrowreturnEntry$context).val()),
+												"tradeVo.rateDisp"				:	$.trim($('#rate',$borrowreturnEntry$context).val()),
+												"tradeVo.callableDateStr"		:	$.trim($('#callableDate',$borrowreturnEntry$context).val()),
+												"tradeVo.quantityDisp"			:	$.trim($('#quantity',$borrowreturnEntry$context).val()),
+												"tradeVo.lendingDesk"			:	$.trim($('#ldngdsk',$borrowreturnEntry$context).val()),
+												"tradeVo.putThroughFlag"		:	$.trim($('#ptf',$borrowreturnEntry$context).val()),
+												"tradeVo.caFlag"				:	$.trim($('#corpaction',$borrowreturnEntry$context).val()),
+												"tradeVo.tradeTypeDisp"			:	$.trim($('#tradetype option:selected',$borrowreturnEntry$context).text()),
+												"tradeVo.callableFlag"			:	$.trim($('#cnc',$borrowreturnEntry$context).val()),
+												"tradeVo.secCodeDisp"			:	$.trim($('#tgtsecurityCode',$borrowreturnEntry$context).val()),
+												"tradeVo.accountNoDisp"			:	$.trim($('#tgtinventoryAccountNo',$borrowreturnEntry$context).val()),
+												"tradeVo.externalRefNo"			:	$.trim($('#ern',$borrowreturnEntry$context).val())
+										   };
+								return reqObj;
+						    }
+						   /**
+							* Insert/Update securities.
+							*/
+							function xenos$ns$views$slrBorrowReturnEntry$upsertSecuritiesEntry(data){
+									var result = data.securities;
+									if(result){
+										securitiesEntryGrid.clearData();
+										for(var i in result){
+											item1 = {};
+											rowId1+=1;
+											item1.id 				= 	"xenos_" + rowId1;
+											item1.secCodeDisp 			= $.trim(result[i].secCodeDisp);
+											item1.secCodeNameDisp 		= $.trim(result[i].secCodeNameDisp);
+											item1.tradeTypeDisp 		= $.trim(result[i].tradeTypeDisp);
+											item1.quantityDisp 			= $.trim(result[i].quantityDisp);
+											item1.rateDisp  			= $.trim(result[i].rateDisp);
+											item1.callableFlag 			= $.trim(result[i].callableFlag);
+											item1.callableDateStr  		= $.trim(result[i].callableDateStr);
+											item1.putThroughFlag 		= $.trim(result[i].putThroughFlag);
+											item1.lendingDesk 			= $.trim(result[i].lendingDesk);
+											item1.externalRefNo 		= $.trim(result[i].externalRefNo);
+											item1.modifiedContractFlag  = $.trim(result[i].modifiedContractFlag);
+											item1.remarks 				= $.trim(result[i].remarks);
+											securitiesEntryGrid.addOrUpdateRow(item1,{});
+										}
+										xenos$ns$views$slrBorrowReturnEntry$populateSecuritiesEntryForm(data);
+									}
+									xenos.utils.clearGrowlMessage();
+							  }	
+							/**
+							 * Populate Securities form.
+							 */
+							function xenos$ns$views$slrBorrowReturnEntry$populateSecuritiesEntryForm(result){
+									if(result){
+										context.find('#tgtsecurityCode').val('').change();
+										context.find('#mcf').val('');
+										context.find('#remarks').val('');
+										context.find('#tradetype').val('').change();
+										context.find('#rate').val('');
+										context.find('#callableDate').val('');
+										context.find('#quantity').val('');
+										context.find('#ldngdsk').val('');
+										context.find('#ptf').val('');
+										context.find('#ern').val('');
+										context.find('#cnc').val('NC');
+									}
+							} 
+							/**
+							 * Populate Securities form.
+							 */
+							function xenos$ns$views$slrBorrowReturnEntry$populateSecuritiesEditForm(result){
+									if(result){
+										context.find('#tgtsecurityCode').val(result.tradeVo.secCodeDisp).change();
+										context.find('#mcf').val(result.tradeVo.modifiedContractFlag);
+										context.find('#remarks').val(result.tradeVo.remarks);
+										context.find('#tradetype').val(result.tradeVo.tradeTypePk).change();
+										context.find('#rate').val(result.tradeVo.rateDisp);
+										context.find('#callableDate').val(result.tradeVo.callableDateStr);
+										context.find('#quantity').val(result.tradeVo.quantityDisp);
+										context.find('#ldngdsk').val(result.tradeVo.lendingDesk);
+										context.find('#ptf').val(result.tradeVo.putThroughFlag);
+										context.find('#ern').val(result.tradeVo.externalRefNo);
+										context.find('#cnc').val(result.tradeVo.callableFlag);
+									}	
+							}  							
+							/**
+							 * Securities Edit handler
+							 */
+							function xenos$ns$views$slrBorrowReturnEntry$editsecuritiesEntryHandler(rowIndex, dataContext){
+									var requestUrl = gridAcionUrl + "/editSecurity.json?commandFormId=" + $('[name=commandFormId]').val();
+									xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																			settings: {data : {"rowNo" : rowIndex}},
+																			onJsonContent :  function(e, options, $target, content) {
+																				if(content.success == true){
+																					xenos$ns$views$slrBorrowReturnEntry$populateSecuritiesEditForm(content.value[0]);
+																					$('#securitiesGridEdit').css('display', 'block'); 
+																					$('#securitiesGridAdd').css('display', 'none');
+																				} else {
+																					xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																				}
+																				return true;
+																			}
+																		 }
+															);
+								}	
+								/**
+								 * Securities update handler.
+								 */
+								function xenos$ns$views$slrBorrowReturnEntry$updateSecuritiesEntryHandler(e){				
+										var valid = xenos$ns$views$slrBorrowReturnEntry$validateSecuritiesAttributes();
+										if(valid){
+											var requestUrl = gridAcionUrl + "/updateSecurity.json?commandFormId=" + $('[name=commandFormId]').val();
+											
+											xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																					settings: {data : xenos$ns$views$slrBorrowReturnEntry$populateSecuritiesEntryRequestParam()},
+																					onJsonContent :  function(e, options, $target, content) {
+																						if(content.success == true){
+																							xenos$ns$views$slrBorrowReturnEntry$upsertSecuritiesEntry(content.value[0]);
+																							$('#securitiesGridEdit').css('display', 'none'); 
+																							$('#securitiesGridAdd').css('display', 'block');
+																						} else {
+																							xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																						}
+																					}
+																				 }
+																	);
+										}
+								 }
+								/**
+								 * Securities cancel handler.
+								 */
+								function xenos$ns$views$slrBorrowReturnEntry$cancelSecuritiesEntryHandler(e){
+										var requestUrl = gridAcionUrl + "/cancelSecurity.json?commandFormId=" + $('[name=commandFormId]').val();
+										xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																				onJsonContent :  function(e, options, $target, content) {
+																						if(content.success == true){
+																							xenos$ns$views$slrBorrowReturnEntry$upsertSecuritiesEntry(content.value[0]);
+																							$('#securitiesGridEdit').css('display', 'none'); 
+																							$('#securitiesGridAdd').css('display', 'block');
+																						} else {
+																							xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																						}
+																						return true;
+																					}
+																				 }
+																	);	
+								  }
+								/**
+								 * Securities Delete handler
+								 */
+								function xenos$ns$views$slrBorrowReturnEntry$deletesecuritiesEntryHandler(rowIndex, dataContext){
+									var requestUrl = gridAcionUrl + "/deleteSecurity/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+										xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																				settings: {data : {"rowNo" : rowIndex}},
+																				onJsonContent :  function(e, options, $target, content) {
+																					if(content.success == true){
+																						xenos$ns$views$slrBorrowReturnEntry$upsertSecuritiesEntry(content.value[0]);
+																						$('#securitiesGridEdit').css('display', 'none');
+																						$('#securitiesGridAdd').css('display', 'block');
+																					} else {
+																						xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																					}
+																				}
+																			 }
+																);
+								}
+								 
+								 $('#addSecuritiesEntryBtn').unbind('click');
+								 $('#addSecuritiesEntryBtn').bind('click',xenos$ns$views$slrBorrowReturnEntry$addsecuritiesEntryHandler);
+								 $('#updateSecuritiesEntryBtn').unbind('click');
+								 $('#updateSecuritiesEntryBtn').bind('click',xenos$ns$views$slrBorrowReturnEntry$updateSecuritiesEntryHandler);
+								 $('#editCallback').unbind('click');
+								 $('#editCallback').bind('click',xenos$ns$views$slrBorrowReturnEntry$editsecuritiesEntryHandler);
+								 $('#deleteCallback').unbind('click');
+								 $('#deleteCallback').bind('click',xenos$ns$views$slrBorrowReturnEntry$deletesecuritiesEntryHandler);
+								 $('#cancelSecuritiesEntryBtn').unbind('click');
+								 $('#cancelSecuritiesEntryBtn').bind('click',xenos$ns$views$slrBorrowReturnEntry$cancelSecuritiesEntryHandler);
+				   }
+		</jsp:body>
+	</jsp:element>
+	
+	
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+	<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+	<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+	<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>	
+	
+	<!-- Stock Borrow/Return Entry -->
+	<div>
+	<!-- General Entry Start -->
+	<div id="generalEntry">	
+		<div class="entryBlkArea ">
+			<div class="formItemBlock topitems dottedBg">
+				<div>
+					<form:hidden id="currentPageStatus" path="commandForm.pageStatus"/>
+				</div>
+				<!-- Fund Account No  -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.accountNoDisp" class="required"><spring:message code="slr.sbr.contract.label.inventoryaccount" htmlEscape="false"/></form:label>
+					<util:xenospopup id="inventoryAccountNo" path="commandForm.tradeVo.accountNoDisp" showResolvedName="true" tgt="inventoryAccountNo" popType="invAccount" invActTypeContext="T|B" invCPTypeContext="INTERNAL" actStatusContext="OPEN" longShortFlagContext="S" event="change focusout" endpoint="secure/ref/nameresolver/fund"/>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!-- Trade Date -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.tradeDateDisp" class="required"><spring:message code="slr.sbr.contract.label.tradedate" htmlEscape="false"/></form:label>
+					<span><form:input id="tradeDate" value="" path="commandForm.tradeVo.tradeDateDisp" class="dateinput" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$SLR$i18n.borrowreturnentry.date_format_check, [this.value]))};"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>	
+				
+				<!-- Value Date -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.valueDateDisp" class="required"><spring:message code="slr.sbr.contract.label.valuedate" htmlEscape="false"/></form:label>
+					<span><form:input id="valueDate" value="" path="commandForm.tradeVo.valueDateDisp" class="dateinput" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$SLR$i18n.borrowreturnentry.date_format_check, [this.value]))};" /></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<!-- Corporate Action -->
+				<div class="formItem">
+					<form:label path="commandForm.tradeVo.caFlag" class="required"><spring:message code="slr.sbr.corporate.action" htmlEscape="false"/></form:label>
+					<xenos:select id="corpaction" path="commandForm.tradeVo.caFlag" class="dropdowninput">
+						<form:options items="${commandForm.corpActionValues}" itemLabel="label" itemValue="value"/>
+					</xenos:select>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		   </div>
+	   </div> 
+		<!-- Securities Block -->		
+		<div class="moreHandle">
+			<h1 class="msgHead">
+				<spring:message code="slr.sbr.instrument.label.securityheader" htmlEscape="false"/>
+				<div class="handleBlock">
+					<span class="handler collapse" id="securitiesSection"><spring:message text="" htmlEscape="false"/></span>
+				</div>
+			</h1>  
+		</div>	
+		<div class="entryBlkArea">
+			<div class="formItemBlock topitems dottedBg">
+			<!-- Security Code -->
+			<div class="formItem twoCols valPlaceHolder">
+				<form:label path="commandForm.tradeVo.secCodeDisp" class="required"><spring:message code="slr.sbr.action.label.securitycode" htmlEscape="false" /></form:label>
+				<util:xenospopup id="securityCode" path="commandForm.tradeVo.secCodeDisp" showResolvedName="true" popType="security" event="change focusout" endpoint="secure/ref/nameresolver/security"/>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Trade Type -->
+			<div class="formItem">
+				<form:label path="commandForm.tradeVo.tradeTypeDisp" class="required"><spring:message code="slr.sbr.contract.label.tradetype" htmlEscape="false"/></form:label>
+				<xenos:select id="tradetype" path="commandForm.tradeVo.tradeTypeDisp" class="dropdowninput">
+					<form:options items="${commandForm.tradeTypeValues}" itemLabel="label" itemValue="value"/>
+				</xenos:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Quantity -->
+			<div class="formItem">
+				<form:label path="commandForm.tradeVo.quantityDisp" class="required"><spring:message code="slr.sbr.instrument.label.quantity" htmlEscape="false"/></form:label>
+				<span><form:input id="quantity" value="" path="commandForm.tradeVo.quantityDisp"  class="txtNormal" onchange="formatQuantity($('#quantity'),15,3,null,$('#quantity').parent().parent().find('label').text())" /></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Rate -->
+			<div class="formItem">
+				<form:label path="commandForm.tradeVo.rateDisp"><spring:message code="slr.sbr.action.label.rate" htmlEscape="false"/></form:label>
+				<span><form:input id="rate" value="" path="commandForm.tradeVo.rateDisp"  class="txtNormal" onchange="formatQuantity($('#rate'),5,7,null,$('#rate').parent().parent().find('label').text())" /></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- C/NC -->
+			<div class="formItem" id="cornc">
+				<form:label path="commandForm.tradeVo.callableFlag"><spring:message code="slr.sbr.cornc" htmlEscape="false"/></form:label>
+				<xenos:select id="cnc" path="commandForm.tradeVo.callableFlag" class="dropdowninput">
+					<form:option value="" />
+					<form:options items="${commandForm.COrNcValues}" selected="true" itemLabel="label" itemValue="value"/>
+				</xenos:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Callable Date -->
+			<div class="formItem" id="callDate">
+				<form:label path="commandForm.tradeVo.callableDateStr"><spring:message code="slr.sbr.callabledate" htmlEscape="false"/></form:label>
+				<span><form:input id="callableDate" value="" path="commandForm.tradeVo.callableDateStr" class="dateinput" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$SLR$i18n.borrowreturnentry.date_format_check, [this.value]))};"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Put Through Flag -->
+			<div class="formItem" id="ptflag">
+				<form:label path="commandForm.tradeVo.putThroughFlag"><spring:message code="slr.sbr.putthroughflag" htmlEscape="false"/></form:label>
+				<xenos:select id="ptf" path="commandForm.tradeVo.putThroughFlag" class="dropdowninput">
+					<form:option value="" />
+					<form:options items="${commandForm.putThroughFlag}" itemLabel="label" itemValue="value"/>
+				</xenos:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Lending Desk -->
+			<div class="formItem" id="lendingdsk">
+				<form:label path="commandForm.tradeVo.lendingDesk"><spring:message code="slr.sbr.lendingdesk" htmlEscape="false"/></form:label>
+				<span><form:input id="ldngdsk" value="" path="commandForm.tradeVo.lendingDesk"  class="textBox"/></span>	
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- External Ref No -->
+			<div class="formItem">
+				<form:label path="commandForm.tradeVo.externalRefNo"><spring:message code="slr.sbr.externalrefno" htmlEscape="false"/></form:label>
+				<span><form:input id="ern" value="" path="commandForm.tradeVo.externalRefNo"  class="textBox"/></span>	
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Modified Contract Flag -->
+			<div class="formItem" id="mdcntrtflg">
+				<form:label path="commandForm.tradeVo.modifiedContractFlag"><spring:message code="slr.sbr.modifiedcontractflag" htmlEscape="false"/></form:label>
+				<xenos:select id="mcf" path="commandForm.tradeVo.modifiedContractFlag" class="dropdowninput">
+					<form:option value="" />
+					<form:options items="${commandForm.modifiedContractFlag}" itemLabel="label" itemValue="value"/>
+				</xenos:select>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<!-- Remarks -->
+			<div class="formItem">
+				<form:label path="commandForm.tradeVo.remarks"><spring:message code="slr.sbr.contract.label.remarks" htmlEscape="false"/></form:label>
+				<span><form:input id="remarks" value="" path="commandForm.tradeVo.remarks" maxlength="255" class="txtNormal" /></span>	
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			
+			<div id="formActionArea" class="gridBtnMargin trdEntryBtnBg">
+				<div class="right">
+					<div id="securitiesGridAdd" class="btnWrapStyle submitBtn gridAddBtn" style="display:block">
+						<span class="addMarginEntry"><input id="addSecuritiesEntryBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+					</div>
+					<div id="securitiesGridEdit" style="display:none">
+						<span class="gridEditBtn">
+							<div class="btnWrapStyle submitBtn"><input id="updateSecuritiesEntryBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+							<div class="btnWrapStyle resetBtn"><input id="cancelSecuritiesEntryBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+						</span>
+					</div>	
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>	
+			<div class="entryGrid">
+				<div id="securitiesEntryGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</div>
+		<div class="lineHide">
+			<spring:message text="" htmlEscape="false" />
+		</div>
+	</div>
+  </div> 
+  <!-- End of General Entry Block -->	 
+</div>
+</div>
+</jsp:root>		

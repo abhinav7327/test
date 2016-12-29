@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Item Renderer for CashAdjustEntryPopUp.  -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%">
+    <mx:Script>
+        <![CDATA[
+        	import mx.events.CloseEvent;            
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.Globals;
+            
+            import flash.events.MouseEvent;        
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            
+//            
+//            override public static function newInstance():*{
+//            	return new MarketAmendQueryRenderer();
+//            }
+            [Bindable] public var _mode = "amend";
+            
+            private var sPopup : SummaryPopup;
+//    		public function MarketAmendQueryRenderer(mode:String){
+//    			_mode =mode;
+//    		}
+    		/**
+        	 * Mouse Click event handler to open a popup with initialization and passing values.
+        	 * 
+        	 */ 
+            public function handleMouseClick(event:MouseEvent):void {
+        			
+        			
+        		sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+        		//sPopup.addEventListener("RefreshChanges",handleRefreshChanges,false,0,true);
+        		if(_mode == "amend"){        			
+        		   sPopup.title = this.parentApplication.xResourceManager.getKeyValue('ref.approleamend.title.renderer.amend');
+        		}else{
+        			sPopup.title = this.parentApplication.xResourceManager.getKeyValue('ref.approleamend.title.renderer.cancel');
+        		}
+        		sPopup.addEventListener(CloseEvent.CLOSE,closeHandler,false,0,true);
+        		//sPopup.addEventListener(CloseEvent.CLOSE,handleCloseEvent,false,0,true);
+        		// this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.adjustment') + " " + this.parentApplication.xResourceManager.getKeyValue('inf.title.entry'); //"Adjustment Entry";
+                //set the width and height of the popup
+                sPopup.width = 950;
+        		sPopup.height = 650;    		
+        		/* sPopup.horizontalScrollPolicy="off";
+        		sPopup.verticalScrollPolicy="off"; */
+        		PopUpManager.centerPopUp(sPopup);
+        
+ //               var rowNum : String = this.parentDocument.adjEntryDg.selectedIndex;
+                //XenosAlert.info("rowNum = " + rowNum);
+        		
+        		//Setting the Module path with some parameters which will be needed in the module for internal processing.                                                       
+        		sPopup.moduleUrl = "assets/appl/ref/ApplicationRoleEntry.swf" + Globals.QS_SIGN + "mode" + Globals.EQUALS_SIGN + this._mode+ Globals.AND_SIGN + "appRolePk"+ Globals.EQUALS_SIGN + data.applRolePk;
+        	}
+        	
+        	
+        	/**
+        	 * Event Handler for the custom event "OkSystemConfirm"
+        	 */
+        	public function closeHandler(event:CloseEvent):void {
+        		//this.parentDocument.currentState = "";
+                if(_mode == "amend")
+                  this.parentDocument.dispatchEvent(new Event("amendSubmit"));
+                else if(_mode == "cancel")
+                  this.parentDocument.dispatchEvent(new Event("cancelSubmit"));
+                  
+                  sPopup.removeMe();
+                //this.parentDocument.submitQuery();
+            }
+        ]]>
+    </mx:Script>
+    
+    <mx:Button id="editRemarks" styleName="{_mode == 'amend' ? 'BtnEdit' : 'BtnDelete'}" width="18" height="18" label="{_mode == 'amend' ? 'Edit' : 'Cancel'}" click="handleMouseClick(event)"/>
+</mx:VBox>

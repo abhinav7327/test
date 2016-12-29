@@ -1,0 +1,171 @@
+<!--$Id$-->
+<!--$Author: surajb $-->
+<!--$Date: 2016-12-28 12:01:03 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+<div class="entryContainer paddingFour" id="marginEntry">
+    <jsp:element name="script" >
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src"><c:url value="/scripts/inf/fieldvalidator.js"/></jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+	
+		
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>		
+        <jsp:body>
+		
+		var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+			$('#marginType').val('A');
+			
+	
+		xenos.loadLocalizedScript([
+				 {path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+				 {path: xenos.context.path + '/scripts/drv/xenos-drv-i18n', async: false}
+				 
+			]);	
+		 xenos.loadScript([
+                                    
+                  {path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				  {path: xenos.context.path + '/scripts/drv/xenos/marginEntry.js', async: false}
+				  
+              ],
+			  {
+				success: function() {
+				   $('#baseDateStr', '#marginEntry').on('change', function(){
+	                if(!checkDate(this)){
+	                  xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$DRV$i18n.marginEntry.entry.date_format_check+" "+[this.value]))
+	                } else {
+	                  xenos.ns.views.marginEntry.formatDate(this.value);
+	                };
+	              });
+				}
+			});
+		
+						var submitValidateHook = function() {
+							var flag = false;					
+							if(xenos.ns.views.marginEntry.validateSubmit()){
+								flag=true;
+							}
+					
+						return flag;		
+					};
+					var unloadHook = function(){
+						$xenos$Wizard.deregister('submit',submitValidateHook);
+						$xenos$Wizard.deregister('unload',unloadHook);
+					}
+				    $xenos$Wizard.register('submit',submitValidateHook);
+				    $xenos$Wizard.register('unload',unloadHook);
+				
+					
+			};
+			
+			
+		</jsp:body>
+    </jsp:element>
+	
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+	<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+	<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+	<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+	
+	<!-- Derivative Trade Entry -->
+	<div>
+	<div id="generalEntry">	
+		<div class="entryBlkArea ">
+			<div class="formItemBlock dottedBg">
+			<c:choose>
+				<c:when test="${commandForm.actionType =='amend'}">
+					<div class="formItem">
+						<form:label path="commandForm.marginVO.tradeRefNo" class="required"><spring:message code="drv.label.tradereferenceno" htmlEscape="false"/></form:label>
+						<span><form:input id="tradeRefNo" value="" path="commandForm.marginVO.tradeRefNo"  class="textBox" disabled = "true"/></span>		
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem" style="display:none;">
+						<form:label path="commandForm.marginVO.marginType" class="required"><spring:message code="drv.label.margin.type" htmlEscape="false"/></form:label>
+						<span>
+							<form:select id="marginTypeVal" path="commandForm.marginVO.marginType" class="dropdowninput"    >
+								<option  value="${commandForm.dropDownListValues.marginTypeList[1].value}">${commandForm.dropDownListValues.marginTypeList[1].label} </option>
+							</form:select>
+						</span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.marginVO.marginRefNoStr" class="required"><spring:message code="drv.label.margin.refno" htmlEscape="false"/></form:label>
+						<span><form:input id="marginRefNoStr" value="" path="commandForm.marginVO.referenceNo"  class="textBox" disabled = "true"/></span>		
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+				</c:when>
+				<c:otherwise>
+				<div class="formItem twoCols">
+					<form:label path="commandForm.marginVO.tradeRefNo" class="required"><spring:message code="drv.label.tradereferenceno" htmlEscape="false"/></form:label>
+					<span><form:input id="tradeRefNo" value="" path="commandForm.marginVO.tradeRefNo"  class="textBox" /></span>		
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem" style="display:none;">
+					<form:label path="commandForm.marginVO.marginType" class="required"><spring:message code="drv.label.margin.type" htmlEscape="false"/></form:label>
+					<span>
+							<form:select id="marginTypeVal" path="commandForm.marginVO.marginType" class="dropdowninput"    >
+								<option  value="${commandForm.dropDownListValues.marginTypeList[1].value}">${commandForm.dropDownListValues.marginTypeList[1].label} </option>
+							</form:select>
+					</span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				</c:otherwise>
+				</c:choose>
+				
+				<div class="formItem">
+					<form:label path="commandForm.marginVO.marginType" class="required"><spring:message code="drv.label.margin.type" htmlEscape="false"/></form:label>
+					<span>
+							<form:select id="marginType" path="commandForm.marginVO.marginType" class="dropdowninput" disabled = "${true}"  >
+								<option  value="${commandForm.dropDownListValues.marginTypeList[1].value}">${commandForm.dropDownListValues.marginTypeList[1].label} </option>
+							</form:select>
+					</span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+							<form:label path="commandForm.marginVO.baseDateStr" class="required"><spring:message code="drv.label.margin.basedate" htmlEscape="false"/></form:label>
+							<span><form:input id="baseDateStr" value="" path="commandForm.marginVO.baseDateStr" class="dateinput" /></span>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="formItem">
+					<form:label path="commandForm.marginAmountStr" class="required"><spring:message code="drv.label.margin.amount" htmlEscape="false"/></form:label>
+					<span><form:input id="marginAmountStr" value="" path="commandForm.marginAmountStr"  class="txtNormal" onchange="return formatSignedRate($('#marginAmountStr'),15,3,null,$('#marginAmountStr').parent().parent().find('label').text())"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div> 
+			<div class="formItem">
+					<form:label path="commandForm.marginCcyStr"><spring:message code="drv.label.margin.ccy" htmlEscape="false"/></form:label> 
+					<span><form:input id="marginCcyStr" value="" path="commandForm.marginCcyStr"  class="textBox" /></span>
+					<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+					<div class="popupBtn">
+						<input type="button" class="popupBtnIco" tgt="marginCcyStr" popType="currency" value="" />
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			   </div>
+			  </div>  			 
+   		</div>
+	</div>
+</div>
+</jsp:root>		
+

@@ -1,0 +1,217 @@
+<!--$Id$-->
+<!--$Author: nehab $-->
+<!--$Date: 2016-12-23 17:51:42 $-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core"
+    xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:display="http://displaytag.sf.net"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+
+	<div class="formItemArea entryContainerConfirm paddingFour">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" /> 
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.slick.checkboxgroupselectcolumn.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+			var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+				
+				var entitlementGrid;
+				var entitlementResult = [];
+				var rowId = 0;
+				var temp = 0;
+			    var count = 0;
+				var index = 0;
+				var rowNumArr = [];					
+				var selectIndex = 0;
+				
+				var clickCheckBox = function() {
+					$("#rowPks").val("");
+				    $("#selectedGroup").val("");
+					return selectCheckBox();		
+				};
+				var unloadHook = function(){
+					$xenos$Wizard.deregister('submit',clickCheckBox);
+					$xenos$Wizard.deregister('unload',unloadHook);
+				};						
+				$xenos$Wizard.register('submit',clickCheckBox);
+				$xenos$Wizard.register('unload',unloadHook);
+				
+				var entitlementGridConf = {
+				enableToolbar:true,
+				forceFitColumns:true,
+				consolidateActionFlag:true,
+				emptyColumnCheck:false,
+				consolidateAttribute:{type:'groupCheck'},
+				buttons:{
+					print:false,	
+					xls:false,	
+					pdf:false,	
+					columnPicker:false,	
+					save:false	
+				},
+				pagingInfo:{
+					isNext : false
+				},
+				urls:{
+				},
+				events:{
+                       onDataUpdate : function(data,callback){
+                       for(i in data.value){
+                        data.value[i].fundAccountPk = data.value[i].accountPk;
+						data.value[i].allotmentInstPk = data.value[i].allottedInstrumentPK;
+                       }
+                        callback(data);
+                    }
+               }
+				};
+				var entitlementColumns = [	
+	
+					{name:"<spring:message code="cax.entitlement.label.fundcode" htmlEscape="false"/>",  width:100, field:"fundCode", id:"fundCode", sortable:false, formatter:Slick.Formatters.FundDetailViewFormatter},
+					{name:"<spring:message code="cax.entitlement.label.lmOffice" htmlEscape="false"/>",  width:60, field:"lmOfficeId",	id:"lmOfficeId", sortable:false},
+					{name:"<spring:message code="cax.entitlement.label.fundaccount" htmlEscape="false"/>",  width:120, field:"fundAccountNoDisp",	id:"fundAccountNoDisp", sortable:false, formatter:Slick.Formatters.AccountCommonDetailViewFormatter , accountDetailOptions:{pkFieldName:'fundAccountPk'}},
+					{name:"<spring:message code="cax.entitlement.label.instrumentcode" htmlEscape="false"/>",  width:120, field:"securityCode",	id:"securityCode", sortable:false, formatter:Slick.Formatters.InstrumentDetailViewFormater},
+					{name:"<spring:message code="cax.entitlement.label.securityname" htmlEscape="false"/>",  width:120, field:"securityName",	id:"securityName", sortable:false},
+					{name:"<spring:message code="cax.entitlement.label.securitybalance" htmlEscape="false"/>",  width:120, field:"securityBalanceStr",	id:"securityBalanceStr", sortable:false , cssClass:'xenos-grid-number '},
+					{name:"<spring:message code="cax.entitlement.label.allotedsecurity.ccycode" htmlEscape="false"/>",  width:160, field:"allottedSecurityCode",	id:"allottedSecurityCode", sortable:false, formatter:Slick.Formatters.AllotmentInstrumentDetailViewFormater},
+					{name:"<spring:message code="cax.entitlement.label.allotmentsecurity.ccyname" htmlEscape="false"/>",  width:180, field:"allottedSecurityName",	id:"allottedSecurityName", sortable:false},
+					{name:"<spring:message code="cax.entitlement.label.paymentdate" htmlEscape="false"/>",  width:100, field:"paymentDateStr",	id:"paymentDateStr", sortable:false},
+					<c:if test ="${!commandForm.isIncome}">
+						{name:"<spring:message code="cax.entitlement.label.availabledate" htmlEscape="false"/>",  width:100, field:"availableDateStr",	id:"availableDateStr", sortable:false},
+					</c:if>
+					{name:"<spring:message code="cax.entitlement.label.allottedquantity" htmlEscape="false"/>",  width:120, field:"allotedQuantityStr",	id:"allotedQuantityStr", sortable:false , cssClass:'xenos-grid-number'},
+					{name:"<spring:message code="cax.entitlement.label.grossamount" htmlEscape="false"/>",  width:120, field:"allotedAmountStr",	id:"allotedAmountStr", sortable:false , cssClass:'xenos-grid-number'},
+					{name:"<spring:message code="cax.entitlement.label.netamount" htmlEscape="false"/>",  width:120, field:"netAmountStr",	id:"netAmountStr", sortable:false , cssClass:'xenos-grid-number'},
+					
+				];
+				
+				
+				var item = {};
+				<c:forEach items="${commandForm.entitlementPageList}" var="dl" varStatus="loopStatus">
+				  <c:set var="previousFund" value=""/>
+					<c:forEach items="${dl.camRightsDetailVOList}" var="page" varStatus="loopStatus">
+						item = {};
+						rowId = rowId + 1;
+						item.id 						= "xenos_" + rowId;	
+                        										
+						<c:choose>
+							<c:when test="${dl.fundCode eq previousFund}">
+								item.fundCode 		= "";
+								item.lmOfficeId 	= "";
+								item.checkBox   	= "";
+							</c:when>
+							<c:otherwise>
+								item.fundCode 		= "<c:out value="${dl.fundCode}"/>";
+								item.lmOfficeId 	= "<c:out value="${dl.lmOfficeId}"/>";
+								item.fundPk 		= "<c:out value="${dl.fundPk}"/>";
+								item.groupIndex     = selectIndex;
+								item.checkBox       = "Y";	
+                                selectIndex  	    +=1;													
+							</c:otherwise>
+						</c:choose>
+						<c:set var="previousFund" value="${dl.fundCode}"/> 	
+						
+						item.fundAccountNoDisp 		= "<c:out value="${page.fundAccountNoDisp}"/>";
+						item.securityCode 			= "<c:out value="${page.securityCode}"/>";
+						item.securityName 			= "<c:out value="${page.securityName}"/>";
+						item.securityBalanceStr 	= "<c:out value="${page.securityBalanceStr}"/>";
+						item.allottedSecurityCode 	= "<c:out value="${commandForm.allottedSecurityCode}"/>";
+						item.allottedSecurityName 	= "<c:out value="${commandForm.allottedSecurityName}"/>";
+						item.paymentDateStr 		= "<c:out value="${page.paymentDateStr}"/>";
+						item.availableDateStr 		= "<c:out value="${page.availableDateStr}"/>";
+						item.allotedQuantityStr 	= "<c:out value="${page.allotedQuantityStr}"/>";
+						item.allotedAmountStr 		= "<c:out value="${page.allotedAmountStr}"/>";
+						item.netAmountStr 			= "<c:out value="${page.netAmountStr}"/>";
+						item.fundAccountPk 			= "<c:out value="${page.accountPk}"/>";
+						item.instrumentPk 			= "<c:out value="${page.instrumentPk}" />";
+				        item.allotmentInstPk 		= "<c:out value="${commandForm.allottedInstrumentPk}" />";
+						index +=1;
+						entitlementResult.push(item);
+					</c:forEach> 
+				</c:forEach> 
+				console.log(entitlementResult);
+                for(i =0; i <![CDATA[<]]> entitlementResult.length ; i++ ){
+					if(entitlementResult[i].checkBox == "Y"){
+						entitlementResult[i].groupFlag = false;
+					}else {
+						entitlementResult[i].groupFlag = true;
+						entitlementResult[i].headvalue = 0;
+					}
+				}
+				entitlementGrid = $('.entitlementGrid').xenosgrid(entitlementResult, entitlementColumns, entitlementGridConf);				
+			};
+			function selectCheckBox(){
+			var grid = jQuery('#commandForm .xenos-grid').data('gridInstance');
+					if(grid.getData().getItems().length !== 0) {
+			   		var items = grid.getData().getItems();			   
+					var _groupArr = [];
+			   		var _pks = grid.getSelectedRows();
+					_pks.sort(function(a,b){return a - b});
+					var _isChecked = false;
+			   		if(_pks.length > 0) {
+					  _isChecked = true;
+						$.each(_pks, function(index, value) {						
+						var _checkBox = grid.getDataItem(value).checkBox;
+						if(_checkBox == "Y") {
+     					   _groupArr.push(grid.getDataItem(value).groupIndex);
+						}
+     		   			});											
+						$("#rowPks").val(_pks);
+						$("#selectedGroup").val(_groupArr.join());                            
+    	   			} else {
+    	   				xenos.postNotice(xenos.notice.type.error, xenos$CAX$i18n.entitlementGenerationTrade.query.select_one_record, true);
+    	   				return _isChecked;
+    	   			}
+    	   		} 
+			 return _isChecked;			 
+		}
+		</jsp:body>
+    </jsp:element>
+	
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	<div class="detailBlock paddingFour entrySingleCol">
+		<table class="tableStyle sixCol">
+			<tr>
+				<td><label><spring:message code="cax.entitlement.label.caEventRefNo" htmlEscape="false"/></label></td>
+				<td><span class="caEventRefNo">${commandForm.caEventRefNo}</span></td>
+				<td><label><spring:message code="cax.entitlement.label.eventtype" htmlEscape="false"/></label></td>
+				<td><span class="eventType">${commandForm.eventType}</span></td>
+			</tr>	
+			<tr>
+			<input type="hidden" id="rowPks"	name="rowPks"	value="${commandForm.rowPks}" /> 
+			<input type="hidden" id="selectedGroup"	name="selectedGroup"	value="${commandForm.selectedGroup}" /> 
+			</tr>
+		</table>
+	</div>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+	<div class="entryBlkArea ">
+		<div class="formItemBlock">	
+			<div class="entryGrid">
+				<div id="entitlementGrid" class="xenos-grid entitlementGrid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</div>
+	</div>	
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+</div>
+</jsp:root>

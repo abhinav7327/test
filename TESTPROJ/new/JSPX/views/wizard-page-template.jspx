@@ -1,0 +1,89 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+
+<div>
+
+  <jsp:directive.page contentType="text/html;charset=UTF-8"/>
+  <jsp:output omit-xml-declaration="yes"/>
+
+  <c:if test="${requestScope['nestedPath'] != null}">
+    <c:set var="oldNestedPath" scope="request" value="${requestScope['nestedPath']}"/>
+    <c:remove var="nestedPath" scope="request"/>
+  </c:if>
+  <div id="multiLevelAuthHistDetail" class="detailBlock entrySingleCol" style="display:none;">
+		<h1><spring:message code="ref.label.auth.history.info" htmlEscape="false"/></h1>
+		<table class="reportTbl">
+			<tbody>
+				<tr>
+					<th><spring:message code="ref.label.authorization.action" htmlEscape="false"/></th>
+					<th><spring:message code="ref.authorization.label.actionby" htmlEscape="false"/></th>
+					<th><spring:message code="ref.authorization.label.actiondate" htmlEscape="false"/></th>
+					<th><spring:message code="ref.authorization.label.authorizedby" htmlEscape="false"/></th>
+					<th><spring:message code="ref.authorization.label.authorizeddate" htmlEscape="false"/></th>
+					<th><spring:message code="ref.label.authorization.status" htmlEscape="false"/></th>
+				</tr>
+			</tbody>
+		</table>
+  </div>
+  <tiles:insertAttribute name="wizard-page"/>
+
+  <c:if test="${requestScope['oldNestedPath'] != null}">
+    <c:set var="nestedPath" scope="request" value="${requestScope['oldNestedPath']}"/>
+    <c:remove var="oldNestedPath" scope="request"/>
+  </c:if>
+
+  <jsp:element name="script">
+    <jsp:attribute name="type">text/javascript</jsp:attribute>
+    <jsp:body>
+     if(typeof xenos$onReady$Array != 'undefined' ){
+      xenos$onReady$Array.push(function() {
+        var $grandParent = jQuery('#' + '${commandForm.uniqueId}').parent().parent();
+
+        xenos.waitFor({
+          target: xenos,
+          state: function() {
+            return $grandParent.data('xenos$Wizard$Object') != undefined;
+          },
+          callback: function() {
+            var wizard = $grandParent.data('xenos$Wizard$Object');
+			wizard.showTabsOnCancel = '${commandForm.showTabsOnCancel}';
+            wizard.title = '${commandForm.title}';
+			      wizard.screenId = '${commandForm.screenId}';
+            wizard.message = '${commandForm.message}';
+			wizard.cursor = ${commandForm.cursor};
+
+            var wizardMode = wizard.isNonEditableMode() ? 'detailview' : 'entry'; // For toggling the expand collapse functionality
+            var isWizardInDetailDialog = wizard.$context.closest('.ui-dialog-content').length > 0; // Check if wizard is in a detail dialog
+            var currentWizardCursor = wizard.cursor; // Check the current tab of the wizard that is active
+
+            if(wizard.$context.data('xenos$More$Handler') &amp;&amp; $.trim(wizard.$context.data('xenos$More$Handler')).length > 0) {
+          		wizard.$context.removeData('xenos$More$Handler');
+          	}
+
+          }
+        });
+      });
+    }
+    </jsp:body>
+  </jsp:element>
+  <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            if(typeof xenos != 'undefined' ){
+				var localeScript = xenos.utils.findLoadLocalizedScriptFromUrl('${commandForm.options.base}');
+				if(localeScript){
+					xenos.loadLocalizedScript(localeScript);
+				}
+            }
+        </jsp:body>
+    </jsp:element>
+</div>
+</jsp:root>

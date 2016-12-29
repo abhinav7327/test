@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" 
+	     xmlns:containers="com.nri.rui.core.containers.*" 
+	     xmlns:flexlib="http://code.google.com/p/flexlib/" 
+	     xmlns:cntrls="com.nri.rui.core.controls.*" 
+	     xmlns:frmtrs="com.nri.rui.core.formatters.*" 
+	     xmlns:valdtrs="com.nri.rui.core.validators.*" 
+	     xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+	     xmlns:com="*"
+		 width="100%"
+		 horizontalScrollPolicy="off"
+		 verticalScrollPolicy="off">
+	
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.core.controls.XenosAlert;
+			import mx.collections.ArrayCollection;
+			import mx.rpc.events.ResultEvent;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import com.nri.rui.core.controls.XenosErrors;
+			import mx.core.Application;
+			
+			[Bindable]public var memoSummaryResult:ArrayCollection;
+			[Bindable]public var memoValueList:ArrayCollection;
+			[Bindable]private var editedMemoList:XML = new XML();
+			[Bindable]private var _errPage:XenosErrors = null;
+			[Bindable]private var _urlMode:String = XenosStringUtils.EMPTY_STR;
+			
+			/**
+			 * Set Error Controller 
+			 */
+			public function set errorController(value:XenosErrors):void
+			{
+				_errPage = value;
+
+			}
+			
+			/**
+			 * Set Mode 
+			 */
+			[Bindable] public function set urlMode(value:String):void
+			{
+				if (!XenosStringUtils.isBlank(value)) {
+					_urlMode = value;
+				}
+			}
+			
+			/**
+			 * To add Memo Information
+			 */
+			private function addMemo():void{
+				if(XenosStringUtils.isBlank(memoData.text)){
+					XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('ref.instrument.msg.error.missing.memo'));
+					return;
+				}
+				addMemoService.request = populateMemo();
+				addMemoService.url = "ref/instrument"+_urlMode+"Dispatch.action?method=addMemo";
+				addMemoService.send();
+			}
+			
+			public function editMemo(data:Object):void{
+				var reqObj : Object = new Object();
+				reqObj.rowNo = memoSummaryResult.getItemIndex(data);
+				memoSummaryResult.removeItemAt(reqObj.rowNo);
+				//data.isVisible=false;
+				memoSummaryResult.refresh();
+				//XenosAlert.info("url mode:" + _urlMode);
+				editMemoService.url = "ref/instrument"+_urlMode+"Dispatch.action?method=editMemo";
+				editMemoService.request = reqObj;
+				editMemoService.send();
+			}
+			
+			public function deleteMemo(data:Object):void{
+				var reqObj : Object = new Object();
+				reqObj.rowNo = memoSummaryResult.getItemIndex(data);
+				deleteMemoService.url = "ref/instrument"+_urlMode+"Dispatch.action?method=deleteMemo"
+				deleteMemoService.request = reqObj;
+				deleteMemoService.send();
+			}
+			
+			private function populateMemo():Object{
+				
+				var reqObj : Object = new Object();
+				reqObj['memo'] = this.memoData.selectedItem != null ? this.memoData.selectedItem.toString() : "";
+				
+				reqObj['description1'] = this.description1.text != null ? this.description1.text : "";
+				
+				reqObj['description2'] = this.description2.text != null ? this.description2.text : "";
+				
+				return reqObj;
+			}
+			
+			/**
+			* This method works as the result handler of the Submit Query Http Services for Memos.
+			* 
+			*/
+			public function MemoResult(event:ResultEvent):void {
+			    var rs:XML = XML(event.result);
+			
+				if (null != event) {
+					 if(rs.child("memosWrapper").length()>0) {
+					 	
+						_errPage.clearError(event);
+						// if(this.mode != "AMEND")
+			            	memoSummaryResult.removeAll(); 
+						try {
+						    for each ( var rec:XML in rs.memosWrapper.memos) {
+						    	rec.isVisible = true;
+			 				    memoSummaryResult.addItem(rec);
+						    }
+							memoData.selectedIndex=0;
+						    description1.text = "";
+						    description2.text ="";
+						   
+			            	memoSummaryResult.refresh();
+			            	
+						}catch(e:Error){
+						    //XenosAlert.error(e.toString() + e.message);
+						    XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					    }
+					 } else if(rs.child("Errors").length()>0) {
+			           
+					 	var errorInfoList : ArrayCollection = new ArrayCollection();
+			            //populate the error info list 			 	
+					 	for each ( var error:XML in rs.Errors.error ) {
+			 			   errorInfoList.addItem(error.toString());
+						}
+					 	_errPage.showError(errorInfoList);//Display the error
+					 } else {
+					 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					 	memoSummaryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	_errPage.removeError(); //clears the errors if any
+					 }
+			    }
+			    
+			    
+			}
+			
+			/**
+			* This method works as the result handler of the Submit Query Http Services for Memos.
+			* 
+			*/
+			public function MemoEditResult(event:ResultEvent):void {
+			    var rs:XML = XML(event.result);
+			
+				if (null != event) {
+					if(rs.child("memosWrapper").length()>0){
+						
+						editedMemoList = rs;
+						
+						for(var i:int=0; i<memoValueList.length; i++){			
+							if(memoValueList.getItemAt(i).toString() == rs.memo.toString()){
+								memoData.selectedIndex = i;
+							}
+						}
+						
+						description1.text=rs.description1.toString();
+						description2.text=rs.description2.toString();
+						
+					} else if(rs.child("Errors").length()>0) {
+			            //some error found
+					 	memoSummaryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	var errorInfoList : ArrayCollection = new ArrayCollection();
+			            //populate the error info list 			 	
+					 	for each ( var error:XML in rs.Errors.error ) {
+			 			   errorInfoList.addItem(error.toString());
+						}
+					 	_errPage.showError(errorInfoList);//Display the error
+					 } else {
+					 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					 	memoSummaryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	_errPage.removeError(); //clears the errors if any
+					 }
+			    }
+			    
+			}
+			
+			/**
+			 * Init Method for this component 
+			 */
+			public function init(xml:XML):void {
+				
+				//have to populate from form
+				memoSummaryResult=new ArrayCollection();
+				if(xml.child("memosWrapper").length()>0) {
+				    for each ( var rec:XML in xml.memosWrapper.memos) {			    	
+			 		    memoSummaryResult.addItem(rec);
+				    }
+				} 
+				
+				memoValueList = new ArrayCollection();
+				memoValueList.addItem(" ");
+				for each(var xmlObj:Object in xml.memoValuesWrapper.memoValues){
+					memoValueList.addItem(xmlObj);
+				}
+				
+				// For reset
+				memoData.selectedIndex=0;
+				description1.text = XenosStringUtils.EMPTY_STR;
+				description2.text = XenosStringUtils.EMPTY_STR;            
+			}
+			
+			
+		]]>
+	</mx:Script>		 
+	
+	<!--Services for Memo Population -->
+    <cntrls:XenosHTTPService id="addMemoService"
+     	 showBusyCursor="true"
+     	 method="POST" 
+         result="MemoResult(event)"
+         fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         useProxy="false" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="editMemoService"
+     	 showBusyCursor="true"
+     	 method="POST" 
+         result="MemoEditResult(event)"
+         fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         useProxy="false" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="deleteMemoService"
+     	 showBusyCursor="true"
+     	 method="POST"
+         result="MemoResult(event)"
+         fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>
+     	 
+	<mx:Grid width="100%" borderThickness="0">
+		<mx:GridRow id="memoGrid" width="100%">
+	        <mx:GridItem width="11%" borderThickness="0">
+	            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.memo')}"/>
+	        </mx:GridItem>
+	        <mx:GridItem width="22%" borderThickness="0">
+	            <mx:ComboBox id="memoData" dataProvider="{memoValueList}" />  
+	        </mx:GridItem> 
+	        <mx:GridItem width="11%" borderThickness="0">
+	            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.description1')}"/>
+	        </mx:GridItem>
+	        <mx:GridItem width="22%" borderThickness="0">
+	            <mx:TextInput id="description1" maxChars="50" editable="true" restrict="{Globals.INPUT_PATTERN}"/>
+	        </mx:GridItem>
+	        <mx:GridItem width="11%" borderThickness="0">
+	            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.description2')}"/>
+	        </mx:GridItem>
+	        <mx:GridItem width="22%" borderThickness="0">
+	            <mx:TextInput id="description2" maxChars="50" editable="true" restrict="{Globals.INPUT_PATTERN}"/>
+	        </mx:GridItem> 
+	        <mx:GridItem width="11%" borderThickness="0">
+	            <mx:Label text="" styleName="ReqdLabel"/>
+	        </mx:GridItem>
+	        <mx:GridItem width="22%" borderThickness="0">
+	            <cntrls:XenosButton id="addMemoBtn" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.add')}" styleName="BtnStyle" click="addMemo()"/>
+	        </mx:GridItem>                       
+	    </mx:GridRow>         
+	</mx:Grid>
+			   		
+   	<cntrls:CustomDataGrid id="memoSummary" dataProvider="{memoSummaryResult}" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" rowCount="4"> 
+	    <cntrls:columns>
+	    	<mx:DataGridColumn headerText="" width="50" textAlign="center">
+				<mx:itemRenderer>
+					<mx:Component>
+						<mx:HBox>
+							<cntrls:XenosButton id="editMemo" styleName="BtnEdit" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.edit')}" click="outerDocument.editMemo(data)" width="18" height="18"/>
+							<cntrls:XenosButton id="deleteMemo" styleName="BtnDelete" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.delete')}" click="outerDocument.deleteMemo(data)" width="18" height="18"/>
+						</mx:HBox>
+					</mx:Component>
+				</mx:itemRenderer>
+			</mx:DataGridColumn>
+			<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.memo')}" width="100" dataField="memoCode" />
+			<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.description1')}" width="400" dataField="description1"  />
+			<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.description2')}" width="400" dataField="description2"  />
+       </cntrls:columns>
+	</cntrls:CustomDataGrid>
+	
+</mx:VBox>

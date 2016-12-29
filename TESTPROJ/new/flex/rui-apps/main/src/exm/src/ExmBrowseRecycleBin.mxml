@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<containers:XenosQueryModule xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" >
+
+	
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.Globals;
+			import mx.resources.ResourceBundle;						
+			import com.nri.rui.core.RendererFectory;
+			import com.nri.rui.core.renderers.ImgSummaryRenderer;
+			  
+		    /**
+			 * This method should be called on creationComplete of the datagrid 
+			 */ 
+			 private function bindDataGrid():void {
+				qh.dgrid = resultSummary;
+			}
+		]]>
+	</mx:Script>
+	<mx:Script source="actionscripts/ExmBrowseRecycleBin.as"/>
+	
+	<containers:states>
+        <mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions>
+    
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" id="screenNavigater">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';"  />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>    	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+	
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%">
+	<mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="{this.loadAll()}"> 
+		
+		<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		<mx:VBox label="Search Criteria" width="100%" height="100%" styleName="HDivideStyle" >
+			<mx:Label text="Search Criteria" fontWeight="bold"/>
+			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		
+			<mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+	                        <mx:GridItem width="20%" borderThickness="0">
+	                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('exm.accesslogquery.label.selectQueue')}" />
+	                        </mx:GridItem>
+	                        <mx:GridItem width="30%" borderThickness="0">
+	                        	<mx:ComboBox id="selectQueue" labelField="label" editable="false" dataProvider="{selectedQueueList}"/>
+	                        </mx:GridItem> 	                                          
+                    </mx:GridRow>           
+           </mx:Grid>
+
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="{this.dispatchEvent(new Event('querySubmit'))}" />
+            </mx:HBox>
+
+		</mx:VBox>
+		
+		</mx:Canvas>
+				
+		<mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >
+		 <cntrls:QueryResultHeader id="qh" printFunction="dispatchPrintEvent" pdfFunction="dispatchPdfEvent" xlsFunction="dispatchXlsEvent" previousFunction="dispatchPrevEvent" nextFunction="dispatchNextEvent" startIndex="{1}" />
+		
+			<mx:DataGrid id="resultSummary" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()" editable="false"> 
+			    <mx:columns>
+		                        <mx:DataGridColumn textAlign="center" headerText="" width="45" id="dgColumnCb" editable="true" dataField="selected" sortable="false" headerRenderer="com.nri.rui.core.renderers.SelectAllItem"  itemRenderer="com.nri.rui.core.renderers.SelectItem" />	                        
+	                            <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('exm.messagesummaryaction.label.xmlView')}" width="40" resizable="false" itemRenderer="com.nri.rui.exm.renderers.ExmRecycleBinXmlView" sortable="false"/>
+		                        <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('exm.messagesummaryaction.label.htmlView')}" width="45" resizable="false" dataField="" visible="true" itemRenderer="com.nri.rui.exm.renderers.ExmRecycleBinFormView" sortable="false" />
+			                    <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('exm.messagesummaryaction.label.messageType')}" dataField="messageType" showDataTips="true" headerRenderer="com.nri.rui.core.renderers.SortImg" sortable="true"/>
+			                    <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('exm.messagesummaryaction.label.remarks')}" dataField="remarks" visible="true" headerRenderer="com.nri.rui.core.renderers.SortImg" sortable="true" />                       
+			                    <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('exm.messagesummaryaction.label.errorMsg')}" width="300" dataField="errorMsg"  visible="true" headerRenderer="com.nri.rui.core.renderers.SortImg" sortable="true"/>
+			                    <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('exm.messagesummaryaction.label.externalReferenceNumber')}"  dataField="externalReferenceNo"  visible="true" headerRenderer="com.nri.rui.core.renderers.SortImg" sortable="true"/>
+			                    <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('exm.messagesummaryaction.label.referenceNumber')}"  dataField="referenceNo"  visible="true" headerRenderer="com.nri.rui.core.renderers.SortImg" sortable="true"/>
+			                    <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('exm.messagesummaryaction.label.dataSource')}" dataField="dataSource" visible="true" headerRenderer="com.nri.rui.core.renderers.SortImg" sortable="true"/>		                    
+			                    <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('exm.messagesummaryaction.label.errorSystemId')}" dataField="errorSystemId"  visible="true" headerRenderer="com.nri.rui.core.renderers.SortImg" sortable="true"/>
+			                    <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('exm.messagesummaryaction.label.senderSystemId')}" dataField="senderSystemId"  visible="true" headerRenderer="com.nri.rui.core.renderers.SortImg" sortable="true"/>
+			                    <mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('exm.messagesummaryaction.label.errorNumber')}" dataField="errorNumber"  visible="true" headerRenderer="com.nri.rui.core.renderers.SortImg" sortable="true"/>
+			               		<mx:DataGridColumn textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('exm.messagesummaryaction.label.timeInExceptionQueue')}" dataField="agingTime"  visible="true" headerRenderer="com.nri.rui.core.renderers.SortImg" sortDescending="true"/>
+		         </mx:columns>
+			 </mx:DataGrid>  
+			 
+			 <mx:HBox width="100%" styleName="ButtonBackPanel">
+	   	          <mx:Button id="btnDelete" label="{this.parentApplication.xResourceManager.getKeyValue('exm.accesslogquery.label.restore')}" styleName="BtnStyle" click="restoreMessage(event)"/>
+	        	  <mx:Button id="btnRestore" label="{this.parentApplication.xResourceManager.getKeyValue('exm.accesslogquery.label.delete')}" styleName="BtnStyle" click="deleteMessage(event)"/>
+	         </mx:HBox>
+		 
+		</mx:VBox>
+	</mx:HDividedBox>
+    </mx:VBox>    
+    </mx:Canvas>  
+		 
+</containers:XenosQueryModule>

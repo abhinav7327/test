@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- MXML module for displaying the Batch Execution Query  -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" 
+    xmlns:cntrls="com.nri.rui.core.controls.*" 
+    xmlns:famCntrls="com.nri.rui.fam.controls.*"
+    xmlns:flexlib="http://code.google.com/p/flexlib/"  
+    width="100%" height="100%" horizontalScrollPolicy="off" 
+    verticalScrollPolicy="off" creationComplete="init()">
+   
+    <mx:Script>
+		  <![CDATA[
+		    import com.nri.rui.core.controls.XenosAlert;
+			import mx.managers.FocusManager;
+			import mx.managers.PopUpManager;
+	        import mx.rpc.events.ResultEvent;
+	        import mx.rpc.events.FaultEvent;
+	        import com.nri.rui.core.utils.NumberUtils;
+	        import mx.controls.Alert;
+	        import com.nri.rui.core.Globals;
+            import com.nri.rui.core.utils.PrintUtils;
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.containers.SummaryPopup;
+		   [Bindable]private var xmlObj:XML;		   
+		   [Bindable]private var batchExecutionStatusPk:String ="";
+		   
+		    [Bindable]
+            private var actionForm:Object = null;
+			
+			private function init():void{
+				parseUrlString();
+				var req : Object = new Object();				
+				req["batchExecutionStatusPk"] = batchExecutionStatusPk;
+				req["SCREEN_KEY"] = "12135"; 
+				batchExecutionQueryDetailsService.request=req;			
+				batchExecutionQueryDetailsService.send();
+				//PopUpManager.centerPopUp(this);
+			}
+			
+            private function httpService_fault(evt:FaultEvent):void {
+                XenosAlert.error(evt.fault.faultDetail);
+            }
+            
+            public function parseUrlString():void {
+                try {
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                    if(params != null){
+	                    for (var i:int = 0; i < params.length; i++) {
+	                        var tempA:Array = params[i].split("=");
+	                        if (tempA[0] == "pk") {
+	                            batchExecutionStatusPk = tempA[1];
+	                        }	                        
+	                    }                    	
+                    }               
+                } catch (e:Error) {
+                    trace(e);
+                }                      	         
+            }
+            
+            
+           private function proceedResultDetailsHandler(event: ResultEvent) : void {
+           	var result:XML = XML(event.result);
+           	actionForm = result ;
+           	
+            if (result.child("Errors").length() > 0) {
+		         var errorInfoList : ArrayCollection = new ArrayCollection();
+                  //populate the error info list              
+                  for each (var error:XML in result.Errors.error) {
+                     errorInfoList.addItem(error.toString());
+                  }
+                  errQueryPage.showError(errorInfoList);//Display the error
+			    	  
+		    }else if(result.child("detailList").length() > 0 && result.child("detailList").child("detail").length()>0){      	
+                this.batchExecutionQueryDetails.dataProvider = actionForm.detailList.detail;              
+            }else {            	
+                XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('ref.batch.execution.status.query.detail.error.noDataFound'));
+                var spopup: SummaryPopup = this.parent as SummaryPopup;
+               // spopup.remo
+               // spopup.removeMe();
+                PopUpManager.removePopUp(spopup);              
+            }
+           }
+			
+			]]>
+	</mx:Script>
+	
+	 <cntrls:XenosHTTPService id="batchExecutionQueryDetailsService" 
+     						  url="ref/batchExecutionStatusQueryDetailDispatchAction.action?method=detailViewResult"
+				              resultFormat="xml"  
+				              useProxy="false"
+				              fault="httpService_fault(event)"
+				              result="proceedResultDetailsHandler(event)" 
+				              showBusyCursor="true" >         
+     </cntrls:XenosHTTPService>
+     
+     <mx:VBox width="100%" height="0%">
+	    <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+	        <mx:Button id="Print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetail(this.DgDetails)"/>
+	    </mx:HBox>
+    </mx:VBox>
+       
+	<mx:Canvas height="100%" width="100%" >
+
+	<!--<mx:VBox width="100%" height="100%" styleName="Padding">-->
+	<mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text="Query Result"/>
+	<cntrls:XenosErrors id="errQueryPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		<mx:VBox id="DgDetails" visible="true" includeInLayout="{this.DgDetails.visible}" width="100%" height="100%" styleName="Padding" >
+			       <mx:DataGrid id="batchExecutionQueryDetails" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+					     <mx:columns> 	            					            				
+	            				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionQueryDetails.label.errorId')}"  dataField="errorId" textAlign="right" width="90" />                           
+	                            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionQueryDetails.label.errorLevel')}"  dataField="errorLevel" textAlign="right" width="90" /> 
+	                            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionQueryDetails.label.fundCode')}"  dataField="fundCode" textAlign="left" width="90" />                            
+	                            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionQueryDetails.label.securityId')}"  dataField="securityId" textAlign="left" width="100" />
+	                            <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.batchExecutionQueryDetails.label.errorLog')}"  dataField="errorLog" textAlign="left" width="450" itemRenderer="com.nri.rui.ref.renderers.BatchExecutionQueryDetailErrorLogRenderer"/>	                            	                            
+	                    </mx:columns>  
+			       </mx:DataGrid>	
+		  </mx:VBox>
+     </mx:Canvas>
+</mx:Module>

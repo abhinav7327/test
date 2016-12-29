@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:frmtrs="com.nri.rui.core.formatters.*" xmlns:valdtrs="com.nri.rui.core.validators.*" horizontalGap="0" horizontalScrollPolicy="off" verticalScrollPolicy="off" textAlign="right" focusOut="formatString()">
+
+<cntrls:XenosHTTPService id="caxTakeUpCostCalcRequest"
+     showBusyCursor="true"
+     method="POST" 
+     result="loadResultPage(event)" 
+     fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' ' + event.fault.faultString)"
+     useProxy="false" resultFormat="xml"/>
+<frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+<valdtrs:XenosNumberValidator id="numVal" requiredFieldError=""
+     invalidCharError="Please enter a valid value for Take Up Cost" 
+     exceedsMaxError="Max 15 digits are allowed before decimal point" 
+     separationError="" 
+     property="text" 
+     allowNegative="false" 
+     domain="real" 
+     lowerThanMinError="" 
+     maxValue="999999999999999" 
+     minValue="" 
+     invalidFormatCharsError="Please enter a valid value for Take Up Cost" 
+     decimalPointCountError="Please enter a valid value for Take Up Cost" 
+     precision="3" 
+     precisionError="Max 3 digits are allowed after decimal point" />
+
+<mx:Script>
+	<![CDATA[
+		import mx.events.FlexEvent;
+		import mx.collections.ArrayCollection;
+		import com.nri.rui.core.utils.XenosStringUtils;
+		import mx.rpc.events.ResultEvent;
+		import com.nri.rui.core.controls.XenosAlert;
+		import com.nri.rui.core.utils.NumberUtils;
+		import mx.managers.PopUpManager;
+		import mx.utils.StringUtil;
+		import mx.controls.Alert;
+		 	
+		private var xmlDoc:XML;
+		[Bindable]private var index:int;
+	 
+		public function get text():String {
+	 	    return this.takeUpCost.text;
+		}
+		
+//		public function set text(value:String):void {
+//		    this.takeUpCost.text = value;
+//		}		 
+
+	    private function imgClick_handler():void {
+            if (data.selected == false) {
+                XenosAlert.info("Please select the record first.");
+                return;
+            }
+            if (XenosStringUtils.isBlank(data.exercisingQuantityStr)) {
+                XenosAlert.info("Please enter exercising quentity to calculate Take Up Cost.");
+                return;           	
+            }
+            index = data.originalIndex;
+            if (this.parentDocument.mode == 'entry') {
+                caxTakeUpCostCalcRequest.url = "cax/rightsExcerciseEntryDispatch.action?method=calculateTakeUpCost&index=" + index + "&exerciseQty=" + data.exercisingQuantityStr;
+            } else if (this.parentDocument.mode == 'amend') {
+            	caxTakeUpCostCalcRequest.url = "cax/rightsExcerciseAmendDispatch.action?method=calculateTakeUpCost&index=" + index + "&exerciseQty=" + data.exercisingQuantityStr; 
+            }
+            caxTakeUpCostCalcRequest.method = "POST";
+            caxTakeUpCostCalcRequest.send();
+		}	
+		   
+	    public override function set data(value:Object):void {
+	       
+            if(value == null)  {
+               return;
+            }
+            super.data = value;
+ 	        data.totalSubscriptionCostStr = this.takeUpCost.text;
+	    }	
+	    
+	    public override function invalidateDisplayList():void {
+	    	super.invalidateDisplayList();
+	    	if (data != null) {
+	    		this.takeUpCost.text = data.totalSubscriptionCostStr;
+	    		//formatString();	    		
+	    	}
+	    }
+	    private function loadResultPage(event:ResultEvent):void {
+	        if (null != event) {            
+	            if(null == event.result){
+	                if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+	                    XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+	                } else { // Must be error
+	                }               
+	            } else {                
+	                var queryResult: XML = XML(event.result);
+	                
+	                var arr:ArrayCollection = new ArrayCollection;
+	                if(queryResult.child("Errors").length() > 0){                  
+                        trace("Query Result : " + queryResult);
+	                    for each (var error:Object in queryResult.Errors.error) {
+                            trace("Errors : " + error);
+	                        arr.addItem(error);
+	                    }
+	                    this.parentDocument.errPage.showError(arr);
+	                    return;
+	                }
+                    var results:ArrayCollection = new ArrayCollection;
+                    if (this.parentDocument.mode == 'entry') {                 
+		                for each (var item:Object in queryResult.rightsList.rightsList) {
+		                	results.addItem(item);	                	
+		                }
+                    } else if (this.parentDocument.mode == 'amend') {
+                        for each (var item:Object in queryResult.amendableRightsList.amendableRights) {
+                            results.addItem(item);                      
+                        }                    	
+                    }
+                    this.takeUpCost.text = results[index].totalSubscriptionCostStr;
+                    data.totalSubscriptionCostStr = results[index].totalSubscriptionCostStr;
+                    data.selected = true;
+                    data.originalIndex = index;
+	            }
+	        }            	    	
+	    }	 
+	    public function formatString():void{
+	        var targetObj:TextInput = takeUpCost;
+	        numVal.source = targetObj;
+	        numVal.handleNumericField(numberFormatter);
+	    }
+	]]>
+</mx:Script>
+<mx:TextInput id="takeUpCost" editable="true" minWidth="75" maxWidth="75" change="{data.totalSubscriptionCostStr = this.takeUpCost.text}" focusOut="formatString()" enabled="{(parentDocument.mode!='amend' || !(data.exerciseFinalizeFlag=='Y' || data.prevFinalizeFlag=='Y'))}"/>
+<mx:Image id="takeUpCal" source="@Embed('../../../../../assets/icon_calculator.png')" click="imgClick_handler()"/>
+</mx:HBox>

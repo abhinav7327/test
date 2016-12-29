@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Displaying the rcCashDividendEntry1 part -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+            xmlns:containers="com.nri.rui.core.containers.*" 
+            xmlns:flexlib="http://code.google.com/p/flexlib/" 
+            xmlns:cntrls="com.nri.rui.core.controls.*" 
+            xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"             
+            xmlns:frmtrs="com.nri.rui.core.formatters.*"
+            xmlns:valdtrs="com.nri.rui.core.validators.*" 
+            layout="vertical"  width="100%" height="100%">	
+
+    <mx:Script>
+    	<![CDATA[
+    		import com.nri.rui.core.controls.XenosAlert;
+    		import mx.collections.ArrayCollection;
+    		import mx.events.ValidationResultEvent;
+    		import com.nri.rui.core.Globals;
+    		import mx.resources.ResourceBundle;
+    		[Bindable]
+    		public var mergerMode:String;
+    		
+    		public function set MergerMode(mode:String):void {
+    			this.mergerMode= mode;
+    			dataVisible = true; 	
+    		}
+    		
+		    /**
+		     * Formatting allotment Qty
+		     */
+		     private function allotmentQtyHandler():void{
+		        
+		        var vResult:ValidationResultEvent;
+		        var tmpStr:String = allotmentQuantityStr.text;
+		        vResult = numVal1.validate();
+		        if(allotmentQuantityStr.text != "") {
+			        if (vResult.type==ValidationResultEvent.VALID) {
+			            allotmentQuantityStr.text =numberFormatter.format(allotmentQuantityStr.text);            
+			        }else{
+			        	allotmentQuantityStr.text = tmpStr;           
+			        	XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('cax.invalid.allotment.quantity'));		            
+			        }
+		        }
+		     }
+		     
+		    /**
+		     * Formatting per share
+		     */
+		     private function perShareHandler():void{
+		        
+		        var vResult:ValidationResultEvent;
+		        var tmpStr:String = perShareStr.text;
+		        vResult = numVal2.validate();
+		         if(perShareStr.text != "") {
+			        if (vResult.type==ValidationResultEvent.VALID) {
+			            perShareStr.text=numberFormatter.format(perShareStr.text);            
+			        }else{
+			            perShareStr.text = tmpStr;
+			            XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('cax.invalid.per.share'));	           
+			        }
+		         }
+		     }		
+		     
+		    /**
+		     * Formatting allotment amt
+		     */
+		     private function allotmentAmtHandler():void{
+		        
+		        var vResult:ValidationResultEvent;
+		        var tmpStr:String = allottedAmountStr.text;
+		        vResult = numVal3.validate();
+		         if(allottedAmountStr.text != "") {
+			        if (vResult.type==ValidationResultEvent.VALID) {
+			            allottedAmountStr.text=numberFormatter.format(allottedAmountStr.text);            
+			        }else{
+			            allottedAmountStr.text = tmpStr;
+			            XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('cax.invalid.allotment.amount'));	           
+			        }
+		         }
+		     }
+		    /**
+		     * Formatting per share
+		     */
+		     private function perShareCcyHandler():void{
+		        
+		        var vResult:ValidationResultEvent;
+		        var tmpStr:String = perShareCashDividend.text;
+		        vResult = numVal4.validate();
+		         if(perShareCashDividend.text != "") {
+			        if (vResult.type==ValidationResultEvent.VALID) {
+			            perShareCashDividend.text=numberFormatter.format(perShareCashDividend.text);            
+			        }else{
+			            perShareCashDividend.text = tmpStr;
+			            XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('cax.invalid.per.share.cash.div.price'));	           
+			        }
+		         }
+		     }
+		    /**
+		     * Formatting pay out price
+		     */
+		     private function payoutPriceHandler():void{
+		        
+		        var vResult:ValidationResultEvent;
+		        var tmpStr:String = payOutPriceStr.text;
+		        vResult = numVal5.validate();
+		         if(payOutPriceStr.text != "") {
+			        if (vResult.type==ValidationResultEvent.VALID) {
+			            payOutPriceStr.text=numberFormatter.format(payOutPriceStr.text);            
+			        }else{
+			            payOutPriceStr.text = tmpStr;
+			            XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('cax.invalid.payout.price'));	           
+			        }
+		         }
+		     }		     		     		              		
+    		
+		     
+    	]]>
+    </mx:Script>
+     
+	<mx:Script source="actionscripts/RightsConditionEntryStockMerger.as"/> 
+    <frmtrs:XenosNumberFormatter id="numberFormatter" 
+        useThousandsSeparator="true" />
+    <valdtrs:XenosNumberValidator id="numVal1" source="{allotmentQuantityStr}" property="text" 
+        allowNegative="false" domain="real" negativeError="Allotment Quantity cannot be negative"/>       
+    <valdtrs:XenosNumberValidator id="numVal2" source="{perShareStr}" property="text" 
+        allowNegative="false" domain="real" negativeError="Per Share cannot be negative"/> 
+    <valdtrs:XenosNumberValidator id="numVal3" source="{allottedAmountStr}" property="text" 
+        allowNegative="false" domain="real" negativeError="Allotment Amount cannot be negative"/>       
+    <valdtrs:XenosNumberValidator id="numVal4" source="{perShareCashDividend}" property="text" 
+        allowNegative="false" domain="real" negativeError="Per Share Cash Dividend cannot be negative"/>  
+    <valdtrs:XenosNumberValidator id="numVal5" source="{payOutPriceStr}" property="text" 
+        allowNegative="false" domain="real" negativeError="Pay Out Price cannot be negative"/>                         	
+	    
+	<cntrls:XenosHTTPService id="addStockMergerService"
+     	 showBusyCursor="true"
+     	 method="POST" 
+         result="stockAddResult(event)"
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' '+ event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>
+	<cntrls:XenosHTTPService id="editStockMergerService"
+     	 showBusyCursor="true"
+     	 method="POST" 
+         result="saveEditedStockMergerResult(event)"
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' ' + event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>  
+	<cntrls:XenosHTTPService id="cancelEditedStockMergerService"
+     	 showBusyCursor="true"
+     	 method="POST" 
+         result="cancelEditedStockMergerResult(event)"
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' '+ event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>      
+	<cntrls:XenosHTTPService id="removeStockMergerService"
+     	 showBusyCursor="true"
+     	 method="POST" 
+         result="stockAddResult(event)"
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+' '+ event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>       
+    
+    
+	<mx:Grid width="100%" borderThickness="0">	
+    	<mx:GridRow width="100%" >
+            <mx:GridItem  width="100%" borderThickness="0" colSpan="4">
+				<mx:HBox width="100%" styleName="ButtonBackPanel">				   				   
+					<mx:Label  text="Stock Merger Info#" fontWeight="bold"/>
+	       		</mx:HBox>
+            </mx:GridItem>                         
+    	</mx:GridRow>			
+        <mx:GridRow width="100%" >
+            <mx:GridItem width="13%" borderThickness="0"> 
+                <mx:Label  text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.instrumentcode')}" styleName="ReqdLabel" />
+            </mx:GridItem>              
+            <mx:GridItem width="37%"  borderThickness="0">  
+                 <xenospopup:InstrumentPopUpHbox id="security" />                   
+            </mx:GridItem>
+            <mx:GridItem width="13%" borderThickness="0" > 
+                <mx:Label  text="" />
+            </mx:GridItem>              
+            <mx:GridItem width="37%" borderThickness="0">  
+                 <mx:Label  text="" />
+            </mx:GridItem>
+        </mx:GridRow>	
+	
+	
+        <mx:GridRow width="100%">
+            <mx:GridItem width="13%" borderThickness="0"  >
+                <mx:Label  text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.allotmentquantity')}" styleName="ReqdLabel"/>
+            </mx:GridItem>
+            <mx:GridItem width="37%" borderThickness="0">
+                 <mx:TextInput id="allotmentQuantityStr" text=""  focusOut="allotmentQtyHandler()" />                
+            </mx:GridItem>
+        	<mx:GridItem width="13%" borderThickness="0" >
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.pershare')}" styleName="ReqdLabel"/>
+            </mx:GridItem>
+            <mx:GridItem width="37%" borderThickness="0">
+                <mx:TextInput id="perShareStr" text=""  focusOut="perShareHandler()"/>            
+            </mx:GridItem>            
+            
+        </mx:GridRow>
+        
+        <mx:GridRow width="100%"> 
+            <mx:GridItem width="20%" borderThickness="0">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.ccycashdividend')}" />
+            </mx:GridItem> 
+            <mx:GridItem width="30%" borderThickness="0">
+                  <cntrls:CurrencyHBox id="ccyCashDividend"/>             
+            </mx:GridItem> 
+            
+            <mx:GridItem width="20%" borderThickness="0">
+                
+            </mx:GridItem> 
+            <mx:GridItem width="30%" borderThickness="0">
+                                
+            </mx:GridItem> 
+        </mx:GridRow>
+
+         <mx:GridRow width="100%">
+            <mx:GridItem width="20%" borderThickness="0">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.allotmentamount')}" />
+            </mx:GridItem>
+            <mx:GridItem width="30%" borderThickness="0">
+               <mx:TextInput id="allottedAmountStr" text="" focusOut="allotmentAmtHandler()"/>                
+            </mx:GridItem>      
+            <mx:GridItem width="20%" borderThickness="0">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.persharecashdividend')}"  />
+            </mx:GridItem>
+            <mx:GridItem width="30%" borderThickness="0">
+ 				<mx:TextInput id="perShareCashDividend" text="" focusOut="perShareCcyHandler()"/>                                        
+            </mx:GridItem>                                
+        </mx:GridRow>	 
+        <mx:GridRow width="100%" >
+            <mx:GridItem width="20%" borderThickness="0">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.payoutccy')}"/>
+            </mx:GridItem>
+            <mx:GridItem width="30%" borderThickness="0">
+                 <cntrls:CurrencyHBox id="payOutCcy"/>                 
+            </mx:GridItem>
+            <mx:GridItem width="20%" borderThickness="0">
+                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.payoutprice')}"/>
+            </mx:GridItem>
+            <mx:GridItem width="30%" borderThickness="0">
+                <mx:TextInput id="payOutPriceStr"  text="" focusOut="payoutPriceHandler()"/>                
+            </mx:GridItem>            
+        </mx:GridRow> 
+    	<mx:GridRow width="100%" id="stockMergerButton">
+            <mx:GridItem  width="100%" borderThickness="0" colSpan="4">
+				<mx:HBox width="100%" styleName="ButtonBackPanel">				   				   
+				   <cntrls:XenosButton label="Add Stock" id="addStock" styleName="BtnStyle" click="addStockMergerInfo()"/>
+	        		<cntrls:XenosButton id="saveBtn" styleName="BtnStyle" label="Save" click="saveStockEditedEntry()" visible="false" includeInLayout="false"/>
+	        		<cntrls:XenosButton id="cancelBtn" styleName="BtnStyle" label="Cancel" click="cancelStockEditedEntry()" visible="false" includeInLayout="false"/>	        						       
+	       		</mx:HBox>
+            </mx:GridItem>                         
+    	</mx:GridRow>	
+   </mx:Grid>
+	
+	<cntrls:XenosErrors id="errPage2" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+    <mx:DataGrid id="stockEntrySummary" dataProvider="{addedStockSummaryResult}" width="100%" height="100%" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="on" visible="true" includeInLayout="true" rowCount="4"> 
+	    <mx:columns>
+			<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.instrumentcode')}"  width="90" dataField="instrumentCode" />
+			<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.allotmentquantity')}" width="100" dataField="allottedQuantityStr" />
+			<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.pershare')}"   width="100" dataField="perShareStr" />
+			<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.ccycashdividend')}" width="120" dataField="ccyCashDividend" />
+			<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.allotmentamount')}"  width="100" dataField="allottedAmountStr" />
+			<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.persharecashdividend')}" width="120" dataField="perShareCashDividend" />
+			<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.payoutccy')}" width="90" dataField="payOutCcy" />
+			<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cax.rightscondition.label.payoutprice')}"  width="90" dataField="payOutPriceStr" />
+			
+			<mx:DataGridColumn headerText="" width="150" textAlign="center">
+			
+				<mx:itemRenderer>
+					<mx:Component>
+						<mx:HBox>											
+							<cntrls:XenosButton id="editStock"  styleName="BtnStyle" label="Edit" enabled ="{outerDocument.dataVisible == true?true:false}" click="outerDocument.editStockMergerInfo(data)"/>
+							<cntrls:XenosButton id="deleteStock"  styleName="BtnStyle" label="Delete" enabled ="{outerDocument.dataVisible == true?true:false}" click="outerDocument.removeStockMergerInfo(data)"/>											
+						</mx:HBox>
+					</mx:Component>
+					
+				</mx:itemRenderer>
+			</mx:DataGridColumn>
+       </mx:columns>
+	</mx:DataGrid>
+	  
+      	
+</mx:Module>
+

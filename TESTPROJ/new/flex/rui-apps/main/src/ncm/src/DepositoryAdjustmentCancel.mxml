@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for DepositoryAdjustmentQuery Implementation -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+           xmlns:containers="com.nri.rui.core.containers.*" 
+           xmlns:flexlib="http://code.google.com/p/flexlib/" 
+           xmlns:cntrls="com.nri.rui.core.controls.*" 
+           xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="loadAll()">
+        
+        <mx:Script>
+            
+            <![CDATA[
+            
+                import com.nri.rui.core.utils.XenosStringUtils;
+                import com.nri.rui.core.Globals;
+                import mx.events.DataGridEvent;
+
+                private function changeCurrentState():void{
+                    currentState = "result";
+                    app.submitButtonInstance = null;
+                }
+                
+                /**
+                 * Extract the value of the colum cell removing the prefix added at '0'th index.
+                 */ 
+                private function extractPrecisionedValue(item:Object, column:DataGridColumn):String{
+                    var strData:String = item[column.dataField];
+                    if(!XenosStringUtils.isBlank(strData) && strData.charAt(0)=="F"){
+                        if(strData.length == 1)
+                            return XenosStringUtils.EMPTY_STR;
+                        else
+                            return strData.substring(1);
+                    }else{
+                        return item[column.dataField];                    
+                    }
+                }
+                
+            /**
+            *  datagrid header release event handler to handle datagridcolumn sorting
+            */
+            public function dataGrid_headerRelease(evt:DataGridEvent):void {                
+                var dg:DataGrid = DataGrid(evt.currentTarget);
+                sortUtil.clickedColumn = dg.columns[evt.columnIndex];       
+            }
+
+            ]]>
+        </mx:Script>
+        
+        <mx:Script source="actionscripts/DepositoryAdjustmentCancel.as"/>
+    
+    <mx:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+        	<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </mx:states>
+    
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+    
+    
+    <cntrls:XenosHTTPService id="initDepositoryAdjustmentQuery" fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)" 
+             method="POST" useProxy="false" result="initPage(event)" showBusyCursor="true"/>
+    
+    <cntrls:XenosHTTPService id="depositoryAdjustmentQuery" 
+         url="ncm/depositoryCancelQueryDispatchAction.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         result="loadSummaryPage(event)" showBusyCursor="true" resultFormat="xml"/>
+    
+    
+    <cntrls:XenosHTTPService id="depositoryAdjustmentResetQuery" url="ncm/depositoryCancelQueryDispatchAction.action?method=resetQuery"
+        result="initPage(event)" showBusyCursor="true">
+    </cntrls:XenosHTTPService>
+   
+    <!--<cntrls:XenosHTTPService id="loadBankAndBankAccountForFund" 
+            fault="XenosAlert.error('Error Occured  :  ' + event.fault.faultDetail)" 
+            url="ncm/depositoryQueryDispatchAction.action?method=loadBankAndBankAccountForFund"
+            result="populateBankAndBankAccount(event)" 
+            showBusyCursor="true" resultFormat="xml"/>        
+    
+    <cntrls:XenosHTTPService id="loadBankAccount" fault="XenosAlert.error('Error Occured  :  ' + event.fault.faultDetail)" url="ncm/depositoryQueryDispatchAction.action?method=loadBankAccountFromBank"
+             result="populateBankAccount(event)" showBusyCursor="true"  resultFormat="xml"/>
+    -->
+    <mx:Validator source="{dateFrom}" required="true" property="text" />
+    <mx:Validator source="{dateTo}" required="true" property="text" />
+    
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0">
+        <mx:HBox width="100%" styleName="ExCoBgPanel">
+            <mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;" />        
+            <mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+            <mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>     
+        </mx:HBox>
+        <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        
+        <mx:VBox width="100%" height="100%">
+            <mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="initPageStart()"  >
+            <mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+            <!--<containers:CollapsibleHDividedBox id="hdbox1" width="100%" height="100%" x="0" y="0" liveDragging="true" creationComplete="initPageStart()" paddingBottom="6" paddingLeft="6" paddingRight="6" paddingTop="6" >-->
+                <mx:VBox label="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" width="100%" height="100%" styleName="HDivideStyle">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+                    <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+                    <mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+                    <!--<flexlib:WindowShade id="ws1" tabChildren="{ws1.opened}"  label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.important.fields')}" width="100%" >-->
+                         <mx:Grid width="100%" borderThickness="0">
+                            
+                            <mx:GridRow width="100%">
+                                <!-- Reference No -->
+                                <mx:GridItem width="20%" borderThickness="0">
+                                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.referenceno')}" />
+                                </mx:GridItem>
+                                <mx:GridItem width="30%" borderThickness="0">
+                                    <mx:TextInput id="refno" text="" maxChars="20" width="90" 
+                                        restrict="{Globals.INPUT_PATTERN}"/>
+                                </mx:GridItem>
+                                <!-- Fund Code  -->
+                                <mx:GridItem width="20%" borderThickness="0">
+                                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" />
+                                </mx:GridItem>
+                                <mx:GridItem  width="30%" borderThickness="0">
+                                    <xenospopup:FundPopUpHbox id="fundPopUp" inputEvent="populateFundToFinInstPopUp()" /><!--inputEvent="inputHandler();"/>-->
+                                </mx:GridItem> 
+                            </mx:GridRow>
+                            
+                            <mx:GridRow width="100%">
+                                <!-- Bank/Custodian Code  -->
+                                <mx:GridItem width="20%" borderThickness="0">  
+                                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ncm.adjustment.label.bankcustodiancode')}" />
+                                </mx:GridItem>
+                                <mx:GridItem  width="30%" borderThickness="0">
+                                    <xenospopup:finInstForFundPopUpHBox id="fininstPopUp" retContextItem="{returnFinContext}" recContextItem="{finContextList}" focusOut="populateFundAndBankToSettleAccPopUp()" /><!--focusOut="bankOutHandler()" />-->
+                                </mx:GridItem>
+                                <!-- Bank Account No -->
+                                <mx:GridItem width="20%" borderThickness="0">
+                                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.bankaccountno')}"  />
+                                </mx:GridItem>
+                                <mx:GridItem width="30%" borderThickness="0">
+                                    <xenospopup:SettleAcctForFundAndBankPopUpHbox id="stlAccForFundPopUp" retContextItem="{returnContextItem}" recContextItem="{stlAccForFundContextList}" />
+                                </mx:GridItem> 
+                            </mx:GridRow>
+                            
+                            <mx:GridRow width="100%">
+                                <mx:GridItem width="20%" borderThickness="0">
+                                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ncm.depositoryadjustmentquery.label.securitycode')}" />
+                                </mx:GridItem>
+                                <mx:GridItem width="30%" borderThickness="0">
+                                    <xenospopup:InstrumentPopUpHbox id="instPopUp"/>
+                                </mx:GridItem>
+                                <mx:GridItem width="20%" borderThickness="0">
+                                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.ledger')}" />
+                                </mx:GridItem>
+                                <mx:GridItem width="30%" borderThickness="0">
+                                    <mx:ComboBox id="ldgr" labelField="label" prompt="Select"/>
+                                </mx:GridItem>
+                                
+                            </mx:GridRow>
+                            
+                            <mx:GridRow width="100%">
+                                <mx:GridItem width="20%" borderThickness="0">
+                                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ncm.depositoryadjustmentquery.label.adjustmentdatefromto')}" styleName="ReqdLabel" />
+                                </mx:GridItem>
+                                <mx:GridItem width="30%" borderThickness="0">
+                                    <mx:HBox>
+                                        <mx:DateField id="dateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                                        <mx:DateField id="dateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                                    </mx:HBox>
+                                </mx:GridItem>
+                                <mx:GridItem width="20%" borderThickness="0">
+                                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ncm.adjustment.label.adjustmenttype')}" />
+                                </mx:GridItem>
+                                <mx:GridItem width="30%" borderThickness="0">
+                                    <mx:ComboBox id="adjustmenttype" labelField="label" prompt="Select" />
+                                </mx:GridItem>
+                            </mx:GridRow>
+                            
+                            <mx:GridRow width="100%">
+                                <mx:GridItem width="20%" borderThickness="0">
+                                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ncm.adjustment.label.adjustmentreason')}" />
+                                </mx:GridItem>
+                                <mx:GridItem width="30%" borderThickness="0">
+                                    <mx:ComboBox id="adjustmentreason" labelField="label" prompt="Select" itemRenderer="mx.controls.Label" />
+                                </mx:GridItem>
+                            </mx:GridRow>
+                            
+                        </mx:Grid>
+                    <!--</flexlib:WindowShade>-->
+                    
+                    <!--<flexlib:WindowShade id="ws2" tabChildren="{ws2.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.lessimportant.fields')}" opened="false" width="100%"> -->
+                    <flexlib:WindowShade id="ws2" tabChildren="{ws2.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.lessimportant.fields')}" opened="false" width="100%">
+                         <mx:Grid width="100%" borderThickness="0">
+                            <mx:GridRow width="100%">
+                                <mx:GridItem width="20%" borderThickness="0">
+                                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ncm.depositoryadjustmentquery.label.entryby')}" />
+                                </mx:GridItem>
+                                <mx:GridItem width="30%" borderThickness="0">
+                                     <xenospopup:EmployeePopUpHbox id="entryby" retContextItem="{returnEmpContextItem}" />
+                                </mx:GridItem>
+                                <mx:GridItem width="20%" borderThickness="0">
+                                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.entryfromto')}" />
+                                </mx:GridItem>
+                                <mx:GridItem width="30%" borderThickness="0">
+                                    <mx:HBox>
+                                        <mx:DateField id="entryDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                                        <mx:DateField id="entryDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                                    </mx:HBox>
+                                </mx:GridItem>
+                            </mx:GridRow>
+                            <mx:GridRow width="100%">
+                                <mx:GridItem width="20%" borderThickness="0">
+                                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ncm.depositoryadjustmentquery.label.updatedby')}" />
+                                </mx:GridItem>
+                                <mx:GridItem width="30%" borderThickness="0">
+                                     <xenospopup:EmployeePopUpHbox id="updateby" />
+                                </mx:GridItem>
+                                <mx:GridItem width="20%" borderThickness="0">
+                                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.updatefromto')}" />
+                                </mx:GridItem>
+                                <mx:GridItem width="30%" borderThickness="0">
+                                    <mx:HBox>
+                                        <mx:DateField id="updateDateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                                        <mx:DateField id="updateDateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                                    </mx:HBox>
+                                </mx:GridItem>
+                            </mx:GridRow>
+                        </mx:Grid>  
+                    </flexlib:WindowShade>
+        
+                    <!-- Sort Order -->
+                    <flexlib:WindowShade id="ws3" tabChildren="{ws3.opened}" styleName="linkButtonWindowShade" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.sortorder.fields')}" opened="true" width="100%">
+                        <mx:Grid width="100%" borderThickness="0">
+                            <mx:GridRow width="100%">
+                                <mx:GridItem width="100%" borderThickness="0">
+                                    <mx:HBox width="100%">
+                                        <mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()"/>
+                                        <mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()"/>
+                                        <mx:ComboBox id="sortField3" labelField="label"/>
+                                    </mx:HBox> 
+                                </mx:GridItem>                         
+                            </mx:GridRow>
+                        </mx:Grid>
+                    </flexlib:WindowShade>
+
+                    <mx:HBox width="100%" styleName="ButtonBackPanel">          
+                        <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="this.submitQuery();" />
+                        <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle"  click="this.resetQuery();"/>                  
+                    </mx:HBox>
+
+                </mx:VBox>
+                </mx:Canvas>
+                <mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle">           
+                        <cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" />
+                        <mx:DataGrid id="adjustmentSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="true" headerRelease="dataGrid_headerRelease(event)" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()">
+                            <mx:columns>
+                                <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+                                <mx:DataGridColumn headerText="" width="30" draggable="false" resizable="false" itemRenderer="com.nri.rui.ncm.renderers.DepositoryAdjustmentCancelRenderer" sortable="false" />
+                                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.referenceno')}" headerWordWrap="false" minWidth="140" dataField="referenceNo" itemRenderer="com.nri.rui.ncm.renderers.AdjustmentQueryDetailRenderer" sortCompareFunction="sortUtil.sortString"/>
+                                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" dataField="fundCode" sortCompareFunction="sortUtil.sortString" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer"/>
+                                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.adjustment.label.bankcustodiancode')}" dataField="bankCode" itemRenderer="com.nri.rui.core.renderers.FinancialInstitutionDetailsRenderer" sortCompareFunction="sortUtil.sortString"/>
+                                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.bankaccountno')}" dataField="accountDisplayName" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRenderer" sortCompareFunction="sortUtil.sortString"/>
+                                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.depositoryadjustmentquery.label.securitycode')}" dataField="securityCode" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer" sortCompareFunction="sortUtil.sortString"/>
+                                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.depositoryadjustmentquery.label.securityname')}" dataField="instrumentName" sortCompareFunction="sortUtil.sortString"/>
+                                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.adjustment.label.adjustmentdate')}" dataField="adjustmentInOutDisplayDate" sortCompareFunction="sortUtil.sortString"/>
+                                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.adjustment.label.adjustmenttype')}" dataField="adjustmentTypeDisp" sortCompareFunction="sortUtil.sortString"/>
+                                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.depositoryadjustmentquery.label.quantity')}" textAlign="right" dataField="amountDisplayValue" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" labelFunction="extractPrecisionedValue" sortCompareFunction="sortUtil.sortNumeric" />
+                                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.depositoryadjustmentquery.label.entryby')}" dataField="createdBy" visible="false" sortCompareFunction="sortUtil.sortString"/>
+                                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.depositoryadjustmentquery.label.updatedby')}" dataField="updatedBy" visible="false" sortCompareFunction="sortUtil.sortString"/>
+                                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.authorizationstatus')}" dataField="authorizationStatus" visible="true" sortCompareFunction="sortUtil.sortString"/>
+                            </mx:columns>
+                        </mx:DataGrid>
+                    </mx:VBox>
+            </mx:HDividedBox>
+    </mx:VBox>
+    </mx:Canvas>
+</mx:Module>

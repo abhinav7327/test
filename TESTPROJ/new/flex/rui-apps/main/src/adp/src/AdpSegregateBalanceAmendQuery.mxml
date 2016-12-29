@@ -1,0 +1,460 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Interest Rate Swap Query Implementation -->
+
+<containers:XenosQueryModule xmlns:mx="http://www.adobe.com/2006/mxml" 
+                            xmlns:containers="com.nri.rui.core.containers.*" 
+                            xmlns:flexlib="http://code.google.com/p/flexlib/" 
+                            xmlns:cntrls="com.nri.rui.core.controls.*" 
+                            xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"                            
+                            xmlns:frmtrs="com.nri.rui.core.formatters.*"
+                            xmlns:valdtrs="com.nri.rui.core.validators.*" 
+                            layout="vertical" 
+                            percentWidth="100" 
+                            percentHeight ="100" 
+                            horizontalScrollPolicy="off" 
+                            verticalScrollPolicy="off" >
+    <mx:Script>
+        <![CDATA[
+            import com.nri.rui.core.Globals;            
+            import com.nri.rui.core.RendererFectory;
+            import com.nri.rui.core.renderers.ImgSummaryRenderer;
+            import mx.containers.TitleWindow;
+            import mx.collections.ArrayCollection;
+            import mx.events.CloseEvent;            
+            import mx.controls.*;
+            import mx.managers.PopUpManager;
+            import mx.resources.ResourceBundle;
+            import mx.core.Application;
+            
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.controls.CustomDataGrid;
+            import mx.events.DataGridEvent;
+                        
+            [Embed(source="../../assets/img/inf/addcolunm.png")]
+            
+            [Bindable]private var icoColumns:Class;
+            [Bindable]private var editCheck:Boolean = true;
+            
+            public static var popupColumns:TitleWindow = null;
+            public var gridColumns:ArrayCollection = new ArrayCollection();
+            
+            private function changeCurrentState():void{
+                currentState = "result";
+                app.submitButtonInstance = null;
+            }
+            
+            private function displayVersionNo(item:Object,column : DataGridColumn):String{
+                return item.referenceNo+"-"+item.versionNoStr;                
+            }
+            
+            public function formatQnty(event:FocusEvent):void{
+                var targetObj:TextInput = TextInput(event.currentTarget);
+                qntyVal1.source = targetObj;
+                qntyVal1.handleNumericField(numberFormatter);
+            }
+            
+            public function handleSubmitAmend(event:KeyboardEvent):void{
+                    if (event.keyCode == Keyboard.ENTER)
+                            submitAmend.dispatchEvent(new MouseEvent(MouseEvent.CLICK));
+            }
+            
+            public function handleOk(event:KeyboardEvent):void{
+                    if (event.keyCode == Keyboard.ENTER)
+                            ok.dispatchEvent(new MouseEvent(MouseEvent.CLICK));
+            }
+            
+            public function handleSysConf(event:KeyboardEvent):void{
+                    if (event.keyCode == Keyboard.ENTER)
+                            sysconfBtn.dispatchEvent(new MouseEvent(MouseEvent.CLICK));
+            }
+            
+        ]]>
+    </mx:Script>
+    
+    <frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+    <valdtrs:XenosNumberValidator id="qntyVal1" 
+                                  invalidCharError="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.validator.invalidCharError')}" 
+                                  exceedsMaxError="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.validator.exceedsMaxError')}" 
+                                  negativeError="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.validator.negativeError')}" 
+                                  separationError="" 
+                                  property="text" 
+                                  allowNegative="false" 
+                                  domain="real" 
+                                  lowerThanMinError=""
+                                  maxValue="999999999999999" 
+                                  minValue="0" 
+                                  invalidFormatCharsError="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.validator.invalidFormatCharsError')}" 
+                                  decimalPointCountError="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.validator.decimalPointCountError')}" 
+                                  precision="9" 
+                                  precisionError="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.validator.precisionError')}" 
+                                  thousandsSeparator="," 
+                                  decimalSeparator="."/>
+    
+    <mx:Script source="actionscripts/AdpSegregateBalanceAmendQuery.as"/>
+    
+     <cntrls:XenosHTTPService id="bulkAmendService" showBusyCursor="true" url="adp/segregateBalanceAmendDispatchAction.action" result="submitBulkAmendResult(event)"
+     fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('adp.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))" useProxy="false" resultFormat="xml" />
+     
+     <cntrls:XenosHTTPService id="bulkAmendConfService" showBusyCursor="true" url="adp/segregateBalanceAmendDispatchAction.action" result="confirmBulkAmendResult(event)"
+     fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('adp.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))" useProxy="false" resultFormat="xml" />
+     
+     <cntrls:XenosHTTPService id="bulkAmendBackService" showBusyCursor="true" url="adp/segregateBalanceAmendDispatchAction.action" result="confirmBackAmendResult(event)"
+     fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('adp.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))" useProxy="false" resultFormat="xml" />
+     
+     <cntrls:XenosHTTPService id="copyDateLoaderService" showBusyCursor="true" method="POST" 
+     url="adp/segregateBalanceAmendDispatchAction.action" result="copyDates(event)" fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('adp.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))" useProxy="false" resultFormat="xml" />
+     
+     <cntrls:XenosHTTPService id="bulkAmendResetService" showBusyCursor="true" url="adp/segregateBalanceAmendDispatchAction.action" result="confirmResetAmendResult(event)"
+     fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('adp.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))" useProxy="false" resultFormat="xml" />
+    	
+    <containers:states>
+        <mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions>
+        
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" id="screenNavigater">    
+        <mx:HBox width="100%" styleName="ExCoBgPanel">
+            <mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;"  />      
+            <mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+            <mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres';app.submitButtonInstance = submit;"/>     
+        </mx:HBox>
+        <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    <mx:VBox width="100%" height="100%">
+    <mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="{this.loadAll()}"  >   
+        
+        <mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+        <mx:VBox label="Query Criteria" width="100%" height="100%" styleName="HDivideStyle" >
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>         
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+                
+            <mx:Grid width="100%" borderThickness="0">
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.securityCode')}" styleName="ReqdLabel"/>                        
+                    </mx:GridItem>                        
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:InstrumentPopUpHbox id="security"/>
+                    </mx:GridItem>                        
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.fundCode')}"/>                        
+                    </mx:GridItem>
+                    <!--mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:FundPopUpHbox id="fundPopUp"/>                                                       
+                    </mx:GridItem--> 
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:FundPopUpHbox id="fundPopUp"  LMFlag="LM"/>
+                            <cntrls:XenosLabel id="fundName" toolTip="{fundName.text}" isWrapReq="false"/>
+                    </mx:GridItem>                                                                      
+                </mx:GridRow>
+                
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.segregateDateFrom')}" />
+                    </mx:GridItem>                        
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:DateField id="segregateDateFrom" formatString="YYYYMMDD" editable="true" width="90"/>
+                    </mx:GridItem>                    
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.segregateDateTo')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:DateField id="segregateDateTo" formatString="YYYYMMDD" editable="true" width="90"/>                           
+                    </mx:GridItem>
+                </mx:GridRow>  
+             </mx:Grid>
+            
+            <mx:HBox width="100%" styleName="ButtonBackPanel">
+               <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="{this.dispatchEvent(new Event('amendSubmit'))}" />
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="{this.dispatchEvent(new Event('amendReset'))}" />
+            </mx:HBox>
+            
+        </mx:VBox>      
+        </mx:Canvas>
+                
+        <mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >                                           
+            <mx:ViewStack id="detailAmend" width="100%" height="100%">
+                        
+                <mx:VBox width="100%" height="100%" id="amend" keyDown="handleSubmitAmend(event)">
+                    <cntrls:XenosErrors id="errPage2" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+                    <mx:Grid width="100%">
+                        <mx:GridRow width="100%">
+                           <mx:GridItem width="20%" borderThickness="0">
+                               <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.securityCode')}"/>                             
+                           </mx:GridItem>
+                           <mx:GridItem width="20%" borderThickness="0">
+                               <mx:Label text="{securityCode}" fontWeight="bold" selectable="true"/>
+                           </mx:GridItem>
+                           <mx:GridItem width="20%" borderThickness="0">
+                                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.securityName')}"/>                                
+                           </mx:GridItem>
+                           <mx:GridItem width="20%" borderThickness="0">
+                                <mx:Label text="{securityName}" fontWeight="bold" selectable="true"/>
+                           </mx:GridItem>
+                        </mx:GridRow>
+                        
+                        <mx:GridRow width="100%" visible="{this.mode == 'amend' ? true : false}" includeInLayout="{this.mode == 'amend' ? true : false}">
+                           <mx:GridItem width="20%" borderThickness="0">
+                               <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.segregateDateFrom')}"/>                               
+                           </mx:GridItem>
+                           <mx:GridItem width="20%" borderThickness="0">
+                               <mx:DateField id="segregateDateFromCopy" formatString="YYYYMMDD" editable="true" width="90"/>
+                               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.copy')}" styleName="BtnStyle" click="copySegregateFromDate()"/>
+                           </mx:GridItem>
+                           <mx:GridItem width="20%" borderThickness="0">
+                                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.segregateDateTo')}"/>                                
+                           </mx:GridItem>
+                           <mx:GridItem width="20%" borderThickness="0">
+                                <mx:DateField id="segregateDateToCopy" formatString="YYYYMMDD" editable="true" width="90"/>
+                                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.copy')}" styleName="BtnStyle" click="copySegregateToDate()"/>
+                           </mx:GridItem>
+                        </mx:GridRow>
+                    </mx:Grid>
+                    
+                    <!-- mx:DataGrid id="bulkEntry" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" -->
+                        <!-- mx:columns -->
+                    
+                    <cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="false"  variableRowHeight="true" horizontalScrollPolicy="auto" editable="true">
+                        <cntrls:columns>
+                        
+                            <mx:DataGridColumn textAlign="center" headerText="" dataField="selected" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.SelectItem" headerRenderer="com.nri.rui.core.renderers.SelectAllItem" sortable="false" editable="false"/>
+                            
+                            <mx:DataGridColumn id="fundCodeDg" textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.fundCode')}" dataField="fundCode" showDataTips="true" width="200" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer" editable="false"/>
+                                                        
+                            <mx:DataGridColumn id="quantityDg" textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.quanity')}" dataField="quantityStr"  editable="true" rendererIsEditor="true" width="150" headerStyleName="ReqdLabel">
+                                <mx:itemRenderer>
+                                    <mx:Component>
+                                    <mx:TextInput  width="100" focusOut="outerDocument.formatQnty(event)" valueCommit="refreshData(event)" creationComplete="init()" textAlign="right" editable="true">
+                                        <mx:Script>                                            
+                                            <![CDATA[
+                                                import mx.collections.ArrayCollection;
+                                                import com.nri.rui.core.controls.XenosAlert;
+                                                import mx.events.FlexEvent;
+                                                import mx.controls.dataGridClasses.DataGridListData;
+                                                
+                                                public function refreshData(event:FlexEvent):void{
+                                                    data.quantityStr = this.text;
+                                                }
+                                                
+	                                            public override function set data(value:Object):void{
+	                                                // This will fire off the FlexEvent.DATA_CHANGE Event
+	                                                
+	                                                super.data = value;
+	                                                // if the value is null this cell is empty
+	                                                if(value == null){
+	                                                   // clear all the controls
+	                                                   return;
+	                                                }
+	                                                this.text = data.quantityStr;
+	                                                // set the controls with this data
+	                                            }
+                                            ]]>
+                                        </mx:Script>
+                                        </mx:TextInput> 
+                                    </mx:Component>
+                                  </mx:itemRenderer>
+                             </mx:DataGridColumn>
+                                                         
+                             <mx:DataGridColumn id="segregateDateFromDg" textAlign="left" headerText="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.segregateDateFrom')}" dataField="segregateDateFromStr" visible="true" editable="true" rendererIsEditor="true" width="150" headerStyleName="ReqdLabel">
+                                <mx:itemRenderer>
+                                    <mx:Component>
+                                        <mx:DateField textAlign="center" formatString="YYYYMMDD" width="90" change="onDateChange()" valueCommit="onDateChange()" dataChange="onDateChange()" editable="true">
+                                        <mx:Script>
+                                            <![CDATA[
+                                                import mx.events.FlexEvent;
+                                                private var _data:Object;
+                                                override public function set data(value:Object):void {
+                                                    _data = value;
+                                                    
+                                                    try {
+                                                        text = value.segregateDateFromStr.toString();
+                                                        selectedDate = stringToDate(text, "YYYYMMDD");
+                                                        this.dispatchEvent(new FlexEvent(FlexEvent.DATA_CHANGE));
+                                                    } catch(e:Error) {
+                                                        trace(e.message);
+                                                    }
+                                                }
+                                                                                    
+                                                override public function get data():Object {
+                                                    if(_data!=null) {
+                                                        //_data.stlDateStr = text;
+                                                    }
+                                                    return _data;
+                                                }
+                                                
+                                                private function onDateChange():void{
+                                                     if(_data!=null) {
+                                                        _data.segregateDateFromStr = text;
+                                                    }
+                                                }
+                                            ]]>
+                                        </mx:Script>
+                                        </mx:DateField>
+                                   </mx:Component>
+                               </mx:itemRenderer>                    
+                            </mx:DataGridColumn>
+                            
+                            <mx:DataGridColumn id="segregateDateToDg" textAlign="left" headerText="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.segregateDateTo')}" dataField="segregateDateToStr" visible="true" editable="true" rendererIsEditor="true" width="150" headerStyleName="ReqdLabel">
+                                <mx:itemRenderer>
+                                    <mx:Component>
+                                        <mx:DateField textAlign="center" formatString="YYYYMMDD" width="90" change="onDateChange()" valueCommit="onDateChange()" dataChange="onDateChange()" editable="true">
+                                        <mx:Script>
+                                            <![CDATA[
+                                                import mx.events.FlexEvent;
+                                                private var _data:Object;
+                                                override public function set data(value:Object):void {
+                                                    _data = value;
+                                                    
+                                                    try {
+                                                        text = value.segregateDateToStr.toString();
+                                                        selectedDate = stringToDate(text, "YYYYMMDD");
+                                                        this.dispatchEvent(new FlexEvent(FlexEvent.DATA_CHANGE));
+                                                    } catch(e:Error) {
+                                                        trace(e.message);
+                                                    }
+                                                }
+                                                                                    
+                                                override public function get data():Object {
+                                                    if(_data!=null) {
+                                                        //_data.stlDateStr = text;
+                                                    }
+                                                    return _data;
+                                                }
+                                                
+                                                private function onDateChange():void{
+                                                     if(_data!=null) {
+                                                        _data.segregateDateToStr = text;
+                                                    }
+                                                }
+                                            ]]>
+                                        </mx:Script>
+                                        </mx:DateField>
+                                   </mx:Component>
+                               </mx:itemRenderer>                    
+                            </mx:DataGridColumn>
+                            
+                            <mx:DataGridColumn id="remarksDg"  textAlign="left" headerText="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.remarks')}" dataField="remarks"  editable="true" rendererIsEditor="true" width="200">
+                                <mx:itemRenderer>
+                                    <mx:Component>                                                                              
+                                    <mx:TextInput width="350" change="takeInput(event);" textAlign="left" editable="true" maxChars="70">
+                                        <mx:Script>                                                    
+                                            <![CDATA[
+                                                 import com.nri.rui.core.utils.XenosStringUtils;
+                                                 public override function set data(value:Object):void {
+                                                    super.data = value;
+                                                    if(XenosStringUtils.isBlank(this.text)){
+                                                        this.text = data.remarks;
+                                                    }else{
+                                                        if(this.text != data.remarks){
+                                                            this.text = data.remarks;
+                                                        }else {
+                                                            parentDocument.invalidateDisplayList();
+                                                        }
+                                                    }
+                                                 }
+                                                 
+                                                 private function takeInput(event:Event):void {
+                                                    data.remarks = this.text;
+                                                 }
+                                            ]]>
+                                        </mx:Script>
+                                    </mx:TextInput>
+                                    </mx:Component>
+                                </mx:itemRenderer>
+                            </mx:DataGridColumn>
+                            
+                            </cntrls:columns>
+                        </cntrls:CustomDataGrid>
+                            
+                        <!-- /mx:columns -->
+                    <!-- /mx:DataGrid -->
+                    
+                    <mx:HBox id="btnAmend">                
+                        <mx:Button id="submitAmend" label="{this.parentApplication.xResourceManager.getKeyValue('adp.button.label.submit')}" styleName="BtnStyle" click="submitBulkAmend()" keyDown="handleSubmitAmend(event)"/>
+                        <mx:Button id="reset" label="{this.parentApplication.xResourceManager.getKeyValue('adp.button.label.reset')}" styleName="BtnStyle" click="resetBulkAmend()"/>
+                     </mx:HBox>
+                
+                </mx:VBox>
+                
+                <mx:VBox id="confirm" width="100%" label="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.bulkamend.confirm.title')}" styleName="HDivideStyle" keyDown="{!sysConfMessage.visible ? handleOk(event) : handleSysConf(event)}">                        
+                    <cntrls:XenosErrors id="errPage3" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>    
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.bulkamend.uconf.label')}" fontWeight="bold" id="uConfLabel"/>
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.bulkamend.sysconf.label')}" fontWeight="bold" id="sConfLabel" includeInLayout="false" visible="false"/>
+                    
+                    <mx:HBox id="sysConfMessage" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" visible="false" includeInLayout="false">
+                        <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle" />
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.completed.successfully')}" fontWeight="bold" selectable="true"/>
+                    </mx:HBox>                        
+                     
+                    <mx:Grid width="100%">
+                       <mx:GridRow width="100%">
+                           <mx:GridItem width="20%" borderThickness="0">
+                               <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.securityCode')}"/>                             
+                           </mx:GridItem>
+                           <mx:GridItem width="20%" borderThickness="0">
+                               <mx:Label text="{securityCode}" fontWeight="bold" selectable="true"/>
+                           </mx:GridItem>
+                           <mx:GridItem width="20%" borderThickness="0">
+                                <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.securityName')}"/>                                
+                           </mx:GridItem>
+                           <mx:GridItem width="20%" borderThickness="0">
+                                <mx:Label text="{securityName}" fontWeight="bold" selectable="true"/>
+                           </mx:GridItem>
+                       </mx:GridRow>
+                    </mx:Grid>                        
+                    
+                    <!-- mx:DataGrid id="bulkEntryUserConf" width="100%" height="100%" dataProvider="{confSummary}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" -->
+                          <!-- mx:columns -->
+                    
+                    <cntrls:CustomDataGrid id="bulkAmendUserConf" width="100%" height="100%" dataProvider="{confSummary}" sortableColumns="false"  variableRowHeight="true" horizontalScrollPolicy="auto">
+                        <cntrls:columns>
+                              
+                               <mx:DataGridColumn id="uConfFundCode" textAlign="center" headerText="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.fundCode')}" dataField="fundCode" showDataTips="true" width="200" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer"/>
+                               <mx:DataGridColumn id="uConfQuantity" textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.quanity')}" dataField="quantityStr" width="150" />
+                               <mx:DataGridColumn id="uConfSegregateDateFrom" textAlign="left" headerText="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.segregateDateFrom')}" dataField="segregateDateFromStr" visible="true" width="150" />
+                               <mx:DataGridColumn id="uConfSegregateDate" textAlign="left" headerText="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.segregateDateTo')}" dataField="segregateDateToStr" visible="true" width="150" />
+                               <mx:DataGridColumn id="uConfRemarks" textAlign="left" headerText="{this.parentApplication.xResourceManager.getKeyValue('adp.segregatebalance.label.remarks')}" dataField="remarks" width="200" />
+                        
+                        </cntrls:columns>
+                    </cntrls:CustomDataGrid>                     
+                          
+                          <!-- /mx:columns -->
+                    <!-- /mx:DataGrid -->
+                    
+                    <mx:HBox width="100%" styleName="ButtonBackPanel" > 
+                        <mx:Button id="back" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" styleName="BtnStyle" click="doConfBack();" visible="true" includeInLayout="true"/>
+                        <mx:Button id="ok" label="{this.parentApplication.xResourceManager.getKeyValue('adp.button.label.confirm')}" styleName="BtnStyle"  click="confirmBulkAmend();" visible="true" includeInLayout="true" keyDown="handleOk(event)"/>
+                        <mx:Button id="sysconfBtn" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle"  click="this.initialState();" visible="false" includeInLayout="false" keyDown="handleSysConf(event)"/>
+                    </mx:HBox>
+                    
+                </mx:VBox>
+                                            
+            </mx:ViewStack>
+        </mx:VBox>
+            
+    </mx:HDividedBox>
+    </mx:VBox>
+    
+    </mx:Canvas>
+    
+</containers:XenosQueryModule>

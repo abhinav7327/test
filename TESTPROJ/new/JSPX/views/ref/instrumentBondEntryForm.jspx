@@ -1,0 +1,1958 @@
+<!--$Id$-->
+<!--$Author: himanshum $-->
+<!--$Date: 2016-12-28 13:08:37 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+<div class="entryContainer paddingFour">
+          
+    <!-- Java script include -->
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		
+        var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+        	
+	        var context = $xenos$Wizard.$context;
+			var baseUrl = xenos.context.path + context.find('form').attr('action');
+			
+			xenos.loadScript([
+				{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				{path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false},
+				{path: xenos.context.path + '/scripts/ref/instrumentEntry.js', async: false}
+			]);			
+			
+			if("${commandForm.options.actionType}" == "ENTRY"){
+				$("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','block');
+				$("#formActionArea > div > div > .wizPrev > .inputBtnStyle").css('display','block');
+			}
+			
+	        /**
+	         * A common request handler to be used server communication.
+	         */
+	         var xenos$Handler$RequestHandler = xenos$Handler$function({
+	             get: {
+	                 contentType: 'json',
+	                 requestType: xenos$Handler$default.requestType.asynchronous
+	             },  
+	             settings: {
+	                 beforeSend: function(request) {
+	                     request.setRequestHeader('Accept', 'application/json');
+	                 },
+	                 type: 'POST'
+	             }
+	         });
+        
+
+			
+			/******* For hidden Div's *******/
+			var couponDivToggleflag = false;
+			
+			
+ 			/***************** Skip few bond validations *****************/
+			var skipBondValidationFlag= "<c:out value="${commandForm.skipBondValidation}" />";
+			if($.trim(skipBondValidationFlag) == "true"){
+				changeLabelColor("instrumentPage.maturityDateStr", "required", "remove");	
+				changeLabelColor("instrumentPage.issueDateStr", "required", "remove");
+				changeLabelColor("instrumentPage.accruedInterestInitDateStr", "required", "remove");
+				changeLabelColor("instrumentPage.initialCouponDateStr", "required", "remove");	
+				changeLabelColor("instrumentPage.couponPaymentFreqStr", "required", "remove");
+				changeLabelColor("instrumentPage.principalPaymentFreqStr", "required", "remove");
+				changeLabelColor("instrumentPage.initialCouponType", "required", "remove");
+				changeLabelColor("instrumentPage.finalCouponType", "required", "remove");
+				changeLabelColor("paymentMonth", "required", "remove");
+				changeLabelColor("paymentDay", "required", "remove");	
+				changeLabelColor("instrumentPage.floatingFixFlag", "required", "remove");
+				changeLabelColor("instrumentPage.fixedCouponRateStr", "required", "remove");
+				changeLabelColor("dateFrom", "required", "remove");
+				changeLabelColor("recordDate", "required", "remove");
+				changeLabelColor("rate", "required", "remove");	
+				changeLabelColor("fixedCouponDaysDivId", "required", "remove");	
+			} 
+
+              /*************************** Grid result, config and columns ****************************/
+             var rowId = 0;                   
+             var accrualGridResult=[];
+             var accrualGrid;
+             var accrualGridConfig = {
+				 editMode                    :   'both',                                                             
+				 editCallback                :   accrualEditHandler,
+				 deleteCallback              :   accrualDeleteHandler, 			 
+				 forceFitColumns             :   true
+             };
+             var accrualGridColumns = [
+                        {name:"<spring:message code="ref.insturment.entry.label.bondtab.month" htmlEscape="false"/>",  field:"paymentMonth",id:"paymentMonth", sortable:false},
+                        {name:"<spring:message code="ref.insturment.entry.label.bondtab.day" htmlEscape="false"/>", field:"paymentDay",id:"paymentDay",sortable:false}                    
+             ]; 
+             
+             
+              var couponRateGridResult=[];
+             var couponRateGrid;
+             var couponRateGridConfig = {
+				 editMode                    :   'both',                                                             
+				 editCallback                :   couponRateEditHandler,
+				 deleteCallback              :   couponRateDeleteHandler,					 
+				 forceFitColumns             :   true
+             };
+             
+             var couponRateGridColumns = [
+                       {name:"<spring:message code="ref.insturment.entry.label.bondtab.effstartdate" htmlEscape="false"/>", field:"dateFromDisp",id:"dateFromDisp",resizable:true, sortable:false},
+                       {name:"<spring:message code="ref.insturment.entry.label.bondtab.recorddate" htmlEscape="false"/>", field:"recordDateDisp",id:"recordDateDisp",resizable:true,sortable:false},
+                       {name:"<spring:message code="ref.insturment.entry.label.bondtab.rate" htmlEscape="false"/>", field:"rateDisp",id:"rateDisp",sortable:false}
+             ]; 
+             
+             /************************ Request Object Population ********************/
+             /*
+              * Method to populate Accrual Info request object for Accrual grid
+              * */
+             function populateAccrualRequestParams(){
+                var reqObj = {
+                    "paymentMonth"  : $.trim($('#paymentMonth').val()),
+                    "paymentDay"    : $.trim($('#paymentDay').val()),
+                    "instrumentPage.discountCouponType"	:  $.trim($('#discountCouponType').val()),
+                    "instrumentPage.couponPaymentFreqStr"	:  $.trim($('#couponPaymentFreqStr').val()),
+					"instrumentPage.principalPaymentFreqStr"	:  $.trim($('#principalPaymentFreq').val())
+                };
+                return reqObj;
+             } 
+             
+             /*
+              * Method to populate Coupon Rates Info request object for Coupon Rates grid 
+              * */
+             function populateCouponRatesRequestParams(){
+                var reqObj = {
+                    "dateFrom"      :   $.trim($('#dateFrom').val()),
+                    "recordDate"    :   $.trim($('#recordDate').val()),
+                    "rate"          :   $.trim($('#rate').val()),
+					"instrumentPage.discountCouponType"	:  $.trim($('#discountCouponType').val()),
+					"instrumentPage.floatingFixFlag"	:  $.trim($('#floatingFixFlag').val())
+                };
+                return reqObj;
+             } 
+             
+              /*************************** Validation functions **********************/
+             /*
+              * Validate Accrual add and update
+              * 
+              * */
+             function validateAccrualAddUpdate(e){
+				var validationMessages = [];
+				var couponPayFreq=$('#couponPaymentFreqStr').val();
+				var bondType=$('#discountCouponType').val();
+				var rowCount = 0;
+				if($('#accrualGrid').data('gridInstance')){
+					rowCount=$('#accrualGrid').data('gridInstance').getDataLength();
+				}
+
+				if($(e.target).val() == "Save"){
+					rowCount=rowCount-1;
+				}
+	
+				if(skipBondValidationFlag == "false" <![CDATA[&&]]> bondType == "COUPON") {
+					if(couponPayFreq > 0) {
+						if(parseInt(rowCount) >= parseInt(couponPayFreq))
+							{
+								  xenos.postNotice(xenos.notice.type.error,xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.paymentschedule_frequency_mismatch,[couponPayFreq,couponPayFreq])); 
+								return false;
+							}
+            
+						}else{
+							  xenos.postNotice(xenos.notice.type.error,xenos$REF$i18n.instrument.bonddetails.couponpaymentFreq_first); 
+							return false;
+					}
+				}
+				
+				if(skipBondValidationFlag == "false" <![CDATA[&&]]> $.trim($('#payDownFlag').val()) == "Y" <![CDATA[&&]]> $.trim($('#principalPaymentFreq').val())==""){
+				    validationMessages.push(xenos$REF$i18n.instrument.bonddetails.principalPayment_empty); 
+				
+				}
+				
+				if(VALIDATOR.isNullValue($.trim($('#paymentMonth').val()))){                
+					validationMessages.push(xenos$REF$i18n.instrument.bonddetails.paymentmonth_empty);
+				}
+				
+				if(VALIDATOR.isNullValue($.trim($('#paymentDay').val()))){                
+					<!-- validationMessages.push(xenos$REF$i18n.instrument.bonddetails.paymentday_empty); -->
+				}
+                
+                if(validationMessages.length > 0){                 
+                     xenos.postNotice(xenos.notice.type.error, validationMessages);
+                     return false;
+                }
+             
+                return true;
+             } 
+             
+			 /*
+              * Validate coupon Rate add and update
+              * */
+             function validateCouponRatesAddUpdate(){
+			   
+				var validationMessages = [];
+				if(skipBondValidationFlag == "false") {
+					
+					if(VALIDATOR.isNullValue($.trim($('#dateFrom').val()))){                
+						 validationMessages.push(xenos$REF$i18n.instrument.bonddetails.effstartdate_empty); 
+					}
+					
+					if(VALIDATOR.isNullValue($.trim($('#recordDate').val()))){                
+						<!-- validationMessages.push(xenos$REF$i18n.instrument.bonddetails.recorddate_empty); -->
+					}
+					
+					if(VALIDATOR.isNullValue($.trim($('#rate').val()))){                
+						validationMessages.push(xenos$REF$i18n.instrument.bonddetails.rate_empty);
+					}
+				}else{
+				    dateFrom = $.trim($('#dateFrom').val());
+				    issueDate = $.trim($('#issueDateStr').val());
+                    rate = $.trim($('#rate').val());
+					
+					if(dateFrom == null || dateFrom == ''){
+						if(issueDate == null || issueDate == ''){
+							<!-- xenos.postNotice(xenos.notice.type.error,xenos$REF$i18n.instrument.bonddetails.effstartdateissueDate_empty); -->
+							return false;
+						} else {
+						    $('#dateFrom').val(issueDate);
+						  }
+					}
+					 
+				}
+					if(validationMessages.length > 0){                 
+						 xenos.postNotice(xenos.notice.type.error, validationMessages);
+						 return false;
+					}
+                
+                return true;
+             
+			} 
+			
+			//Fit grid
+			function fitGrid(grid) {
+				if(!grid.instance){
+					return;
+				}
+				grid.instance.resizeCanvas();
+				grid.instance.autosizeColumns();
+
+				/*  Fix for IE 8
+				 *   Issue: Headers get messed up on AutoFit
+				 */
+				if (grid.instance.getOptions().forceFitColumns <![CDATA[&&]]> $.browser.msie) {
+					grid.instance.setColumns(grid.instance.getColumns(), true);
+				}
+			} 
+             
+              /***************************** Handler callbacks **************************/
+             
+                                /**** Accrual handler callbacks ****/
+             
+             function upsertAccrualInfo(data){
+                var result = data.paymentSchedules;
+				
+                if(result){
+                    accrualGrid.clearData();
+                    for(var i in result){                    
+                        items = {};
+                        rowId+=1;
+                        items.id             =   "xenos_" + rowId;
+                        items.paymentMonth = result[i].paymentMonth;
+                        items.paymentDay = result[i].paymentDay;
+                        accrualGrid.addOrUpdateRow(items,{});
+                    }
+                    resetAccrualInfoForm();
+                }
+             }
+             
+             function resetAccrualInfoForm(){
+				// $('#paymentMonth').val('');
+                $('#paymentMonth').trigger('change');
+             }
+             
+             function populateAccrualInfoForm(result){
+                if(result){
+                    $('#paymentMonth').val(result.paymentMonth);
+                    $('#paymentMonth').trigger('change'); 
+                    $('#paymentDay').val(result.paymentDay);                   
+                }
+             }
+             
+                                 /**** Coupon Rates handler callbacks ****/
+             
+             function upsertCouponRatesInfo(data){
+                var result = data.couponRates;
+                if(result){
+                    couponRateGrid.clearData();
+                    for(var i in result){                    
+                        items = {};
+                        rowId+=1;
+                        items.id             =   "xenos_" + rowId;
+                        items.dateFromDisp= result[i].dateFromDisp;
+                        items.recordDateDisp = result[i].recordDateDisp;
+                        items.rateDisp = result[i].rateDisp;
+                        couponRateGrid.addOrUpdateRow(items,{});
+                    }
+                    resetCouponRatesInfoForm();
+                }
+             } 
+             
+              function resetCouponRatesInfoForm(){
+                    $('#dateFrom').val('');
+                    $('#recordDate').val('');
+                    $('#rate').val('');
+             }
+             
+              function populateCouponRatesInfoForm(result){
+                if(result){
+                    $('#dateFrom').val(result.dateFrom);
+                    $('#recordDate').val(result.recordDate);
+                    $('#rate').val(result.rate);                    
+                }
+             } 
+             
+              /***************************** Handler functions **************************/
+             
+                                /**** Accrual handler ****/
+                                
+             function accrualAddHandler(e){
+                var valid = validateAccrualAddUpdate(e);
+                if(valid){
+                    var requestUrl = baseUrl + "/addPaymentSchedule.json?commandFormId=" + $('[name=commandFormId]').val();                                               
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                            settings: {data : populateAccrualRequestParams()},
+                                                            onJsonContent :  function(e, options, $target, content) {                                                            
+                                                                if(content.success == true){
+                                                                    upsertAccrualInfo(content.value[0]);
+																	$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+                                                                } else {
+                                                                    $('.formHeader').find('.formTabErrorIco').css('display', 'block');
+									                                $('.formHeader').find('.formTabErrorIco').on('click', xenos.postNotice(xenos.notice.type.error, content.value[0], true));
+                                                                }
+                                                            }
+                                                         }
+                                            );
+                }
+             }
+             
+              function accrualEditHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/editPaymentSchedule.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                populateAccrualInfoForm(content.value[0]);
+                                                                $('.editBtnAccrual').css('display','block'); 
+                                                                $('.addBtnAccrual').css('display','none');
+                                                            } else {
+                                                                xenos.postNotice(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                            return true;
+                                                        }
+                                                     }
+                                        );
+             } 
+             
+              function accrualDeleteHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/deletePaymentSchedule.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                upsertAccrualInfo(content.value[0]);
+                                                            } else {
+                                                                xenos.postNotice(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+             } 
+             
+              function accrualCancelHandler(e){
+                var requestUrl = baseUrl + "/cancelPaymentSchedule.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                                if(content.success == true){
+                                                                    upsertAccrualInfo(content.value[0]);
+                                                                    $('.editBtnAccrual').css('display','none'); 
+                                                                    $('.addBtnAccrual').css('display','block'); 
+                                                                } else {
+                                                                    xenos.postNotice(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                                return true;
+                                                            }
+                                                         }
+                                            );
+             } 
+             
+              function accrualUpdateHandler(e){
+                var valid = validateAccrualAddUpdate(e);
+                if(valid){
+                      var requestUrl = baseUrl + "/updatePaymentSchedule.json?commandFormId=" + $('[name=commandFormId]').val();              
+                      xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                              settings: {data : populateAccrualRequestParams()},
+                                                              onJsonContent :  function(e, options, $target, content) {
+                                                                  if(content.success == true){
+                                                                      upsertAccrualInfo(content.value[0]);
+                                                                      $('.editBtnAccrual').css('display','none'); 
+                                                                      $('.addBtnAccrual').css('display','block'); 
+                                                                  } else {
+                                                                      xenos.postNotice(xenos.notice.type.error, content.value[0]);
+                                                                  }
+                                                              }
+                                                           }
+                                              );
+                }
+             }                    
+                                
+                                 /**** Coupon Rates handler ****/
+                                
+             function couponRateAddHandler(e){
+                var valid = validateCouponRatesAddUpdate();
+				
+                if(valid){
+                    var requestUrl = baseUrl + "/addCouponRate.json?commandFormId=" + $('[name=commandFormId]').val();                                               
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                            settings: {data : populateCouponRatesRequestParams()},
+                                                            onJsonContent :  function(e, options, $target, content) {                                                            
+                                                                if(content.success == true){
+                                                                    upsertCouponRatesInfo(content.value[0]);
+                                                                } else {
+                                                                    xenos.postNotice(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                            }
+                                                         }
+                                            );
+                }
+             } 
+             
+              function couponRateEditHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/editCouponRate.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                populateCouponRatesInfoForm(content.value[0]);
+                                                                $('.editBtnCouponRate').css('display','block'); 
+                                                                $('.addBtnCouponRate').css('display','none');
+                                                            } else {
+                                                                xenos.postNotice(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                            return true;
+                                                        }
+                                                     }
+                                        );
+             } 
+             
+              function couponRateDeleteHandler(rowIndex, dataContext){
+                var requestUrl = baseUrl + "/deleteCouponRate.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        settings: {data : {"rowNo" : rowIndex}},
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                            if(content.success == true){
+                                                                upsertCouponRatesInfo(content.value[0]);
+                                                            } else {
+                                                                xenos.postNotice(xenos.notice.type.error, content.value[0]);
+                                                            }
+                                                        }
+                                                     }
+                                        );
+             } 
+             
+              function couponRateCancelHandler(e){
+                var requestUrl = baseUrl + "/cancelCouponRate.json?commandFormId=" + $('[name=commandFormId]').val();
+                xenos$Handler$RequestHandler.generic(undefined, { requestUri: requestUrl,
+                                                        onJsonContent :  function(e, options, $target, content) {
+                                                                if(content.success == true){
+                                                                    upsertCouponRatesInfo(content.value[0]);
+                                                                    $('.editBtnCouponRate').css('display','none'); 
+                                                                    $('.addBtnCouponRate').css('display','block'); 
+                                                                } else {
+                                                                    xenos.postNotice(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                                return true;
+                                                            }
+                                                         }
+                                            );
+             }
+			 
+ 			 function hidePrnPaymentFreq(e){
+			 
+				var bondType=$('#discountCouponType').val();
+				var payDownFlag=$('#payDownFlag').val();
+				var principlePayFreq=$('#principalPaymentFreq').val();
+				var couponPayFreq=$('#couponPaymentFreqStr').val();
+				
+					 if( payDownFlag !="Y" <![CDATA[&&]]> bondType=="DISCOUNT" <![CDATA[&&]]> principlePayFreq != ""){
+						<!-- xenos.postNotice(xenos.notice.type.error,xenos$REF$i18n.instrument.bonddetails.paydown_change); -->
+						$('#payDownFlag').val("Y");
+						return false;
+					 }
+					 if(payDownFlag == "Y" <![CDATA[&&]]> bondType=="COUPON"){
+					      $('#principalPaymentFreq').attr('disabled', 'disabled');
+						  $('#principalPaymentFreq').val(couponPayFreq);
+						
+					 }
+					 if(payDownFlag == "Y" <![CDATA[&&]]> bondType!=""){
+					    $('#principalPaymentFreqVal').show();
+					 if(bondType == "DISCOUNT"){
+							$('#couponGrids').show();
+                            $('#principalPaymentFreq').removeAttr('disabled');							
+						}else{						
+						}				
+					 }else if(bondType !="COUPON"){
+						$('#couponGrids').hide();
+						$('#principalPaymentFreqVal').hide();
+					}else{
+					  $('#principalPaymentFreqVal').hide();
+					}					
+				}
+	
+			function fixedCouponDaysFlagChangeHandler(e){
+				
+				var fixedDaysCouponFlag = $('#fixedDaysCouponFlagId').val();
+				var bondType=$('#discountCouponType').val();
+				
+				 if( fixedDaysCouponFlag =="YES" <![CDATA[&&]]> bondType=="COUPON"){
+					$('#prevCouponDateDivId').show();
+					$('#fixedCouponDaysDivId').show();
+					$('#nextCouponDateDivId').show();
+				}
+				else {
+				
+					$('#prevCouponDateId').val('');
+					$('#prevCouponDateDivId').hide();
+
+					$('#fixedCouponDaysId').val('');
+					$('#fixedCouponDaysDivId').hide();
+					
+					$('#nextCouponDateId').val('');
+					$('#nextCouponDateDivId').hide();
+					
+				}					
+			}
+			
+			
+			if("${commandForm.instrumentPage.fixedDaysCouponFlag}"=="Y" <![CDATA[&&]]> $('#discountCouponType').val()=="COUPON"){
+					var index = getIndexOfDropdownValue($('#fixedDaysCouponFlagId'),"YES");
+					$("#fixedDaysCouponFlagId option").eq(index).prop('selected', true);
+					$('#prevCouponDateDivId').show();
+					$('#fixedCouponDaysDivId').show();
+					$('#nextCouponDateDivId').show();
+				}
+			
+			function getIndexOfDropdownValue(list,value){
+					var index = 0;
+					if(value == "" || value == null || value == undefined){
+						return index;
+					}
+					for(var i = 0; i <![CDATA[<]]> list.children('option').length; i++){
+						if(list.children('option').eq(i).val() == value){
+							index = i;
+							break;
+						}
+					}
+					return index;
+				}
+				
+				
+
+ 				function validatePaymentSchedule(e){
+				var couponPayFreq =$('#couponPaymentFreqStr').val();
+				var payDownFlag=$('#payDownFlag').val();
+				var rowCount = 0;
+				if($('#accrualGrid').data('gridInstance')){
+					rowCount = $('#accrualGrid').data('gridInstance').getDataLength();
+				}
+				
+				if(skipBondValidationFlag == "false") {	
+					if(couponPayFreq == ""){
+						
+					  if(parseInt(rowCount) > 0){
+						 $('#couponPaymentFreqStr').val(rowCount);
+						 xenos.postNotice(xenos.notice.type.error,xenos$REF$i18n.instrument.bonddetails.paySchedule_change); 
+						 return false;
+					   }
+					}else if(parseInt(rowCount) > parseInt(couponPayFreq)){
+					
+					 $('#couponPaymentFreqStr').val(rowCount);
+						 xenos.postNotice(xenos.notice.type.error,xenos$REF$i18n.instrument.bonddetails.paySchedule_empty); 
+						 return false;
+					
+					} 
+				}
+				
+				if(payDownFlag == "Y"){
+					$('#principalPaymentFreq').val(couponPayFreq);
+				}else{
+				   $('#principalPaymentFreq').val("");
+				}
+				     
+				} 
+				
+ 			function validateAddButton(e){
+				var rowCount = 0;
+				var couponPayFreq=$('#couponPaymentFreqStr').val();
+				var bondType=$('#discountCouponType').val();
+	
+				if($('#accrualGrid').data('gridInstance')){
+					rowCount=$('#accrualGrid').data('gridInstance').getDataLength();
+				}
+	
+				if(skipBondValidationFlag == "false" <![CDATA[&&]]> bondType == "COUPON") {
+					if(couponPayFreq > 0) {
+						if(parseInt(rowCount) >= parseInt(couponPayFreq))
+							{
+								xenos.postNotice(xenos.notice.type.error,xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.paymentschedule_frequency_mismatch,[couponPayFreq,couponPayFreq]));
+								return false;
+							}
+            
+						}else{
+							 xenos.postNotice(xenos.notice.type.error,xenos$REF$i18n.instrument.bonddetails.couponpaymentFreq_first);
+							return false;
+					}
+				}
+			} 
+
+              function couponRateUpdateHandler(e){
+                var valid = validateCouponRatesAddUpdate();
+                if(valid){
+                    var requestUrl = baseUrl + "/updateCouponRate.json?commandFormId=" + $('[name=commandFormId]').val();                                               
+                    xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,
+                                                            settings: {data : populateCouponRatesRequestParams()},
+                                                            onJsonContent :  function(e, options, $target, content) {                                                            
+                                                                if(content.success == true){
+                                                                    upsertCouponRatesInfo(content.value[0]);
+                                                                    $('.editBtnCouponRate').css('display','none'); 
+                                                                    $('.addBtnCouponRate').css('display','block');
+                                                                } else {
+                                                                    xenos.postNotice(xenos.notice.type.error, content.value[0]);
+                                                                }
+                                                            }
+                                                         }
+                                            );
+                }
+             } 
+			populatePaymentDaysOnLoad();
+             
+              /***************************** Other Utility functions *****************************/
+             /*
+              * Populate payment days based on payment month selection
+              * */
+             function populatePaymentDays(e){
+            	 var selMonth = $.trim($('#paymentMonth').val());
+					 $target = context.find('#paymentDay');
+					 $option = null;
+					 
+				 $target.empty();
+				 
+				 if( $.trim(selMonth) === ''){
+                     return;
+                 }
+				 
+				 	
+					$option = $('<option/>');
+					$option.attr('value', '').text('');
+					$target.append($option);
+				 
+                 for(var i=1; i &lt; 29; i++){   
+					$option = $('<option/>');
+					$option.attr('value', i).text(i);
+					$target.append($option);
+                 }
+                 
+                 if( selMonth==4 || selMonth==6 || selMonth==9 || selMonth==11){
+					$option = $('<option/>');
+					$option.attr('value', '29').text('29');
+					$target.append($option);
+					$option = $('<option/>');
+					$option.attr('value', '30').text('30');
+					$target.append($option);
+                 }else if(selMonth==1 || selMonth==3 || selMonth==5 || selMonth==7 || selMonth==8 || selMonth==10 || selMonth==12){
+					$option = $('<option/>');
+					$option.attr('value', '29').text('29');
+					$target.append($option);
+					$option = $('<option/>');
+					$option.attr('value', '30').text('30');
+					$target.append($option);
+					$option = $('<option/>');
+					$option.attr('value', '31').text('31');
+					$target.append($option);
+                 }
+             } 
+			 
+			 
+			  function populatePaymentDaysOnLoad(e){
+            	 var selMonth = "${commandForm.paymentMonth}";
+				 var selDay = "${commandForm.paymentDay}";
+					 $target = context.find('#paymentDay');
+					 $option = null;
+					 
+				 $target.empty();
+				 
+				 if( $.trim(selMonth) === ''){
+                     return;
+                 }
+				 
+				 	
+					$option = $('<option/>');
+					$option.attr('value', '').text('');
+					$target.append($option);
+				 
+                 for(var i=1; i &lt; 29; i++){   
+					$option = $('<option/>');
+					$option.attr('value', i).text(i);
+					$target.append($option);
+                 }
+                 
+                 if( selMonth==4 || selMonth==6 || selMonth==9 || selMonth==11){
+					$option = $('<option/>');
+					$option.attr('value', '29').text('29');
+					$target.append($option);
+					$option = $('<option/>');
+					$option.attr('value', '30').text('30');
+					$target.append($option);
+                 }else if(selMonth==1 || selMonth==3 || selMonth==5 || selMonth==7 || selMonth==8 || selMonth==10 || selMonth==12){
+					$option = $('<option/>');
+					$option.attr('value', '29').text('29');
+					$target.append($option);
+					$option = $('<option/>');
+					$option.attr('value', '30').text('30');
+					$target.append($option);
+					$option = $('<option/>');
+					$option.attr('value', '31').text('31');
+					$target.append($option);
+                 }
+				 var index = getIndexOfDropdownValue($('#paymentDay'),selDay);
+				 $("#paymentDay option").eq(index).prop('selected', true);
+             } 
+			 
+			 
+			function validateBond(){
+				
+				var validationMessages = [];
+				var bondTypeStr = $.trim($('#discountCouponType').val());
+					
+				if(bondTypeStr == 'COUPON'){ 
+						// bondTypeStr  COUPON
+						
+						validationMessages = [];
+						validationMessages = checkCouponOnlyFields(bondTypeStr);
+				}else {
+						// bondTypeStr  DISCOUNT or null
+						
+						validationMessages = [];
+						validationMessages = checkNonDiscountFields(bondTypeStr);	
+				}
+					  
+				return validationMessages; 
+			}
+
+
+			function checkCouponOnlyFields(bondTypeStr){
+				
+				var alertStr = [];
+				var rateType = $.trim($('#floatingFixFlag').val());												//rateType
+				
+				if(rateType != '' <![CDATA[&&]]> rateType != null <![CDATA[&&]]> rateType != undefined ) {
+					if(rateType == 'FIX')
+					{
+						var floatingBaseRate = $.trim($('#floatingBaseRate').val());							//floatingBaseRate
+						if(floatingBaseRate != ''  <![CDATA[&&]]> floatingBaseRate != null <![CDATA[&&]]> floatingBaseRate != undefined  )
+						{
+							alertStr.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.floatingBaseRate_not_for_fix));	
+						}
+						
+						var fixedCouponRate = $.trim($('#fixedCouponRateStr').val());							//fixedCouponRateStr
+						if(fixedCouponRate == '')
+						{
+						   alertStr.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.fixedCouponRate_for_fix)); 
+						}
+					}
+					else if(rateType == 'FLOAT')
+					{
+					   
+					}
+				}
+				return alertStr;
+				
+			}
+
+			function checkNonDiscountFields(bondTypeStr){
+				 var alertStr = [];
+				 
+				var couponFrequency = $.trim($('#couponPaymentFreqStr').val());									    //couponPaymentFreqStr
+				if(couponFrequency != '' <![CDATA[&&]]> couponFrequency != null <![CDATA[&&]]> couponFrequency != undefined ){
+					alertStr.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.couponFrequency_Not_for_Non_Coupon)); 
+					$('#discountCouponType').val('COUPON');
+				} 
+				
+				var couponCcy = $.trim($('#couponCcy').val());														//couponCcy
+				if(couponCcy != '' <![CDATA[&&]]> couponCcy != null <![CDATA[&&]]> couponCcy != undefined ){
+					alertStr.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.couponCcy_Not_for_Non_Coupon));
+					$('#discountCouponType').val('COUPON');
+				} 
+				
+				var accIntStartDate = $.trim($('#accruedInterestInitDateStr').val());								//accruedInterestInitDateStr
+				if(accIntStartDate != '' <![CDATA[&&]]> accIntStartDate != null <![CDATA[&&]]> accIntStartDate != undefined ){
+					alertStr.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.accIntStartDate_Not_for_Non_Coupon)); 
+					$('#discountCouponType').val('COUPON');				
+				}
+				
+				var accIntCalType = $.trim($('#accruedInterestCalcType').val());									//accruedInterestCalcType
+				if(accIntCalType != '' <![CDATA[&&]]> accIntCalType != null <![CDATA[&&]]> accIntCalType != undefined ){
+					alertStr.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.accIntCalType_Not_for_Non_Coupon)); 
+					$('#discountCouponType').val('COUPON');				
+				}
+				
+				var rateType = $.trim($('#floatingFixFlag').val());													//rateType
+				if(rateType != '' <![CDATA[&&]]> rateType != null <![CDATA[&&]]> rateType != undefined ){
+					alertStr.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.rateType_Not_for_Non_Coupon)); 
+					$('#discountCouponType').val('COUPON');				
+				}
+				
+				var initialCouponType = $.trim($('#initialCouponType').val());											//initialCouponType
+				if(initialCouponType != '' <![CDATA[&&]]> initialCouponType != null <![CDATA[&&]]> initialCouponType != undefined ){
+					alertStr.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.initialCouponType_Not_for_Non_Coupon)); 
+					$('#discountCouponType').val('COUPON');				
+				}
+				
+				var initialCouponDate = $.trim($('#initialCouponDateStr').val());										//initialCouponDateStr
+				if(initialCouponDate != '' <![CDATA[&&]]> initialCouponDate != null <![CDATA[&&]]> initialCouponDate != undefined ){
+					alertStr.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.initialCouponDate_Not_for_Non_Coupon)); 
+					$('#discountCouponType').val('COUPON');				
+				}
+				
+				var finalCouponType = $.trim($('#finalCouponType').val());												//finalCouponType
+				if(finalCouponType != '' <![CDATA[&&]]> finalCouponType != null <![CDATA[&&]]> finalCouponType != undefined ){
+					alertStr.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.finalCouponType_Not_for_Non_Coupon)); 
+					$('#discountCouponType').val('COUPON');				
+				}
+
+				var payDownFlag			=	$.trim($('#payDownFlag').val())												//payDownFlag
+				var principlePayFreq	=	$.trim($('#principalPaymentFreq').val())									//principlePayFreq
+				if( payDownFlag == "Y"  <![CDATA[&&]]> principlePayFreq == '')  {
+					alertStr.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.principalpaymentfreq_empty)); 
+					$('#discountCouponType').val('COUPON');
+				}
+				return alertStr;
+				
+			}
+	
+		function rateTypeChangeValid(){
+			
+			if($.trim($('#floatingFixFlag').val()) == 'FIX'){
+				var floatingBaseRateStr = $.trim($('#floatingBaseRate').val()); 
+				if(floatingBaseRateStr != '' <![CDATA[&&]]> floatingBaseRateStr != null <![CDATA[&&]]> floatingBaseRateStr != undefined  ){
+					xenos.postNotice(xenos.notice.type.error, xenos$REF$i18n.instrument.bonddetails.floatbaserateforfix); 
+					$('#floatingFixFlag').val('FLOAT');
+					return false;
+				}
+				var couponResetDateStr = $.trim($('#couponResetDateStr').val()); 
+				if(couponResetDateStr !='' <![CDATA[&&]]> couponResetDateStr != null <![CDATA[&&]]> couponResetDateStr != undefined  ){
+					xenos.postNotice(xenos.notice.type.error, xenos$REF$i18n.instrument.bonddetails.couponresetdateforfix); 
+					$('#floatingFixFlag').val('FLOAT');
+					return false;
+				}
+			}
+			else if($.trim($('#floatingFixFlag').val()) == 'FLOAT'){
+				var fixedCouponRateStr = $.trim($('#fixedCouponRateStr').val()); 
+				if(fixedCouponRateStr != '' <![CDATA[&&]]> fixedCouponRateStr != null <![CDATA[&&]]> fixedCouponRateStr != undefined  ){
+					xenos.postNotice(xenos.notice.type.error, xenos$REF$i18n.instrument.bonddetails.fixrateforfloat); 
+					$('#floatingFixFlag').val('FIX');
+					return false;
+				}					
+			}
+			
+			else {
+				var fixedCouponRateStr = $.trim($('#fixedCouponRateStr').val()); 
+				if(fixedCouponRateStr != '' <![CDATA[&&]]> fixedCouponRateStr != null <![CDATA[&&]]> fixedCouponRateStr != undefined   ){
+					xenos.postNotice(xenos.notice.type.error, xenos$REF$i18n.instrument.bonddetails.fixrateforothers); 
+					$('#floatingFixFlag').val('FIX');
+					return false;
+				}	 
+				
+				var floatingBaseRateStr = $.trim($('#floatingBaseRate').val());
+				if(floatingBaseRateStr != '' <![CDATA[&&]]> floatingBaseRateStr != null <![CDATA[&&]]> floatingBaseRateStr != undefined   ){
+					xenos.postNotice(xenos.notice.type.error, xenos$REF$i18n.instrument.bonddetails.floatbaserateforothers); 
+					$('#floatingFixFlag').val('FLOAT');
+					return false;
+				}   
+				
+				var couponResetDateStr = $.trim($('#couponResetDateStr').val()); 
+				if(couponResetDateStr !='' <![CDATA[&&]]> couponResetDateStr != null <![CDATA[&&]]> couponResetDateStr != undefined    ){
+					xenos.postNotice(xenos.notice.type.error, xenos$REF$i18n.instrument.bonddetails.couponresetdatefornotfloat); 
+					$('#floatingFixFlag').val('FLOAT');
+					return false;
+				}		
+				
+			}
+		}		
+
+
+			if("${commandForm.options.actionType}" == "AMEND"){
+				$("#dirtyPriceFlagDivId").css('display','block');
+			}
+         
+			 /*
+              * Switch the requisite parameters based on Coupon Type selection
+              * */
+             function toggleCouponType(e){
+			  
+
+				var principlePayFreq=$('#principalPaymentFreq').val();
+				var couponPayFreq=$('#couponPaymentFreqStr').val();
+				var payDownFlag=$('#payDownFlag').val();
+				var rowCount = 0;
+				if($('#accrualGrid').data('gridInstance')){
+					rowCount=$('#accrualGrid').data('gridInstance').getDataLength();
+				}
+			  if(skipBondValidationFlag == "false" <![CDATA[&&]]> principlePayFreq != "" <![CDATA[&&]]> couponPayFreq != "" <![CDATA[&&]]> payDownFlag == "Y" <![CDATA[&&]]> $(this).val()!="COUPON"){
+			   <!--  xenos.postNotice(xenos.notice.type.error,xenos$REF$i18n.instrument.bonddetails.bondType_change); -->
+				$('#discountCouponType').val("COUPON");
+				return false;
+			  }
+			if($.trim(skipBondValidationFlag) == "false"){  
+			  if($(this).val()!="COUPON" <![CDATA[&&]]> payDownFlag =="Y" <![CDATA[&&]]> rowCount != 0 ){
+			    <!--  xenos.postNotice(xenos.notice.type.error, xenos$REF$i18n.instrument.bonddetails.principalPayment_empty); -->
+				 $('#discountCouponType').val("COUPON");
+				 return false;
+			  }
+			}
+			   
+			   
+			   if($.trim($('#discountCouponType').val()) == 'COUPON'){
+					
+					couponDivToggleflag = true;
+			   
+			        $('#principalPaymentFreq').val("");
+                    changeLabelColor("instrumentPage.redemptionCcy", "required", "add");
+					if(skipBondValidationFlag == "false") {
+                    changeLabelColor("instrumentPage.maturityDateStr", "required", "add");
+					changeLabelColor("instrumentPage.issueDateStr", "required", "add");
+					}
+                    $('#couponBondType').show();
+                    $('#couponGrids').show();
+                    fitGrid(accrualGrid);
+               }else{                 
+                  
+ 					if($.trim($('#discountCouponType').val()) == 'DISCOUNT'|| $.trim($('#discountCouponType').val()) == ''){
+						
+						var msgArray = [];
+						couponDivToggleflag = false;
+						<!--if($.trim($('#couponPaymentFreqStr').val()) != ''){
+							msgArray.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.bondType_change));
+							$('#discountCouponType').val('COUPON');
+						}else{
+							$('#couponPaymentFreqStr').val('');							
+						}
+						
+						if($.trim($('#couponCcy').val()) != ''){
+							msgArray.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.coupon_currency));
+							$('#discountCouponType').val('COUPON');
+						}else{
+							$('#couponCcy').val('');							
+						}
+						
+						if($.trim($('#accruedInterestInitDateStr').val()) != ''){
+							msgArray.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.accrued_intr_init_date));
+							$('#discountCouponType').val('COUPON');
+						}else{
+							$('#accruedInterestInitDateStr').val('');							
+						}
+						
+						if($.trim($('#accruedInterestCalcType').val()) != ''){
+							msgArray.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.accrued_intr_calculation_type));
+							$('#discountCouponType').val('COUPON');
+						}else{
+							$('#accruedInterestCalcType').val('');							
+						}
+						
+						if($.trim($('#floatingFixFlag').val()) != ''){
+							msgArray.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.discountratetype_error));
+							$('#discountCouponType').val('COUPON');
+						}else{
+							$('#floatingFixFlag').val('');							
+						}
+						
+						if($.trim($('#initialCouponType').val()) != ''){
+							msgArray.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.initial_coupon_type));
+							$('#discountCouponType').val('COUPON');
+						}else{
+							$('#initialCouponType').val('');							
+						}
+						
+						if($.trim($('#initialCouponDateStr').val()) != ''){
+							msgArray.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.initial_coupon_date));
+							$('#discountCouponType').val('COUPON');
+						}else{
+							$('#initialCouponDateStr').val('');							
+						}
+						
+						if($.trim($('#finalCouponType').val()) != ''){
+							msgArray.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.final_coupon_type));
+							$('#discountCouponType').val('COUPON');
+						}else{
+							$('#finalCouponType').val('');							
+						}
+						-->
+						
+						msgArray = validateBond();
+						
+						if (msgArray.length > 0){
+							$('.formHeader').find('.formTabErrorIco').
+								css('display', 'block').off('click').
+								on('click', xenos.postNotice(xenos.notice.type.error, msgArray, true));
+							return false;
+						} 
+						
+						if($.trim(skipBondValidationFlag) == "true"){
+							$('#couponPaymentFreqStr').val('');
+							$('#accruedInterestInitDateStr').val('');
+							$('#initialCouponDateStr').val('');
+							$('#finalCouponType').val('');
+							if($('#payDownFlag').val() != "Y"){	
+								$('#principalPaymentFreq').val('');
+								accrualGrid.clearData();
+							}
+						}
+					}
+            	   
+            	   var requestUrl = baseUrl + "/clearPaymentScheduleAndCouponRate.json?commandFormId=" + $('[name=commandFormId]').val();
+            	   xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,									                       
+									                       onJsonContent :  function(e, options, $target, content) {                                                            
+									                           if(content.success == true){
+																	if($.trim($('#discountCouponType').val()) == 'DISCOUNT'){	
+																		changeLabelColor("instrumentPage.redemptionCcy", "required", "add");
+																		changeLabelColor("instrumentPage.maturityDateStr", "required", "remove");
+																		changeLabelColor("instrumentPage.issueDateStr", "required", "remove");
+																	}else{
+																		changeLabelColor("instrumentPage.redemptionCcy", "required", "remove");
+																		if(skipBondValidationFlag == "false") {
+																			changeLabelColor("instrumentPage.maturityDateStr", "required", "remove");	
+																			changeLabelColor("instrumentPage.issueDateStr", "required", "remove");
+																		}
+																	}
+									                           	   couponRateGrid.clearData();
+									                           	   resetCouponRatesInfoForm();
+									                               $('#couponBondType').hide();
+																    if( $.trim($('#payDownFlag').val()) != "Y"){
+									                               $('#couponGrids').hide();
+																   }
+									                           } else {
+									                               xenos.postNotice(xenos.notice.type.error, content.value[0]);
+									                           }
+									                       }
+									                    }
+									       ); 
+                    
+               }
+			   hidePrnPaymentFreq();
+             } 
+			 
+
+            
+              /*
+              * Toggle the bottom 2 grids based on rate type selection
+              * */
+             function toggleFloatingFix(e){
+             
+		<!--  if($.trim($('#floatingFixFlag').val()) == 'FLOAT' <![CDATA[&&]]> $.trim($('#fixedCouponRateStr').val()) != ''){
+					xenos.postNotice(xenos.notice.type.warning, xenos$REF$i18n.instrument.bonddetails.fixed_coupon_rate);
+					$('#floatingFixFlag').val('FIX');
+					return false;
+				}else if($.trim($('#floatingFixFlag').val()) == '' <![CDATA[&&]]> $.trim($('#fixedCouponRateStr').val()) != ''){
+					xenos.postNotice(xenos.notice.type.warning, xenos$REF$i18n.instrument.bonddetails.blank_fixed_coupon);
+					$('#floatingFixFlag').val('FIX');
+					return false;
+				}else if($.trim($('#floatingFixFlag').val()) == 'FIX' <![CDATA[&&]]> $.trim($('#floatingBaseRate').val()) != ''){
+					 xenos.postNotice(xenos.notice.type.warning, xenos$REF$i18n.instrument.bonddetails.float_base_rate); 
+					$('#floatingFixFlag').val('FLOAT');
+					return false;
+				}else if($.trim($('#floatingFixFlag').val()) == '' <![CDATA[&&]]> $.trim($('#floatingBaseRate').val()) != ''){
+					xenos.postNotice(xenos.notice.type.warning, xenos$REF$i18n.instrument.bonddetails.blank_float_base);
+					$('#floatingFixFlag').val('FLOAT');
+					return false;
+				} -->
+				
+				rateTypeChangeValid();
+			 
+                if($.trim($('#floatingFixFlag').val()) == 'FIX'){                	
+                	
+                	var requestUrl = baseUrl + "/clearCouponRate.json?commandFormId=" + $('[name=commandFormId]').val();
+                	xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,									                       
+									                       onJsonContent :  function(e, options, $target, content) {                                                            
+									                           if(content.success == true){
+									                        	   $('#fixedRateInfo').show();
+									                               $('#floatingBaseRateCont').hide();
+																   $('#floatingBaseRateCont #floatingFixFlag').val('');
+									                               couponRateGrid.clearData();
+									                               resetCouponRatesInfoForm();
+									                               $('#couponResetDateCont').hide();
+																   $('#couponResetDateStr').val('');
+									                               $('#couponRatesInfoGrid').hide();
+									                               $('#accrualInfoGrid').removeClass('width50Perc left');
+																   fitGrid(accrualGrid);
+									                           } else {
+									                               xenos.postNotice(xenos.notice.type.error, content.value[0]);
+									                           }
+									                       }
+									                    }
+									       ); 
+                    
+                    
+                }else if($.trim($('#floatingFixFlag').val()) == 'FLOAT'){
+                    
+                    $('#fixedRateInfo').hide();
+                    $('#fixedRateInfo #fixedCouponRateStr').val('');
+                    $('#floatingBaseRateCont').show();
+                    $('#couponResetDateCont').show();
+                    $('#couponRatesInfoGrid').show();                    
+                    $('#accrualInfoGrid').addClass('left width50Perc');
+                    $('#couponRatesInfoGrid').addClass('right width50Perc');
+                    fitGrid(couponRateGrid);
+					fitGrid(accrualGrid);
+                }else{
+                	
+                	var requestUrl = baseUrl + "/clearCouponRate.json?commandFormId=" + $('[name=commandFormId]').val();
+                	xenos$Handler$RequestHandler.generic(e, { requestUri: requestUrl,									                       
+									                       onJsonContent :  function(e, options, $target, content) {                                                            
+									                           if(content.success == true){
+									                           	   couponRateGrid.clearData();
+									                           	   resetCouponRatesInfoForm();
+									                               $('#fixedRateInfo').hide();
+																   $('#fixedRateInfo #fixedCouponRateStr').val('');
+									                               $('#floatingBaseRateCont').hide();
+																   $('#floatingBaseRateCont #floatingFixFlag').val('');
+									                               $('#couponResetDateCont').hide();
+																   $('#couponResetDateStr').val('');
+									                               $('#couponRatesInfoGrid').hide();
+									                               $('#accrualInfoGrid').removeClass('left width50Perc');
+									                               $('#couponRatesInfoGrid').removeClass('right width50Perc');
+																   fitGrid(accrualGrid);
+									                           } else {
+									                               xenos.postNotice(xenos.notice.type.error, content.value[0]);
+									                           }
+									                       }
+									                    }
+									       ); 
+                }
+             } 
+             
+         /*
+              * Utility method to change label color 
+              * 
+              * */
+             function changeLabelColor(selectorAttr, classAttr, changeType){
+                if(changeType == 'add'){
+                    if(!$('label[for="'+selectorAttr+'"]').hasClass(classAttr)){
+                        $('label[for="'+selectorAttr+'"]').addClass(classAttr);
+                    }   
+                }
+                if(changeType == 'remove'){
+                    if($('label[for="'+selectorAttr+'"]').hasClass(classAttr)){
+                        $('label[for="'+selectorAttr+'"]').removeClass(classAttr);
+                    }   
+                }
+             }
+             
+              /*************************** Grid initializations *************************************/
+             
+             <c:choose>
+	             <c:when test="${commandForm.instrumentPage.discountCouponType == 'DISCOUNT'}">
+		             changeLabelColor("instrumentPage.redemptionCcy", "required", "add");
+	                 changeLabelColor("instrumentPage.maturityDateStr", "required", "remove");
+					 <c:choose>
+						<c:when test="${commandForm.instrumentPage.payDownFlag == 'Y'}">
+							hidePrnPaymentFreq();
+
+						</c:when>
+					 </c:choose>	
+	             </c:when>
+	             <c:when test="${commandForm.instrumentPage.discountCouponType == 'COUPON'}">
+				     hidePrnPaymentFreq();
+		             changeLabelColor("instrumentPage.redemptionCcy", "required", "add");
+					 if(skipBondValidationFlag == "false") {
+						 changeLabelColor("instrumentPage.maturityDateStr", "required", "add");
+						 changeLabelColor("instrumentPage.issueDateStr", "required", "add");
+					 }
+					 
+	                 $('#couponBondType').show();
+	                 $('#couponGrids').show();
+	             </c:when>
+	          </c:choose>
+	          
+	          <c:choose>
+		          <c:when test="${commandForm.instrumentPage.floatingFixFlag == 'FIX'}">
+			          $('#fixedRateInfo').show();
+	                  $('#floatingBaseRateCont').hide();
+	                  $('#couponResetDateCont').hide();
+	                  $('#couponRatesInfoGrid').hide();
+	                  $('#accrualInfoGrid').removeClass('width50Perc left');
+		          </c:when>
+	             <c:when test="${commandForm.instrumentPage.floatingFixFlag == 'FLOAT'}">
+		             $('#fixedRateInfo').hide();
+	                 $('#floatingBaseRateCont').show();
+	                 $('#couponResetDateCont').show();
+	                 $('#couponRatesInfoGrid').show();
+	                 
+	                 $('#accrualInfoGrid').addClass('left width50Perc');
+	                 $('#couponRatesInfoGrid').addClass('right width50Perc');
+	             </c:when>	             
+	          </c:choose>
+	          
+             <xenos:out escapeXml="false">
+				 <c:forEach items="${commandForm.paymentSchedules}" var="dl">
+					items = {};
+					rowId+=1;
+					items.id             = "xenos_" + rowId;	            
+					items.paymentMonth  =   '<c:out value="${dl.paymentMonth}" />';
+					items.paymentDay    =   '<c:out value="${dl.paymentDay}" />';	            
+					accrualGridResult.push(items);
+				</c:forEach>
+				rowId = 0;
+				 
+				 accrualGrid = $('#accrualGrid').xenoseditablegrid(accrualGridResult, accrualGridColumns, accrualGridConfig);
+				 
+				 
+				 <c:forEach items="${commandForm.couponRates}" var="dl">
+					 items = {};
+					 rowId+=1;
+					 items.id             = "xenos_" + rowId;                
+					 items.dateFromDisp= '<c:out value="${dl.dateFromDisp}" />';
+					 items.recordDateDisp = '<c:out value="${dl.recordDateDisp}" />';
+					 items.rateDisp = '<c:out value="${dl.rateDisp}" />';                
+					 couponRateGridResult.push(items);
+				 </c:forEach>
+			 </xenos:out>
+	         rowId = 0;
+             
+             couponRateGrid = $('#couponRateGrid').xenoseditablegrid(couponRateGridResult, couponRateGridColumns, couponRateGridConfig);
+             			 
+
+              /*************************** Handler bindings ***********************/
+             
+             $('#discountCouponType').unbind('change');
+             $('#discountCouponType').bind('change', toggleCouponType);
+			 
+             $('#paymentMonth').unbind('change');
+             $('#paymentMonth').bind('change', populatePaymentDays);
+             
+             $('#floatingFixFlag').unbind('change');
+             $('#floatingFixFlag').bind('change', toggleFloatingFix);
+             
+                        /**** Accrual handler bindings ****/
+                               
+             $('#addAccrualBtn').unbind('click');
+             $('#addAccrualBtn').bind('click', accrualAddHandler);
+             
+             $('#updateAccrualBtn').unbind('click');
+             $('#updateAccrualBtn').bind('click', accrualUpdateHandler);
+             
+             $('#cancelAccrualBtn').unbind('click');
+             $('#cancelAccrualBtn').bind('click', accrualCancelHandler);
+             
+                        /**** Coupon rates handler bindings ****/
+                               
+             $('#addCouponRateBtn').unbind('click');
+             $('#addCouponRateBtn').bind('click', couponRateAddHandler);
+             
+             $('#updateCouponRateBtn').unbind('click');
+             $('#updateCouponRateBtn').bind('click', couponRateUpdateHandler);
+             
+             $('#cancelCouponRateBtn').unbind('click');
+             $('#cancelCouponRateBtn').bind('click', couponRateCancelHandler);
+		
+			 
+			 $('#payDownFlag').unbind('change');
+             $('#payDownFlag').bind('change',hidePrnPaymentFreq);
+			 
+			 $('#fixedDaysCouponFlagId').unbind('change');
+             $('#fixedDaysCouponFlagId').bind('change',fixedCouponDaysFlagChangeHandler); 
+			 
+			 $('#couponPaymentFreqStr').unbind('change');
+             $('#couponPaymentFreqStr').bind('change',validatePaymentSchedule);
+			 
+			
+			function commonHookValidationMessages(){
+				var valMessages = [];
+				
+				
+				if (($("#issuePriceStr").val() != "" <![CDATA[&&]]> $("#issuePriceStr").val() != null <![CDATA[&&]]> $("#issuePriceStr").val() != undefined)){
+					formatPrice($('#issuePriceStr'),6,3,valMessages,$('#issuePriceStr').parent().parent().find('label').text());
+				}
+				
+				if (($("#redemptionPriceStr").val() != "" <![CDATA[&&]]> $("#redemptionPriceStr").val() != null <![CDATA[&&]]> $("#redemptionPriceStr").val() != undefined)){
+					formatPrice($('#redemptionPriceStr'),8,3,valMessages,$('#redemptionPriceStr').parent().parent().find('label').text());				
+				}
+				
+				if (($("#issueDateStr").val() != "" <![CDATA[&&]]> $("#issueDateStr").val() != null <![CDATA[&&]]> $("#issueDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#issueDateStr").val())==false){
+					valMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.issue_date_error,[$("#issueDateStr").val()]));
+				}
+				
+				if (($("#maturityDateStr").val() != "" <![CDATA[&&]]> $("#maturityDateStr").val() != null <![CDATA[&&]]> $("#maturityDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#maturityDateStr").val())==false){
+					valMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.maturity_date_error,[$("#maturityDateStr").val()]));
+				}
+				
+				if (($("#delayDaysStr").val() != "" <![CDATA[&&]]> $("#delayDaysStr").val() != null <![CDATA[&&]]> $("#delayDaysStr").val() != undefined)){
+					formatQuantity($('#delayDaysStr'),2,0,valMessages,$('#delayDaysStr').parent().parent().find('label').text());
+				}
+				
+				if (($("#recordDaysStr").val() != "" <![CDATA[&&]]> $("#recordDaysStr").val() != null <![CDATA[&&]]> $("#recordDaysStr").val() != undefined)){
+					formatQuantity($('#recordDaysStr'),3,0,valMessages,$('#recordDaysStr').parent().parent().find('label').text());
+				}
+				
+				if ((($("#accruedInterestInitDateStr").val() != "" <![CDATA[&&]]> $("#accruedInterestInitDateStr").val() != null <![CDATA[&&]]> $("#accruedInterestInitDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#accruedInterestInitDateStr").val())==false) <![CDATA[&&]]>   $.trim($('#discountCouponType').val()) == 'COUPON' ) {
+					valMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.accrued_interest_init_date_error,[$("#accruedInterestInitDateStr").val()]));
+				}
+				
+				if ((($("#initialCouponDateStr").val() != "" <![CDATA[&&]]> $("#initialCouponDateStr").val() != null <![CDATA[&&]]> $("#initialCouponDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#initialCouponDateStr").val())==false)  <![CDATA[&&]]>   $.trim($('#discountCouponType').val()) == 'COUPON' ){
+					valMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.initial_coupon_date_error,[$("#initialCouponDateStr").val()]));
+				}
+				if (($("#fixedCouponRateStr").val() != "" <![CDATA[&&]]> $("#fixedCouponRateStr").val() != null <![CDATA[&&]]>  $("#fixedCouponRateStr").val() != undefined <![CDATA[&&]]> $.trim($('#discountCouponType').val()) == 'COUPON' )){
+					
+					formatRate($('#fixedCouponRateStr'),5,7,valMessages,$('#fixedCouponRateStr').parent().parent().find('label').text());
+				}
+				
+				if ((($("#couponResetDateStr").val() != "" <![CDATA[&&]]> $("#couponResetDateStr").val() != null <![CDATA[&&]]> $("#couponResetDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#couponResetDateStr").val())==false) <![CDATA[&&]]>   $.trim($('#discountCouponType').val()) == 'COUPON' ) {
+					valMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.coupon_reset_date_error,[$("#couponResetDateStr").val()]));
+				}
+				
+				
+				if ((($("#prevCouponDateId").val() != "" <![CDATA[&&]]> $("#prevCouponDateId").val() != null <![CDATA[&&]]> $("#prevCouponDateId").val() != undefined) <![CDATA[&&]]> isDateCustom($("#prevCouponDateId").val())==false ) <![CDATA[&&]]>   $.trim($('#discountCouponType').val()) == 'COUPON' ) {
+					valMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.prev_coupon_date_error,[$("#prevCouponDateId").val()]));
+				}
+				
+				if ((($("#nextCouponDateId").val() != "" <![CDATA[&&]]> $("#nextCouponDateId").val() != null <![CDATA[&&]]> $("#nextCouponDateId").val() != undefined) <![CDATA[&&]]> isDateCustom($("#nextCouponDateId").val())==false ) <![CDATA[&&]]>   $.trim($('#discountCouponType').val()) == 'COUPON' ){
+					valMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.next_coupon_date_error,[$("#nextCouponDateId").val()]));
+				}
+				
+				if (($("#fixedCouponDaysId").val() != "" <![CDATA[&&]]> $("#fixedCouponDaysId").val() != null ) <![CDATA[&&]]>   $.trim($('#discountCouponType').val()) == 'COUPON'){
+					formatQuantity($('#fixedCouponDaysId'),5,0,valMessages,$('#fixedCouponDaysId').parent().parent().find('label').text());
+				}
+				
+				var rateType = $.trim($('#floatingFixFlag').val());												//rateType
+				
+				if(rateType != '' <![CDATA[&&]]>  rateType != null <![CDATA[&&]]> rateType != undefined  ) {
+					if(rateType == 'FIX')
+					{
+						var floatingBaseRate = $.trim($('#floatingBaseRate').val());							//floatingBaseRate				
+						var fixedCouponRate = $.trim($('#fixedCouponRateStr').val());							//fixedCouponRateStr
+						
+						if(VALIDATOR.isNullValue(fixedCouponRate)) {
+						
+						   valMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.bonddetails.fixedCouponRate_for_fix)); 
+						}
+					}	
+				}
+				
+				<!-- if (($("#rate").val() != "" <![CDATA[&&]]> $("#rate").val() != null <![CDATA[&&]]> $("#rate").val() != undefined ) <![CDATA[&&]]>   $.trim($('#discountCouponType').val()) == 'COUPON'){
+					formatRate($('#rate'),10,7,valMessages,$('#rate').parent().parent().find('label').text());
+				} -->
+				
+				return valMessages;
+				
+			}
+ 			 
+			
+			var validatePrev = function() {
+				//validateBond();
+				var validationMessages = [];
+				
+				validationMessages = commonHookValidationMessages();
+				
+				if ( validationMessages.length >0){
+						xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+						return false;
+					}else{
+						$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+					}	
+				return true; 
+				
+			}
+			
+			var validateNext = function(){
+				//validateBond();
+				var validationMessages = [];
+				
+
+				validationMessages = commonHookValidationMessages();
+				
+				if ( validationMessages.length >0){
+						xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+						return false;
+					}else{
+						$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+					}	
+				return true; 
+				
+			}
+			
+			var validateSubmit = function(){
+				//validateBond();
+				var validationMessages = [];
+				
+
+				validationMessages = commonHookValidationMessages();
+				
+				if ( validationMessages.length >0){
+						xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+						return false;
+					}else{
+						$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+					}	
+				return true; 
+			}
+			
+            var validateHook = function() {
+			var validationMessages = [];
+        	
+        	<!-- if($.trim($('#discountCouponType').val()) == 'COUPON'){
+			
+        	if(skipBondValidationFlag == "false") {
+        		if(VALIDATOR.isNullValue($.trim($('#issueDateStr').val()))){                
+                validationMessages.push(xenos$REF$i18n.instrument.bonddetails.issuedate_required);
+            	}
+        			
+        		if(VALIDATOR.isNullValue($.trim($('#maturityDateStr').val()))){                
+                    validationMessages.push(xenos$REF$i18n.instrument.bonddetails.maturitydate_required);
+                }
+            	
+               if(VALIDATOR.isNullValue($.trim($('#couponPaymentFreqStr').val()))){                
+                 validationMessages.push(xenos$REF$i18n.instrument.bonddetails.couponpaymentFreq_required);
+                }
+				
+				if(VALIDATOR.isNullValue($.trim($('#accruedInterestInitDateStr').val()))){                
+                    validationMessages.push(xenos$REF$i18n.instrument.bonddetails.accruedinterestinitdate_required);
+                }
+              } 
+                if(VALIDATOR.isNullValue($.trim($('#couponCcy').val()))){                
+                    validationMessages.push(xenos$REF$i18n.instrument.bonddetails.couponccy_required);
+                }
+                if(VALIDATOR.isNullValue($.trim($('#accruedInterestCalcType').val()))){                
+                    validationMessages.push(xenos$REF$i18n.instrument.bonddetails.accruedinterestcalctype_required);
+                }
+                
+				if($.trim(skipBondValidationFlag) == "false") {
+					if(couponRateGrid.countRows() &lt; 1){
+						if(VALIDATOR.isNullValue($.trim($('#floatingFixFlag').val()))){                
+							validationMessages.push(xenos$REF$i18n.instrument.bonddetails.floatingfixflag_required);
+						}
+					}  
+        		}
+        	} -->
+        	
+        	if ( validationMessages.length >0){                 
+                 xenos.postNotice(xenos.notice.type.error, validationMessages);
+                 return false;
+            }  
+            return true; 
+        };
+        
+        var unloadHook = function(){
+		        $xenos$Wizard.deregister('next',validateNext);
+			$xenos$Wizard.deregister('previous',validatePrev);
+			$xenos$Wizard.deregister('submit',validateSubmit);
+			$xenos$Wizard.deregister('unload',unloadHook);
+
+        };
+        
+        
+        	$xenos$Wizard.register('next',validateNext);
+		$xenos$Wizard.register('previous',validatePrev);
+       		$xenos$Wizard.register('submit',validateSubmit);
+       		$xenos$Wizard.register('unload',unloadHook);
+
+         };   
+        </jsp:body>
+     </jsp:element>
+     
+
+     
+    <spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+    <spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+    <spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+    
+     <h1><spring:message code="ref.insturment.entry.label.titleWizard" htmlEscape="false"/> <spring:message code="ref.insturment.entry.label.bondWizard" htmlEscape="false"/></h1>
+    
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	<c:if test="${isSoftValidationExists =='true'}">
+	<!-- Warning message Area -->
+		<ul class="xenosWarn">
+			<c:forEach items="${softValidationList}" var="dl">		
+				<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+ <div class="detailBlock paddingFour">
+         <table class="tableStyle sixCol moreTable">
+            <tr class="noBdr">
+                <td><form:label path="commandForm.defaultInstrumentCode"><spring:message code="ref.insturment.entry.label.othertab.securitycode" htmlEscape="false"/></form:label></td>
+                <td><span class="detailTxtVal">${commandForm.defaultInstrumentCode}</span></td>
+                <td><form:label path="commandForm.instrumentPage.instrumentType"><spring:message code="ref.insturment.entry.label.othertab.instrumenttype" htmlEscape="false"/></form:label></td>
+                <td><span class="detailTxtVal">${commandForm.instrumentPage.instrumentType}</span></td>
+                <td><form:label path="commandForm.defaultShortName"><spring:message code="ref.insturment.entry.label.othertab.shortname" htmlEscape="false"/></form:label></td>
+                <td><span class="detailTxtVal">${commandForm.defaultShortName}</span></td> 
+            </tr>      
+         </table>
+     </div>
+	 
+     <!-- Basic Bond info **START -->
+    
+	 
+	  <div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.bondtab.basicbondinfo" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="spaninstrumentnameinfoid"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	  </div>	
+	 
+	 
+    <div class="entryBlkArea ">
+        
+        <div class="formItemBlock topitems dottedBg">
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.discountCouponType" ><spring:message code="ref.insturment.entry.label.bondtab.bondtype" htmlEscape="false"/></form:label> 
+                <span>
+                <form:select id="discountCouponType" path="commandForm.instrumentPage.discountCouponType" class="dropdowninput  ">
+                    <form:option value=""/>
+					<form:options items="${commandForm.instrumentPage.discountCouponTypeValues}" itemLabel="label" itemValue="value"/>
+                </form:select>
+                </span>            
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.issuePriceStr"><spring:message code="ref.insturment.entry.label.bondtab.issueprice" htmlEscape="false"/></form:label>
+                <span><form:input id="issuePriceStr" value="" path="commandForm.instrumentPage.issuePriceStr"   class="txtNormal  " onblur="formatPrice($('#issuePriceStr'),6,3,null,$('#issuePriceStr').parent().parent().find('label').text());"/></span>            
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.redemptionCcy" ><spring:message code="ref.insturment.entry.label.bondtab.redemptionccy" htmlEscape="false"/></form:label>
+                <span><form:input id="redemptionCcy" value="" path="commandForm.instrumentPage.redemptionCcy"  class="textBox  "/></span>
+                <div class="popupBtn">
+                    <input type="button" class="popupBtnIco" tgt="redemptionCcy" popType="currency" value="" />
+                </div>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.redemptionPriceStr"><spring:message code="ref.insturment.entry.label.bondtab.redemptionprice" htmlEscape="false"/></form:label>
+                <span><form:input id="redemptionPriceStr" value="" path="commandForm.instrumentPage.redemptionPriceStr"   class="txtNormal  " onblur="formatPrice($('#redemptionPriceStr'),8,3,null,$('#redemptionPriceStr').parent().parent().find('label').text());"/></span>            
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.issueDateStr"><spring:message code="ref.insturment.entry.label.bondtab.issuedate" htmlEscape="false"/></form:label>
+                <span><form:input id="issueDateStr" value="" path="commandForm.instrumentPage.issueDateStr"   class="dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>            
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.maturityDateStr"><spring:message code="ref.insturment.entry.label.bondtab.maturitydate" htmlEscape="false"/></form:label>
+                <span><form:input id="maturityDateStr" value="" path="commandForm.instrumentPage.maturityDateStr"   class="dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>            
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.delayDaysStr"><spring:message code="ref.insturment.entry.label.bondtab.delaydays" htmlEscape="false"/></form:label>
+                <span><form:input id="delayDaysStr" value="" path="commandForm.instrumentPage.delayDaysStr"  class="txtNormal  " onblur="return formatQuantity($('#delayDaysStr'),2,0,null,$('#delayDaysStr').parent().parent().find('label').text());"/></span>            
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.payDownFlag"><spring:message code="ref.insturment.entry.label.bondtab.paydownflag" htmlEscape="false"/></form:label> 
+                <span>
+                <form:select id="payDownFlag" path="commandForm.instrumentPage.payDownFlag" class="dropdowninput  ">
+					<form:option value=""/>
+                    <form:options items="${commandForm.instrumentPage.payDownFlagValues}" itemLabel="label" itemValue="value"/>
+                </form:select>
+                </span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.tipsFlag"><spring:message code="ref.insturment.entry.label.bondtab.tipsflag" htmlEscape="false"/></form:label> 
+                <span>
+                <form:select id="tipsFlag" path="commandForm.instrumentPage.tipsFlag" class="dropdowninput  ">
+					<form:options items="${commandForm.instrumentPage.tipsFlagValues}" itemLabel="label" itemValue="value"/>
+                </form:select>
+                </span>            
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.tipsBase"><spring:message code="ref.insturment.entry.label.bondtab.tipsbase" htmlEscape="false"/></form:label> 
+                <span>
+                <form:select id="tipsBase" path="commandForm.instrumentPage.tipsBase" class="dropdowninput  ">
+					<form:option value=""/>
+                    <form:options items="${commandForm.instrumentPage.tipsBaseValues}"/>
+                </form:select>
+                </span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+			
+			<div class="formItem">
+				<div id="principalPaymentFreqVal" class="formItem" style="display:none;">
+						<form:label path="commandForm.instrumentPage.principalPaymentFreqStr" class="required"><spring:message code="ref.insturment.entry.label.bondtab.principalpaymentfreq" htmlEscape="false"/></form:label>
+						<span>
+						<form:select id="principalPaymentFreq" path="commandForm.instrumentPage.principalPaymentFreqStr" class="dropdowninput  ">
+							<form:option value=""/>
+							<form:options items="${commandForm.instrumentPage.principalPaymentFreqValues}" itemLabel="label" itemValue="value" />
+						</form:select>
+						</span>           
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			</div>
+
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.stripType"><spring:message code="ref.insturment.entry.label.bondtab.striptype" htmlEscape="false"/></form:label> 
+                <span>
+                <form:select id="stripType" path="commandForm.instrumentPage.stripType" class="dropdowninput  ">
+					<form:option value=""/>
+                    <form:options items="${commandForm.instrumentPage.stripTypeValues}" itemLabel="label" itemValue="value"/>
+                </form:select>
+                </span>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+
+            <div class="formItem">
+                <form:label path="commandForm.instrumentPage.recordDaysStr"><spring:message code="ref.insturment.entry.label.bondtab.recorddays" htmlEscape="false"/></form:label>
+                <span><form:input id="recordDaysStr" value="" path="commandForm.instrumentPage.recordDaysStr"   class="txtNormal" onblur="return formatQuantity($('#recordDaysStr'),3,0,null,$('#recordDaysStr').parent().parent().find('label').text());" /></span>            
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+			
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+            <div id="couponBondType" style="display:none;">
+
+                <div class="formItem">
+                    <form:label path="commandForm.instrumentPage.couponPaymentFreqStr" class="required"><spring:message code="ref.insturment.entry.label.bondtab.couponfrequency" htmlEscape="false"/></form:label>
+                    <span>
+                    <form:select id="couponPaymentFreqStr" path="commandForm.instrumentPage.couponPaymentFreqStr" class="dropdowninput  ">
+						<form:option value=""/>
+                        <form:options items="${commandForm.instrumentPage.couponPaymentFreqValues}" itemLabel="label" itemValue="value"/>
+                    </form:select>
+                    </span>            
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                
+                <div class="formItem">
+                    <form:label path="commandForm.instrumentPage.couponCcy" class="required"><spring:message code="ref.insturment.entry.label.bondtab.couponccy" htmlEscape="false"/></form:label>
+                    <span><form:input id="couponCcy" value="" path="commandForm.instrumentPage.couponCcy"  class="textBox  " /></span>
+                    <div class="popupBtn">
+                        <input type="button" class="popupBtnIco" tgt="couponCcy" popType="currency" value="" />
+                    </div>            
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                
+                <div class="formItem">
+                    <form:label path="commandForm.instrumentPage.accruedInterestInitDateStr" class="required"><spring:message code="ref.insturment.entry.label.bondtab.accintstartdate" htmlEscape="false"/></form:label>
+                    <span><form:input id="accruedInterestInitDateStr" value="" path="commandForm.instrumentPage.accruedInterestInitDateStr"   class="dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>            
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                
+                <div class="formItem">
+                    <form:label path="commandForm.instrumentPage.accruedInterestCalcType" class="required"><spring:message code="ref.insturment.entry.label.bondtab.accintcalctype" htmlEscape="false"/></form:label>
+                    <span>
+                    <form:select id="accruedInterestCalcType" path="commandForm.instrumentPage.accruedInterestCalcType" class="dropdowninput  ">
+						<form:option value=""/>
+                        <form:options items="${commandForm.instrumentPage.accruedInterestCalcTypeValues}"/>
+                    </form:select>
+                    </span>            
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+				
+				 
+                
+                <div class="formItem">
+                    <form:label path="commandForm.instrumentPage.initialCouponDateStr" class="required"><spring:message code="ref.insturment.entry.label.bondtab.initialcoupondate" htmlEscape="false"/></form:label>
+                    <span><form:input id="initialCouponDateStr" value="" path="commandForm.instrumentPage.initialCouponDateStr"   class="dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>            
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+				
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                
+				 <!-- <c:if test="${couponDivToggleflag =='true'}">  -->
+					<div class="formItem">
+						<form:label path="commandForm.instrumentPage.initialCouponType" class="required"><spring:message code="ref.insturment.entry.label.bondtab.initialcoupontype" htmlEscape="false"/></form:label>
+						<span>
+						<form:select id="initialCouponType" path="commandForm.instrumentPage.initialCouponType" class="dropdowninput  ">
+							<form:option value=""/>
+							<form:options items="${commandForm.instrumentPage.couponTypeValues}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						</span>            
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+				<!-- </c:if> -->
+                
+				
+				<!-- <c:if test="${couponDivToggleflag =='true'}">  -->
+					<div class="formItem">
+						<form:label path="commandForm.instrumentPage.finalCouponType" class="required"><spring:message code="ref.insturment.entry.label.bondtab.finalcoupontype" htmlEscape="false"/></form:label>
+						<span>
+						<form:select id="finalCouponType" path="commandForm.instrumentPage.finalCouponType" class="dropdowninput  ">
+							<form:option value=""/>
+							<form:options items="${commandForm.instrumentPage.couponTypeValues}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						</span>            
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+				<!-- </c:if>  -->
+                
+                <div class="formItem">
+                    <form:label path="commandForm.instrumentPage.floatingFixFlag" class="required"><spring:message code="ref.insturment.entry.label.bondtab.ratetype" htmlEscape="false"/></form:label>
+                    <span>
+                    <form:select id="floatingFixFlag" path="commandForm.instrumentPage.floatingFixFlag" class="dropdowninput  ">
+						<form:option value=""/>
+                        <form:options items="${commandForm.instrumentPage.floatingFixFlagValues}" itemLabel="label" itemValue="value"/>
+                    </form:select>
+                    </span>            
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                
+                <div id="fixedRateInfo" class="formItem" style="display:none;">
+                    <form:label path="commandForm.instrumentPage.fixedCouponRateStr" class="required"><spring:message code="ref.insturment.entry.label.bondtab.fixedcouponrate" htmlEscape="false"/></form:label>
+                    <span><form:input id="fixedCouponRateStr" value="" path="commandForm.instrumentPage.fixedCouponRateStr"  class="textBox  "  onblur="formatRate($('#fixedCouponRateStr'),5,7,null,$('#fixedCouponRateStr').parent().parent().find('label').text());" /></span>            
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                
+                
+                <div id="floatingBaseRateCont" class="formItem" style="display:none;">
+                    <form:label path="commandForm.instrumentPage.floatingBaseRate"><spring:message code="ref.insturment.entry.label.bondtab.floatingbaserate" htmlEscape="false"/></form:label>
+                    <span>
+                    <form:select id="floatingBaseRate" path="commandForm.instrumentPage.floatingBaseRate" class="dropdowninput  ">
+						<form:option value=""/>
+                        <form:options items="${commandForm.instrumentPage.floatingBaseRateValues}" itemLabel="label" itemValue="value"/>
+                    </form:select>
+                    </span>           
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+                
+                <div id="couponResetDateCont" class="formItem" style="display:none;">
+                    <form:label path="commandForm.instrumentPage.couponResetDateStr"><spring:message code="ref.insturment.entry.label.bondtab.couponresetdate" htmlEscape="false"/></form:label>
+                    <span><form:input id="couponResetDateStr" value="" path="commandForm.instrumentPage.couponResetDateStr"   class="dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>            
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+				
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				
+				 <div class="formItem" >
+                    <form:label path="commandForm.instrumentPage.businessDayConvention"><spring:message code="ref.instrument.entry.label.bondtab.businessdayconvention" htmlEscape="false"/></form:label>
+                    <span>
+						<form:select id="businessDayConventionId" path="commandForm.instrumentPage.businessDayConvention" class="dropdowninput  ">
+						<form:option value=""/>
+                        <form:options items="${commandForm.instrumentPage.businessDayConventions}" itemLabel="label" itemValue="value"/>
+                        </form:select> 
+					</span>           
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+				
+				<!-- In amend mode visible -->
+				 <div id="dirtyPriceFlagDivId" class="formItem" style="display:none" >
+                    <form:label path="commandForm.instrumentPage.dirtyPriceFlag"><spring:message code="ref.instrument.entry.label.bondtab.dirtypriceflag" htmlEscape="false"/></form:label>
+                    <span>                   
+						<form:select id="dirtyPriceFlagId" path="commandForm.instrumentPage.dirtyPriceFlag" class="dropdowninput  ">
+						<form:option value=""/>
+                        <form:options items="${commandForm.instrumentPage.dirtyPriceFlagValues}" itemLabel="label" itemValue="value"/>
+                        </form:select> 
+                    </span>           
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+				
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				
+				 <div id="fixedDaysCouponFlagDivId" class="formItem"  >
+                    <form:label path="commandForm.instrumentPage.fixedDaysCouponFlag"><spring:message code="ref.instrument.entry.label.bondtab.fixeddayscpnflag" htmlEscape="false"/></form:label>
+                    <span>                
+						<form:select id="fixedDaysCouponFlagId" path="commandForm.instrumentPage.fixedDaysCouponFlag" class="dropdowninput  ">
+						<form:option value=""/>
+                        <form:options items="${commandForm.instrumentPage.fixedCouponDaysFlagValue}" itemLabel="label" itemValue="value"/>
+                        </form:select> 
+                    </span>           
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+				
+				 
+				
+				 <div id="prevCouponDateDivId" class="formItem" style="display:none" >
+                    <form:label path="commandForm.instrumentPage.prevCouponDateStr"><spring:message code="ref.instrument.entry.label.bondtab.prevcpndate" htmlEscape="false"/></form:label>
+                    <span><form:input id="prevCouponDateId" value="" path="commandForm.instrumentPage.prevCouponDateStr"   class="dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{xenos.ns.views.instrumentEntryAmend.addDayToDate(this.value)}"/></span>            
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+				 
+				 <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+				 <div id="investBondCategoryDivId" class="formItem" >
+                    <form:label path="commandForm.instrumentPage.investBondCategory"><spring:message code="ref.instrument.entry.label.bondtab.investmentbondcategory" htmlEscape="false"/></form:label>
+                    <span>                   
+						<form:select id="investBondCategoryId" path="commandForm.instrumentPage.investBondCategory" class="dropdowninput  ">
+						<form:option value=""/>
+                        <form:options items="${commandForm.instrumentPage.investmentBondCategoryList}" itemLabel="label" itemValue="value"/>
+                        </form:select> 
+					</span>           
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+
+				 <div id="euroYenBondFlagDivId" class="formItem" >
+                    <form:label path="commandForm.instrumentPage.euroYenBondFlag"><spring:message code="ref.instrument.entry.label.bondtab.euroyenbondflag" htmlEscape="false"/></form:label>
+                    <span>                  
+						<form:select id="euroYenBondFlagId" path="commandForm.instrumentPage.euroYenBondFlag" class="dropdowninput  ">
+						<form:option value=""/>
+                        <form:options items="${commandForm.instrumentPage.euroYenBondFlagList}" itemLabel="label" itemValue="value"/>
+                        </form:select> 
+					</span>           
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                </div>
+				
+				 <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+				 <div id="fixedCouponDaysDivId" class="formItem"  style="display:none">
+                    <form:label path="commandForm.instrumentPage.fixedCouponDaysStr" class="required"><spring:message code="ref.instrument.entry.label.bondtab.fixedcoupondays" htmlEscape="false"/></form:label>
+						<span><form:input id="fixedCouponDaysId" path="commandForm.instrumentPage.fixedCouponDaysStr" class="textBox" onblur="xenos.ns.views.instrumentEntryAmend.addDays(this.value)"/></span>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div> 
+                </div>
+
+				 <div id="nextCouponDateDivId" class="formItem" style="display:none">
+                    <form:label path="commandForm.instrumentPage.nextCouponDateStr"><spring:message code="ref.instrument.entry.label.bondtab.nextcoupondays" htmlEscape="false"/></form:label>
+                    <span><form:input id="nextCouponDateId" value="" path="commandForm.instrumentPage.nextCouponDateStr"   class="dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>            
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>   
+                </div>
+            </div>
+
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>         
+        </div>
+     </div>
+     
+    <div id="couponGrids" style="display:none;">
+
+        <div id="accrualInfoGrid">
+
+			  <div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.bondtab.accrualstartdate" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse" id="spanAccrualStartDate"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			  </div>	
+            
+            <div class="entryBlkArea ">
+
+                <div class="formItemBlock topitems dottedBg Inst3col">
+
+                    <div class="formItem">
+                        <form:label path="commandForm.paymentMonth" class="required"><spring:message code="ref.insturment.entry.label.othertab.month" htmlEscape="false"/></form:label>
+                        <form:select id="paymentMonth" path="commandForm.paymentMonth" class="dropdowninput  ">
+						<form:option value=""/>
+                        <form:options items="${commandForm.monthValues}" itemLabel="label" itemValue="value"/>
+                        </form:select>
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                    </div>
+
+                    <div class="formItem">
+                        <form:label path="commandForm.paymentDay" ><spring:message code="ref.insturment.entry.label.othertab.day" htmlEscape="false"/></form:label>
+                        <form:select id="paymentDay" path="commandForm.paymentDay" class="dropdowninput  "></form:select>
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                    </div>
+
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div> 
+
+                    <div id="formActionArea" class="gridBtnMargin">
+                        <div class="right">
+                            <div class="btnWrapStyle submitBtn gridAddBtn">
+                                <span class="addBtnAccrual" style="display:block"><input id="addAccrualBtn" type="button" value="${formadd_label}" class="inputBtnStyle  "/></span>
+                            </div>
+                            <span class="editBtnAccrual" style="display:none"> 
+                                <div class="btnWrapStyle submitBtn"><input id="updateAccrualBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                                <div class="btnWrapStyle resetBtn"><input id="cancelAccrualBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+                    <div class="entryGrid">
+                        <div id="accrualGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Accrual Start Date **END -->
+        </div>
+
+        <div id="couponRatesInfoGrid" style="display:none;">
+            
+            <div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.bondtab.couponrates" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse" id="spanCouponRates"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>	
+            
+            <div class="entryBlkArea ">
+                <div class="formItemBlock topitems dottedBg Inst3col">
+
+                    <div class="formItem">
+                        <form:label path="commandForm.dateFrom" class = "required"><spring:message code="ref.insturment.entry.label.bondtab.effstartdate" htmlEscape="false"/></form:label>
+                        <span><form:input id="dateFrom" value="" path="commandForm.dateFrom"   class="dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>            
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                    </div>
+
+                    <div class="formItem">
+                        <form:label path="commandForm.recordDate" class = "required"><spring:message code="ref.insturment.entry.label.bondtab.recorddate" htmlEscape="false"/></form:label>
+                        <span><form:input id="recordDate" value="" path="commandForm.recordDate"   class="dateinput  " onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>            
+                        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                    </div>
+
+                    <div class="formItem">
+                        <form:label path="commandForm.rate" class = "required"><spring:message code="ref.insturment.entry.label.bondtab.rate" htmlEscape="false"/></form:label>
+                        <span><form:input id="rate" value="" path="commandForm.rate" style="width:120px"   class="textBox  "  onblur="formatRate($('#rate'),10,7,null,$('#rate').parent().parent().find('label').text())"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+                    </div>
+
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div> 
+
+                    <div id="formActionArea" class="gridBtnMargin">
+                        <div class="right">
+                        <div class="btnWrapStyle submitBtn gridAddBtn">
+                        <span class="addBtnCouponRate" style="display:block"><input id="addCouponRateBtn" type="button" value="${formadd_label}" class="inputBtnStyle  "/></span>
+                        </div>
+                        <span class="editBtnCouponRate" style="display:none"> 
+                        <div class="btnWrapStyle submitBtn"><input id="updateCouponRateBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+                        <div class="btnWrapStyle resetBtn"><input id="cancelCouponRateBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+                        </span>
+                        </div>
+                    </div>
+
+                    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+                    <div class="entryGrid">
+                        <div id="couponRateGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Coupon Rates **END -->    
+        </div>
+
+        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        
+    </div>
+</div> 
+</jsp:root>

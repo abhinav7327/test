@@ -1,0 +1,261 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+	 xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:form="http://www.springframework.org/tags/form"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:jsp="http://java.sun.com/JSP/Page">
+	 
+<div class="formItemArea">
+	
+    <jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" /> 
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>	 
+	<input type="hidden" id="${gleledgercode}"/>
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+            var pageNo = <c:out value="${pageNo}" />;	 
+            var grid_result_data = [];
+			  var grid_result_columns = [
+				{name:"<spring:message code="stl.stlqry.label.settlementrefno" htmlEscape="false"/>", field:"settlementReferenceNo",id:"settlementReferenceNo", width:178,sortable:true,formatter:Slick.Formatters.SettlementDetailViewFormater,isForAuth:false},
+				{name:"<spring:message code="stl.label.fundcode" htmlEscape="false"/>", field:"fundCode",id:"fundCode", width:89,sortable:true,formatter:Slick.Formatters.FundDetailViewFormatter},
+				{name:"<spring:message code="stl.label.fundname" htmlEscape="false"/>", field:"fundName",id:"fundName", width:99,sortable:true},
+				{name:"<spring:message code="stl.label.fundaccountno" htmlEscape="false"/>", field:"fundAccountNo", id:"fundAccountNo", width:120, formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'fundAccountPk'}, sortable: true},
+				{name:"<spring:message code="stl.label.fundaccountname" htmlEscape="false"/>", field:"shortName",id:"shortName", width:111,sortable:true},
+				{name:"<spring:message code="stl.stlqry.label.tradedate" htmlEscape="false"/>", field:"tradeDateStr",id:"tradeDateStr", width:91,sortable:true},
+				{name:"<spring:message code="stl.stlqry.label.valuedate" htmlEscape="false"/>", field:"valueDateStr",id:"valueDateStr", width:91,sortable:true},
+				{name:"<spring:message code="stl.stlqry.label.tradetype" htmlEscape="false"/>", field:"tradeType",id:"tradeType", width:90,sortable:true},
+				{name:"<spring:message code="stl.stlqry.label.securitycode" htmlEscape="false"/>", field:"instrumentCode",id:"instrumentCode", width:109,sortable:true,formatter:Slick.Formatters.InstrumentDetailViewFormater},
+				{name:"<spring:message code="stl.stlqry.label.altSecurityId" htmlEscape="false"/>", field:"altSecurityDisplayString",id:"altSecurityDisplayString", width:143,sortable:true},  
+				{name:"<spring:message code="stl.stlqry.label.securityname" htmlEscape="false"/>", field:"securityShortName",id:"securityShortName", width:143,sortable:true},
+				{name:"<spring:message code="stl.label.instructiontype" htmlEscape="false"/>", field:"instructionTypeDisplay",id:"instructionTypeDisplay", width:133,sortable:true},
+				{name:"<spring:message code="stl.label.completedsecurity" htmlEscape="false"/>", field:"completeQuantityStr",id:"completeQuantityStr",cssClass:'xenos-grid-number', width:140,sortable:true},
+				{name:"<spring:message code="stl.label.outstandingsecurity" htmlEscape="false"/>", field:"outstandingQntyStr",id:"outstandingQntyStr",cssClass:'xenos-grid-number', width:143,sortable:true},
+				{name:"<spring:message code="stl.label.originalsecurity" htmlEscape="false"/>", field:"originalQuantityStr",id:"originalQuantityStr",cssClass:'xenos-grid-number', width:123,sortable:true},
+				{name:"<spring:message code="stl.stlqry.label.ccy" htmlEscape="false"/>", field:"ccyCode",id:"ccyCode",width:50,sortable:true},
+				{name:"<spring:message code="stl.label.completedcash" htmlEscape="false"/>", field:"completeAmountStr",id:"completeAmountStr",cssClass:'xenos-grid-number', width:101,sortable:true},
+				{name:"<spring:message code="stl.label.outstandingcash" htmlEscape="false"/>", field:"outstandingAmtStr",id:"outstandingAmtStr",cssClass:'xenos-grid-number', width:101,sortable:true},
+				{name:"<spring:message code="stl.label.originalcash" htmlEscape="false"/>", field:"originalAmountStr",id:"originalAmountStr",cssClass:'xenos-grid-number', width:101,sortable:true},
+				{name:"<spring:message code="stl.stlqry.label.senderrefno" htmlEscape="false"/>", field:"swiftReferenceNo",id:"swiftReferenceNo", width:101,sortable:true,formatter:Slick.Formatters.NegetiveBalanceFormatter},
+				{name:"<spring:message code="stl.label.ouraccountbrkno" htmlEscape="false"/>", field:"firmAccNoDisplayString",id:"firmAccNoDisplayString", width:101,sortable:true,formatter:Slick.Formatters.NegetiveBalanceFormatter},
+				{name:"<spring:message code="stl.label.corporateactioneventtype" htmlEscape="false"/>", field:"subEventTypeDisplayString",id:"subEventTypeDisplayString", width:101,sortable:true},
+				{name:"<spring:message code="stl.label.settlestatus" htmlEscape="false"/>", field:"settlementStatus",id:"settlementStatus", width:101,sortable:true},
+				{name:"<spring:message code="stl.stlqry.label.status" htmlEscape="false"/>", field:"statusString",id:"statusString", width:68,sortable:true,formatter:Slick.Formatters.CancelRecordFormatter},
+				{name:"<spring:message code="stl.stlqry.label.gleledgercode" htmlEscape="false"/>", field:"gleLedgerCode",id:"gleLedgerCode", width:112,sortable:true}
+             ];
+			var grid_result_settings = {
+				enableToolbar:true,
+				forceFitColumns:false,
+                consolidateActionFlag:true,
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					url: 'secure/stl/settlement/query/count.json'
+				},
+				buttons:{
+					print:true,	
+					xls:true,	
+					pdf:true,
+					xlsPref:true,	
+					columnPicker:true,	
+					save:true	
+				},
+				urls:{
+					nextPage : '/secure/stl/settlement/query/result.json?fetch=next',
+					prevPage : '/secure/stl/settlement/query/result.json?fetch=previous',
+					pdfReport: '/secure/stl/settlement/query/report.json?outputType=pdf',
+					xlsReport: '/secure/stl/settlement/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/stl/settlement/query/reportPref.json?outputType=xls'
+				},
+				events:{
+					onDataUpdate : function(data,callback){
+						for(i in data.value){
+							if(data.value[i].instrumentCode == null || data.value[i].instrumentCode == ''){
+								data.value[i].instrumentCode = data.value[i].correspondingSecurityId;	
+								data.value[i].securityShortName= data.value[i].correspondingSecurityName;							
+							}
+							if(data.value[i].failStatus == 'FAIL'){
+							   data.value[i].settlementStatus= data.value[i].failStatus;
+							}else{
+							   data.value[i].settlementStatus= data.value[i].settleStatusString;
+							}
+							data.value[i].fundAccountPk = data.value[i].inventoryAccountPk;
+							data.value[i].settlementReferenceNo = data.value[i].settlementReferenceNo+"-"+data.value[i].versionNo;
+						}
+						callback(data);
+					}
+				},
+				 defaultInvisibleColumns: ["shortName", "completeQuantityStr", "completeAmountStr","gleLedgerCode"]
+				
+			};
+
+	        var row_id = 0;			
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+              rec.commandFormId="${requestScope['commandFormId']}";
+				rec.id = "xenos_" + row_id;
+				rec.clientSettlementInfoPk="<c:out value="${dl.clientSettlementInfoPk}" />";				
+				rec.instrumentPk = "<c:out value="${dl.instrumentPk}"/>";
+				rec.ccyPk = "<c:out value="${dl.ccyPk}" />";	                
+				rec.settlementInfoPk= "<c:out value="${dl.settlementInfoPk}" />";
+				rec.settlementReferenceNo= "<c:out value="${dl.settlementReferenceNo}-${dl.versionNo}" />";
+				rec.senderReferenceNo= "<c:out value="${dl.senderReferenceNo}" />";
+	            rec.settlementStatus=
+						"<c:choose>
+							<c:when test="${dl.failStatus == 'FAIL'}">
+								<c:out value="${dl.failStatus}"/>
+							</c:when>
+							<c:otherwise>
+								<c:out value="${dl.settleStatusString}"/>
+							</c:otherwise>
+						</c:choose>";
+	            rec.instructionTypeDisplay= "<c:out value="${dl.instructionTypeDisplay}" />";				
+				rec.tradeDateStr= "<c:out value="${dl.tradeDateStr}" />";
+	            rec.valueDateStr= "<c:out value="${dl.valueDateStr}" />";
+	            rec.accountNo= "<c:out value="${dl.displayAccountNo}" />";
+				rec.shortName= "<c:out value="${xenosfn:escapeJS(dl.shortName)}" />";
+	            rec.instrumentCode= 
+				      "<c:choose>
+						 <c:when test="${dl.instrumentCode == null || dl.instrumentCode == ''}">
+							<c:out value="${dl.correspondingSecurityId}"/>
+						 </c:when>
+						<c:otherwise>
+							<c:out value="${dl.instrumentCode}"/>
+						</c:otherwise>
+					  </c:choose>";
+	            rec.ccyCode= "<c:out value="${dl.ccyCode}" />";
+	            rec.statusString= "<c:out value="${dl.statusString}" />";	            
+				rec.tradeType= "<c:out value="${dl.tradeType}"/>";
+				rec.fundName= "<c:out value="${dl.fundName}"/>";
+				rec.fundAccountNo= "<c:out value="${dl.fundAccountNo}"/>";
+				rec.fundCode= "<c:out value="${dl.fundCode}"/>";
+				rec.fundPk = "<c:out value="${dl.fundPk}"/>";
+				rec.fundAccountPk = "<c:out value="${dl.inventoryAccountPk}"/>";
+				rec.securityShortName= 
+				    "<c:choose>
+						 <c:when test="${dl.instrumentCode == null || dl.instrumentCode == ''}">
+							<c:out value="${dl.correspondingSecurityName}"/>
+						 </c:when>
+						<c:otherwise>
+						    <c:out value="${dl.securityShortName}"/>
+						</c:otherwise>
+					  </c:choose>";
+				rec.outstandingQntyStr= "<c:out value="${dl.outstandingQntyStr}"/>";
+				rec.originalQuantityStr= "<c:out value="${dl.originalQuantityStr}"/>";
+				rec.outstandingAmtStr= "<c:out value="${dl.outstandingAmtStr}"/>";
+				rec.originalAmountStr= "<c:out value="${dl.originalAmountStr}"/>";
+				rec.swiftReferenceNo= "<c:out value="${dl.swiftReferenceNo}"/>";
+				rec.firmAccNoDisplayString= "<c:out value="${dl.firmAccNoDisplayString}"/>";
+				rec.subEventTypeDisplayString= "<c:out value="${dl.subEventTypeDisplayString}"/>";
+				rec.settlementFor="<c:out value="${dl.settlementFor}"/>";
+				rec.gleLedgerCode= "<c:out value="${dl.gleLedgerCode}"/>";
+				rec.completeAmountStr= "<c:out value="${dl.completeAmountStr}"/>";
+				rec.completeQuantityStr= "<c:out value="${dl.completeQuantityStr}"/>";
+	            grid_result_data.push(rec);
+			 </c:forEach>
+			 </xenos:out>
+        </jsp:body>
+    </jsp:element>
+
+	 <div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			  <a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'STLAM')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-amendIco.png" title="${record.actionName}" id="amend" status="ready" alt="Amend" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			  </a>
+		</c:forEach>	  
+	</div>
+
+  
+		<jsp:element name="script">
+			<jsp:attribute name="type">text/javascript</jsp:attribute>
+			<jsp:attribute name="src"><c:url value="/scripts/stl/xenos/stlQueryConsolidation.js"/></jsp:attribute>
+			<jsp:body></jsp:body>
+		</jsp:element>
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/stl/xenos/stlAmend.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+	
+    <jsp:element name="script">
+    <jsp:attribute name="type">text/javascript</jsp:attribute>
+    <jsp:body>
+		//handler get called when stlresult is opened as a popup from trade detail screen
+		var xenos$Dialog$Detail$Hook = function (container, btnContainer) {
+			container.find('.tabArea ').hide();
+			grid_result_settings.consolidateActionFlag=false;
+			grid_result_settings.height = 300;
+			grid_result_settings.isDialog = true;
+			grid_result_settings.yOffset = 70;
+			grid_result_settings.postGridHtml ={};
+			grid_result_settings.enableToolbar=true;
+			grid_result_settings.isNormalResultGridInPopUp=true;
+			grid_result_settings.pagingInfo={
+					isNext : isNext,
+					url: 'secure/stl/settlement/query/count.json'
+				};
+			grid_result_settings.buttons={
+					print:true,	
+					xls:true,	
+					pdf:true
+				};
+			grid_result_settings.urls={
+					nextPage : '/secure/stl/settlement/query/result.json?fetch=next',
+					prevPage : '/secure/stl/settlement/query/result.json?fetch=previous',
+					pdfReport: '/secure/stl/settlement/query/report.json?outputType=pdf',
+					xlsReport: '/secure/stl/settlement/query/report.json?outputType=xls'
+				};
+				
+			grid_result_settings.resizeHandler = function(container, grid) {
+				var innerContainerHeight = container.closest('.ui-dialog').height() - 140;
+
+                // Maintaining a minimum height for the grid
+                if (innerContainerHeight &lt; 125){
+                    return;
+                }
+                
+				container.height(innerContainerHeight);
+				
+                if (grid.getOptions().forceFitColumns) {
+                    forceFitGrid();
+                } else {
+                    grid.resizeCanvas();
+                }
+			};
+			
+			$('.xenos-grid',container).xenosgrid(grid_result_data, grid_result_columns, grid_result_settings);
+		}
+	</jsp:body>
+  </jsp:element>
+   <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            jQuery('.rightDockMenu').show();
+        </jsp:body>
+    </jsp:element>      
+</div>
+<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/stl/stlQueryResult.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+ </jsp:element>
+</jsp:root>

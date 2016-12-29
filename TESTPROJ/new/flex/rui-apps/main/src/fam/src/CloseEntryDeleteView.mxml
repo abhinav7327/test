@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+		   xmlns:cntrls="com.nri.rui.core.controls.*" 
+		   xmlns:controls="*" 
+		   layout="vertical" percentWidth="100" 
+		   percentHeight ="100" 
+		   horizontalScrollPolicy="auto" 
+		   verticalScrollPolicy="auto" creationComplete="closingDetailView.init();" >
+
+
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.controls.XenosAlert;
+			import mx.controls.Alert;
+			/*public function init():void{
+			  closeDeleteView.send();
+			}*/
+			/**
+             * Extracts the parameters and set them to some variables for 
+             * query criteria from the Module Loader Info.
+             */ 
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                    // Set the values of the salutation.
+                    if(params != null){
+	                    for (var i:int = 0; i < params.length; i++) {
+	                        var tempA:Array = params[i].split("="); 
+	                        if (tempA[0] == "mode") {
+	                            mode = tempA[1];
+	                        }else if(tempA[0] == "commandFormId"){
+	                            this.commandFormId = tempA[1];
+	                        }else if(tempA[0] == "accountingClosingStatusPk"){
+	                            this.accountingClosingStatusPk = tempA[1];
+	                        }
+	                    }                    	
+                    }else{
+                    	mode = "entry";
+                    }                 
+                } catch (e:Error) {
+                    trace(e);
+                }               
+            }
+		]]>
+
+	</mx:Script>
+
+	<mx:Script source="actionscripts/CloseEntryDeleteView.as" />
+
+	<cntrls:XenosHTTPServiceForSpring id="submitDelete" commandFormId="{commandFormId}"
+									  url="fam/closeEntryDeleteQuery.spring"
+									  fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)" 
+									  method="POST" 
+									  useProxy="false" 
+									  result="handleSubmitDeleteResult(event)" 
+									  showBusyCursor="true"/>
+
+
+	<cntrls:XenosHTTPServiceForSpring id="confirmDelete" commandFormId="{commandFormId}"
+									  url="fam/closeEntryDeleteQuery.spring"
+									  fault="faultAlert(event)" 
+									  method="POST" 
+									  useProxy="false" 
+									  result="handleConfirmDeleteResult(event)" 
+									  showBusyCursor="true" resultFormat="xml"/>
+
+
+
+	<mx:VBox width="100%" height="100%">
+		<!-- User Confirmation - Cancel Summary View  -->
+		<mx:Label id="uConfLabel" text="{this.parentApplication.xResourceManager.getKeyValue('fam.closingquery.delete.label.title.uesrconf')}" fontWeight="bold"   includeInLayout="false" visible="false"/>	  
+		<mx:Label id ="sConfLabel"  text="{this.parentApplication.xResourceManager.getKeyValue('fam.closingquery.delete.label.title.sysconf')}" fontWeight="bold"  includeInLayout="false" visible="false"/> 
+		<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+
+		<mx:VBox id="confMsg"  styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%"  verticalAlign="middle" visible="false"  includeInLayout="false">		      
+			<mx:HBox id="ConfAlert" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="30" verticalAlign="middle" >
+				<mx:Image id="ConfImg" source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+				<mx:Label id="CnfMessage" textAlign="left" fontWeight="bold" text="{this.parentApplication.xResourceManager.getKeyValue('fam.closing.label.confirmcancel')}" width="100%" selectable="true"/>
+			</mx:HBox>		     	   
+		</mx:VBox>   	
+		<controls:ClosingDetailContainer  width="100%"  height="100%"  id ="closingDetailView" />  
+
+		<mx:HBox  id="cnclCntrlBtn" width="100%" height="4%" horizontalScrollPolicy="off" verticalScrollPolicy="auto" verticalGap="0" horizontalGap="0" includeInLayout="false" visible="false" >
+			<cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="cancelSubmit" visible="false" includeInLayout="false" styleName="BtnStyle" click="doCancel()"/>
+			<cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="uCancel" visible="false" includeInLayout="false" styleName="BtnStyle"  click="closeHandeler()"/>
+			<mx:Spacer width="1%" id="spacer" /> 
+			<cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uCancelConfSubmit" visible="false" includeInLayout="false" styleName="BtnStyle" click="doSubmitUserConf()" />  
+			<cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.sysconfirm')}" id="sCancelConfSubmit" visible="false" includeInLayout="false" styleName="BtnStyle"  click="doSysConfirm(event)"/>               
+
+		</mx:HBox>
+
+	</mx:VBox>
+</mx:Module>

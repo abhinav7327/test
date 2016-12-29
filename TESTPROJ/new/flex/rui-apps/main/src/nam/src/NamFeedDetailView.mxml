@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*"
+	xmlns:flexlib="http://code.google.com/p/flexlib/"
+	xmlns:cntrls="com.nri.rui.core.controls.*"
+	xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"
+	layout="vertical" percentWidth="100" percentHeight ="100"
+	 horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="init()">
+
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.utils.XenosPopupUtils;
+			import mx.core.UIComponent;
+			import mx.containers.TitleWindow;
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.controls.CheckBox;
+			import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+
+			import com.nri.rui.core.controls.XenosAlert;
+
+			[Embed(source="../../assets/img/inf/addcolunm.png")]
+			[Bindable]
+			private var icoColumns:Class;
+            [Bindable]
+            public var intfFeedDetailPk:String="";
+            public var destinationSystem:String="";
+            [Bindable]
+         	public var summaryResult:ArrayCollection = new ArrayCollection();
+        	public var emptyResult:ArrayCollection= new ArrayCollection();
+			private function init():void{
+				parseUrlString();
+				var reqObj:Object=new Object();
+				reqObj.intfFeedDetailPk=intfFeedDetailPk;
+				reqObj.destinationSystem=destinationSystem;
+				NamFeedStatusDetailsDispatchRequest.request=reqObj;
+				NamFeedStatusDetailsDispatchRequest.send();
+			}
+
+          public function populateDetailViewSummaryPage(event:ResultEvent):void {
+            summaryResult = emptyResult;
+            var showNext:Boolean;
+            var showPrev:Boolean;
+            if (null != event) {
+                if(null == event.result.rows){
+                    if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+                        XenosAlert.info("Not any Result Found!");
+                    } else { // Must be error
+						//  errPage.displayError(event);
+                    }
+                }else {
+					// errPage.clearError(event);
+                    if(event.result.rows.row is ArrayCollection) {
+                        summaryResult = event.result.rows.row as ArrayCollection;
+                    } else {
+                        summaryResult = new ArrayCollection();
+                        summaryResult.addItem(event.result.rows.row);
+                    }
+				    if(event.result.rows.row != null){
+						// setPrevNextVisibility(Boolean(event.result.rows.prevTraversable),Boolean(event.result.rows.nextTraversable));
+				    }
+	            	else
+	                	XenosAlert.info("No records found matching the search criteria.");
+                }
+            }else {
+                summaryResult = new ArrayCollection();
+                XenosAlert.info("No records found matching the search criteria.");
+            }
+       }
+
+    public function parseUrlString():void {
+        try {
+            // Remove everything before the question mark, including
+            // the question mark.
+            var myPattern:RegExp = /.*\?/;
+            var s:String = this.loaderInfo.url.toString();
+            s = s.replace(myPattern, "");
+            // Create an Array of name=value Strings.
+            var params:Array = s.split("&");
+             // Print the params that are in the Array.
+            var keyStr:String;
+            var valueStr:String;
+            var paramObj:Object = params;
+
+            // Set the values of the salutation.
+            for (var i:int = 0; i < params.length; i++) {
+                var tempA:Array = params[i].split("=");
+                if (tempA[0] == "intfFeedDetailPk") {
+                    intfFeedDetailPk = tempA[1];
+                }
+                if (tempA[2] == "destinationSystem") {
+                    destinationSystem = tempA[3];
+                }
+            }
+        } catch (e:Error) {
+            trace(e);
+        }
+    }
+
+		]]>
+	</mx:Script>
+
+    <cntrls:XenosHTTPService id="NamFeedStatusDetailsDispatchRequest"
+    	 url ="nam/namFeedStatusDetailsDispatch.action?method=submitQuery"
+         fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+         result="populateDetailViewSummaryPage(event)"
+         showBusyCursor="true"/>
+
+   <mx:VBox width="100%" height="100%">
+        <!-- The Interface Id Query Popup Result Page Layout -->
+
+        <mx:VBox  id="resultPnl" width="100%" height="100%" label="{this.parentApplication.xResourceManager.getKeyValue('inf.header.queryresultsummary')}">
+
+             <mx:DataGrid id="interfaceSummary" width="100%" height="100%" dataProvider="{summaryResult}"
+                 horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+                <mx:columns>
+                   <!-- <mx:DataGridColumn headerText="Mandatory" visible="false" dataField="mandatory"/> -->
+                   <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.serialno')}" dataField="outputSequence"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.itemname')}" dataField="itemName" itemRenderer="com.nri.rui.nam.renderers.DetailViewMandatoryRenderer"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.itemdesc')}" dataField="itemDesc"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('nam.label.dumplist')}" dataField="recordDump"/>
+                 </mx:columns>
+             </mx:DataGrid>
+
+			 <!--   <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+			            <mx:Button id="prevPage" styleName="BtnDatagridPrev" enabled="false" toolTip="Previous" click="doPrevious();"/>
+			            <mx:Button id="nextPage" styleName="BtnDatagridNext" enabled="false" toolTip="Next" click="doNext();"/>
+			        </mx:HBox> -->
+        </mx:VBox >
+
+  </mx:VBox>
+</mx:Module>

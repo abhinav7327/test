@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" width="100%"
+	 height="100%" xmlns:com="*" updateComplete="selectTab()">
+	<mx:Script>
+	<![CDATA[
+		import mx.controls.Button;
+		import mx.containers.VBox;
+		import mx.events.FlexEvent;
+		import mx.modules.ModuleManager;
+		import mx.modules.IModuleInfo;
+		import mx.modules.Module;
+		import mx.events.ModuleEvent;
+		import mx.controls.Alert;
+		import com.nri.rui.core.controls.CustomChangeEvent;
+		import com.nri.rui.core.controls.XenosAlert;
+	
+		[Bindable]public var xmlSource:XML = new XML();
+		[Bindable]private var customEventParam:Object;
+		private var vboxTabObj:VBox = null;
+		
+		private function selectTab():void {
+			if(vboxTabObj == null)
+				this.tabModules.selectedIndex = this.tabModules.getChildIndex(DisplayObject(GeneralTab));
+			else
+				this.tabModules.selectedIndex = this.tabModules.getChildIndex(DisplayObject(vboxTabObj));
+		}
+		
+		/**
+		 * This method is called when the TabNavigator is initialized
+		 */ 
+		private function initTabs():void {
+			tabModules.addEventListener("visibleTabsContentEvent",updateTabsChildren);
+		}	
+		
+		/**
+		 * This method is the handler of CustomChangeEvent(visibleTabsEvent)
+		 * This CustomChangeEvent is dispatched when all tabs are not required
+		 * to display. Some tabs are needed to be hidden.
+		 * This method get the vissible tabs array from targetParams property
+		 * of CustomChangeEvent and show/hide the tabs accordingly.
+		 */ 
+		private function updateTabsChildren(event:CustomChangeEvent):void {
+			customEventParam = event.targetParams;
+			trace("customEventParam :: " + customEventParam);
+			try{
+				var firstTab:Button = tabModules.getTabAt(0);
+			}catch(e:Error){
+				trace("TabNavigator has not been created yet :: " + e.message);
+				tabModules.addEventListener(FlexEvent.CREATION_COMPLETE,tabCreationComplete);
+				return;
+			}
+			if(customEventParam is Array){
+				var visibleTabsArray:Array = customEventParam as Array;
+				if(visibleTabsArray.length >= 1) {
+					for(var num:int=0; num<tabModules.numChildren; num++){
+						tabModules.getTabAt(num).visible = false;
+						tabModules.getTabAt(num).includeInLayout = false;
+					}
+					//var visibleTabsArray:Array = customEventParam as Array;
+					
+					var tabIndex:int;
+					var tab:String = null;
+					for each(var obj:Object in visibleTabsArray){
+						try{
+							tab = obj['label']
+							if(this.tabModules.getChildByName(tab)){
+								tabIndex = this.tabModules.getChildIndex(this.tabModules.getChildByName(tab));
+								tabModules.getTabAt(tabIndex).includeInLayout = true;
+								tabModules.getTabAt(tabIndex).visible = true;
+							}
+						}catch(e:Error){
+							trace("Some error occured :: " + e.message);
+						}
+					}
+				}
+			}
+		}
+		
+		private function tabCreationComplete(event:FlexEvent):void {
+			tabModules.dispatchEvent(new CustomChangeEvent("visibleTabsContentEvent",customEventParam));
+		}
+		
+		public function set dataProvider(value:XML):void {
+			this.xmlSource = value;
+		}
+		
+	]]>
+	</mx:Script>
+	
+	<mx:TabNavigator id="tabModules" width="100%" height="100%" creationPolicy="auto" initialize="initTabs()">
+		   <mx:VBox id="GeneralTab" label="{this.parentApplication.xResourceManager.getKeyValue('swp.swap.label.general')}" height="{moduleGeneral.height}" width="100%" verticalGap="0" horizontalGap="0" click="this.vboxTabObj = this.GeneralTab">
+		   		<com:GeneralConfirmation id="moduleGeneral" setXml="{this.xmlSource}" width="100%" height="100%" />
+		   </mx:VBox>
+		   <mx:VBox id="DeliverTab" label="{this.parentApplication.xResourceManager.getKeyValue('swp.swap.label.deliver')}" height="{moduleDeliver.height}" width="100%" verticalGap="0" horizontalGap="0" click="this.vboxTabObj = this.DeliverTab">
+		   		<com:DeliverConfirmation id="moduleDeliver" setXml="{this.xmlSource}" width="100%" height="100%" />
+		   </mx:VBox>
+		   <mx:VBox id="ReceiveTab" label="{this.parentApplication.xResourceManager.getKeyValue('swp.swap.label.receive')}" height="{moduleReceive.height}" width="100%" verticalGap="0" horizontalGap="0" click="this.vboxTabObj = this.ReceiveTab">
+		   		<com:ReceiveConfirmation id="moduleReceive" setXml="{this.xmlSource}" width="100%" height="100%" />
+		   </mx:VBox>
+	</mx:TabNavigator>
+</mx:Module>

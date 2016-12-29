@@ -1,0 +1,551 @@
+<!--$Id$-->
+<!--$Author: shalinis $-->
+<!--$Date: 2016-12-27 11:13:15 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:xenos="http://www.nri.co.jp/xenos"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	  
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+					
+           xenos.loadLocalizedScript([
+                  {path: xenos.context.path + '/scripts/inf/xenos-i18n', async: false},
+                  {path: xenos.context.path + '/scripts/cax/xenos-cax-i18n', async: false}
+				 
+              ]);
+			  //Loading Required scripts before validator is called.
+              xenos.loadScript([
+                  {path: xenos.context.path + '/scripts/ref/xenos-ns.js', async: false},                  
+                  {path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				  {path: xenos.context.path + '/scripts/cax/xenos/caxEventEntry.js', async: false}
+              ]);
+		
+				$('#processingFrequency').unbind('change',xenos$cax$event$entry$rcMerger$processingFrequencyHandler)
+						                             .bind('change',xenos$cax$event$entry$rcMerger$processingFrequencyHandler)
+													 .trigger('change'); 
+
+				function xenos$cax$event$entry$rcMerger$processingFrequencyHandler(e){
+					
+					var value = $(e.target).val();
+					if(value == "" || value == "MANUAL"){
+						$context.find('#processStartDateValue').val("");
+						$context.find('#processEndDateValue').val("");
+						$context.find('#processStartDateLable').hide();
+						$context.find('#processEndDateLable').hide();
+					}
+					if(value == "DAILY"){
+						$context.find('#processStartDateLable').show();
+						$context.find('#processEndDateLable').show();
+					}
+					if(value == "TRIGGER"){
+						$context.find('#processStartDateLable').show();
+						$context.find('#processEndDateValue').val("");
+						$context.find('#processEndDateLable').hide();
+					}
+				}												
+	
+ 
+				function xenos$cax$event$entry$populateSecurityStockfields() {
+					
+					var stockItem = {},
+					rowId = 0,
+					stockGridData=[];
+					
+					var stockDetailGridConf = {
+					editMode 					: 	'both',	
+					emptyColumnCheck 			: 	false,	
+					editCallback 				: 	xenos$cax$event$entry$rcMerger$editStockMergerHandler,
+					deleteCallback				:	xenos$cax$event$entry$rcMerger$removeStockMergerHandler,
+					forceFitColumns				:	true
+					};
+		
+					var stockDetailColumns = [		
+							{name:"<spring:message code="cax.rightscondition.label.instrumentcode" htmlEscape="false"/>", 	field:"instrumentCode",	id:"instrumentCode",sortable:false},
+							{name:"<spring:message code="cax.rightscondition.label.allotmentquantity" htmlEscape="false"/>", field:"allotmentQuantityStr", id:"allotmentQuantityStr",sortable:false},
+							{name:"<spring:message code="cax.rightscondition.label.pershare" htmlEscape="false"/>", 	field:"perShareStr",	id:"perShareStr",sortable:false},
+							{name:"<spring:message code="cax.rightscondition.label.ccycashdividend" htmlEscape="false"/>", 	field:"ccyCashDividend",	id:"ccyCashDividend",sortable:false},
+							{name:"<spring:message code="cax.rightscondition.label.allotmentamount" htmlEscape="false"/>", 	field:"allotmentAmountStr",	id:"allotmentAmountStr",sortable:false},
+							{name:"<spring:message code="cax.rightscondition.label.persharecashdividend" htmlEscape="false"/>", 	field:"perShareCashDividend",	id:"perShareCashDividend",sortable:false},
+							{name:"<spring:message code="cax.rightscondition.label.payoutccy" htmlEscape="false"/>", 	field:"payOutCcy",	id:"payOutCcy",sortable:false},
+							{name:"<spring:message code="cax.rightscondition.label.payoutprice" htmlEscape="false"/>", 	field:"payOutPriceStr",	id:"payOutPriceStr",sortable:false}
+						];
+						
+						<c:forEach items="${commandForm.stockEntryList}" var="dl">
+							stockItem = {};
+							rowId+=1;
+							stockItem.id 			= "xenos_" + rowId;
+							stockItem.instrumentCode 	= "<c:out value="${dl.instrumentCode}" />";
+							stockItem.allotmentQuantityStr 		= "<c:out value="${dl.allottedQuantityStr}" />";
+							stockItem.perShareStr 	= "<c:out value="${dl.perShareStr}" />";
+							stockItem.ccyCashDividend 	= "<c:out value="${dl.ccyCashDividend}" />";
+							stockItem.allotmentAmountStr 	= "<c:out value="${dl.allottedAmountStr}" />";
+							stockItem.perShareCashDividend 	= "<c:out value="${dl.perShareCashDividend}" />";
+							stockItem.payOutCcy 	= "<c:out value="${dl.payOutCcy}" />";
+							stockItem.payOutPriceStr 	= "<c:out value="${dl.payOutPriceStr}" />";
+							
+							stockGridData.push(stockItem);
+						</c:forEach>
+						
+					var stockGrid = $("#stockListDetailGrid").xenoseditablegrid(stockGridData, stockDetailColumns, stockDetailGridConf);
+						
+						
+					var baseUrl = xenos.context.path + context.find('form').attr('action');	
+						
+					/**
+					* Insert/ Update Stock(s).
+					*/
+					function xenos$cax$event$entry$rcMerger$insertStock(data){
+						
+						var result = data.stockEntryList;
+						if(result){
+								stockGrid.clearData();
+							for(var i in result){
+								stockItem = {};
+								rowId+=1;
+								stockItem.id = "xenos_" + rowId;
+								stockItem.instrumentCode =  $.trim(result[i].instrumentCode);
+								stockItem.allotmentQuantityStr = $.trim(result[i].allottedQuantityStr);
+								stockItem.perShareStr =  $.trim(result[i].perShareStr);
+								stockItem.ccyCashDividend =  $.trim(result[i].ccyCashDividend);
+								stockItem.allotmentAmountStr =  $.trim(result[i].allottedAmountStr);
+								stockItem.perShareCashDividend =  $.trim(result[i].perShareCashDividend);
+								stockItem.payOutCcy =  $.trim(result[i].payOutCcy);
+								stockItem.payOutPriceStr =  $.trim(result[i].payOutPriceStr);
+								stockItem.readOnly 			=  	$.trim(result[i].readOnly); 
+								
+								stockGrid.addOrUpdateRow(stockItem,{});
+							}
+							xenos$cax$event$entry$rcMerger$populateStock(data);
+							
+							xenos.utils.clearGrowlMessage();
+						}
+					}
+					
+					/**
+					* New Stock Merger Block add handler.
+					*/
+					function xenos$cax$event$entry$rcMerger$addStockMergerHandler(e){
+							
+							var validationMessages = [];
+							var errMsg = xenos.ns.cax.eventEntry.validateStockMergerEntry() || [];
+							
+							$.each(errMsg, function(index,message){
+								validationMessages.push(message);
+								});
+							
+							if(validationMessages.length >0){
+								xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);			
+						} else {
+							var requestUrl = baseUrl + "/addStockMergerInfo.json?commandFormId=" + $('[name=commandFormId]').val();
+							
+							xenos$Handler$default.generic(undefined, {
+																requestUri: requestUrl,
+																requestType: xenos$Handler$default.requestType.asynchronous,
+																settings: {
+																		type: 'POST',
+																		data : xenos$cax$event$entry$rcMerger$populateStockRequestParam()
+																		
+																		},
+																contentType: xenos$Handler$default.contentType.json,
+																onJsonContent: function (e, options, $target, content) {
+																		if(content.success == true){
+																			xenos$cax$event$entry$rcMerger$insertStock(content.value[0]);
+																		} else {
+																			xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																		}
+																}
+							});
+					}
+					}
+					
+				
+					
+					var stockRowIndex = 0;
+					
+					/**
+					* Populate Stock request parameters.
+					*/
+					function xenos$cax$event$entry$rcMerger$populateStockRequestParam(){
+						
+						var reqObj = {	"instrumentCode"		:	$.trim($('#instrumentCode').val()),
+										"allotmentAmountStr"	:	$.trim($('#allotmentAmountStr').val()),
+										"allotmentQuantityStr"	:	$.trim($('#allotmentQuantityStr').val()),
+										"payOutCcy"				:	$.trim($('#payOutCcy').val()),
+										"ccyCashDividend"		:	$.trim($('#ccyCashDividend').val()),
+										"perShareStr"			:	$.trim($('#perShareValue').val()),
+										"payOutPriceStr"		:	$.trim($('#payoutPrice').val()),
+										"perShareCashDividend"	:	$.trim($('#perShareCashDividend').val()),
+										"editIndexTaxFeeNo"		: 	stockRowIndex
+									};
+						return reqObj;
+					}
+	
+									
+					
+			
+					/**
+					* Stock Cancel handler
+					*/
+					function xenos$cax$event$entry$rcMerger$cancelStockHandler(e){
+						
+						var requestUrl = baseUrl + "/cancelStock.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$default.generic(undefined, {
+															requestUri: requestUrl,
+															requestType: xenos$Handler$default.requestType.asynchronous,
+															settings: {
+																	type: 'POST'
+																	},
+															contentType: xenos$Handler$default.contentType.json,
+															onJsonContent: function (e, options, $target, content) {
+																	if(content.success == true){
+																			xenos$cax$event$entry$rcMerger$insertStock(content.value[0]);
+																			$('.gridEditBtn').hide(); 
+																			$('.gridAddBtn').show();
+																			
+																	} else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																	}
+															}
+								});
+					}
+					
+					/**
+					* Stock Update handler
+					*/
+					function xenos$cax$event$entry$rcMerger$updateStockHandler(e){
+						
+							var validationMessages = [];
+							var errMsg = xenos.ns.cax.eventEntry.validateStockMergerEntry() || [];
+							
+							$.each(errMsg, function(index,message){
+								validationMessages.push(message);
+								});
+							if(validationMessages.length >0){
+								xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);			
+						} else {	
+							var requestUrl = baseUrl + "/editStock.json?commandFormId=" + $('[name=commandFormId]').val();
+							xenos$Handler$default.generic(undefined, {
+																requestUri: requestUrl,
+																requestType: xenos$Handler$default.requestType.asynchronous,
+																settings: {
+																		type: 'POST',
+																		data : xenos$cax$event$entry$rcMerger$populateStockRequestParam()
+																		},
+																contentType: xenos$Handler$default.contentType.json,
+																onJsonContent: function (e, options, $target, content) {
+																		if(content.success == true){
+																			
+																			xenos$cax$event$entry$rcMerger$insertStock(content.value[0]);
+																			$('.gridEditBtn').hide(); 
+																			$('.gridAddBtn').show();
+																		} else {
+																			xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value);
+																		}
+																}
+									});
+						
+						}
+					}
+					/**
+					* Populate Stock index parameters.
+					*/
+					function xenos$cax$event$entry$rcMerger$populateStockIndexParam(rowIndex){
+						
+						var reqObj = {	"mergerNo"				:	rowIndex
+									};
+						return reqObj;
+					}	
+					/**
+					* Stock Edit handler
+					*/
+					function xenos$cax$event$entry$rcMerger$editStockMergerHandler(rowIndex, dataContext){
+						
+						stockRowIndex = rowIndex;
+						xenos$cax$event$entry$rcMerger$populateStock(dataContext);
+						$('.gridEditBtn').show(); 
+						$('.gridAddBtn').hide();
+						
+					}
+					
+					/**
+					* Populate Stock.
+					*/
+					function xenos$cax$event$entry$rcMerger$populateStock(result){
+						
+						if(result){
+							
+							$('#instrumentCode').val(result.instrumentCode);
+							$('#allotmentQuantityStr').val(result.allotmentQuantityStr);
+							$('#perShareValue').val(result.perShareStr);
+							$('#ccyCashDividend').val(result.ccyCashDividend);
+							$('#allotmentAmountStr').val(result.allotmentAmountStr);
+							$('#perShareCashDividend').val(result.perShareCashDividend);
+							$('#payOutCcy').val(result.payOutCcy);
+							$('#payoutPrice').val(result.payOutPriceStr); 
+							
+							$('#instrumentCode').focus(); 
+						}
+					}
+					
+					/**
+					* Delete Stock Merger Block add handler.
+					*/
+					function xenos$cax$event$entry$rcMerger$removeStockMergerHandler(rowIndex, dataContext){
+						
+						var requestUrl = baseUrl + "/removeStockMergerInfo.json?commandFormId=" + $('[name=commandFormId]').val();	
+						xenos$Handler$default.generic(undefined, {
+															requestUri: requestUrl,
+															requestType: xenos$Handler$default.requestType.asynchronous,
+															settings: {
+																	type: 'POST',
+																	data : xenos$cax$event$entry$rcMerger$populateStockIndexParam(rowIndex) 
+																	},
+															contentType: xenos$Handler$default.contentType.json,
+															onJsonContent: function (e, options, $target, content) {
+																	if(content.success == true){
+																		xenos$cax$event$entry$rcMerger$insertStock(content.value[0]);
+																	}else {
+																		xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																	}
+															}
+						});
+					}
+					
+					$('#updateStockBtn').unbind('click');
+					$('#updateStockBtn').bind('click',xenos$cax$event$entry$rcMerger$updateStockHandler);
+					$('#cancelStockBtn').unbind('click');
+					$('#cancelStockBtn').bind('click',xenos$cax$event$entry$rcMerger$cancelStockHandler);
+					
+					$('#addStockBtn').unbind('click');
+					$('#addStockBtn').bind('click',xenos$cax$event$entry$rcMerger$addStockMergerHandler);
+					
+				} 	 
+					  
+        </jsp:body>
+    </jsp:element>
+		
+		<!-- Ex Dividend Date -->	
+			<div class="formItem">
+				<form:label path="commandForm.exDateStr" class="required"><spring:message code="cax.rightscondition.label.exdate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.exDateStr" class="dateinput" id="exDate" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			
+		<!-- Record Date -->
+			<div class="formItem">
+				<form:label path="commandForm.recordDateStr" class="required"><spring:message code="cax.rightscondition.label.recorddate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.recordDateStr" class="dateinput" id="recordDate" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		
+		<!-- Book Closing Date -->
+			<div class="formItem">
+				<form:label path="commandForm.bookClosingDateStr"><spring:message code="cax.rightscondition.label.bookclosingdate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.bookClosingDateStr" class="dateinput" id="bookClosingDate" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+			
+		<!-- Allotment Currency -->	
+			<div class="formItem">
+				<form:label path="commandForm.allottedInstrument" class="required"><spring:message code="cax.rightscondition.label.allotedsecurityccycode" htmlEscape="false"/></form:label>
+				<span><form:input id="allottedInstrument" value="" path="commandForm.allottedInstrument" class="textBox"/></span>
+				<div class="popupBtn">
+					<input type="button" class="popupBtnIco" tgt="allottedInstrument" popType="security" value="" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Payment Date -->	
+			<div class="formItem">
+				<form:label path="commandForm.paymentDateStr" class="required"><spring:message code="cax.rightscondition.label.paymentdate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.paymentDateStr" class="dateinput" id="paymentDateValue" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Announcement Date -->	
+			<div class="formItem">
+				<form:label path="commandForm.announcementDate"><spring:message code="cax.rightscondition.label.announcementDate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.announcementDate" class="dateinput" id="announcemntDt" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Protect Expiration Date -->	
+			<div class="formItem twoCols">
+				<form:label path="commandForm.protectExpirationDate"><spring:message code="cax.rightscondition.label.protectExpirationDate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.protectExpirationDate" class="dateinput" id ="expirationDt" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			
+		<!-- Processing Frequency -->	
+		<div class="formItem" id="processFreq">
+			    <form:label path="commandForm.processingFrequency" class="required"><spring:message code="cax.rightscondition.label.processingfrequency" htmlEscape="false"/></form:label> 
+				<span>
+					<xenos:select id="processingFrequency" path="commandForm.processingFrequency" class="dropdowninput" >
+					  <form:options items="${commandForm.processingFrequencyDropdownList}" itemLabel="label" itemValue="value"/>
+					</xenos:select>
+				</span>           
+			    <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>	
+	
+	<!-- Process Start Date -->
+		<div class="formItem" id="processStartDateLable" style="display: none" >
+				<form:label path="commandForm.processStartDateStr" class="required"><spring:message code="cax.rightscondition.label.processstartdate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.processStartDateStr" class="dateinput" id="processStartDateValue" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	 <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	
+	<!-- Process End Date -->
+	<div class="formItem twoCols" id="processEndDateLable" style="display: none">
+				<form:label path="commandForm.processEndDateStr" class="required hiddenOnManual"><spring:message code="cax.rightscondition.label.processenddate" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.processEndDateStr" class="dateinput" id="processEndDateValue" onchange="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$CAX$i18n.rightsConditionEntry.date_format_check, [this.value]))}"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	 
+	<!-- External Reference No --> 
+	 <div class="formItem" id="extRef">
+				<form:label path="commandForm.externalReferenceNo"><spring:message code="cax.rightscondition.label.extrefno" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.externalReferenceNo" class="textBox" maxlength="20" id="extRefNo"/></span>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	
+	<!-- Corporate Action ID Description -->
+	<div class="formItem" id="corpIdDesc" >
+				<form:label path="commandForm.description"><spring:message code="cax.rightscondition.label.corporateActionDescription" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.description" class="txtNormal" maxlength="100"/></span>
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	<!-- Remarks -->
+	<div class="formItem" id="remarks" >
+				<form:label path="commandForm.remarks"><spring:message code="cax.rightscondition.label.remarks" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.remarks" class="txtNormal" maxlength="100"/></span>
+		  <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	</div>
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	
+			<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+	
+
+	<div class="entryBlkArea" id = "stockEntryDiv">	
+	<div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="cax.event.entry.stockmergerinfo" htmlEscape="false"/></h1>
+		</div>
+		
+		<!-- Security 	Id -->
+			<div class="formItem twoCols">
+				<form:label path="commandForm.instrumentCode" class="required"><spring:message code="cax.rightscondition.label.instrumentcode" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.instrumentCode" class="textBox" id="instrumentCode"/></span>
+				<div class="popupBtn">
+					<input type="button" class="popupBtnIco" tgt="instrumentCode" popType="security" value="" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		
+		
+		<!-- Allotment Quantity -->	
+			<div class="formItem">
+				<form:label path="commandForm.allotmentQuantityStr" class="required optionalOnInfo"><spring:message code="cax.rightscondition.label.allotmentquantity" htmlEscape="false"/></form:label>
+				<span><form:input value="" id="allotmentQuantityStr" path="commandForm.allotmentQuantityStr" class="txtNormal" onchange="formatQuantity($('#allotmentQuantityStr'),11,9,null,$('#allotmentQuantityStr').parent().parent().find('label').text())" /></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+				
+		<!-- Per Share -->	
+			<div class="formItem">
+				<form:label path="commandForm.perShareStr" class="required optionalOnInfo"><spring:message code="cax.rightscondition.label.pershare" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.perShareStr" class="txtNormal" id="perShareValue" onchange="formatQuantity($('#perShareValue'),11,9,null,$('#perShareValue').parent().parent().find('label').text())"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Ccy Cash Dividend -->
+			<div class="formItem">
+				<form:label path="commandForm.ccyCashDividend"><spring:message code="cax.rightscondition.label.ccycashdividend" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.ccyCashDividend" class="textBox" id="ccyCashDividend"/></span>
+				<div class="popupBtn">
+					<input type="button" class="popupBtnIco" tgt="ccyCashDividend" popType="currency" value="" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		
+		<!-- Allotment Amount -->
+		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			<div class="formItem">
+				<form:label path="commandForm.allotmentAmountStr" ><spring:message code="cax.rightscondition.label.allotmentamount" htmlEscape="false"/></form:label>
+				<span><form:input value="" id="allotmentAmountStr" path="commandForm.allotmentAmountStr" class="txtNormal" onchange="formatAmount($('#allotmentAmountStr'),11,9,null,$('#allotmentAmountStr').parent().parent().find('label').text())" /></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		
+		
+		<!-- Per Share (Cash Dividend) -->
+		<div class="formItem">
+				<form:label path="commandForm.perShareCashDividend" ><spring:message code="cax.rightscondition.label.persharecashdividend" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.perShareCashDividend" class="txtNormal" id="perShareCashDividend" onchange="return formatPrice($('#perShareCashDividend'),11,9,null,$('#perShareCashDividend').parent().parent().find('label').text());"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		
+		<!-- Payout CCY -->
+		<div class="formItem">
+				<form:label path="commandForm.payOutCcy"><spring:message code="cax.rightscondition.label.payoutccy" htmlEscape="false"/></form:label>
+				<span><form:input id="payOutCcy" value="" path="commandForm.payOutCcy" class="textBox" /></span>
+				<div class="popupBtn">
+					<input type="button" class="popupBtnIco" tgt="payOutCcy" popType="currency" value="" />
+				</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+			
+		<!-- Payout Price -->
+		<div class="formItem">
+				<form:label path="commandForm.payOutPriceStr"><spring:message code="cax.rightscondition.label.payoutprice" htmlEscape="false"/></form:label>
+				<span><form:input value="" path="commandForm.payOutPriceStr" class="txtNormal" id="payoutPrice" onchange="return formatPrice($('#payoutPrice'),15,3,null,$('#payoutPrice').parent().parent().find('label').text());"/></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		</div>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				
+				<spring:message code="form.button.label.addStock" htmlEscape="false" var="formadd_label"/>
+				<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+				<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+			
+				<div id="formActionArea" class="gridBtnMargin trdEntryBtnBg">
+							<div class="left">
+								<div class="btnWrapStyle submitBtn gridAddBtn">
+									<span style="display: block"><input
+										id="addStockBtn" type="button" value="${formadd_label}"
+										class="inputBtnStyle" /></span>
+								</div>
+								<span class="gridEditBtn" style="display: none">
+									<div class="btnWrapStyle submitBtn">
+										<input id="updateStockBtn" type="button"
+											value="${formsave_label}" class="inputBtnStyle" />
+									</div>
+									<div class="btnWrapStyle resetBtn">
+										<input id="cancelStockBtn" type="button"
+											value="${formcancel_label}" class="inputBtnStyle" />
+									</div>
+								</span>
+							</div>
+							<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+						
+			<div class="entryGrid" id="stockGrid">
+				<div id="stockListDetailGrid" class="xenos-grid" style="width:100%;height:110px;"><spring:message text="" htmlEscape="false"/></div>	
+			</div>
+				
+		</div>	
+			
+			
+</jsp:root>

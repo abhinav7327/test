@@ -1,0 +1,159 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:xenos="http://www.nri.co.jp/xenos" 
+	 xmlns:esjs="http://www.nri.co.jp/jstl/functions"
+	 xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+<div class="formItemArea entryContainerConfirm paddingFour">
+	 
+	<jsp:directive.page contentType="text/html;charset=UTF-8"/>
+    <jsp:output omit-xml-declaration="yes"/>
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+        var isNext = <c:out value="${isNext}" />;
+        var isPrevious = <c:out value="${isPrevious}" />;
+		var pageNo = <c:out value="${pageNo}" />;
+        var grid_result_data = [];
+            var grid_result_columns = [
+				{name:"<spring:message code="stl.label.wiretype" htmlEscape="false"/>", field:"wireType",id:"wireType",width:100,sortable:true},
+				{name:"<spring:message code="stl.label.subwiretype" htmlEscape="false"/>", field:"subWireType",id:"subWireType",width:100,sortable:true},
+				{name:"<spring:message code="stl.label.fundcode" htmlEscape="false"/>", field:"fundCode",id:"fundCode",width:65,sortable:true},
+				{name:"<spring:message code="stl.label.counterPartyAccountNo" htmlEscape="false"/>", field:"counterPartyAccountNo",id:"counterPartyAccountNo",width:90,sortable:true},
+				{name:"<spring:message code="stl.label.currency" htmlEscape="false"/>", field:"ccyCode",id:"ccyCode",width:90,sortable:true},
+				{name:"<spring:message code="stl.label.wireamount" htmlEscape="false"/>", field:"wireAmount",id:"wireAmount",cssClass:'xenos-grid-number',width:100,sortable:true},
+				{name:"<spring:message code="stl.label.tradedate" htmlEscape="false"/>", field:"formattedTradeDate",id:"tradeDate",width:100,sortable:true},
+				{name:"<spring:message code="stl.label.valuedate" htmlEscape="false"/>", field:"formattedValueDate",id:"valueDate",width:100,sortable:true},
+				{name:"<spring:message code="stl.label.gleLedgerCode" htmlEscape="false"/>", field:"gleLedgerCode",id:"gleLedgerCode",width:100,sortable:true},
+				{name:"<spring:message code="stl.label.status" htmlEscape="false"/>", field:"status",id:"status",width:65,sortable:true},
+				{name:"<spring:message code="stl.label.originalXenosReferenceNo" htmlEscape="false"/>", field:"originalXenosReferenceNo",id:"originalXenosReferenceNo",width:130,sortable:true},
+				{name:"<spring:message code="stl.label.externalReferenceNo" htmlEscape="false"/>", field:"externalReferenceNo",id:"externalReferenceNo",width:130,sortable:true},
+				{name:"<spring:message code="stl.label.originalExternalReferenceNo" htmlEscape="false"/>", field:"originalExternalReferenceNo",id:"originalExternalReferenceNo",width:130,sortable:true},
+				{name:"<spring:message code="stl.label.remarks" htmlEscape="false"/>", field:"remarks",id:"remarks",width:130,sortable:true},
+				{name:"<spring:message code="stl.label.tobank" htmlEscape="false"/>", field:"toBank",id:"toBank",width:100,sortable:true},
+				{name:"<spring:message code="stl.label.tosettleaccount" htmlEscape="false"/>", field:"toSettleAccount",id:"toSettleAccount",width:100,sortable:true},
+				{name:"<spring:message code="stl.label.frombank" htmlEscape="false"/>", field:"fromBank",id:"fromBank",width:100,sortable:true},
+				{name:"<spring:message code="stl.label.fromsettleaccount" htmlEscape="false"/>", field:"fromSettleAccount",id:"fromSettleAccount",width:100,sortable:true},
+				{name:"<spring:message code="stl.label.ownbank" htmlEscape="false"/>", field:"ownBank",id:"ownBank",width:100,sortable:true},
+				{name:"<spring:message code="stl.label.ownsettleac" htmlEscape="false"/>", field:"ownSettleAccount",id:"ownSettleAccount",width:100,sortable:true},
+				{name:"<spring:message code="stl.label.cpbank" htmlEscape="false"/>", field:"cpBank",id:"cpBank",width:100,sortable:true},
+				{name:"<spring:message code="stl.label.cpsettleac" htmlEscape="false"/>", field:"cpSettleAccount",id:"cpSettleAccount",width:100,sortable:true}
+            ];
+			
+			var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				<c:if test="${commandForm.screenId =='SCTUC'}">
+			    buttons:{
+					columnPicker:true,	
+					save:true	
+				},
+				</c:if>
+				pagingInfo:{
+				isPrevious : isPrevious,
+					isNext : isNext,
+					pageNo : pageNo,
+				   	url: '/secure/stl/cashTransfer/excel/upload/count.json'
+				},
+				urls:{
+				    nextPage : '/secure/stl/cashTransfer/excel/upload/result.json?fetch=next',
+                    prevPage : '/secure/stl/cashTransfer/excel/upload/result.json?fetch=previous'
+				},
+				saverTarget :'div#content,div#wizard-page'
+			};
+			
+            var row_id = 0;
+            var rec = {};
+            <xenos:out escapeXml="false">
+	            <c:forEach items="${commandForm.xlsBeanList}" var="dl">
+	                var item = {};
+	                row_id+=1;
+	                item.id = "xenos_" + row_id;	                
+					item.wireType = "<c:out value="${dl.wireType}" />";
+					item.subWireType = "<c:out value="${dl.subWireType}" />";
+	                item.fundCode = "<c:out value="${dl.fundCode}" />";
+	                item.counterPartyAccountNo = "<c:out value="${dl.counterPartyAccountNo}" />";
+	                item.ccyCode = "<c:out value="${dl.ccyCode}" />";
+	                item.wireAmount = "<c:out value="${dl.wireAmount}" />";
+	                item.formattedTradeDate = "<c:out value="${dl.formattedTradeDate}" />";
+	                item.formattedValueDate = "<c:out value="${dl.formattedValueDate}" />";
+	                item.gleLedgerCode = "<c:out value="${dl.gleLedgerCode}" />";
+	                item.status = "<c:out value="${dl.status}" />";
+	      			item.originalXenosReferenceNo = "<c:out value="${dl.originalXenosReferenceNo}" />";
+					item.externalReferenceNo = "<c:out value="${dl.externalReferenceNo}" />";
+	                item.originalExternalReferenceNo = "<c:out value="${dl.originalExternalReferenceNo}" />";
+	                item.remarks = "<c:out value="${dl.remarks}" />";
+	                item.toBank = "<c:out value="${dl.toBank}" />";
+	                item.toSettleAccount = "<c:out value="${dl.toSettleAccount}" />";
+	                item.fromBank = "<c:out value="${dl.fromBank}" />";
+	                item.fromSettleAccount = "<c:out value="${dl.fromSettleAccount}" />";
+	                item.ownBank = "<c:out value="${dl.ownBank}" />";
+	                item.ownSettleAccount = "<c:out value="${dl.ownSettleAccount}" />";
+	                item.cpBank = "<c:out value="${dl.cpBank}" />";
+	                item.cpSettleAccount = "<c:out value="${dl.cpSettleAccount}" />";
+	                grid_result_data.push(item);
+	            </c:forEach>
+            </xenos:out>
+		</jsp:body>
+	</jsp:element>
+	
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+		var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+			var grid;
+			var scripts = [
+				{path: xenos.context.path + '/scripts/xenos.grid.js'},
+				{path: xenos.context.path + '/scripts/xenos.columnpicker.js'}
+			];
+			var context = $xenos$Wizard.$context;
+			xenos.loadScript(scripts, {
+				ordered: true,
+				success : function() {
+					grid_result_settings.height=$('div#content').height()-150;
+					grid = $('#cashTransferUpload',context).xenosgrid(grid_result_data, grid_result_columns, grid_result_settings);
+					//$('.prevNextarea').remove();
+					if("${commandForm.screenId}" =='SCTSC') {
+						$('.btnsArea').find('.queryColumnsReset').hide();
+					}
+				}
+			});
+			var unloadHook = function(){
+				$xenos$Wizard.deregister('unload',unloadHook);
+				if(grid){
+					grid.destroy();
+					delete grid;
+				}
+			}
+			$xenos$Wizard.register('unload',unloadHook);
+		};
+	</jsp:body>
+    </jsp:element>	
+	<c:if test="${success =='false'}">
+        <!-- Error message Area -->
+        <ul class="xenosError">
+            <c:forEach items="${value}" var="dl">
+                <li><spring:message text="${dl}" htmlEscape="false"/></li>
+            </c:forEach>
+        </ul>
+    </c:if>
+	<c:if test="${commandForm.screenId =='SCTSC'}">
+		<div class="detailBlock" style="padding:0px 4px 2px 2px;">
+			<h2><spring:message code="stl.files.uploaded.complete" htmlEscape="false"/>${commandForm.noOfMessageProcessed}</h2>
+		</div>
+	</c:if>
+	<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+	<div id="cashTransferUpload" class="xenos-grid" style="padding:2px 2px 0px 2px;"><spring:message text="" htmlEscape="false"/></div>
+	<div class="clear clear-block"><spring:message text="" htmlEscape="false"/></div>
+</div>
+</jsp:root>

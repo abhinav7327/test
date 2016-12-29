@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" horizontalAlign="center" clipContent="false" implements="mx.controls.listClasses.IDropInListItemRenderer" >
+
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.controls.XenosAlert;
+			import mx.utils.ObjectUtil;
+			import mx.collections.ArrayCollection;
+			import com.nri.rui.core.controls.XenosEntryDataGrid;
+			import mx.controls.dataGridClasses.DataGridListData;
+			import mx.controls.listClasses.BaseListData;
+			
+			// Make the listData property bindable.
+    	[Bindable("dataChange")]
+		private var _listData : BaseListData;
+		
+		private var dProvider:ArrayCollection=null;
+		protected var dgrid:XenosEntryDataGrid;
+		
+		public function get listData() : BaseListData
+		{
+			return _listData;            
+		}                                        
+	
+		public function set listData( value : BaseListData ) : void
+		{
+			_listData = value;
+			
+			if(listData)
+			{
+				dgrid = XenosEntryDataGrid(listData.owner);
+				dProvider=dgrid.dataProvider as ArrayCollection ;
+			}					
+		}
+		
+		public function doClick(e:Event):void{
+		
+		var indx:int;
+		
+		var prevObject:Object=(dProvider.length>0)?dProvider.getItemAt(dProvider.length-1):null;
+		
+		if(dProvider.length<=0 || (dgrid.editedRowIndex==-1 && !(prevObject.isFreshObject as Boolean)) ){
+						
+			//For amend mode add non-editable data model			
+			var obj :Object = (dgrid.dataGridMode=="amend")?ObjectUtil.copy(dgrid.amendDataModel):new Object();
+			
+			obj.index = dgrid.dataProvider.length;
+			obj.isFreshObject= true;				
+			dProvider.addItem(obj);	
+			dProvider.refresh();	
+			//dgrid.editedRowIndex=dProvider.length-1;	
+			callLater(validateDataGrid);
+			}
+			else
+			{
+				XenosAlert.error("You must save the data before adding more rows");
+			}
+		/* indx = listData.rowIndex + dgrid.verticalScrollPosition;
+		trace("indx:"+indx)
+		dgrid.editedItemPosition ={rowIndex:indx+1,columnIndex:1}; */
+		}
+		
+		public function validateDataGrid():void{
+			if(dgrid){
+				dgrid.validateNow();
+				dgrid.verticalScrollPosition = dgrid.maxVerticalScrollPosition;
+			}
+		}
+		
+		]]>
+	</mx:Script>
+		
+
+ 	<!--<mx:Image source="@Embed('../../../../../assets/add.png')" buttonMode="true" id="add" click="doClick(event);" toolTip="Add Row" />-->
+ 	 <mx:Button label="Add New..." id="submitbtn" styleName="BtnStyle" click="doClick(event);" toolTip="Click to add new row."/>
+</mx:VBox>

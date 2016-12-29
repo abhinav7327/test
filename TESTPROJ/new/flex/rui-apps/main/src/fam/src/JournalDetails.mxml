@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- MXML module for displaying the Journal Details for a specific journal Pk and journalType -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+    xmlns:cntrls="com.nri.rui.core.controls.*" 
+    percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" 
+    verticalScrollPolicy="off" creationComplete="init()">
+    <mx:Script>
+        <![CDATA[
+        	import com.nri.rui.fam.FamConstants;
+        	import mx.utils.StringUtil;
+        	import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.binding.utils.BindingUtils;
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.controls.XenosAlert;
+            import mx.managers.FocusManager;
+            import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+            import mx.rpc.events.FaultEvent;
+            import mx.controls.Alert;
+            import com.nri.rui.core.Globals;
+            import com.nri.rui.core.utils.PrintUtils;
+            import com.nri.rui.core.controls.XenosHTTPServiceForSpring;
+            import mx.utils.ObjectUtil;
+           
+            [Bindable]private var journalResult:ArrayCollection = new ArrayCollection;
+            
+            [Bindable]private var journalResultDebit:ArrayCollection = new ArrayCollection;
+            [Bindable]private var journalResultCredit:ArrayCollection = new ArrayCollection;
+            
+            [Bindable]private var journalPk : String = XenosStringUtils.EMPTY_STR;
+            
+            [Bindable]private var journalType : String = XenosStringUtils.EMPTY_STR;
+            
+            [Bindable]
+             private var objForm:Object = null;
+            
+            [Bindable]
+             private var objTxn:Object = null;
+            
+            [Bindable]
+             private var journalDetails:Object = null; 
+             
+            [Bindable]
+             private var debitCollection:ArrayCollection = new ArrayCollection();
+             
+            [Bindable]
+             private var creditCollection:ArrayCollection = new ArrayCollection();  
+             
+            [Bindable]
+             private var commandFormId : String = XenosStringUtils.EMPTY_STR;
+             
+             private var cmdChildNode:XML =
+             <commandFormId>{commandFormId}</commandFormId>
+            
+            /**
+             * Extracts the parameters and set them to some variables for query criteria from the Module Loader Info.
+             * 
+             */ 
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split(Globals.EQUALS_SIGN);  
+                        if (tempA[0] == FamConstants.JOURNAL_PK) {
+                            journalPk = tempA[1];
+                        }else if (tempA[0] == FamConstants.JOURNAL_TYPE) {
+                            journalType = tempA[1];
+                        }else if (tempA[0] == Globals.COMMAND_FORM_ID) {
+                            commandFormId = tempA[1];
+                        }   
+                    }
+                } catch (e:Error) {
+                    trace(e);
+                }               
+            }
+            /**
+             * Initializes the module and send the submit request.
+             * 
+             */     
+            private function init():void{               
+                parseUrlString();
+                if(journalType==FamConstants.CURRENCY_CATEGORY_LC){
+                   baseCurrencyGrid.includeInLayout=false;
+                   baseCurrencyGrid.visible=false;
+                   localCurrencyGrid.includeInLayout=true;
+                   localCurrencyGrid.visible=true;
+                   
+                } else if(journalType==FamConstants.CURRENCY_CATEGORY_BC){
+                   localCurrencyGrid.includeInLayout=false;
+                   localCurrencyGrid.visible=false;
+                   baseCurrencyGrid.includeInLayout=true;
+                   baseCurrencyGrid.visible=true;
+                  
+                }
+                var rndNo:Number = Math.random();
+                journalHttpService.url= "fam/transactionQuery.spring?rnd=" + rndNo;
+                var req : Object = new Object();
+                req['method']="viewJournalDetails";
+                req[FamConstants.JOURNAL_TYPE]=this.journalType; 
+                req[FamConstants.JOURNAL_PK]=this.journalPk; 
+                journalHttpService.request=req;
+                journalHttpService.send();
+                PopUpManager.centerPopUp(this);
+            }
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function httpService_fault(evt:FaultEvent):void {
+                XenosAlert.error(evt.fault.faultDetail);
+            }
+            /**
+             * Result handler for the submit Request. 
+             * 
+             */ 
+            private function httpService_result(event:ResultEvent):void {               
+                    var result:XML = XML(event.result);  
+                    errPage.clearError(event);
+                	
+                	if (result.child("Errors").length() > 0) {
+		                  var errorInfoList : ArrayCollection = new ArrayCollection();
+		                  //populate the error info list              
+		                  for each (var error:XML in result.Errors.error) {
+		                     errorInfoList.addItem(error.toString());
+		                  }
+		                  errPage.showError(errorInfoList);//Display the error
+			    	  
+		            } else {
+		            			            	
+                        var txnCommandForm:Object = result;
+                    
+                    	errPage.clearError(event);
+                    	if(journalType==FamConstants.CURRENCY_CATEGORY_LC){ 
+                          journalDetails=txnCommandForm.lcJournal;
+                        }else if(journalType==FamConstants.CURRENCY_CATEGORY_BC){
+                          journalDetails=txnCommandForm.bcJournal;
+                        }                     
+                        populateDebitCreditData(txnCommandForm);                    
+                    }
+                           
+            }
+           
+     //This method feeds creditCollection and debitCollection
+     private function populateDebitCreditData(commandForm:Object):void{     	
+    	   // Get rid of all previously stored items
+    	   creditCollection.removeAll();
+    	   debitCollection.removeAll(); 
+    	   
+    	   var journalDetailList:Object=null;
+    	   
+    	   if(journalType==FamConstants.CURRENCY_CATEGORY_LC){
+    	   	  if(commandForm.lcJournalDetailList!=null && commandForm.lcJournalDetailList.lcJournalDetail!=null){
+    	   	  	 journalDetailList = commandForm.lcJournalDetailList.lcJournalDetail;
+    	   	  }
+    	   }else{
+    	   	 if(commandForm.bcJournalDetailList!=null && commandForm.bcJournalDetailList.bcJournalDetail!=null){
+    	   	  	 journalDetailList = commandForm.bcJournalDetailList.bcJournalDetail;
+    	   	  }
+    	   }
+    	   
+    	   // Fill up 
+    	   if(journalDetailList != null && journalDetailList is XMLList){          
+             	 var tempList:XMLList = journalDetailList as XMLList;
+             	  for each (var itemXml : XML in tempList) {            	 	  
+            	     addItemToCollection(debitCollection, creditCollection, itemXml);          	     
+      		     }            
+            }
+            
+        }
+     
+     //Adds obj to either 'debitCollection' or  'creditCollection' depending on Debit or Credit  
+     private function addItemToCollection(debitCol:ArrayCollection, creditCol:ArrayCollection, itemXml:XML):void{
+     	  var drCr:String = itemXml.child(FamConstants.DEBIT_CREDIT_FLAG)[0];
+     	  if(drCr==FamConstants.DEBIT_FLAG){
+             debitCol.addItem(itemXml);
+          }else if(drCr==FamConstants.CREDIT_FLAG){
+             creditCol.addItem(itemXml);
+         }
+     }
+  
+       
+        ]]>
+    </mx:Script>
+    <cntrls:XenosHTTPServiceForSpring id="journalHttpService"  commandFormId="{commandFormId}"
+            useProxy="false" resultFormat="xml"
+            fault="httpService_fault(event);"
+            result="httpService_result(event)" showBusyCursor="true" >
+     </cntrls:XenosHTTPServiceForSpring>
+    
+    <mx:VBox width="100%" height="0%">
+	    <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+	        <mx:Button id="Print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetail(this.detail)"/>
+	    </mx:HBox>
+    </mx:VBox>
+    
+    <mx:VBox width="100%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off">       
+        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>
+         <mx:VBox width="100%" height="100%" styleName="Padding" id="detail">
+            
+            <!--Following grid is for Journal Details (BC) -->
+             <mx:Grid id="baseCurrencyGrid" width="100%" horizontalGap="0" verticalGap="0">
+                <!-- Base Ccy & Book Date -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.baseccy')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.baseCcyStr==null? '' : journalDetails.baseCcyStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.bookdate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.baseDateStr==null? '' : journalDetails.baseDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                 <!-- Status & Posting Type-->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.status')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.statusStr==null? '' : journalDetails.statusStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.postingtype')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.postingTypeStr==null? '' : journalDetails.postingTypeStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Processed Flag & Cancel Processed Flag -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.processed.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.processedFlagStr==null? '' : journalDetails.processedFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.cancel.processed.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.cxlProcessedFlagStr==null? '' : journalDetails.cxlProcessedFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                 <!-- Entry Date & Last Entry Date-->
+                <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.appRegiDateStr==null? '' : journalDetails.appRegiDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate.last')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.appUpdDateStr==null? '' : journalDetails.appUpdDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                <!-- Entry Date (Time) & Last Entry Date (Time)-->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.creationDateStr==null? '' : journalDetails.creationDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time.last')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.updateDateStr==null? '' : journalDetails.updateDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                <!-- Entry By & Last Entry By-->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entryby')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.createdBy==null? '' : journalDetails.createdBy}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.lastentryby')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.updatedBy==null? '' : journalDetails.updatedBy}"  selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>             
+            </mx:Grid>
+            
+            <!--Following grid is for Journal Details (LC) -->
+            <mx:Grid id="localCurrencyGrid" width="100%" horizontalGap="0" verticalGap="0">
+                <!-- Book Date & Posting Type-->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.bookdate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.baseDateStr==null? '' : journalDetails.baseDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.postingtype')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.postingTypeStr==null? '' : journalDetails.postingTypeStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                 <!-- Status & -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.status')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.statusStr==null? '' : journalDetails.statusStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                
+                <!-- Processed Flag & Cancel Processed Flag -->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.processed.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.processedFlagStr==null? '' : journalDetails.processedFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.cancel.processed.flag')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.cxlProcessedFlagStr==null? '' : journalDetails.cxlProcessedFlagStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                 <!-- Entry Date & Last Entry Date-->
+                <mx:GridRow width="100%">
+                <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.appRegiDateStr==null? '' : journalDetails.appRegiDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entrydate.last')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.appUpdDateStr==null? '' : journalDetails.appUpdDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                <!-- Entry Date (Time) & Last Entry Date (Time)-->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.creationDateStr==null? '' : journalDetails.creationDateStr}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.result.label.entry.date.time.last')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.updateDateStr==null? '' : journalDetails.updateDateStr}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>
+                <!-- Entry By & Last Entry By-->
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.entryby')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.createdBy==null? '' : journalDetails.createdBy}" selectable="true" />
+                    </mx:GridItem>
+                    <mx:GridItem width="20%" styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.movementdetails.label.lastentryby')}" styleName="FormLabelHeading" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%">
+                        <mx:Label text="{journalDetails.updatedBy==null? '' : journalDetails.updatedBy}" selectable="true" />
+                    </mx:GridItem>
+                </mx:GridRow>             
+            </mx:Grid>
+            
+            <mx:Spacer height="5" />
+            
+            <!-- following HBox is for both Journal Details (LC) and Journal Details (BC) Debit | Credit -->
+            <mx:HBox id="localCurrencyHBox" width="100%" height="100%">      
+            <mx:VBox width="50%" height="100%" paddingRight="2">
+            	<mx:HBox width="100%" styleName="HeadingBackPanel" horizontalAlign="center">
+            		<mx:Label width="100%" textAlign="center" text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.debit')}" />                        
+                </mx:HBox>
+                <mx:DataGrid id="jrnlResult1" dataProvider="{this.debitCollection}" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" wordWrap="true">
+                   <mx:columns>  
+                    	<mx:DataGridColumn width="700" headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.ledgercode.colon.name')}" dataField="ledgerCodeWithShortName" textAlign="left" />                    	                         
+                    	<mx:DataGridColumn width="100" headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.ccy')}" dataField="securityIdStr" textAlign="left"/>     
+                        <mx:DataGridColumn width="250" headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.subledger')}" dataField="subLedgerCode" textAlign="left"/>                           						
+                    	<mx:DataGridColumn width="400" headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.amount')}" dataField="amountStr" textAlign="right" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" visible="true"/>                              
+                   </mx:columns>
+                 </mx:DataGrid>
+            </mx:VBox>
+            
+            <mx:VBox width="50%" height="100%" paddingLeft="2">
+            	<mx:HBox width="100%" styleName="HeadingBackPanel" horizontalAlign="center">            		
+            		<mx:Label width="100%" textAlign="center" text="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.credit')}" />
+            	</mx:HBox>
+                <mx:DataGrid id="jrnlResult2" dataProvider="{this.creditCollection}" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" wordWrap="true">
+                   <mx:columns>                           
+                        <mx:DataGridColumn width="700" headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.ledgercode.colon.name')}" dataField="ledgerCodeWithShortName" textAlign="left" />                                                
+                        <mx:DataGridColumn width="100" headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.ccy')}" dataField="securityIdStr" textAlign="left" />
+						 <mx:DataGridColumn width="250" headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.subledger')}" dataField="subLedgerCode" textAlign="left" />  
+                        <mx:DataGridColumn width="400" headerText="{this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.journaldetails.label.amount')}" dataField="amountStr" textAlign="right" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" visible="true"/>                              
+                   </mx:columns>
+                </mx:DataGrid>            	
+            </mx:VBox>            	
+            </mx:HBox>
+          </mx:VBox>  
+     </mx:VBox>
+</mx:Module>

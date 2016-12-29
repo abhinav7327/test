@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:controls="*" layout="vertical" styleName="PopupTitleWindow" creationComplete="initChildren()" >
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.utils.StringUtil;
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.collections.ArrayCollection;
+			[Bindable]	
+			public var dProvider:ArrayCollection;
+			[Bindable]	
+			public var failInstructionList:ArrayCollection;
+			
+			[Bindable]
+			public var formData : XML;
+			
+			[Bindable]
+			public var operationObj : String;
+			private function getAccountNo(item:Object, column:DataGridColumn):String{
+                return item.cpTradingAccount;
+            }
+            private function getLocalAccountNo(item:Object, column:DataGridColumn):String{
+                 return item.localAccountNo;
+            }
+            private function getInstrumentCode(item:Object, column:DataGridColumn):String{
+                return item.instrumentCode;
+            }
+            private function getAltSecurityCode(item:Object, column:DataGridColumn):String{
+                 return item.altSecurityCode;
+            }
+			
+			private function initChildren():void {
+				if(XenosStringUtils.equals(operationObj,"RESEND") ||
+					XenosStringUtils.equals(operationObj,"MESSAGE_CANCELLATION")){
+						testkey.includeInLayout = true;		
+						testkey.visible = true;				
+				}else {
+					testkey.includeInLayout = false;
+					testkey.visible = false;			
+				}
+				
+				if(XenosStringUtils.equals(operationObj,"SEND_NEW") ||
+					XenosStringUtils.equals(operationObj,"MARK_AS_TRANSMITTED")){
+						if(formData.excessQuantityCheckFailed == true){
+							trxConfirm.includeInLayout = true;		
+							trxConfirm.visible = true;
+						}				
+				}else {
+					trxConfirm.includeInLayout = false;
+					trxConfirm.visible = false;			
+				}
+				if(formData.excessQuantityCheckFailed == false || formData.selectedViewListSize >0){
+					okButton.includeInLayout = true;
+					okButton.visible = true;
+				}else{
+					okButton.includeInLayout = false;
+					okButton.visible = false;
+				}
+				vstack.selectedChild = uconfirm;
+			}
+			
+			private function getFirmBrokerCode(item:Object,column : DataGridColumn):String {
+				var obj:XML = XML(item);
+				
+				if(obj.child("brokerCode").length()>0) 
+					return item.displayAccountNo+"("+item.brokerCode+")";
+				else
+					return item.displayAccountNo+"()";
+            }
+            
+            private function getReferenceNo(item:Object,column : DataGridColumn):String {
+            	return item.settlementReferenceNo+"-"+item.versionNo;
+            }
+            
+            private function getTrxStatus(item:Object,column : DataGridColumn):String {
+            	
+            	if(item.status == "CANCEL") 
+            		return "CANCELLED";
+            	else 
+            		return item.transmissionStatus;
+            }
+            
+            private function getAckStatus(item:Object,column : DataGridColumn):String{
+            	
+            	var obj:XML = XML(item);
+            	            		 
+            	var acceptanceStatus:String = obj.child("acceptanceStatus").toString();
+            	
+            	if(StringUtil.trim(acceptanceStatus) == Globals.EMPTY_STRING) {
+            		acceptanceStatus = "";
+            	}
+            	            	
+            	if(item.status == Globals.STATUS_NORMAL) {
+            		if(item.transReqdForCxl == "N") {
+            			return "(Marked)";
+            		} else {
+            			return acceptanceStatus;
+            		}
+            	}
+            	return acceptanceStatus;
+            }
+            
+            private function getCxlAckStatus(item:Object,column : DataGridColumn):String{
+            	
+            	var obj:XML = XML(item);
+            	
+            	if(item.status == Globals.STATUS_CANCEL) {
+            		if(item.transReqdForCxl == "N") {
+            			if(item.acceptanceStatus == "NG") {
+            				return XenosStringUtils.EMPTY_STR;
+            			} else {
+            				return "(Reset)";
+            			}
+            		} else if(item.transReqdForCxl == "Y") {
+            			return item.cxlAcceptanceStatus;
+            		} else if(!obj.child("transReqdForCxl").length()>0) {
+            			return "(Expired)";
+            		}
+            	}
+            	return "";
+            }
+            
+            private function getFundAccountNo(item:Object, column:DataGridColumn):String{
+	    	return item.fundAccountNo;
+	    }
+		]]>
+	</mx:Script>
+	<mx:Script source="actionscripts/TrxConfirm.as"/>
+	
+	<mx:states>
+        <mx:State name="confirm">
+            <mx:SetProperty target="{lbl2}" name="includeInLayout" value="false"/>
+            <mx:SetProperty target="{lbl2}" name="visible" value="true"/>
+            <!--mx:SetProperty target="{lbl1}" name="text" value="{this.parentApplication.xResourceManager.getKeyValue('stl.trxmaintenance.message.transactioneligible')}"/-->
+            <!--Setting label and changing the click properties of OK button -->
+            <mx:SetEventHandler target="{okBtn}" name="click" handler="submitConfirm()" />
+        </mx:State>
+    </mx:states>
+    
+	<cntrls:XenosHTTPService id="inxPreConfirm" 
+         url="stl/trxMaintenanceDetailsDispatch.action?method=submitPreConfirm" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultDetail);okButton.enabled=true;"
+         result="preConfirm(event)" showBusyCursor="true" resultFormat="xml"/>
+    
+    <cntrls:XenosHTTPService id="inxSubmitConfirm" 
+         url="stl/trxMaintenanceDetailsDispatch.action?method=submitConfirm" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultDetail)"
+         result="preConfirm(event)" showBusyCursor="true" resultFormat="xml"/>
+              
+	<mx:ViewStack id="vstack" width="100%" height="100%">
+		<mx:VBox width="100%" height="100%" id="uconfirm">
+		<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		<mx:DataGrid id="confirmSummary" width="100%" height="100%" dataProvider="{dProvider}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" >
+	         <mx:columns>
+	         	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.stlrefnoversion')}" width="130" dataField="" labelFunction="getReferenceNo" editable="false"/>
+	         	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.valuedate')}" dataField="valueDateStr" visible="false" editable="false"/>
+	         	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.counterpartyac')}" dataField="cpTradingAccount" editable="false" visible="false"/>
+	         	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.localac')}" dataField="localAccountNo" visible="false" labelFunction="getLocalAccountNo" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer"/>
+	         	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundaccountno')}" dataField="fundAccountNo" editable="false"/>
+	        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.delrec')}" dataField="deliverReceiveDisplay" editable="false"/>
+	        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.securitycode')}" dataField="instrumentCode" editable="false"/>
+	        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.securityname')}" dataField="securityShortName" editable="false"/>
+	        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.altsec')}" dataField="altSecurityCode" labelFunction="getAltSecurityCode" visible="false" editable="false"/>
+	        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.quantity')}" dataField="instructionQuantityStr" textAlign="right" editable="false"/>
+	        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ccy')}" dataField="ccyCode" editable="false"/>
+	        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.amount')}" dataField="instructionAmountStr" textAlign="right" editable="false"/>
+	        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.brokerbank')}" dataField="cpBankDisplay" editable="false"/>
+	             <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.psetcode')}" dataField="psetDisplay" editable="false"/>
+	             <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.receiverbic')}" dataField="firmBank" editable="false"/>
+	             <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.firmac')}" dataField="" labelFunction="getFirmBrokerCode" editable="false"/>
+	             <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.transmissionstatus')}" dataField="" labelFunction="getTrxStatus" editable="false"/>
+	             <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.ackstatus')}" dataField="status" labelFunction="getAckStatus" editable="false"/>
+	             <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.cxlackstatus')}" dataField="acceptanceStatus" labelFunction="getCxlAckStatus" editable="false" visible="false"/>
+	        </mx:columns>
+	    </mx:DataGrid>
+	    <controls:TrxConfirmOk id="trxConfirm" dataProvider="{failInstructionList}" includeInLayout="false" visible="false"/>
+	    <mx:VBox width="100%" id="testkey" includeInLayout="false" visible="false">
+	    	<mx:Grid borderThickness="0" width="100%">
+			 <mx:GridRow width="100%">
+			 	<mx:GridItem width="20%" borderThickness="0">
+				 	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.trxmaintenance.label.testkey')}" />
+				 </mx:GridItem>
+				 <mx:GridItem width="30%" borderThickness="0">
+				 	<mx:TextInput id="key" />
+				 </mx:GridItem>
+				 <mx:GridItem width="20%" borderThickness="0">
+				 	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.trxmaintenance.label.priority')}" />
+				 </mx:GridItem>
+				 <mx:GridItem width="30%" borderThickness="0">
+				 	<mx:TextInput id="pr" />
+				 </mx:GridItem>
+			 </mx:GridRow>
+	    	 <mx:GridRow width="100%">
+	    	 	 <mx:GridItem width="20%" borderThickness="0">
+				 	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.trxmaintenance.label.remarks1')}" />
+				 </mx:GridItem>
+				 <mx:GridItem width="30%" borderThickness="0">
+				 	<mx:TextInput id="rm1" />
+				 </mx:GridItem>
+				 <mx:GridItem width="20%" borderThickness="0">
+				 	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.trxmaintenance.label.remarks2')}" />
+				 </mx:GridItem>
+				 <mx:GridItem width="30%" borderThickness="0">
+				 	<mx:TextInput id="rm2" />
+				 </mx:GridItem>
+			 </mx:GridRow>
+			</mx:Grid> 
+	    </mx:VBox>
+	    <mx:HBox width="100%" styleName="ButtonBackPanel"> 
+		 	<mx:Button id="okButton" label="OK" click="confirmData(event)" styleName="BtnStyle"/>
+	    	<mx:Button id="cancelButton" label="Cancel" click="removeTrxPop(event)" styleName="BtnStyle"/>
+		</mx:HBox> 
+		</mx:VBox>
+		<mx:VBox width="100%" height="100%" id="sconfirm">
+			
+	    	<mx:HBox width="100%" styleName="ButtonBackPanel">
+	    		<mx:Grid width="100%" horizontalGap="0" verticalGap="0" borderThickness="0">
+	    			<mx:GridRow width="100%" horizontalGap="0" verticalGap="0" borderThickness="0">
+	    				<mx:GridItem width="20" horizontalGap="0" verticalGap="0" borderThickness="0">
+	    					<mx:Image source="@Embed('../../assets/themes/default/skin/icon_info.png')" width="16" height="16" verticalAlign="middle"/>
+	    				</mx:GridItem>
+	    				<mx:GridItem horizontalGap="0" verticalGap="0" borderThickness="0">
+	    					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.label.confirm.txn')}" id="lbl1" fontWeight="bold" /> 
+	    				</mx:GridItem>
+	    			</mx:GridRow>
+	    				    		
+	    			<mx:GridRow id="lbl2" width="100%" horizontalGap="0" verticalGap="0" borderThickness="0">
+	    				<mx:GridItem width="20" horizontalGap="0" verticalGap="0" borderThickness="0">
+	    					
+	    				</mx:GridItem>
+	    				<mx:GridItem horizontalGap="0" verticalGap="0" borderThickness="0">
+	    					<mx:Label text="{trxNoLbl}" fontWeight="bold" selectable="true" />
+	    				</mx:GridItem>
+	    			</mx:GridRow>
+	    		</mx:Grid>
+	    	</mx:HBox>	    	
+	    	
+			<mx:DataGrid id="uconfirmSummary" width="100%" height="100%" dataProvider="{summary}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" >
+		         <mx:columns>
+		         	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.stlrefnoversion')}" width="130" dataField="" labelFunction="getReferenceNo" itemRenderer="com.nri.rui.stl.renderers.SettlementInstructionDetailRenderer"/>
+		         	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.valuedate')}" dataField="valueDateStr"/>
+		         	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.firmac')}" dataField="" labelFunction="getFirmBrokerCode"/>
+		         	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.seccode')}" dataField="instrumentCode"/>
+		         	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ccy')}" dataField="ccyCode"/>
+		         	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.inxrefno')}" dataField="instructionRefNo"/>
+		        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.amount')}" dataField="instructionAmountStr" textAlign="right"/>
+		        	 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.delrec')}" dataField="deliverReceiveDisplay"/>
+		        </mx:columns>
+		    </mx:DataGrid>
+		    <mx:HBox width="100%" styleName="ButtonBackPanel">
+		 		<mx:Grid width="100%" horizontalGap="0" verticalGap="0" borderThickness="0">
+					<mx:GridRow width="100%" horizontalGap="0" verticalGap="0" borderThickness="0">
+		 				<mx:GridItem horizontalGap="0" verticalGap="0" borderThickness="0">
+		    				<mx:Label text="Instruction-Transaction Report" fontWeight="bold" selectable="true" />
+		    			</mx:GridItem>
+		    		</mx:GridRow>
+		    	</mx:Grid>
+		    </mx:HBox>	
+		    <mx:DataGrid id="uconfirmReportSummary" width="100%" height="100%" dataProvider="{summaryReport}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" >
+		    	<mx:columns>		    	
+		    		<mx:DataGridColumn headerText="Report Ref. No" width="130" dataField="reportReferenceNo" />
+		    		<mx:DataGridColumn headerText="Fund Account" dataField="fundAccountPk" labelFunction="getFundAccountNo" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer" />
+		    		<mx:DataGridColumn headerText="Download Report" dataField="" itemRenderer="com.nri.rui.stl.renderers.InstructionReportXlsPdfRenderer" />
+		    	</mx:columns>
+		    </mx:DataGrid>
+		    
+		     <mx:HBox width="100%" styleName="ButtonBackPanel"> 
+			 	<mx:Button id="okBtn" label="OK" click="removeTrxPop(event)" styleName="BtnStyle"/>
+		     </mx:HBox>
+		</mx:VBox>
+	</mx:ViewStack>	
+</mx:TitleWindow>

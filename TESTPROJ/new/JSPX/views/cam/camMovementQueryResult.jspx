@@ -1,0 +1,130 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div>
+    
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element> 
+
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;	
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [
+              	{name:"<spring:message code="cam.movementquery.label.fundaccountno" htmlEscape="false"/>",field:"accountPrefix",id:"accountPrefix",	width:130,	sortable:true,	formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'accountPk'}},
+				{name:"<spring:message code="cam.movementquery.label.fundaccountname" htmlEscape="false"/>",field:"accountName",id:"accountName",width:130,	sortable:true},
+              	{name:"<spring:message code="ref.fund.label.fundcode" htmlEscape="false"/>",field:"fundCode",id:"fundCode",width:130,	sortable:true,formatter:Slick.Formatters.FundDetailViewFormatter},
+				{name:"<spring:message code="ref.fund.label.fundName" htmlEscape="false"/>",field:"fundName",id:"fundName",	width:130,	sortable:true},
+				{name:"<spring:message code="cam.movementquery.label.securitycode" htmlEscape="false"/>",field:"securityId",id:"securityId", width:100,sortable:true, formatter:Slick.Formatters.InstrumentDetailViewFormater},
+				{name:"<spring:message code="cam.movementquery.label.securityname" htmlEscape="false"/>",field:"instrumentName",id:"instrumentName", width:170,sortable:true},
+				{name:"<spring:message code="cam.security.label.alternatesecurity" htmlEscape="false"/>",field:"alternateSecurity",id:"alternateSecurity", width:180,sortable:true},
+				{name:"<spring:message code="cam.movementquery.label.refno" htmlEscape="false"/>", field:"transactionRefNo",id:"transactionRefNo", width:130,sortable:true, formatter:Slick.Formatters.CamTransactionDetailFormatter},
+				{name:"<spring:message code="cam.movementquery.label.basedate" htmlEscape="false"/>", field:"baseDateDisp",id:"baseDateDisp", width:91,sortable:true},
+				{name:"<spring:message code="cam.movementquery.label.tradedate" htmlEscape="false"/>", field:"tradeDateDisp",id:"tradeDateDisp", width:91,sortable:true},
+				{name:"<spring:message code="cam.movementquery.label.valuedate" htmlEscape="false"/>", field:"valueDateDisp",id:"valueDateDisp", width:91,sortable:true},
+				{name:"<spring:message code="cam.movementquery.label.movementdescription" htmlEscape="false"/>",field:"description",id:"description", width:400,sortable:true},
+				{name:"<spring:message code="cam.movementquery.label.quantity" htmlEscape="false"/>",field:"amountDisp",id:"amountDisp",cssClass:'xenos-grid-number',width:91,sortable:true},
+				{name:"<spring:message code="cam.movementquery.label.price" htmlEscape="false"/>",field:"formattedPrice",id:"formattedPrice",cssClass:'xenos-grid-number',width:91,sortable:true},
+				{name:"<spring:message code="cam.movementquery.label.balance" htmlEscape="false"/>",field:"balanceDisp",id:"balanceDisp",cssClass:'xenos-grid-number',width:91,sortable:true,formatter:Slick.Formatters.NegetiveBalanceFormatter},
+				{name:"<spring:message code="cam.movementquery.label.principalamount" htmlEscape="false"/>",field:"ruiPrincipalAmount",id:"ruiPrincipalAmount",cssClass:'xenos-grid-number',width:91,sortable:true,formatter:Slick.Formatters.NegetiveBalanceFormatter},
+				
+			];              	
+		var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				buttons:{
+		           print:true,	
+					xls:true,	
+					pdf:true,	
+					xlsPref:true,
+					columnPicker:true,	
+					save:true
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+					url: 'secure/cam/movement/query/count.json'
+				},
+				resolveBgColor : function(row){
+					if(row.description === 'CLOSING BALANCE'){
+						return '#FF80FF';
+					}
+					return '';
+				},
+
+				urls:{
+					nextPage : '/secure/cam/movement/query/result.json?fetch=next',
+					prevPage : '/secure/cam/movement/query/result.json?fetch=previous',
+					pdfReport: '/secure/cam/movement/query/report.json?outputType=pdf',
+					xlsReport: '/secure/cam/movement/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/cam/movement/query/reportPref.json?outputType=xls'									
+				},
+				events:{
+					onDataUpdate: function(data,continueUpdate){
+						for(i in data.value){
+							data.value[i].instrumentPk = data.value[i].instrumentPk;
+						}
+						continueUpdate(data);
+					}
+				},
+				defaultInvisibleColumns: [
+					"accountName",
+					"formattedPrice",
+					"ruiPrincipalAmount"]
+			};
+
+            var row_id = 0;			
+            var rec = {};
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+                rec.id = "xenos_" + row_id;
+				rec.accountPk					= "<c:out value="${dl.accountPk}" />";
+				rec.accountPrefix				= "<c:out value="${dl.accountPrefix}" />";
+				rec.accountName					= "<c:out value="${dl.accountName}" />";
+				rec.fundCode					= "<c:out value="${dl.fundCode}" />";
+				rec.fundName				    = "<c:out value="${dl.fundName}" />";
+				rec.securityId					= "<c:out value="${dl.securityId}" />";
+                rec.instrumentName				= "<c:out value="${dl.instrumentName}" />";
+				rec.alternateSecurity			= "<c:out value="${dl.alternateSecurity}" />";
+				rec.transactionRefNo			= "<c:out value="${dl.transactionRefNo}" />";
+				rec.baseDateDisp				= "<c:out value="${dl.baseDateDisp}" />";
+				rec.tradeDateDisp				= "<c:out value="${dl.tradeDateDisp}" />";
+				rec.valueDateDisp				= "<c:out value="${dl.valueDateDisp}" />";
+				rec.description					= "<c:out value="${dl.description}" />";
+				rec.amountDisp					= "<c:out value="${dl.amountDisp}" />";
+				rec.formattedPrice				= "<c:out value="${dl.formattedPrice}" />";
+				rec.balanceDisp					= "<c:out value="${dl.balanceDisp}" />";
+				rec.ruiPrincipalAmount			= "<c:out value="${dl.ruiPrincipalAmount}" />";
+				rec.fundPk                      = "<c:out value="${dl.fundPk}" />";
+				rec.instrumentPk                = "<c:out value="${dl.instrumentPk}" />";
+				rec.module                      = "<c:out value="${dl.module}" />";
+                rec.triggeringTxnPk             = "<c:out value="${dl.triggeringTxnPk}" />";
+			
+               
+                grid_result_data.push(rec);
+            </c:forEach>
+
+
+        </jsp:body>
+    </jsp:element>
+	
+</div>
+</jsp:root>

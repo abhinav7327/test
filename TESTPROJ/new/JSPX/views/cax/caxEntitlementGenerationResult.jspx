@@ -1,0 +1,132 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext 			= <c:out value="${isNext}" />;
+			var isPrevious 		= <c:out value="${isPrevious}" />;
+            var pageNo 			= <c:out value="${pageNo}" />;
+			var lmOffice 		= "";
+			var fundCategory 	= "";
+			
+			<c:if test ="${not empty commandForm.lmOffice}">
+			   lmOffice = "<c:out value="${commandForm.lmOffice}"/>";
+			</c:if>
+			<c:if test ="${not empty commandForm.fundCategory}">
+			  fundCategory = "<c:out value="${commandForm.fundCategory}"/>";
+			</c:if>
+
+            var grid_result_data = [];
+            var grid_result_columns = [
+					    	
+				{name:"<spring:message code="cax.entitlement.label.caEventRefNo" htmlEscape="false"/>", field:"conditionReferenceNo", id:"conditionReferenceNo", sortable: true, width:120, formatter:Slick.Formatters.EventDetailViewFormater},				
+                {name:"<spring:message code="cax.entitlement.label.eventtype" htmlEscape="false"/>", field:"subEventTypeDescription", id:"subEventTypeDescription", sortable: true, width:200},
+				{name:"<spring:message code="cax.entitlement.label.eventtypename" htmlEscape="false"/>", field:"eventTypeName", id:"eventTypeName", sortable: true, width:160},
+                {name:"<spring:message code="cax.entitlement.label.eventtypestatus" htmlEscape="false"/>", field:"conditionStatus", id:"conditionStatus", width:110, sortable: true },
+				{name:"<spring:message code="cax.entitlement.label.instrumentcode" htmlEscape="false"/>", field:"instrumentCode", id:"instrumentCode", width:120, sortable: true, formatter:Slick.Formatters.InstrumentDetailViewFormater},
+                {name:"<spring:message code="cax.entitlement.label.securityname" htmlEscape="false"/>", field:"instrumentName", id:"instrumentName", width:240, sortable: true },
+                {name:"<spring:message code="cax.entitlement.label.alternate.instrumentcode" htmlEscape="false"/>", field:"alternateSecurity", id:"alternateSecurity", width:170, sortable: true},
+                {name:"<spring:message code="cax.entitlement.label.allotmentinstrument" htmlEscape="false"/>", field:"allotmentInstCode", id:"allotmentInstCode", width:170, sortable: true, formatter:Slick.Formatters.AllotmentInstrumentDetailViewFormater},
+                {name:"<spring:message code="cax.entitlement.label.allottedsecurityname" htmlEscape="false"/>", field:"allotedInstrumentName", id:"allotedInstrumentName", width:240, sortable: true },
+                {name:"<spring:message code="cax.entitlement.label.alternate.allotedinstrumentcode" htmlEscape="false"/>", field:"alternateAllottedSecurity", id:"alternateAllottedSecurity", width:200, sortable: true},
+                {name:"<spring:message code="cax.entitlement.label.exdate" htmlEscape="false"/>", field:"executionDateStr", id:"executionDateStr", width:100, sortable: true },
+                {name:"<spring:message code="cax.entitlement.label.paymentdate" htmlEscape="false"/>", field:"paymentDateStr", id:"paymentDateStr", width:100, sortable: true },
+                {name:"<spring:message code="cax.entitlement.label.grossamountqty" htmlEscape="false"/>", field:"allottedAmountQtyStr", id:"allottedAmountQtyStr", cssClass: 'xenos-grid-number', width:150, sortable: true },
+                {name:"<spring:message code="cax.entitlement.label.pershare" htmlEscape="false"/>", field:"perShareStr", id:"perShareStr", cssClass: 'xenos-grid-number', width:100, sortable: true },
+                {name:"<spring:message code="cax.entitlement.label.couponrate" htmlEscape="false"/>", field:"allotmentPercentage", id:"allotmentPercentage", cssClass: 'xenos-grid-number', width:100, sortable: true },
+				{name:"<spring:message code="cax.entitlement.label.status" htmlEscape="false"/>", field:"status",id:"status",width:120,sortable:true, formatter:Slick.Formatters.CancelRecordFormatter },
+				{name:"<spring:message code="cax.entitlement.label.exceptionflag" htmlEscape="false"/>", field:"exceptionFlag", id:"exceptionFlag", width:130, sortable: true },
+			];
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:true,
+				emptyColumnCheck:false,
+				buttons: {
+					print:true,	
+					xls:true,	
+					xlsPref:true,
+					pdf:true,					
+					columnPicker:true,	
+					save:true					
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					url: '/secure/cax/entitlement/generation/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/cax/entitlement/generation/query/result.json?fetch=next',
+					prevPage : '/secure/cax/entitlement/generation/query/result.json?fetch=previous',
+					pdfReport: '/secure/cax/entitlement/generation/query/report.json?outputType=pdf',
+					xlsReport: '/secure/cax/entitlement/generation/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/cax/entitlement/generation/query/reportPref.json?outputType=xls'
+				},
+				
+				defaultInvisibleColumns: ["status"]	
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;			
+				rec.conditionReferenceNo 		= "<c:out value="${dl.conditionReferenceNo}" />";
+				rec.subEventTypeDescription 	= "<c:out value="${dl.subEventTypeDescription}" />";
+				rec.eventTypeName 				= "<c:out value="${dl.eventTypeName}" />";
+				rec.conditionStatus 			= "<c:out value="${dl.conditionStatus}" />";
+				rec.instrumentCode 				= "<c:out value="${dl.instrumentCode}" />";
+				rec.instrumentName 				= "<c:out value="${dl.instrumentName}" />";
+				rec.alternateSecurity 			= "<c:out value="${dl.alternateSecurity}" />";
+				rec.allotmentInstCode 			= "<c:out value="${dl.allotmentInstCode}" />";
+				rec.allotedInstrumentName 		= "<c:out value="${dl.allotedInstrumentName}" />";
+				rec.alternateAllottedSecurity 	= "<c:out value="${dl.alternateAllottedSecurity}" />";
+				rec.executionDateStr 			= "<c:out value="${dl.executionDateStr}" />";
+				rec.paymentDateStr 				= "<c:out value="${dl.paymentDateStr}" />";
+				rec.allottedAmountQtyStr 		= "<c:out value="${dl.allottedAmountQtyStr}" />";
+				rec.perShareStr 				= "<c:out value="${dl.perShareStr}" />";
+				rec.allotmentPercentage 		= "<c:out value="${dl.allotmentPercentage}" />";
+				rec.status 						= "<c:out value="${dl.status}" />";
+				rec.exceptionFlag 				= "<c:out value="${dl.exceptionFlag}" />";
+                rec.rightsConditionPk 			= "<c:out value="${dl.rightsConditionPk}" />";
+				rec.instrumentPk 			    = "<c:out value="${dl.instrumentPk}" />";
+				rec.allotmentInstPk 			= "<c:out value="${dl.allotmentInstPk}" />";
+			
+                grid_result_data.push(rec);
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+	
+	
+	<div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			  <a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'CAXENTE')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-amendIco.png" title="${record.actionName}" id="entry" status="ready" alt="Entry" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			  </a>
+		</c:forEach>	  
+	</div>	
+
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/cax/entitlementGeneration.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>
+	
+</jsp:root>

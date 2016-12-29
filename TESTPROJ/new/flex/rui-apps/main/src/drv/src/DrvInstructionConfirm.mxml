@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" 
+				xmlns:cntrls="com.nri.rui.core.controls.*" 
+				xmlns:containers="com.nri.rui.core.containers.*" 
+				xmlns:controls="*" layout="vertical" styleName="PopupTitleWindow" showCloseButton="true" close="removeMe();">
+				
+<mx:Script>
+	<![CDATA[
+		import mx.collections.ArrayCollection;
+		import com.nri.rui.core.controls.XenosAlert;
+		import mx.controls.dataGridClasses.DataGridColumn;
+		import mx.events.DataGridEvent;
+		
+		[Bindable]internal var dataprovider:ArrayCollection = new ArrayCollection();
+		[Bindable]internal var noOfSelectedRecord:int = 0;
+		
+		private function getTradeRefVerNo(item:Object ,column:DataGridColumn):String{
+			if(item.versionNo=='0'){
+            		return item.tradeRefNo;
+            	}
+            	else{
+            		return item.tradeRefNo+"-"+item.versionNo;
+            	}        	
+        }
+       /**
+        * Retrieve and return the Fund Account Number.
+        */
+        private function getFundAccNo(item:Object, column : DataGridColumn):String {
+            return item.fundPrefix+ ';' +item.fundAccountNo;
+        } 
+            
+		/**
+		 * Retrieve and return the Broker Account Number.
+		 */
+		private function  getBrokerAccNo (item:Object,column : DataGridColumn):String {
+			return item.brokerPrefix+ ';' +item.brokerAccountNo;
+		}                        
+		
+		/**
+		 * Retrieve and return the Execution Broker Account Number.
+		 */
+		private function  getExeBrokerAccNo (item:Object,column : DataGridColumn):String {
+			return item.executionBrokerPrefix+ ';' +item.executionBrokerAccountNo;
+		}
+	    
+	]]>
+</mx:Script>	
+<mx:Script source="actionscripts/DrvInstructionConfirm.as"/>
+
+<cntrls:XenosHTTPService id="inxPreConfirm" resultFormat="xml"
+         url="drv/drvInstructionDetailDispatch.action?method=doConfirm" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultDetail);okButton.enabled=true;"
+         result="preConfirm(event)" showBusyCursor="true" />
+
+<mx:ViewStack id="vstack" width="100%" height="100%">
+	<mx:VBox width="100%" height="100%" id="uconfirm">
+	<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		<mx:HBox width="100%" styleName="ButtonBackPanel" id="headertext" includeInLayout="false" visible="false">
+	   		<mx:Grid width="100%" horizontalGap="0" verticalGap="0" borderThickness="0">
+	   			<mx:GridRow width="100%" horizontalGap="0" verticalGap="0" borderThickness="0">
+	   				<mx:GridItem width="20" horizontalGap="0" verticalGap="0" borderThickness="0">
+	   					<mx:Image source="@Embed('../../assets/themes/default/skin/icon_info.png')" width="16" height="16" verticalAlign="middle"/>
+	   				</mx:GridItem>
+	   				<mx:GridItem horizontalGap="0" verticalGap="0" borderThickness="0">
+	   					<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.label.confirm.txn')}" id="lbl1" fontWeight="bold" /> 
+	   				</mx:GridItem>
+	   			</mx:GridRow>
+    			<mx:GridRow id="lbl2" width="100%" horizontalGap="0" verticalGap="0" borderThickness="0">
+    				<mx:GridItem width="20" horizontalGap="0" verticalGap="0" borderThickness="0">
+	    			</mx:GridItem>
+					<mx:GridItem horizontalGap="0" verticalGap="0" borderThickness="0">
+						<mx:Label text="{drvNoLbl}" fontWeight="bold" selectable="true" />
+					</mx:GridItem>
+	   			</mx:GridRow>
+	    	</mx:Grid>
+	    </mx:HBox>
+		<cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{dataprovider}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto"> 
+			<cntrls:columns>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.referenceno')}" dataField="tradeRefNo" width="110" textAlign="left" visible="true" labelFunction="getTradeRefVerNo" sortable="false" itemRenderer="com.nri.rui.drv.rendrers.TradeDetailsRenderer" id="trdRefNo"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.contractreferenceno')}" dataField="contractReferenceNo" textAlign="left" visible="true" sortable="false" width="160" itemRenderer="com.nri.rui.drv.rendrers.ContractDetailsRenderer"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradedate')}" dataField="tradeDateStr" width="90" textAlign="left" visible="true" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securitycode')}" dataField="securityCode" width="100" textAlign="left" visible="true" sortable="false" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.instruction.label.securityshortname')}" dataField="securityShortName" width="150" textAlign="left" visible="true" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.securitycodecrossref')}" dataField="securityCodeCrossRefDis" width="170" textAlign="left" visible="true" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.common.label.alternatesecurityid')}" dataField="alternateSecCodeDisp" width="150" textAlign="left" visible="true" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.instruction.label.underlyingshortname')}" dataField="underlyingShortName" width="160" textAlign="left" visible="true" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.accountno')}" dataField="brokerAccountPk" labelFunction="getBrokerAccNo" textAlign="left" visible="true" width="130" sortable="false" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.accountname')}" dataField="brokerAccountName" textAlign="left" visible="true" width="150" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.exebrokeraccountno')}" dataField="executionBrokerAccountPk" textAlign="left" labelFunction="getExeBrokerAccNo" visible="true" width="200" sortable="false" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.exebrokeraccountname')}" dataField="executionBrokerAccountName" textAlign="left" visible="true" width="220" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundaccountno')}" dataField="fundAccountPk" labelFunction="getFundAccNo" textAlign="left" visible="true" width="130" sortable="false" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundaccountname')}" dataField="fundAccountName" textAlign="left" visible="true" width="140" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.bankaccountcrossref')}" dataField="bankAccCrossRef" textAlign="left" visible="true" width="170" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundcode')}" dataField="fundCode" textAlign="left" visible="true" width="90" sortable="false" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.fundname')}" dataField="fundName" textAlign="left" visible="true" width="120" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.opencloseposition')}" dataField="openCloseFlagDisp" textAlign="left" visible="true" width="150" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.status')}" dataField="status" textAlign="left" visible="true" width="80" sortable="false" itemRenderer="com.nri.rui.core.renderers.StatusRenderer"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.agentbankid')}" dataField="cpBankId" textAlign="left" visible="true" width="120" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.agentbankidtype')}" dataField="cpBankCodeType" textAlign="left" width="150" visible="true" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.brokerbic')}" dataField="brokerBic" textAlign="left" visible="true" width="90" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.quantity')}" dataField="quantityStr" textAlign="right" visible="true" width="100" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.price')}" dataField="priceStr" textAlign="right" visible="true" width="100" sortable="false"/>
+                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradeccy')}" dataField="tradingCurrency" textAlign="left" width="120" visible="true" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.issueccy')}" dataField="issueCurrency" textAlign="left" width="120" visible="true" sortable="false"/>				
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.marketplace')}" dataField="marketCode" textAlign="left" visible="true" width="100" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.func')}" dataField="func" textAlign="left" visible="true" width="60" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.datasource')}" dataField="dataSource" textAlign="left" visible="true" width="100" sortable="false"/>
+				<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.receiverbic')}" dataField="receiverBic" textAlign="left" visible="true" width="100" sortable="false"/>
+			</cntrls:columns>
+		</cntrls:CustomDataGrid>
+		<mx:HBox width="100%" styleName="ButtonBackPanel" id="uconfirmOk" includeInLayout="true" visible="true"> 
+		 	<cntrls:XenosButton id="okButton" label="OK" click="confirmData()" styleName="BtnStyle"/>
+	    	<cntrls:XenosButton id="cancelButton" label="Cancel" click="removeDrvPop(event)" styleName="BtnStyle"/>
+		</mx:HBox>
+		<mx:HBox width="100%" styleName="ButtonBackPanel" id="sconfirmOK" includeInLayout="false" visible="false"> 
+			<cntrls:XenosButton id="okBtn" label="OK" click="removeDrvPop(event)" styleName="BtnStyle"/>
+		</mx:HBox>		
+	</mx:VBox>
+	</mx:ViewStack>   						
+</mx:TitleWindow>

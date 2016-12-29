@@ -1,0 +1,266 @@
+<!--$Id$-->
+<!--$Author: himanshum $-->
+<!--$Date: 2016-12-26 22:38:44 $-->
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+<div class="entryContainer paddingFour">
+          
+    <!-- Java script include -->
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+		
+        var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+        	
+	        var context = $xenos$Wizard.$context;
+			var baseUrl = xenos.context.path + context.find('form').attr('action');
+			
+			xenos.loadScript([
+				{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				{path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false},
+				{path: xenos.context.path + '/scripts/ref/instrumentEntry.js', async: false}
+			]);			
+			
+			if("${commandForm.options.actionType}" == "ENTRY"){
+				$("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','block');
+				$("#formActionArea > div > div > .wizPrev > .inputBtnStyle").css('display','block');
+			}
+			
+			xenos.loadScript([
+				{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+				{path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false}
+			]);
+			
+	        /**
+	         * A common request handler to be used server communication.
+	         */
+	         var xenos$Handler$RequestHandler = xenos$Handler$function({
+	             get: {
+	                 contentType: 'json',
+	                 requestType: xenos$Handler$default.requestType.asynchronous
+	             },  
+	             settings: {
+	                 beforeSend: function(request) {
+	                     request.setRequestHeader('Accept', 'application/json');
+	                 },
+	                 type: 'POST'
+	             }
+	         });
+			 
+			
+				
+			if("${commandForm.futOptDrvInstType}" == "FUT" <![CDATA[&&]]>  "${commandForm.parentInstType}" == "DRV"){
+					<!-- $('#callPutFlag').removeClass('required');
+					$('#optionType').removeClass('required');
+					$('#strikePriceStr').removeClass('required'); 
+					
+					
+					$('#contractStartDateStr').addClass('required');
+					$('#contractExpiryDateStr').addClass('required');
+					$('#drvSettlementTypeDisp').addClass('required');  -->
+			}
+			else if("${commandForm.futOptDrvInstType}" == "OPT" <![CDATA[&&]]>  "${commandForm.parentInstType}" == "DRV"){
+					<!-- $('#contractStartDateStr').removeClass('required');
+					$('#contractExpiryDateStr').removeClass('required');
+					$('#drvSettlementTypeDisp').removeClass('required');
+					
+					
+					$('#callPutFlag').addClass('required');
+					$('#optionType').addClass('required');
+					$('#strikePriceStr').addClass('required'); -->
+					
+					
+					$('#callPutFlagDivId').css('display','block');
+					$('#optionTypeDivId').css('display','block');
+					$('#strikePriceStrDivId').css('display','block');
+			}	
+				        
+	         var validateHook = function() {
+				var validationMessages = [];
+				
+				if (($("#contractStartDateStr").val() != "" <![CDATA[&&]]> $("#contractStartDateStr").val() != null <![CDATA[&&]]> $("#contractStartDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#contractStartDateStr").val())==false){
+					validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.derivatives.contract_startdate_error));
+				}
+				
+				if (($("#contractExpiryDateStr").val() != "" <![CDATA[&&]]> $("#contractExpiryDateStr").val() != null <![CDATA[&&]]> $("#contractExpiryDateStr").val() != undefined) <![CDATA[&&]]> isDateCustom($("#contractExpiryDateStr").val())==false){
+					validationMessages.push(xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.derivatives.contract_enddate_error));
+				}
+				
+				formatQuantity($('#tickSizeStr'),5,9, validationMessages, $("#tickSizeStr").parent().parent().find('label').text());
+				formatPrice($('#strikePriceStr'),11,7, validationMessages, $("#strikePriceStr").parent().parent().find('label').text());
+				
+				if ( validationMessages.length >0){   
+					xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+					return false;
+				} else {
+					$('.formHeader').find('.formTabErrorIco').css('display', 'none');
+				} 
+				return true; 
+	         };
+	        
+	         var unloadHook = function(){
+	        	$xenos$Wizard.deregister('next',validateHook);
+				$xenos$Wizard.deregister('previous',validateHook);
+				$xenos$Wizard.deregister('submit',validateHook);
+				$xenos$Wizard.deregister('unload',unloadHook);
+				
+	        };
+
+	        $xenos$Wizard.register('next',validateHook);
+			$xenos$Wizard.register('previous',validateHook);
+	        $xenos$Wizard.register('submit',validateHook);
+	        $xenos$Wizard.register('unload',unloadHook);
+        
+		
+		
+        };
+        
+        </jsp:body>
+    </jsp:element>
+    
+    <h1><spring:message code="ref.insturment.entry.label.titleWizard" htmlEscape="false"/> <spring:message code="ref.insturment.entry.label.derivativesWizard" htmlEscape="false"/></h1>
+	
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	<c:if test="${isSoftValidationExists =='true'}">
+	<!-- Warning message Area -->
+		<ul class="xenosWarn">
+			<c:forEach items="${softValidationList}" var="dl">		
+				<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+     
+ <div class="detailBlock paddingFour">
+         <table class="tableStyle sixCol moreTable">
+            <tr class="noBdr">
+                <td><form:label path="commandForm.defaultInstrumentCode"><spring:message code="ref.insturment.entry.label.othertab.securitycode" htmlEscape="false"/></form:label></td>
+                <td><span class="detailTxtVal">${commandForm.defaultInstrumentCode}</span></td>
+                <td><form:label path="commandForm.instrumentPage.instrumentType"><spring:message code="ref.insturment.entry.label.othertab.instrumenttype" htmlEscape="false"/></form:label></td>
+                <td><span class="detailTxtVal">${commandForm.instrumentPage.instrumentType}</span></td>
+                <td><form:label path="commandForm.defaultShortName"><spring:message code="ref.insturment.entry.label.othertab.shortname" htmlEscape="false"/></form:label></td>
+                <td><span class="detailTxtVal">${commandForm.defaultShortName}</span></td> 
+            </tr>      
+         </table>
+     </div>
+     
+     <!-- Derivative Info **START -->
+	 
+	 <div class="moreHandle">
+		<h1 class="msgHead"><spring:message code="ref.insturment.entry.label.derivativetab.derivativeinfo" htmlEscape="false"/>
+			<div class="handleBlock">
+				<span class="handler collapse" id="spanInstrumentDerivativeInfoId"><spring:message text="" htmlEscape="false"/></span>
+			</div>
+		</h1>
+	  </div>
+	 
+     <div class="entryBlkArea ">
+     <div class="formItemBlock dottedBg">
+     
+        <div class="formItem">
+            <form:label path="commandForm.instrumentPage.contractStartDateStr" class="required"><spring:message code="ref.insturment.entry.label.derivativetab.contractstartdate" htmlEscape="false"/></form:label>
+            <span><form:input id="contractStartDateStr" value="" path="commandForm.instrumentPage.contractStartDateStr"  size="12" class="dateinput" onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>           
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+        
+        <div class="formItem">
+            <form:label path="commandForm.instrumentPage.contractExpiryDateStr" class="required"><spring:message code="ref.insturment.entry.label.derivativetab.contractexpirydate" htmlEscape="false"/></form:label>
+            <span><form:input id="contractExpiryDateStr" value="" path="commandForm.instrumentPage.contractExpiryDateStr"  size="12" class="dateinput" onblur="if(!checkDate(this)){xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage(xenos$REF$i18n.instrument.date_format_check, [this.value]))}else{ xenos.ns.views.instrumentEntryAmend.formatDate(this)}"/></span>         
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>	 
+	
+		<c:if test="${commandForm.futOptDrvInstType == 'FUT'}">
+			<div class="formItem">
+				<form:label path="commandForm.instrumentPage.tickSizeStr" class="required"><spring:message code="ref.insturment.entry.label.derivativetab.ticksize" htmlEscape="false"/></form:label>
+				<span><form:input id="tickSizeStr" value="" path="commandForm.instrumentPage.tickSizeStr"  class="txtNormal" onblur="return formatQuantity($('#tickSizeStr'),5,9,null,$('#tickSizeStr').parent().parent().find('label').text());" /></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</c:if>
+		<c:if test="${commandForm.futOptDrvInstType == 'OPT'}">
+			<div class="formItem">
+				<form:label path="commandForm.instrumentPage.tickSizeStr"><spring:message code="ref.insturment.entry.label.derivativetab.ticksize" htmlEscape="false"/></form:label>
+				<span><form:input id="tickSizeStr" value="" path="commandForm.instrumentPage.tickSizeStr"  class="txtNormal" onblur="return formatQuantity($('#tickSizeStr'),5,9,null,$('#tickSizeStr').parent().parent().find('label').text());" /></span>
+				<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+			</div>
+		</c:if>
+		
+		<div class="formItem" style="display:none">
+            <form:label path="commandForm.instrumentPage.tickValueStr"><spring:message code="ref.instrument.label.tickvalue" htmlEscape="false"/></form:label>
+            <span><form:input id="tickValueStr" value="" path="commandForm.instrumentPage.tickValueStr"  class="textBox"/></span>
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+		<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		
+        <div class="formItem">
+            <form:label path="commandForm.instrumentPage.underlyingInstrumentCode" ><spring:message code="ref.insturment.entry.label.derivativetab.underlyinginstrument" htmlEscape="false"/></form:label>
+            <span><form:input id="underlyingInstrumentCode" value="" path="commandForm.instrumentPage.underlyingInstrumentCode"  class="textBox  "/></span>
+            <div class="popupBtn">
+                <input type="button" class="popupBtnIco" tgt="underlyingInstrumentCode" popType="security" statusContext="NORMAL" value="" />
+            </div>          
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+		
+		 <div class="formItem">
+            <form:label path="commandForm.instrumentPage.drvSettlementType" class="required"><spring:message code="ref.insturment.entry.label.derivativetab.settlementtype" htmlEscape="false"/></form:label> 
+            <span>
+            <form:select id="drvSettlementTypeDisp" path="commandForm.instrumentPage.drvSettlementType" class="mediumInput  ">
+				<form:option  value="" />
+                <form:options items="${commandForm.instrumentPage.drvSettlementTypeValues}" itemLabel="label" itemValue="value"/>
+            </form:select>
+            </span>
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+		
+        <div class="formItem" id="callPutFlagDivId" style="display:none">
+            <form:label path="commandForm.instrumentPage.callPutFlag" class="required"><spring:message code="ref.insturment.entry.label.derivativetab.callputflag" htmlEscape="false"/></form:label> 
+            <span>
+            <form:select id="callPutFlag" path="commandForm.instrumentPage.callPutFlag" class="dropdown  ">
+				<form:option value="" />
+                <form:options items="${commandForm.instrumentPage.callPutFlagValues}" itemLabel="label" itemValue="value"/>
+            </form:select>
+            </span>
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>  
+	
+      	<div class="formItem" id="optionTypeDivId" style="display:none">
+            <form:label path="commandForm.instrumentPage.optionType" class="required"><spring:message code="ref.insturment.entry.label.derivativetab.optiontype" htmlEscape="false"/></form:label> 
+            <span>
+            <form:select id="optionType" path="commandForm.instrumentPage.optionType" class="dropdown  ">
+				<form:option value="" />
+                <form:options items="${commandForm.instrumentPage.optionTypeValues}" itemLabel="label" itemValue="value"/>
+            </form:select>
+            </span>
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div> 
+		
+
+     	<div class="formItem" id="strikePriceStrDivId" style="display:none">
+            <form:label path="commandForm.instrumentPage.strikePriceStr" class="required"><spring:message code="ref.insturment.entry.label.derivativetab.strikeprice" htmlEscape="false"/></form:label>
+            <span><form:input id="strikePriceStr" value="" path="commandForm.instrumentPage.strikePriceStr"  class="txtNormal" onblur="formatPrice($('#strikePriceStr'),11,7,null,$('#strikePriceStr').parent().parent().find('label').text());"/></span>
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>  
+        
+        <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        
+     </div> 
+    </div>
+	 
+</div>
+
+</jsp:root>

@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8"?>
+<containers:XenosQueryModule xmlns:mx="http://www.adobe.com/2006/mxml" 
+	                         xmlns:containers="com.nri.rui.core.containers.*" 
+	                         xmlns:flexlib="http://code.google.com/p/flexlib/" 
+	                         xmlns:cntrls="com.nri.rui.core.controls.*" 
+	                         xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+	                         layout="vertical" 
+	                         percentWidth="100" 
+	                         percentHeight="100" 
+	                         horizontalScrollPolicy="off" 
+	                         verticalScrollPolicy="off">
+	
+	
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.renderers.StatusRenderer;
+			import com.nri.rui.core.RendererFectory;
+			import com.nri.rui.core.renderers.ImgSummaryRenderer;
+			
+			    
+    /**
+	 * This method should be called on creationComplete of the datagrid 
+	 */ 
+	 private function bindDataGrid():void {
+		qh.dgrid = resultSummary;
+	}
+		]]>
+	</mx:Script>
+	
+	<mx:Script source="actionscripts/GlePostingRuleQueryModule.as"/>	
+    
+    <containers:states>
+        <mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions>
+    
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" id="screenNavigater">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';"  />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>    	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+	
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%">
+	<mx:HDividedBox id="hdbox1" width="100%" height="100%" styleName="Padding4" liveDragging="true" creationComplete="{this.loadAll()}"  >
+	<!--<containers:CollapsibleHDividedBox id="hdbox1" width="100%" height="100%" x="0" y="0" liveDragging="true" creationComplete="{}" paddingBottom="6" paddingLeft="6" paddingRight="6" paddingTop="6" >-->
+		
+		<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		<mx:VBox label="Query Criteria" width="100%" height="100%" styleName="HDivideStyle" >
+			<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+			<mx:HRule id="ruleBar" strokeColor="#94acb7" strokeWidth="2" width="100%" />
+			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		
+			<!--<flexlib:WindowShade id="ws1" tabChildren="{ws1.opened=false}" styleName="linkButtonWindowShade" label="Optional Fields - Group 1" width="100%">-->
+			<mx:Grid width="100%" borderThickness="0">
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.transactiontype')}"/>
+							</mx:GridItem>
+                            <mx:GridItem width="80%" borderThickness="0">
+                            	<mx:ComboBox id="transactionType" labelField="label"/>
+                        	</mx:GridItem>                      
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.securitytype')}"/>
+							</mx:GridItem>
+                            <mx:GridItem width="30%" borderThickness="0">
+                            	<cntrls:TreeCombo id="securitytype" dataSource="{new XML((app.cachedItems.instrumentTree).toString())}" editMode="true" width="153"  displayClearIcon="true"  labelField="label" treeHeight="200"  x="10" y="10"/>                            	
+                        	</mx:GridItem> 
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.market')}"/>
+							</mx:GridItem>
+							<mx:GridItem width="30%" borderThickness="0">
+	                           <cntrls:TreeCombo id="market" dataSource="{new XML((app.cachedItems.marketTree).toString())}" editMode="true" width="153"  displayClearIcon="true"  labelField="label" treeHeight="200"  x="10" y="10"/>
+	                        </mx:GridItem>                       
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.accountbalancetype')}"/>
+							</mx:GridItem>
+                            <mx:GridItem width="30%" borderThickness="0">
+                            	<mx:ComboBox id="accountbalancetype" labelField="label"/>
+                        	</mx:GridItem> 
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.principalagentflag')}"/>
+							</mx:GridItem>
+							<mx:GridItem width="30%" borderThickness="0">
+								<mx:ComboBox id="principalagentflag" labelField="label"/>
+							</mx:GridItem>                         
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.tradetype')}"/>
+							</mx:GridItem>
+                            <mx:GridItem width="30%" borderThickness="0">
+                            	<mx:ComboBox id="tradetype" labelField="label"/>
+                        	</mx:GridItem> 
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.settlementmode')}"/>
+							</mx:GridItem>
+                            <mx:GridItem width="30%" borderThickness="0">
+                            	<mx:ComboBox id="settlementmode" labelField="label"/>
+                        	</mx:GridItem>                        
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.actiontype')}"/>
+							</mx:GridItem>
+							<mx:GridItem width="30%" borderThickness="0">
+								<mx:ComboBox id="actiontype" labelField="label"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.subtradetype')}"/>
+							</mx:GridItem>
+                            <mx:GridItem width="30%" borderThickness="0">
+                            	<mx:ComboBox id="subtradetype" labelField="label"/>
+                        	</mx:GridItem> 							                         
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.longshortflag')}"/>
+							</mx:GridItem>
+							<mx:GridItem width="30%" borderThickness="0">
+								<mx:ComboBox id="longshortflag" labelField="label"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.accrualtype')}"/>
+							</mx:GridItem>
+                            <mx:GridItem width="30%" borderThickness="0">
+                            	<mx:ComboBox id="accrualtype" labelField="label"/>
+                        	</mx:GridItem> 							                         
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.inoutflag')}"/>
+							</mx:GridItem>
+							<mx:GridItem width="30%" borderThickness="0">
+								<mx:ComboBox id="inoutflag" labelField="label"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.payablereceivableflag')}"/>
+							</mx:GridItem>
+                            <mx:GridItem width="30%" borderThickness="0">
+                            	<mx:ComboBox id="payablereceivableflag" labelField="label"/>
+                        	</mx:GridItem>           
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.startendflag')}"/>
+							</mx:GridItem>
+							<mx:GridItem width="30%" borderThickness="0">
+								<mx:ComboBox id="startendflag" labelField="label"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.plindicator')}"/>
+							</mx:GridItem>
+                            <mx:GridItem width="30%" borderThickness="0">
+                            	<mx:ComboBox id="plindicator" labelField="label"/>
+                        	</mx:GridItem>       
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.netdownflag')}"/>
+							</mx:GridItem>
+							<mx:GridItem width="30%" borderThickness="0">
+								<mx:ComboBox id="netdownflag" labelField="label"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.counterpartytype')}"/>
+							</mx:GridItem>
+                            <mx:GridItem width="30%" borderThickness="0">
+                            	<mx:ComboBox id="counterpartytype" labelField="label"/>
+                        	</mx:GridItem>       
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.forwardrepoflag')}"/>
+							</mx:GridItem>
+							<mx:GridItem width="30%" borderThickness="0">
+								<mx:ComboBox id="forwardrepoflag" labelField="label"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.quasicompby')}"/>
+							</mx:GridItem>
+                            <mx:GridItem width="30%" borderThickness="0">
+                            	<mx:ComboBox id="quasicompby" labelField="label"/>
+                        	</mx:GridItem>           
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.reportableflag')}"/>
+							</mx:GridItem>
+							<mx:GridItem width="30%" borderThickness="0">
+								<mx:ComboBox id="reportableflag" labelField="label"/>
+							</mx:GridItem>
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.wiretype')}"/>
+							</mx:GridItem>
+                            <mx:GridItem width="30%" borderThickness="0">
+                            	<mx:ComboBox id="wiretype" labelField="label"/>
+                        	</mx:GridItem>                         
+						</mx:GridRow>
+						<mx:GridRow width="100%">
+							<mx:GridItem width="20%" borderThickness="0">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.pwcincometype')}"/>
+							</mx:GridItem>
+							<mx:GridItem width="30%" borderThickness="0">
+								<mx:ComboBox id="pwcincometype" labelField="label"/>
+							</mx:GridItem>                         
+						</mx:GridRow>			                    
+            </mx:Grid>           
+
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="{this.dispatchEvent(new Event('querySubmit'))}" />
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="{this.dispatchEvent(new Event('queryReset'))}" />
+	        </mx:HBox>
+
+		</mx:VBox>
+		</mx:Canvas>
+				
+		<mx:VBox width="0%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >			
+	         <cntrls:QueryResultHeader id="qh" printFunction="dispatchPrintEvent" pdfFunction="dispatchPdfEvent" xlsFunction="dispatchXlsEvent" previousFunction="dispatchPrevEvent" nextFunction="dispatchNextEvent" startIndex="{this.mode == 'query' ? 1 : 2}"/>
+			 <mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text=""/>
+			 <cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="true" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()" headerRelease="dataGrid_headerRelease(event)"> 
+			    <cntrls:columns>
+		                <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false"/>
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.details')}"  draggable="false" resizable="false" itemRenderer="com.nri.rui.gle.renderers.GlePostingRuleQueryRenderer" sortable="false"/>
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.transactiontype')}" dataField="transactionDescription" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.cptype')}" dataField="counterpartyType" sortCompareFunction="sortUtil.sortString"/>		                
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.principalagent')}" dataField="principalAgentFlagDesc" sortCompareFunction="sortUtil.sortString"/>
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.insttype')}" dataField="instrumentType" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.market')}" dataField="marketDesc" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.tradetype')}" dataField="tradeType" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.subtradetype')}" dataField="subTradeType" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.io')}" dataField="inOutFlagDesc" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.startend')}" dataField="startEndFlagDesc" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.pl')}" dataField="plIndicator" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.longshort')}" dataField="longShortFlagDesc" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.payrecv')}" dataField="payableReceivableFlagDesc" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.actiontype')}" dataField="actionType" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.accrualtype')}" dataField="accrualType" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.stlmode')}" dataField="settlementMode" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.accountbalancetype')}" dataField="accountBalanceType" sortCompareFunction="sortUtil.sortNumeric" textAlign="right" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.forwardrepoflag')}" dataField="forwardRepoFlag" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.inventoryaccount')}" dataField="inventoryAccount" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.inventoryaccountname')}" dataField="inventoryAccountName" visible="false" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.netdownresult')}" dataField="netDownFlagDesc" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.pwcincometype')}" dataField="pwcIncomeType" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.quasicompby')}" dataField="quasiCompBy" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.reportableflag')}" dataField="reportableFlag" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.wiretype')}" dataField="wireType" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.postingrulequery.label.status')}" dataField="status" itemRenderer="com.nri.rui.core.renderers.StatusRenderer" sortCompareFunction="sortUtil.sortString" />
+		                <mx:DataGridColumn visible="false" dataField="postingRulePk" />	                
+			    </cntrls:columns>
+			 </cntrls:CustomDataGrid>
+		</mx:VBox>
+		
+	</mx:HDividedBox>
+    </mx:VBox>    
+    </mx:Canvas>
+    		 
+</containers:XenosQueryModule>

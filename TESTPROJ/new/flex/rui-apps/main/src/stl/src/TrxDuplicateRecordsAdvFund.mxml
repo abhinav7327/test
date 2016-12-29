@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+
+
+-->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="loadAll()">
+<mx:Script>
+		<![CDATA[
+			import mx.managers.PopUpManager;
+			import mx.events.DataGridEvent;
+			import mx.utils.StringUtil;
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import com.nri.rui.core.utils.ProcessResultUtil;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.collections.ArrayCollection;;
+            import mx.events.CloseEvent;
+			import mx.rpc.events.ResultEvent;
+
+			[Bindable]	
+			public var dProvider:ArrayCollection;
+			[Bindable]	
+			public var failInstructionList:ArrayCollection;
+			[Bindable]
+			private var summaryResult:ArrayCollection= new ArrayCollection();
+    		[Bindable]
+			public var formData : XML;
+			private var initCompFlg : Boolean = false;
+			private var sortUtil: ProcessResultUtil= new ProcessResultUtil();
+			
+			private function loadAll():void {
+
+			}
+			
+		  /**
+			* This method will be called at the time of the loading this module
+			* 
+			*/
+			private function initPageStart():void {            
+				if (!initCompFlg) {
+					var reqObj : Object = new Object();
+                    reqObj.SCREEN_KEY = 13015;
+                    this.initializeDuplicateQuery.request = reqObj; 
+					this.initializeDuplicateQuery.url="stl/trxMaintenanceAdvFundQueryDispatch.action?method=submitQuery&duplicateCheckFlag=Y" ;
+					this.initializeDuplicateQuery.send();
+					
+				} else
+					XenosAlert.info("Already Initiated!");
+			}
+   /**
+    * This method works as the result handler of the Submit Query Http Services.
+    * 
+    */
+    public function loadSummaryPage(event:ResultEvent):void {
+    	
+    	var rs:XML = XML(event.result);
+    	
+    	if (null != event) {
+			
+			 if(rs.child("row").length()>0) {
+				errPage.clearError(event);
+	            summaryResult.removeAll();
+				try {
+				    for each ( var rec:XML in rs.row ) {
+	 				    summaryResult.addItem(rec);
+				    }
+				    qh.setOnResultVisibility();
+		            changeCurrentState();
+		            qh.setPrevNextVisibility((rs.prevTraversable == "true")?true:false,(rs.nextTraversable == "true")?true:false );
+		            qh.PopulateDefaultVisibleColumns();
+	            	summaryResult=ProcessResultUtil.process(summaryResult, resultSummary.columns);
+	            	summaryResult.refresh();
+				} catch(e:Error) {
+				    XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+			    }
+			 } else if(rs.child("Errors").length()>0) {
+                //some error found
+			 	summaryResult.removeAll(); // clear previous data if any as there is no result now.
+			 	var errorInfoList : ArrayCollection = new ArrayCollection();
+                //populate the error info list 			 	
+			 	for each ( var error:XML in rs.Errors.error ) {
+	 			   errorInfoList.addItem(error.toString());
+				}
+			 	errPage.showError(errorInfoList);//Display the error
+			 } else {
+			 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+			 	summaryResult.removeAll();
+			 	errPage.removeError();
+			 }
+			 
+        }
+    }
+			
+			private function getReferenceNo(item:Object,column : DataGridColumn):String {
+            	return item.settlementReferenceNo+"-"+item.versionNo;
+            }
+           	private function doPrint():void{
+		   
+		  	}
+	/**
+     * This method should be called on creationComplete of the datagrid 
+     */ 
+    private function bindDataGrid():void {
+    	qh.pdf.visible = false
+        qh.xls.visible = false;
+		qh.pdf.enabled = false;
+        qh.xls.enabled = false;
+		
+    	qh.dgrid = resultSummary;
+    } 
+	/**
+    * This method sends the HttpService for Next Set of results operation.
+    * This is actually server side pagination for the next set of results.
+    */ 
+      private function doNext():void { 
+        var reqObj : Object = new Object();
+        reqObj.method = "doNext";
+        reqObj.rnd = Math.random()+"";
+        this.initializeDuplicateQuery.url="stl/trxMaintenanceAdvFundQueryDispatch.action?" ;
+        this.initializeDuplicateQuery.request = reqObj;
+        this.initializeDuplicateQuery.send();
+    }  
+    /**
+    * This method sends the HttpService for Previous Set of results operation.
+    * This is actually server side pagination for the previous set of results.
+    */ 
+      private function doPrev():void { 
+        var reqObj : Object = new Object();
+        reqObj.method = "doPrevious";
+        reqObj.rnd = Math.random()+"";
+        this.initializeDuplicateQuery.url="stl/trxMaintenanceAdvFundQueryDispatch.action?" ;
+        this.initializeDuplicateQuery.request = reqObj;
+        this.initializeDuplicateQuery.send();
+    }   
+     private function changeCurrentState():void{
+	 }
+	/**
+    * This will generate the Xls report for the entire query result set 
+    * and will open in a separate window.
+    */
+     private function generateXls():void {
+        var url : String = "stl/trxMaintenanceAdvFundQueryDispatch.action?method=generateXLS&duplicateCheckFlag=Y";
+        var request:URLRequest = new URLRequest(url);
+        request.method = URLRequestMethod.POST;
+        // set menu pk in the request
+      	var variables:URLVariables = new URLVariables();
+      	variables.menuPk = this.parentApplication.mdiCanvas.getwindowKey();
+      	request.data = variables;
+         try {
+                navigateToURL(request,"_blank");
+            }
+            catch (e:Error) {
+                // handle error here
+                trace(e);
+            } 
+    } 
+    /**
+    * This will generate the Pdf report for the entire query result set 
+    * and will open in a separate window.
+    */
+     private function generatePdf():void {
+        var url : String = "stl/trxMaintenanceAdvFundQueryDispatch.action?method=generatePDF&duplicateCheckFlag=Y";
+        var request:URLRequest = new URLRequest(url);
+        request.method = URLRequestMethod.POST;
+        // set menu pk in the request
+      	var variables:URLVariables = new URLVariables();
+      	variables.menuPk = this.parentApplication.mdiCanvas.getwindowKey();
+      	request.data = variables;
+         try {
+                navigateToURL(request,"_blank");
+            }
+            catch (e:Error) {
+                // handle error here
+                trace(e);
+            } 
+    }
+		/**
+		*  datagrid header release event handler to handle datagridcolumn sorting
+		*/
+		public function dataGrid_headerRelease(evt:DataGridEvent):void {				
+			var dg:CustomDataGrid = CustomDataGrid(evt.currentTarget);
+			sortUtil.clickedColumn = dg.columns[evt.columnIndex];
+		}
+	
+		]]>
+	</mx:Script>
+	<mx:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="100%"/>
+        </mx:State>
+    </mx:states>
+	
+	<cntrls:XenosHTTPService id="initializeDuplicateQuery"
+				fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultDetail)"
+				method="POST" useProxy="false" result="loadSummaryPage(event)" showBusyCursor="true" resultFormat="xml"/>
+    
+	<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+	
+	<mx:VBox width="100%" height="100%">
+		<mx:HDividedBox id="hdbox1" width="100%" height="100%" liveDragging="true" styleName="Padding4" creationComplete="initPageStart()">
+			<mx:Canvas id="qry" width="100%" height="100%">
+				<mx:VBox label="Query Criteria" width="100%" height="100%" styleName="HDivideStyle" >
+					<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+					<cntrls:QueryResultHeader id="qh" label="" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext"  startIndex="1"/>
+					<cntrls:CustomDataGrid id="resultSummary" width="100%" height="100%" dataProvider="{summaryResult}" editable="false" sortableColumns="true" headerRelease="dataGrid_headerRelease(event)" variableRowHeight="true" horizontalScrollPolicy="on" creationComplete="bindDataGrid()">
+					
+						<cntrls:columns>
+							 <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" sortable="false" editable="false"/>
+							 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.stlrefnoversion')}" minWidth="100" dataField=""  labelFunction="getReferenceNo" itemRenderer="com.nri.rui.stl.renderers.SettlementInstructionDetailRenderer" editable="false" sortCompareFunction="sortUtil.sortString"/>
+							 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundaccountno')}" minWidth="50" dataField="fundAccountNo" sortCompareFunction="sortUtil.sortString" editable="false"/>
+							 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundaccountname')}" minWidth="80" dataField="fundAccountName" visible="false" editable="false" sortCompareFunction="sortUtil.sortString"/>
+							 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tradedate')}" minWidth="50" dataField="tradeDateStr" editable="false" sortCompareFunction="sortUtil.sortString" />
+							 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inx.valuedate')}" minWidth="50" dataField="valueDateStr"  visible="true" editable="false" sortCompareFunction="sortUtil.sortString" />
+							 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.brokerAccount')}" minWidth="60" dataField="cpTradingAccount" editable="false" sortCompareFunction="sortUtil.sortString"/>
+							 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.brokerAccountname')}" minWidth="80" dataField="cpTradingAccountName" visible="false" editable="false" sortCompareFunction="sortUtil.sortString"/>
+							 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.buysell')}" minWidth="40" dataField="buysell" editable="false" sortCompareFunction="sortUtil.sortString"/>
+							 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.securitycode')}" minWidth="70" dataField="securitycode" editable="false" sortCompareFunction="sortUtil.sortString"/>
+							 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.securityname')}" minWidth="80" dataField="securityname" editable="false" sortCompareFunction="sortUtil.sortString"/>
+							 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.quantity')}" minWidth="60" dataField="quantityStr" textAlign="right" editable="false" sortCompareFunction="sortUtil.sortNumeric"/>
+							 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.common.popup.label.tradeccy')}" minWidth="40" dataField="ccy" editable="false" sortCompareFunction="sortUtil.sortString"/>
+							 <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.stlqry.label.netamt')}" minWidth="70" dataField="netamountStr" textAlign="right" editable="false" sortCompareFunction="sortUtil.sortNumeric"/>
+						</cntrls:columns>
+					</cntrls:CustomDataGrid>
+					<mx:HBox width="100%" styleName="ButtonBackPanel"> 
+						<mx:Button id="backButton" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.close')}" click="{this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE))}" styleName="BtnStyle"/>
+					</mx:HBox>
+				</mx:VBox>
+			</mx:Canvas>
+		</mx:HDividedBox>
+	</mx:VBox>	
+	</mx:Canvas>
+</mx:Module>

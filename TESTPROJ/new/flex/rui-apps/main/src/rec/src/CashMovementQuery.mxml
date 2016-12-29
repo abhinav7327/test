@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Cash Movement Query Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+	       xmlns:containers="com.nri.rui.core.containers.*" 
+	       xmlns:flexlib="http://code.google.com/p/flexlib/" 
+	       xmlns:frmtrs="com.nri.rui.core.formatters.*" 
+	       xmlns:cntrls="com.nri.rui.core.controls.*" 
+	       xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"  
+           xmlns:valdtrs="com.nri.rui.core.validators.*"
+	       layout="vertical" 
+	       percentWidth="100" 
+	       percentHeight ="100" 
+	       horizontalScrollPolicy="off" 
+	       verticalScrollPolicy="off" 
+	       creationComplete="loadAll()">
+
+    <mx:Script>
+        <![CDATA[
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.containers.TitleWindow;
+            import mx.collections.ArrayCollection;
+            import mx.events.CloseEvent;
+            import mx.controls.dataGridClasses.DataGridColumn;
+            import mx.controls.CheckBox;
+            import mx.managers.PopUpManager;
+            
+            import com.nri.rui.core.controls.XenosAlert;
+            
+            private function changeCurrentState():void{
+                currentState = "result";
+                app.submitButtonInstance = null;
+            }
+            
+			/**
+             * Extract the value of the colum cell removing the prefix added at '0'th index.
+             */ 
+            private function extractPrecisionedValue(item:Object, column:AdvancedDataGridColumn):String{
+                var strData:String = item[column.dataField];
+                if(!XenosStringUtils.isBlank(strData) && strData.charAt(0)=="F"){
+                    if(strData.length == 1)
+                        return XenosStringUtils.EMPTY_STR;
+                    else
+                        return strData.substring(1);
+                }else{
+                    return item[column.dataField];                    
+                }
+            }
+            
+			/**
+             * Extract the value of the colum cell removing the prefix added at '0'th index.
+             */ 
+            private function extractMatchStatus(item:Object, column:AdvancedDataGridColumn):String{
+                var strData:String = item[column.dataField];
+                if(!XenosStringUtils.isBlank(strData) && XenosStringUtils.equals("MATCHED", strData)){
+                        return XenosStringUtils.EMPTY_STR;
+                }else{
+                    return item[column.dataField];                    
+                }
+            }
+         ]]>
+    </mx:Script>
+    
+    <mx:Script source="actionscripts/CashMovementQuery.as"/>
+   
+ 	<mx:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{null}"/>
+        </mx:State>
+        <mx:State name="qryres">
+            <mx:SetProperty target="{qry}" name="width" value="50%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="50%"/>
+            <mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+        <mx:State name="">
+        	<mx:SetProperty target="{app}" name="submitButtonInstance" value="{submit}"/>
+        </mx:State>
+    </mx:states>
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+
+    <cntrls:XenosHTTPService id="initializeMovementQuery" 
+    	            fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString)"
+                    method="POST" 
+                    useProxy="false" 
+                    result="initPage(event)" 
+                    showBusyCursor="true"/>    
+
+    <cntrls:XenosHTTPService id="movementQueryRequest" 
+                    url="rec/recCashMovementDispatch.action?" 
+                    fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+                    result="LoadSummaryPage(event)" 
+                    showBusyCursor="true" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="movementResetQueryRequest" 
+    	            url="rec/recCashMovementDispatch.action?method=resetQuery"
+    	            result="initPage(event)" 
+    	            showBusyCursor="true">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="loadBankAndBankAccountForFund" 
+    	url="rec/recCashMovementDispatch.action?" 
+    	fault="XenosAlert.error('Error Occured  :  ' + event.fault.faultString)" 
+        result="populateBankAndBankAccount(event)" showBusyCursor="true" resultFormat="xml"/>        
+    
+    <cntrls:XenosHTTPService id="loadBankAccount" 
+    	url="rec/recCashMovementDispatch.action?"
+    	fault="XenosAlert.error('Error Occured  :  ' + event.fault.faultString)"
+        result="populateBankAccount(event)" showBusyCursor="true" />
+    
+    <frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="false" />
+    <valdtrs:XenosNumberValidator id="amountValueFrom"  
+                                  source="{amountRangeFrom}" 
+                                  property="text" 
+                                  allowNegative="true" 
+                                  domain="real" 
+                                  required="false"
+                                  invalidCharError="Please enter a valid value for Amount Range From" 
+                                  exceedsMaxError="15 digits are allowed before decimal point" 
+                                  maxValue="999999999999999" 
+                                  minValue="-999999999999999"
+                                  invalidFormatCharsError="Please enter a valid value for Amount Range From" 
+                                  decimalPointCountError="Please enter a valid value for Amount Range From" 
+                                  precision="3" 
+                                  precisionError="3 digits are allowed after decimal point" />
+    <valdtrs:XenosNumberValidator id="amountValueTo" 
+                                  source="{amountRangeTo}" 
+                                  property="text" 
+                                  allowNegative="true" 
+                                  domain="real" 
+                                  required="false"
+                                  negativeError="Quantity cannot be negative"
+                                  invalidCharError="Please enter a valid value for Amount Range To" 
+                                  exceedsMaxError="15 digits are allowed before decimal point"                                     
+                                  maxValue="999999999999999" 
+                                  minValue="-999999999999999"
+                                  invalidFormatCharsError="Please enter a valid value for Amount Range To" 
+                                  decimalPointCountError="Please enter a valid value for Amount Range To" 
+                                  precision="3" 
+                                  precisionError="3 digits are allowed after decimal point" />
+                                  
+    <mx:Validator source="{dateFrom}" required="true" property="text" />
+    <mx:Validator source="{dateTo}" required="true" property="text" />
+    
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0">    
+    <mx:HBox width="100%" styleName="ExCoBgPanel">
+    	<mx:Image source="@Embed('../../assets/img/show_query.png')" toolTip="Query" buttonMode="true" click="currentState='';app.submitButtonInstance = submit;" />    	
+    	<mx:Image source="@Embed('../../assets/img/show_result.png')" toolTip="Result" buttonMode="true" click="currentState='result'" />
+    	<mx:Image source="@Embed('../../assets/img/show_query_result.png')" toolTip="QueryResult" buttonMode="true" click="currentState='qryres'"/>    	
+    </mx:HBox>
+    <mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+    </mx:VBox>
+    
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    
+    <mx:VBox width="100%" height="100%">    
+    <!--<containers:CollapsibleHDividedBox id="hdbox1" width="100%" height="100%" x="0" y="0" liveDragging="true" creationComplete="initPageStart()" paddingBottom="6" paddingLeft="6" paddingRight="6" paddingTop="6" >-->
+    <mx:HDividedBox id="hdbox1" styleName="Padding4" width="100%" height="100%" liveDragging="true" creationComplete="initPageStart()">
+        <mx:VBox label="Query Criteria" id="qry" width="100%" height="100%" styleName="HDivideStyle" >
+            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.title.search.criteria')}" fontWeight="bold"/>
+            <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+            <mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+                <mx:Grid width="100%" borderThickness="0">
+                	<mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.cash.re.query.label.datefrom')}" styleName="ReqdLabel"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        	<mx:HBox width="100%">
+                                   <mx:DateField id="dateFrom"  formatString="YYYYMMDD" editable="true" width="90"/>
+                                   <mx:DateField id="dateTo" formatString="YYYYMMDD" editable="true" width="90"/>
+                            </mx:HBox>
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.fundcode')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        	<xenospopup:FundPopUpHbox id="fundPopUp" inputEvent="inputHandler();"/>
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                
+                	<mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.cash.re.query.label.accountno')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        	<xenospopup:AccountPopUpHbox id="actPopUp" retContextItem="{returnContextItem}" recContextItem="{stlAccForFundContextList}" />
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.cash.re.query.label.bank')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        	<xenospopup:finInstForFundPopUpHBox id="fininstPopUp" retContextItem="{returnFinContext}" recContextItem="{finContextList}"  />
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                	
+                	<mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.office')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        	 <mx:ComboBox id="officeId" labelField="label" prompt="Select"/>
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.sec.mov.label.matchingstatus')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        	 <mx:ComboBox id="matchStatus" labelField="label" prompt="Select"/>
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ccy')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        	<cntrls:CurrencyHBox id="ccyBox"/>
+                        </mx:GridItem> 
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.audit')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        	<mx:ComboBox id="audit" labelField="label" prompt="Select"/>
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem  width="20%" borderThickness="0">
+					 		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.account.label.acstatus')}" />
+					 	</mx:GridItem>
+					 	<mx:GridItem  width="30%" borderThickness="0">
+					 		<mx:ComboBox id="accountStatus" labelField="label" prompt="Select" />
+					 	</mx:GridItem>
+                        <mx:GridItem width="20%" borderThickness="0">
+                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('rec.cash.mov.label.amountFromTo')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="30%" borderThickness="0">
+                        	<mx:TextInput id="amountRangeFrom" text="" width="90" focusOut="amountValueFrom.handleNumericField(numberFormatter)" editable="true"/>
+							<mx:TextInput id="amountRangeTo" text="" width="90" focusOut="amountValueTo.handleNumericField(numberFormatter)" editable="true"/>
+                        </mx:GridItem> 
+                    </mx:GridRow>
+                 </mx:Grid>
+                 
+            <flexlib:WindowShade id="ws3" tabChildren="{ws3.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.label.sortorder.fields')}" opened="true" width="100%">
+                <mx:Grid width="100%" borderThickness="0">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="100%" borderThickness="0">
+                            <mx:HBox width="100%">
+                                <mx:ComboBox id="sortField1" labelField="label" change="sortOrder1Update()"/>
+                                <mx:ComboBox id="sortField2" labelField="label" change="sortOrder2Update()"/>
+                                <mx:ComboBox id="sortField3" labelField="label"/>
+                            </mx:HBox> 
+                        </mx:GridItem>                         
+                    </mx:GridRow>
+                </mx:Grid>
+            </flexlib:WindowShade>
+            
+            <mx:HBox width="100%" styleName="ButtonBackPanel">            
+                <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="this.submitQuery();" />
+                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle"  click="this.resetQuery();"/>                    
+            </mx:HBox>
+            
+        </mx:VBox>
+		<mx:VBox width="0%" height="100%" id="rslt" styleName="HDivideStyle" horizontalScrollPolicy="off" verticalScrollPolicy="off" >		        		
+	        <cntrls:QueryResultHeaderForAdvancedDataGrid id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="doPrint" previousFunction="doPrev" nextFunction="doNext" width="100%" />
+        	<mx:Label textAlign="center" width="100%" fontWeight="bold" id="resultHead" text=""/>
+		    <mx:AdvancedDataGrid id="movementSummary" dataProvider="{summaryResult}" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" wordWrap="true" creationComplete="bindDataGrid()">
+	            <mx:groupedColumns>
+	            	<mx:AdvancedDataGridColumn headerText="" width="100" minWidth="100" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRendererForAdvancedDataGrid"/>
+	            	<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.re.query.label.fundcode')}" dataField="fundCode" itemRenderer="com.nri.rui.core.renderers.FundDetailsRendererAdg"/>
+                	<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.query.label.bank.acc.no')}" dataField="accNo" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRendererAdg"/>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.label.date')}" dataField="baseDate"/>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.custentrydate')}" visible="false" dataField="valueDate"/>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ccy')}" dataField="ccy"/>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncmamount')}" dataField="ncmBalDisp"  labelFunction="extractPrecisionedValue" textAlign="right"/>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.custamount')}" dataField="custBalDisp"  labelFunction="extractPrecisionedValue" textAlign="right"/>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncmtype')}"   visible="false" dataField="ncmTrn"/>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.ncmrefno')}" dataField="txnRefNo" itemRenderer="com.nri.rui.rec.renderers.NcmTxnDetailsRenderer"/>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.custtype')}" dataField="custTrn"/>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.custref')}" dataField="custRef"/>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.mtchstatus')}" dataField="matchStatus" color="#FF0000" labelFunction="extractMatchStatus"/>
+	                <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.audit')}" dataField="auditFlag" itemRenderer="com.nri.rui.rec.renderers.CashMovementAuditViewRenderer" width="50"/> 
+	        	</mx:groupedColumns>
+	        </mx:AdvancedDataGrid>           
+        </mx:VBox>
+    </mx:HDividedBox>
+    
+    </mx:VBox>
+    
+    </mx:Canvas> 
+    
+</mx:Module>

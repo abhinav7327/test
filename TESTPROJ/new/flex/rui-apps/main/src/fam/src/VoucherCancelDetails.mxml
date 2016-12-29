@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Voucher Cancel - User and System Confirmation Screen -->	
+
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml"  xmlns:flexlib="http://code.google.com/p/flexlib/" layout="absolute"
+    xmlns:cntrls="com.nri.rui.core.controls.*"  xmlns:renderers="com.nri.rui.core.renderers.*" width="100%" height="100%" creationComplete="initPage()">
+     <mx:Script>
+    	<![CDATA[
+    		import com.nri.rui.core.utils.XenosPopupUtils;
+    		import mx.core.UIComponent;
+    		import mx.effects.AddItemAction;
+    		import com.nri.rui.core.utils.XenosStringUtils;
+			import mx.collections.ArrayCollection;
+			import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.utils.PrintUtils;
+            import mx.controls.Alert;
+        ]]>
+     </mx:Script>
+    
+     <mx:Script source="actionscripts/VoucherCancelDetails.as"/>
+    
+     <cntrls:XenosHTTPServiceForSpring id="voucherCancelService"
+             url="fam/voucherQuery.spring?method=viewVoucherCancel" commandFormId="{commandFormId}" 
+ 		     fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)" 
+             method="POST" useProxy="false" result="voucherCancelServiceHandler(event)" showBusyCursor="true" resultFormat="xml" />
+             
+     <cntrls:XenosHTTPServiceForSpring id="voucherCancelSubmitService"
+             url="fam/voucherQuery.spring?method=submitVoucherCancel" commandFormId="{commandFormId}" 
+ 		     fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred.initialize') + event.fault.faultString)" 
+             method="POST" useProxy="false" result="voucherCancelSubmitServiceHandler(event)" showBusyCursor="true" resultFormat="xml" />
+    
+     <cntrls:XenosHTTPServiceForSpring id="voucherCancelConfirmService"
+             url="fam/voucherQuery.spring?method=confirmVoucherCancel" commandFormId="{commandFormId}" 
+ 		     fault="faultAlert(event)" 
+             method="POST" useProxy="false" result="voucherCancelConfirmServiceHandler(event)" showBusyCursor="true" resultFormat="xml" /> 
+            
+	 <mx:VBox width="100%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="auto"> 
+
+	     <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.user.conf')}" fontWeight="bold" id="uConfLabel" includeInLayout="false" visible="{uConfLabel.includeInLayout}"/>	         
+	     
+	     <mx:VBox id="sconfMsg"  styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="60" visible="false" verticalAlign="middle" includeInLayout="false" >
+	   	 	<mx:Label id ="sConfLabel"  text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.system.conf')}" fontWeight="bold" selectable="true" />
+	   	 	<mx:HBox id="hb"  styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" > 
+	            <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+	            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.sysconf.msg')}" fontWeight="bold" selectable="true"/>
+	        </mx:HBox>  
+	   	 </mx:VBox> 
+	        
+		 <mx:VBox width="100%" height="0%">
+		    <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+		        <mx:Button id="Print" styleName="PrintBtnStyle" toolTip="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.print')}" click="PrintUtils.printDetail(this.detail)"/>
+		    </mx:HBox>
+	     </mx:VBox>
+		        	
+	     <mx:VBox width="100%" height="100%" styleName="Padding" id="detail">    
+	        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>        
+	            
+	            <mx:Grid width="100%" horizontalGap="0" verticalGap="0">
+	                
+	                <mx:GridRow width="100%">
+	                      <mx:GridItem width="20%" styleName="LabelBgColor">
+	                          <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.fundcode')}" styleName="FormLabelHeading" />
+	                      </mx:GridItem>
+	                      <mx:GridItem width="30%">
+	                          <mx:Text text="{cancelResult.fundCode}" />
+	                      </mx:GridItem>
+	                      <mx:GridItem width="20%" styleName="LabelBgColor">
+	                          <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.autoReverseFlag')}" styleName="FormLabelHeading" />
+	                      </mx:GridItem>
+	                      <mx:GridItem width="30%">
+	                          <mx:Text text="{cancelResult.autoReverseFlag}" />
+	                      </mx:GridItem>
+	                </mx:GridRow>
+	                
+	                <mx:GridRow width="100%">
+	                     <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.refno')}" styleName="FormLabelHeading" />
+	                     </mx:GridItem>
+	                     <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.referenceNumber}" />
+	                     </mx:GridItem>
+	                     <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.voucherType')}" styleName="FormLabelHeading" />
+	                     </mx:GridItem>
+	                     <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.voucherType}" />
+	                     </mx:GridItem>
+	                </mx:GridRow>
+	                
+	                <mx:GridRow width="100%">
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.base_ccy')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.baseCcyStr}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.local_ccy')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.localCcyStr}" />
+	                    </mx:GridItem>
+	                </mx:GridRow>
+	                
+	                <mx:GridRow width="100%">
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.securitycode')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.securityCode}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.bookdate')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.bookDateStr}" />
+	                    </mx:GridItem>
+	                </mx:GridRow>
+	                
+	                <mx:GridRow width="100%">
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.paymentdate')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.paymentDateStr}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.exdate')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.exDateStr}" />
+	                    </mx:GridItem>
+	                </mx:GridRow>
+	                
+	                <mx:GridRow width="100%">
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.amount_bc')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.amountBcStr}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.amount_lc')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.amountLcStr}" />
+	                    </mx:GridItem>
+	                </mx:GridRow>
+	                
+	                <mx:GridRow width="100%">
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.allotmentamount')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.allotmentAmountStr}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.status')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.status}" />
+	                    </mx:GridItem>
+	                </mx:GridRow>
+	                
+	                <mx:GridRow width="100%">
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.entrydate')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.entryDate}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.entrydate_system')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.entryDateSystem}" />
+	                    </mx:GridItem>
+	                </mx:GridRow>
+	                
+	                <mx:GridRow width="100%">
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.last_entrydate')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.lastEntryDate}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.last_entrydate_system')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.lastEntryDateSystem}" />
+	                    </mx:GridItem>
+	                </mx:GridRow>
+	                
+	                <mx:GridRow width="100%">
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.entryby')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.entryBy}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" styleName="LabelBgColor">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('fam.voucherquery.label.last_entryby')}" styleName="FormLabelHeading" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%">
+	                        <mx:Text text="{cancelResult.lastEntryBy}" />
+	                    </mx:GridItem>
+	                </mx:GridRow>
+	              
+	            </mx:Grid>
+	     </mx:VBox>
+	        
+	     <mx:HBox width="100%" id="buttonPanel" styleName="ButtonBackPanel" >               			      	            
+	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="cancelSubmit" visible="{cancelSubmitState}" includeInLayout="{cancelSubmitState}"  styleName="BtnStyle" click="doSubmit()"/> 
+	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="uCancel" visible="{uCancelState}" includeInLayout="{uCancelState}"  styleName="BtnStyle" click="doOk()"/>
+	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uCancelConfSubmit" visible="{uCancelConfSubmitState}" includeInLayout="{uCancelConfSubmitState}"  styleName="BtnStyle" click="doConfirm()"/>  
+	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.sysconfirm')}" id="sConfSubmit" visible="{sConfSubmitState}" includeInLayout="{sConfSubmitState}"  styleName="BtnStyle" click="doOk()"/>               
+	     </mx:HBox>
+     
+	 </mx:VBox>
+</mx:Module>
+            

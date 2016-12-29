@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" horizontalGap="0" xmlns:xenos="com.nri.rui.core.controls.*">
+    
+     <!-- The Settlement for Fund Bank popup control-->
+     <mx:TextInput id="stlAccNo"  text=""  width="100" restrict="{Globals.INPUT_PATTERN}"/>
+     <mx:Image id="stlAccPopup" source="@Embed('../../../../../../assets/popup_icon.png')" 
+               verticalAlign="middle" horizontalAlign="center" click="showPopUp(recContextItem,retContextItem);"/>    
+     
+     <mx:Metadata>
+		[Event(name="preClick",type="flash.events.Event")]
+	 </mx:Metadata>
+     <mx:Script>
+        <![CDATA[
+        	import com.nri.rui.core.startup.XenosApplication;
+        
+        //start of script   
+        import mx.managers.PopUpManager;
+        import com.nri.rui.core.utils.HiddenObject;
+        import com.nri.rui.ref.popupImpl.SettleAcctForFundAndBankPopup;
+        import mx.collections.ArrayCollection;
+        import mx.core.UIComponent;
+        import com.nri.rui.core.Globals;
+        
+           [Bindable]
+           //Items returning through context - Non display objects
+           public var retContextItem:ArrayCollection = new ArrayCollection();
+           [Bindable]
+           //Items receiving through context - Non display objects
+           public var recContextItem:ArrayCollection = new ArrayCollection();
+   
+   		   //This boolean check whether fund code is empty or not
+           [Bindable]
+           public var fundCodeCheck:Boolean = true;
+           
+           private var xApp:XenosApplication = XenosApplication.getInstance(Globals.DEFAULT_ENTERPRISE);
+   
+        /*
+         * Open the fininst PopUp Window.
+         * Cast the return value of the createPopUp() method
+         * to FinInstitutePopup, the name of the component containing
+         *  the PopupWindow container
+         */
+        private function showPopUp(recCtxItems:ArrayCollection,
+                                   retCtxItem:ArrayCollection):void {
+            
+            dispatchEvent(new Event("preClick"));
+            if(fundCodeCheck == true){
+	            if (recCtxItems == null){
+	                recCtxItems = new ArrayCollection();
+	            }
+	            
+	            if (retCtxItem == null){
+	                retCtxItem = new ArrayCollection();
+	            }
+	            //create the fininst popup        
+	            var settleAcctForFundAndBankPopup:SettleAcctForFundAndBankPopup=SettleAcctForFundAndBankPopup
+	            (PopUpManager.createPopUp( UIComponent(this.parentApplication), SettleAcctForFundAndBankPopup , true));
+	            //Center the Popup Window in the Application's container
+	            PopUpManager.centerPopUp(settleAcctForFundAndBankPopup);
+	            /* Pass a reference to the AutoComplete control
+	             * to the PopUpWindow container so that the 
+	             * PopUpWindow container can return data to the main application.
+	             */
+	            settleAcctForFundAndBankPopup.retTxtInput=stlAccNo;
+	            // Pass a reference to the returnning context items
+	            settleAcctForFundAndBankPopup.returnContextItems = retCtxItem;
+	            // Pass a reference to the popup context items
+	            settleAcctForFundAndBankPopup.receiveCtxItems = recCtxItems;
+	            
+	            xApp.submitButtonInstance = settleAcctForFundAndBankPopup.search;
+	            //initialize the fin inst popup
+            	settleAcctForFundAndBankPopup.initPopup();
+           	}
+        }
+        //end of script
+        ]]>
+    </mx:Script>
+</mx:HBox>

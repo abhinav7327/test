@@ -1,0 +1,456 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core"
+    xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:form="http://www.springframework.org/tags/form"
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:display="http://displaytag.sf.net"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+<div class="formItemArea entryContainerConfirm paddingFour">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	<style type="text/css">
+	<c:if test="${commandForm.options.mode !='NONINTERACTIVE'}">
+			.entryGrid .slick-header-column {
+					height:30px !important;
+			}
+	</c:if>		
+	 </style>
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			<c:choose>
+				<c:when test="${commandForm.options.mode =='NONINTERACTIVE'}">
+				
+					$('.toggleHandle').xenostoggle();
+					
+					var xenos$Dialog$Detail$Hook = function (container, btnContainer) {
+					var details$View$print$Handler = function printHandler(e){
+							e.preventDefault();
+							container.printArea(xenos.utils.defaultPrintOption);
+						};
+					var $btn2 = jQuery('.btn2', btnContainer);
+						$btn2.children().first().html(xenos.title.printInfo);
+						$btn2.show();
+						$btn2.click(details$View$print$Handler);
+					};
+					
+					var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+						var context = $xenos$Wizard.$context;
+						var cached =  xenos$Cache.get('globalPrefs');
+						var evenRowColor = cached.zebraColorEven ? cached.zebraColorEven:'#F9F9F9';
+						var oddRowColor = cached.zebraColorOdd ?cached.zebraColorOdd:'#E5E9ED';
+						$('tr.evenRowColor',context).css('background-color',evenRowColor);
+						$('tr.oddRowColor',context).css('background-color',oddRowColor);
+					}
+				</c:when>
+			    <c:otherwise>
+		           <c:choose>
+						<c:when test="${commandForm.mode == 'VIEW' ||commandForm.mode =='CANCEL'}">
+							var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+								var context = $xenos$Wizard.$context;
+								var cached =  xenos$Cache.get('globalPrefs');
+								var evenRowColor = cached.zebraColorEven ? cached.zebraColorEven:'#F9F9F9';
+								var oddRowColor = cached.zebraColorOdd ?cached.zebraColorOdd:'#E5E9ED';
+								$('tr.evenRowColor',context).css('background-color',evenRowColor);
+								$('tr.oddRowColor',context).css('background-color',oddRowColor);
+							}
+						</c:when>
+					<c:otherwise>
+						var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+						
+						var context = $xenos$Wizard.$context;
+						var baseUrl = xenos.context.path + context.find('form').attr('action');
+						
+						var JournalResult = [],
+							rowId = 0,		
+							item = {},
+							JournalGrid = null
+						var JournalColumns = [];
+						
+						JournalColumns.push({name:"<spring:message code="gle.balanceQuery.label.result.ledger_code_name" htmlEscape="false"/>", 	field:"ledgerCodeName",	id:"ledgerCodeName", 	sortable:false,width:125});
+						JournalColumns.push({name:"<spring:message code="gle.balanceQuery.label.result.sub_ledger_code" htmlEscape="false"/>", 		field:"subLedgerCode",		id:"subLedgerCode",		sortable:false,width:125});
+						JournalColumns.push({name:"<spring:message code="gle.voucherentry.details" htmlEscape="false"/>", 		field:"details",id:"details",sortable:false,width:125});
+						JournalColumns.push({name:"<spring:message code="gle.balanceQuery.label.result.Debit" htmlEscape="false"/>", 	field:"debit",	id:"debit", sortable:false,width:125});
+						JournalColumns.push({name:"<spring:message code="gle.balanceQuery.label.result.Credit" htmlEscape="false"/>", 	field:"credit",	id:"credit", sortable:false,width:125});
+						
+						var JournalGridConf = {
+							enableToolbar:false,
+							consolidateActionFlag:false,
+							emptyColumnCheck : true,
+							forceFitColumns:true,
+							buttons: {
+								print:false,	
+								xls:false,	
+								pdf:false,
+								xlsPref:false,
+								columnPicker:false,	
+								save:false	
+							},
+							pagingInfo:{
+								isNext : false, 
+								url: null
+							}, 
+							urls:{
+								nextPage : null, 
+								prevPage : null, 
+								pdfReport: null, 
+								xlsReport: null 
+							}
+						};
+						<xenos:out escapeXml="false">
+						<c:forEach items="${commandForm.journalList}" var="dl">
+							item = {};
+							rowId+=1;
+							var deatilString="";
+							var staffCode = "<c:out value="${dl.map.staffCode}"/>";
+							var bankChequeNo = "<c:out value="${dl.map.bankChequeNo}"/>";
+							var remarks = "<c:out value="${dl.map.remarks}"/>";
+							
+							if(VALIDATOR.isNullValue(staffCode) <![CDATA[&&]]> VALIDATOR.isNullValue(bankChequeNo) <![CDATA[&&]]> VALIDATOR.isNullValue(remarks)){
+							  deatilString=""; 
+							}else{
+								deatilString = "<c:out value="${dl.map.staffCode}"/>"+":"+"<c:out value="${dl.map.bankChequeNo}"/>"+":"+"<c:out value="${dl.map.remarks}"/>";
+							}
+							item.id = "xenos_" + rowId;
+							item.ledgerCodeName = "<c:out value="${dl.map.ledgerCode}" />"+":"+"<c:out value="${dl.map.ledgerName}" />";
+							item.subLedgerCode 	= "<c:out value="${dl.map.subLedgerCode}" />";
+							item.details = deatilString;
+							item.debit 	= "<c:out value="${dl.map.fDebitAmt}" />";
+							item.credit = "<c:out value="${dl.map.fCreditAmt}" />";
+							JournalResult.push(item);
+						</c:forEach>
+						</xenos:out>
+						JournalGrid = $('#JournalGrid',context).xenosgrid(JournalResult, JournalColumns, JournalGridConf);
+					}
+					</c:otherwise>
+					</c:choose>	
+				</c:otherwise>
+			</c:choose>			
+		</jsp:body>
+	</jsp:element>
+	<c:if test="${success =='false'}">
+		<!-- Error message Area -->
+		<ul class="xenosError">
+			<c:forEach items="${value}" var="dl">		
+			<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+			</c:forEach>
+		</ul>	
+	</c:if>
+	
+	<form:form id="entryForm" modelAttribute="commandForm">
+	<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+		<div class="detailBlock paddingFour">
+			<div class="dtlInfoBlock content1">
+				<c:choose>
+				<!-- Mode is chek is required for  -->
+					<c:when test="${commandForm.options.mode == 'NONINTERACTIVE' || commandForm.mode =='CANCEL' || commandForm.mode == 'VIEW'}">
+					<table class="tableStyle sixCol">
+					<tr>
+						<td><form:label path="">
+								<spring:message code="gle.VoucherDetail.label.result.ref_no"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.referenceNo}</span></td>
+						<td><form:label path="">
+								<spring:message code="gle.VoucherDetail.label.result.ext_ref_no"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.extReferenceNo}</span></td>
+					</tr>
+					<tr>
+						<td><form:label path="">
+								<spring:message code="gle.VoucherDetail.label.result.ccy"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.currency}</span></td>
+						<td><form:label path="">
+								<spring:message code="gle.VoucherDetail.label.result.book_date"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.bookDate}</span></td>
+				  </tr>
+				  <tr>
+						<td><form:label path="">
+								<spring:message code="gle.voucherentry.label.inventoryaccount"/>
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.inventoryAccountNo}</span></td>
+						<td><form:label path="">
+								<spring:message code="gle.voucherentry.label.inventoryaccountname"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.inventoryAccountName}</span></td>
+				  </tr>
+				  <tr>
+						<td><form:label path="">
+								<spring:message code="gle.voucherentry.label.account"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.accountNo}</span></td>
+						<td><form:label path="">
+								<spring:message code="gle.voucherentry.label.accountname"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.accountName}</span></td>
+				  </tr>
+				  <tr>
+						<td><form:label path="">
+								<spring:message code="gle.voucherentry.label.security"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.securityId}</span></td>
+						<td><form:label path="">
+								<spring:message code="gle.voucherentry.label.securityname"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.securityName}</span></td>
+				  </tr>
+				  
+				  <tr>
+						<td><form:label path="">
+								<spring:message code="gle.voucherentry.label.projectid"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.projectId}</span></td>
+						
+				  </tr>
+				  <tr>
+						<td><form:label path="">
+								<spring:message code="gle.VoucherDetail.label.result.reversal_Type"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.reverse}</span></td>
+						
+						<td><form:label path="">
+								<spring:message code="gle.VoucherDetail.label.result.trial_balance_id"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.trialBalanceId}</span></td>
+				  </tr>
+				   <tr>
+				   <td><form:label path="">
+								<spring:message code="gle.VoucherDetail.label.result.batch_file_no"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.batchFileNo}</span></td>
+						<td><form:label path="">
+								<spring:message code="ref.label.created_by"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.createdBy}</span></td>
+				  </tr>
+				   <tr>
+						<td><form:label path="">
+								<spring:message code="ref.label.creation_date"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherDataView.entryDateSystemDisp}</span></td>
+				  </tr>
+				  <tr>
+						<td><form:label path="">
+								<spring:message code="gle.VoucherDetail.label.result.remarks"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal twoCols">${commandForm.voucherDataView.remarks}</span></td>
+				  </tr>
+				  </table>
+				  <table class="reportTbl" >
+								<tr>
+									<td style="border-style:hidden" width="50%">
+									<!-- Debit -->
+									<!-- Header Div -->
+										<div>
+											<h1 class="msgHead" style="text-align:center">
+												<spring:message code="gle.journalquery.label.debit" htmlEscape="false"/>
+											</h1>
+										</div>
+									<!-- Table -->
+									<div style="display:block;">
+										<div class="reportTbl width100Perc content" >
+											<table class="reportTbl">
+												<tr>
+													<th><spring:message code="gle.journalqueryresultaction.label.name" htmlEscape="false"/></th>
+													<th><spring:message code="gle.label.subledgercode" htmlEscape="false"/></th>
+													<th><spring:message code="gle.journalquery.label.ccy" htmlEscape="false"/></th>
+													<th><spring:message code="gle.journalqueryresultaction.label.amount" htmlEscape="false"/></th>
+												</tr>
+												<c:forEach items="${commandForm.drJournalDetailList}" var="dl" varStatus="loopStatus">
+														<tr class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">
+															<!-- Ledger Code:name -->
+															<td>${dl.ledgerDescription}</td>
+															<!-- Sub Ledger Code -->
+															<td>${dl.subLedgerCode}</td>
+															<!-- Ccy -->
+															<td style="text-align:center">${dl.securityId}</td>
+															<!-- Amount -->
+															<td class="xenos-grid-number">${dl.amountStr}</td>
+														</tr>
+												</c:forEach>
+											</table>
+										</div>
+								</div>
+							</td>
+								<td style="border-style:hidden" width="50%">
+									<!-- Credit -->
+									<!-- Header Div -->
+									<div>
+										<h1 class="msgHead" style="text-align:center">
+											<spring:message code="gle.journalquery.label.credit" htmlEscape="false"/>
+										</h1>
+									</div>
+									<!-- Table -->
+									<div class="reportTbl width100Perc content" >
+										<table class="reportTbl">
+											<tr>
+												<th><spring:message code="gle.journalqueryresultaction.label.name" htmlEscape="false"/></th>
+												<th><spring:message code="gle.label.subledgercode" htmlEscape="false"/></th>
+												<th><spring:message code="gle.journalquery.label.ccy" htmlEscape="false"/></th>
+												<th><spring:message code="gle.journalqueryresultaction.label.amount" htmlEscape="false"/></th>
+											</tr>
+											<c:forEach items="${commandForm.crJournalDetailList}" var="dl" varStatus="loopStatus">
+													<tr class="${loopStatus.index % 2 == 0 ? 'evenRowColor' : 'oddRowColor'}">
+														<!-- Ledger Code:name -->
+														<td>${dl.ledgerDescription}</td>
+														<!-- Sub Ledger Code -->
+														<td>${dl.subLedgerCode}</td>
+														<!-- Ccy -->
+														<td style="text-align:center">${dl.securityId}</td>
+														<!-- Amount -->
+														<td class="xenos-grid-number">${dl.amountStr}</td>
+													</tr>
+											</c:forEach>
+											</table>
+									</div>
+								</td>
+							</tr>
+						</table>
+					</c:when>
+					<c:otherwise>
+					<table class="tableStyle sixCol">
+					<tr>
+						<td><form:label path="">
+								<spring:message code="gle.label.ccy"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherPage.currency}</span></td>
+						<td><form:label path="">
+								<spring:message code="gle.label.date"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.transactionDate}</span></td>
+					</tr>
+					<tr>
+						<td><form:label path="">
+								<spring:message code="gle.VoucherDetail.label.result.reversal_Type"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherPage.reverse}</span></td>
+						<td><form:label path="">
+								<spring:message code="gle.VoucherDetail.label.result.trial_balance_id"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherPage.trialBalanceId}</span></td>
+				  </tr>
+				  <tr>
+						<td><form:label path="">
+								<spring:message code="gle.VoucherDetail.label.result.ext_ref_no"/>
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherPage.extReferenceNo}</span></td>
+						<td><form:label path="">
+								<spring:message code="gle.VoucherDetail.label.result.batch_file_no"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherPage.batchFileNo}</span></td>
+				  </tr>
+				  <tr>
+						<td><form:label path="">
+								<spring:message code="gle.VoucherDetail.label.result.remarks"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherPage.remarks}</span></td>
+						<td><form:label path="">
+								<spring:message code="gle.transactionquery.label.inventoryaccount"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherPage.inventoryAccountNo}</span></td>
+				  </tr>
+				  <tr>
+						<td><form:label path="">
+								<spring:message code="gle.voucherentry.label.inventoryaccountname"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherPage.inventoryAccountName}</span></td>
+						<td><form:label path="">
+								<spring:message code="gle.auditinformation.label.account"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherPage.accountNo}</span></td>
+				  </tr>
+				  
+				  <tr>
+						<td><form:label path="">
+								<spring:message code="gle.voucherentry.label.accountname"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherPage.inventoryAccountName}</span></td>
+						<td><form:label path="">
+								<spring:message code="gle.voucherentry.label.security"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherPage.securityId}</span></td>
+				  </tr>
+				  
+				   <tr>
+						<td><form:label path="">
+								<spring:message code="gle.voucherentry.label.securityname"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherPage.securityName}</span></td>
+						<td><form:label path="">
+								<spring:message code="gle.voucherentry.label.projectid"
+									htmlEscape="false" />
+							</form:label></td>
+						<td><span class="detailTxtVal">${commandForm.voucherPage.projectId}</span></td>
+				  </tr>
+				</table>
+				<br></br>
+				<table class="tableStyle sixCol">
+					<tr style="background-color:lightgrey">
+						<td><span></span></td>
+					</tr>
+			    </table>
+			    <br></br>
+				<table class="tableStyle sixCol">
+			  		<tr>
+			 			<div class="entryGrid">
+							<div id="JournalGrid" class="xenos-grid" style="width:100%;height:300px !important;"><spring:message text="" htmlEscape="false"/></div>
+						</div>
+			  		</tr>
+			  	</table>
+				<table class="tableStyle sixCol">
+				 <tr>
+					<td><form:label path="">
+							<spring:message code="gle.voucherentry.total_debit"
+								htmlEscape="false" />
+						</form:label></td>
+					<td><span class="detailTxtVal">${commandForm.voucherPage.totalDebitAmountStr}</span></td>
+					<td><form:label path="">
+							<spring:message code="gle.voucherentry.total_credit"
+								htmlEscape="false" />
+						</form:label></td>
+					<td><span class="detailTxtVal">${commandForm.voucherPage.totalCreditAmountStr}</span></td>
+			   </tr>
+			   </table>
+			</c:otherwise>
+		</c:choose>	
+	 </div>
+   </div>
+ </form:form>
+</div>   
+</jsp:root>

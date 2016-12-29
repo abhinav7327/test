@@ -1,0 +1,478 @@
+<?xml version="1.0" encoding="utf-8"?>
+<containers:XenosEntryModule xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" 
+	xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" 
+	xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" xmlns:glepopup="com.nri.rui.gle.popupImpl.*" 
+	xmlns:frmtrs="com.nri.rui.core.formatters.*" xmlns:valdtrs="com.nri.rui.core.validators.*"
+	layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+    
+    <mx:Script>
+    	<![CDATA[
+    		import com.nri.rui.core.utils.XenosStringUtils;    		
+    		import com.nri.rui.core.Globals;
+    		import mx.resources.ResourceBundle;
+    		
+    		private function ledgerCodeLabel(item:Object, column:DataGridColumn):String{
+    			return item.entry.(@key=="ledgerCode").value + ":" + item.entry.(@key=="ledgerName").value;
+    		}
+    		
+    		private function subledgerCodeLabel(item:Object, column:DataGridColumn):String{
+    			return item.entry.(@key=="subLedgerCode").value ;
+    		}
+    		
+    		private function ledgerDetailLabel(item:Object, column:DataGridColumn):String{
+    			var staffCode:String=item.entry.(@key=="staffCode").value;
+    			var bankChequeNo:String=item.entry.(@key=="bankChequeNo").value;
+				var remarks:String=item.entry.(@key=="remarks").value;    			
+    			
+    			if(XenosStringUtils.isBlank(staffCode) && XenosStringUtils.isBlank(bankChequeNo) && XenosStringUtils.isBlank(remarks))
+    				return XenosStringUtils.EMPTY_STR;
+    			else
+    				return staffCode+":"+bankChequeNo+":"+remarks;
+    			
+    		}
+    		private function debitLabel(item:Object, column:DataGridColumn):String{
+    			return item.entry.(@key=="fDebitAmt").value ;
+    		}
+    		
+    		private function creditLabel(item:Object, column:DataGridColumn):String{
+    			return item.entry.(@key=="fCreditAmt").value ;
+    		}
+    	]]>
+    </mx:Script>	
+
+	
+    <mx:Script source="actionscripts/GleVoucherEntry.as"/>
+	 
+    <containers:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="entryState">
+            <mx:SetProperty target="{qry}" name="width" value="100%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="0%"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions>  
+    
+    <frmtrs:XenosNumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+	<valdtrs:XenosNumberValidator id="numVal1" requiredFieldError=""
+    	invalidCharError="Please enter a valid value for Amount" exceedsMaxError="15 digits are allowed before decimal point" negativeError="Please enter a valid value for Amount" separationError="" source="{amount}" property="text" 
+        allowNegative="false" domain="real" lowerThanMinError="" maxValue="999999999999999" minValue="" invalidFormatCharsError="Please enter a valid value for Amount" decimalPointCountError="Please enter a valid value for Amount" precision="3" precisionError="3 digits are allowed after decimal point" />
+          
+	<cntrls:XenosHTTPService id="addJrnlService"
+     	 showBusyCursor="true"
+     	 method="POST" 
+         result="journalAddResult(event)"
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         useProxy="false" resultFormat="xml">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="editJrnlService"
+     	 showBusyCursor="true"
+     	 method="POST" 
+         result="journalEditResult(event)"
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="saveCountryCodeService"
+     	 showBusyCursor="true"
+     	 method="POST" 
+         result="journalAddResult(event)"
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="cancelEditJrnlService"
+     	 showBusyCursor="true"
+     	 method="POST" 
+         result="journalAddResult(event)"
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="deleteJrnlService"
+     	 showBusyCursor="true"
+     	 method="POST"
+         result="journalAddResult(event)"
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         useProxy="false" resultFormat="e4x">
+    </cntrls:XenosHTTPService>
+    <!--<mx:XMLListCollection id="countryCodeList" source="{countryCodeData.countryCrossRefs.countryCrossRef}"/>-->
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+	<mx:VBox width="100%" height="100%">
+	<mx:ViewStack id="vstack" width="100%" height="100%" creationComplete="loadAll()" creationPolicy="auto" >		
+		<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+		<mx:VBox label="Entry Criteria" width="100%" height="100%" >
+			<!--<mx:Label id="initLabel" text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherentry.title')}" fontWeight="bold"/>-->
+			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		
+			<flexlib:WindowShade id="ws1"  styleName="linkButtonWindowShade" width="100%" opened="true">			
+			<mx:Grid width="100%" borderThickness="0">
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.ccy')}" styleName="ReqdLabel"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <cntrls:CurrencyHBox id="ccyHbox" />  
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.date')}" styleName="ReqdLabel"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:DateField formatString="YYYYMMDD" id="date" editable="true" restrict="0-9"/>
+                    </mx:GridItem>                                          
+                </mx:GridRow>
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.VoucherDetail.label.result.reversal_Type')}"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:ComboBox id="reversalType" labelField="label" editable="false" /> 
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.VoucherDetail.label.result.trial_balance_id')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:TrialBalanceIdHBox id="trialBalanceIdHb" />
+                    </mx:GridItem>                                          
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.VoucherDetail.label.result.ext_ref_no')}"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:TextInput id="extRefNo" restrict="{Globals.INPUT_PATTERN}" maxChars="16"/>
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.VoucherDetail.label.result.batch_file_no')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:TextInput id="batchFileNo" restrict="{Globals.INPUT_PATTERN}" maxChars="50"/>
+                    </mx:GridItem>                                          
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.VoucherDetail.label.result.remarks')}"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:TextInput id="remarks" restrict="{Globals.INPUT_PATTERN}" maxChars="35"/>
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.transactionquery.label.inventoryaccount')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                         <xenospopup:AccountPopUpHbox id="invtActPopUp" retContextItem="{returnInvAcContextItem}" recContextItem="{populateInvAcContext()}" />
+                    </mx:GridItem>                                          
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.auditinformation.label.account')}"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:AccountPopUpHbox id="actPopUp" retContextItem="{returnInvAcContextItem}" recContextItem="{populateAcContext()}" />
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherentry.label.security')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                          <xenospopup:InstrumentPopUpHbox id="securityHb"/>
+                    </mx:GridItem>                                          
+                </mx:GridRow>
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherentry.label.projectid')}"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                         <mx:TextInput id="projectId" restrict="{Globals.INPUT_PATTERN}" />
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%" borderThickness="0">
+                        
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                      	    
+                    </mx:GridItem>                                          
+                </mx:GridRow>
+            </mx:Grid>
+            </flexlib:WindowShade>
+           <!--<mx:HBox width="100%" styleName="ButtonBackPanel" height="18"/>-->
+			<flexlib:WindowShade id="ws2" styleName="linkButtonWindowShade" width="100%" opened="true">
+           <mx:Grid width="100%" borderThickness="0">
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.ledgerEntry.label.ledger_code')}" styleName="ReqdLabel"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <glepopup:GleLedgerQueryPopUpHBox id="ledgerCode" />
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.subledgercode')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:AccountPopUpHbox id="subledgercode" retContextItem="{returnInvAcContextItem}" recContextItem="{populateSubLedgerContext()}" />
+                    </mx:GridItem>                       
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherentry.db_cr')}" styleName="ReqdLabel"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:ComboBox id="debit_credit" labelField="label" editable="false"/>
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherqueryresult.label.amount')}" styleName="ReqdLabel"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:TextInput id="amount" width="90" restrict="{Globals.INPUT_PATTERN}" maxChars="18" focusOut="numVal1.handleNumericField(numberFormatter)"/>
+                    </mx:GridItem>                       
+                </mx:GridRow>    
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherentry.cheque_no')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:TextInput id="chequeno" width="90" restrict="{Globals.INPUT_PATTERN}" maxChars="20"/>
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherentry.staff_code')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <xenospopup:EmployeePopUpHbox id="empHb" creationComplete="empHb.employeeText.restrict=null"/>
+                    </mx:GridItem>                       
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%" borderThickness="0">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.VoucherDetail.label.result.remarks')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" borderThickness="0">
+                        <mx:TextInput id="journalRemarks" width="150" restrict="{Globals.INPUT_PATTERN}" maxChars="35"/>
+                    </mx:GridItem> 
+                    <mx:GridItem width="25%" borderThickness="0" horizontalAlign="right">
+                       <mx:Button id="addJrnl" label="Add" styleName="BtnStyle" click="doAddJrnl()" />
+                    </mx:GridItem>
+                    <mx:GridItem width="25%" borderThickness="0" horizontalAlign="left">
+                        <mx:Button id="cxlJrnl" label="Cancel" styleName="BtnStyle" click="doCancelJrnlEdit()" includeInLayout="false" visible="{cxlJrnl.includeInLayout}"/>
+                    </mx:GridItem>                       
+                </mx:GridRow>               	 	
+            </mx:Grid>
+            
+            <mx:HBox width="100%" styleName="ButtonBackPanel" height="18"/>
+            
+            <mx:VBox width="100%" height="50%">
+	            <mx:DataGrid id="voucherSummary" dataProvider="{journalList}" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" visible="false" includeInLayout="true" rowCount="4"> 
+				    <mx:columns>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.ledger_code_name')}" width="200" labelFunction="ledgerCodeLabel"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.sub_ledger_code')}" width="150" labelFunction="subledgerCodeLabel"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherentry.details')}" width="300" labelFunction="ledgerDetailLabel"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.Debit')}" width="100" labelFunction="debitLabel"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.Credit')}" width="100" labelFunction="creditLabel"/>
+						<mx:DataGridColumn headerText="" textAlign="center" >
+							<mx:itemRenderer>
+								<mx:Component>
+									<mx:HBox >
+										<cntrls:XenosButton id="editCode" styleName="BtnEdit" label="Edit" click="outerDocument.editJrnl(data)" width="18" height="18"/>
+										<cntrls:XenosButton id="deleteCode"  styleName="BtnDelete" label="Delete" click="outerDocument.deleteJrnl(data)" width="18" height="18"/>
+									</mx:HBox>
+								</mx:Component>								
+							</mx:itemRenderer>
+						</mx:DataGridColumn>
+		           </mx:columns>
+				</mx:DataGrid>
+				<mx:Grid width="100%" borderThickness="1">
+	                <mx:GridRow width="100%">
+	                    <mx:GridItem width="20%" borderThickness="1" styleName="LabelBgColor" horizontalAlign="center">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherentry.total_debit')}" fontWeight="bold"/>
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="1" horizontalAlign="center" >
+	                        <mx:Label text="{totalDebitAmtStr}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" borderThickness="1" styleName="LabelBgColor" horizontalAlign="center">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherentry.total_credit')}" fontWeight="bold"/>
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="1" horizontalAlign="center">
+	                        <mx:Label text="{totalCreditAmtStr}" />
+	                    </mx:GridItem>
+	                </mx:GridRow>
+                </mx:Grid>  
+			</mx:VBox>		
+
+		</flexlib:WindowShade>
+			
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="doSubmit();" />
+               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click ="{this.mode == 'ENTRY' ?  this.dispatchEvent(new Event('entryReset')) : this.dispatchEvent(new Event('amendEntryReset'))}"/>
+	        </mx:HBox>
+
+		</mx:VBox>
+		
+		</mx:Canvas>
+		
+		<!-- Confirmation screen -->		
+		<mx:VBox width="100%" height="100%" id="rslt" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >			
+	         <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucher.entry.user.conf')}" fontWeight="bold" id="uConfLabel"/>	         
+	       	 <mx:VBox id="sConfLabel"  styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="60" visible="false" verticalAlign="middle" includeInLayout="false" >
+	       	 	<mx:Label id ="sconfMsg"  text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucher.entry.system.conf')}" fontWeight="bold" selectable="true" />
+	       	 	<mx:HBox id="hb"  styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" > 
+		            <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+		            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.label.confirm.txn')}  {this.parentApplication.xResourceManager.getKeyValue('inf.label.refno')} : {refNoStr}" fontWeight="bold" selectable="true"/>
+	            </mx:HBox>   
+        	</mx:VBox>
+	       <cntrls:XenosErrors id="errPage1" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+								
+			<mx:Grid width="100%" verticalGap="0" horizontalGap="0" >
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%"  styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.ccy')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                         <mx:Label text="{resultObj['voucherPage.currency'].toString()}" />  
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%"  styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.label.date')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                        <mx:Label text="{resultObj['transactionDate'].toString()}" />  
+                    </mx:GridItem>                                          
+                </mx:GridRow>
+                 <mx:GridRow width="100%">
+                    <mx:GridItem width="20%"  styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.VoucherDetail.label.result.reversal_Type')}"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                        <mx:Label text="{resultObj['voucherPage.reverse'].toString()}" />   
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%"  styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.VoucherDetail.label.result.trial_balance_id')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                        <mx:Label text="{resultObj['voucherPage.trialBalanceId'].toString()}" />  
+                    </mx:GridItem>                                          
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%"  styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.VoucherDetail.label.result.ext_ref_no')}"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                       <mx:Label text="{resultObj['voucherPage.extReferenceNo'].toString()}" />  
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%"  styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.VoucherDetail.label.result.batch_file_no')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                        <mx:Label text="{resultObj['voucherPage.batchFileNo'].toString()}" />  
+                    </mx:GridItem>                                          
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%"  styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.VoucherDetail.label.result.remarks')}"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                        <mx:Label text="{resultObj['voucherPage.remarks'].toString()}" />  
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%"  styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.transactionquery.label.inventoryaccount')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                         <mx:Label text="{resultObj['voucherPage.inventoryAccountNo'].toString()}" />  
+                    </mx:GridItem>                                          
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%"  styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.transactionquery.label.inventoryaccountname')}"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                        <mx:Label text="{resultObj['voucherPage.inventoryAccountName'].toString()}" />  
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%"  styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.auditinformation.label.account')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                          <mx:Label text="{resultObj['voucherPage.accountNo'].toString()}" />  
+                    </mx:GridItem>                                          
+                </mx:GridRow>
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="20%"  styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.auditinformation.label.accountname')}"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                        <mx:Label text="{resultObj['voucherPage.accountName'].toString()}" />  
+                    </mx:GridItem> 
+                    <mx:GridItem width="20%"  styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherentry.label.security')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                          <mx:Label text="{resultObj['voucherPage.securityId'].toString()}" />  
+                    </mx:GridItem>                                          
+                </mx:GridRow>
+                 <mx:GridRow width="100%"> 
+                    <mx:GridItem width="20%"  styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherentry.label.securityname')}" />
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                          <mx:Label text="{resultObj['voucherPage.securityName'].toString()}" />  
+                    </mx:GridItem>
+                    <mx:GridItem width="20%"  styleName="LabelBgColor">
+                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherentry.label.projectid')}"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="30%" >
+                         <mx:Label text="{resultObj['voucherPage.projectId'].toString()}" />  
+                    </mx:GridItem>                                          
+                </mx:GridRow>
+            </mx:Grid>
+           
+           <!--<mx:HBox width="100%" styleName="ButtonBackPanel" height="18"/>-->            
+            <mx:HBox width="100%" styleName="ButtonBackPanel" height="18"/>
+            
+            <mx:VBox width="100%" height="50%">
+	            <mx:DataGrid id="voucherSummaryConf" dataProvider="{journalList}" width="100%" height="100%" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" visible="true" includeInLayout="true" rowCount="4" creationComplete="setHeaderStyle()"> 
+				    <mx:columns>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.ledger_code_name')}" width="200" labelFunction="ledgerCodeLabel"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.sub_ledger_code')}" width="150" labelFunction="subledgerCodeLabel"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherentry.details')}" width="350" labelFunction="ledgerDetailLabel"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.Debit')}" width="150" labelFunction="debitLabel"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('gle.balanceQuery.label.result.Credit')}" minWidth="150" labelFunction="creditLabel"/>						
+		           </mx:columns>
+				</mx:DataGrid>
+				<mx:Grid width="100%" borderThickness="1">
+	                <mx:GridRow width="100%">
+	                    <mx:GridItem width="20%" borderThickness="1" styleName="LabelBgColor" horizontalAlign="center">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherentry.total_debit')}" fontWeight="bold"/>
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="1" horizontalAlign="center" >
+	                        <mx:Label text="{totalDebitAmtStr}" />
+	                    </mx:GridItem>
+	                    <mx:GridItem width="20%" borderThickness="1" styleName="LabelBgColor" horizontalAlign="center">
+	                        <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('gle.voucherentry.total_credit')}" fontWeight="bold"/>
+	                    </mx:GridItem>
+	                    <mx:GridItem width="30%" borderThickness="1" horizontalAlign="center">
+	                        <mx:Label text="{totalCreditAmtStr}" />
+	                    </mx:GridItem>
+	                </mx:GridRow>
+                </mx:Grid>  
+			</mx:VBox>		
+
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+			   <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="back" visible="{backState}" includeInLayout="{backState}" styleName="BtnStyle" click="doBack()"/>
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uConfSubmit" visible="{uConfSubmitState}" includeInLayout="{uConfSubmitState}" styleName="BtnStyle" click="{this.mode == 'ENTRY' ?  this.dispatchEvent(new Event('entryConf')) :  this.dispatchEvent(new Event('amendEntryConf'))}" /> 
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="cancelSubmit" visible="{cancelSubmitState}" includeInLayout="{cancelSubmitState}" styleName="BtnStyle" click=" {this.dispatchEvent(new Event('cancelEntrySave'))}"/> 
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.confirm')}" id="uCancelConfSubmit" visible="{uCancelConfSubmitState}" includeInLayout="{uCancelConfSubmitState}" styleName="BtnStyle" click="{this.dispatchEvent(new Event('cancelEntryConf'))}"/>  
+   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('ref.form.button.label.sysconfirm')}" id="sConfSubmit" visible="{sConfSubmitState}" includeInLayout="{sConfSubmitState}" styleName="BtnStyle" click="{this.mode == 'ENTRY' ?  this.dispatchEvent(new Event('entrySysConf')) : ( mode == 'AMEND' ? this.dispatchEvent(new Event('amendEntrySysConf')): this.dispatchEvent(new Event('cancelEntrySysConf')))}"/>               
+	        </mx:HBox>
+		</mx:VBox>
+	</mx:ViewStack>
+    </mx:VBox>
+    
+    </mx:Canvas>
+</containers:XenosEntryModule>

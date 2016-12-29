@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:List xmlns:mx="http://www.adobe.com/2006/mxml"  creationComplete="initializeMe()" focusEnabled="false">
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import mx.collections.ArrayCollection;
+			import mx.rpc.events.ResultEvent;
+	    	import mx.utils.StringUtil;
+	    	
+	    	private const ERROR_MSG_HEIGHT:int = 25; //IN PIXELS
+	    	
+			[Bindable]
+			private var errors:ArrayCollection=new ArrayCollection();
+			private var tmpColl:ArrayCollection;
+//			[Embed(source="../../../../../assets/info_icon.png")] 
+//         	public var iconSymbolInfo:Class; 
+         	[Embed(source="../../../../../assets/error_icon.png")] 
+         	public var iconSymbolError:Class;
+         	
+         	/**
+         	 * Initializes some variables and set properties.
+         	 * 
+         	 */
+			private function initializeMe():void{
+				errors.removeAll();
+				tmpColl = new ArrayCollection();
+				this.iconFunction = errInfoIconFunction;
+				this.variableRowHeight = true;
+				//this.wordWrap = true;
+				this.includeInLayout = false;
+				this.showDataTips = true;
+				this.dataTipFunction = errDataTipFunction; //setting the Data Tip Function
+			}
+			/**
+			 * This method will be used to display errors.
+			 * 
+			 */
+			public function displayError(event:ResultEvent):void {
+	            errors.removeAll();
+	            tmpColl.removeAll();
+	            
+	            this.includeInLayout=true;
+			    if(event != null){
+			    	
+				   // if(event.result.XenosErrors.Errors.error is ArrayCollection){
+				   //When result format of HTTPService is not given. It receives it as Object
+				    if(event.result.Errors == null){
+						//trace("11");
+						if(event.result.XenosErrors.Errors.error is ArrayCollection){
+							tmpColl = event.result.XenosErrors.Errors.error;
+						}else {
+						//tmpColl = event.result.XenosErrors.Errors.error;
+							tmpColl.addItem(event.result.XenosErrors.Errors.error);
+						}
+						//trace(event.result.XenosErrors.Errors.error);
+				    } //Result Format is e4x 
+				    else {	
+				    	
+				    	 if(event.result.Errors.error != null && StringUtil.trim(event.result.Errors.error)!= XenosStringUtils.EMPTY_STR){	
+							//trace("no error");
+							tmpColl.addItem(event.result.Errors.error);
+				    	}else {
+				    		//trace("no error 1");
+				    		//return;
+				    	} 
+					}
+					    			   
+				    if (tmpColl != null) {
+				    	for (var i:int = 0; i<tmpColl.length ;i++) {
+					    	//trace("addItem  : "+StringUtil.trim(tmpColl[i]));
+					    	if(StringUtil.trim(tmpColl[i]) != XenosStringUtils.EMPTY_STR)
+					        	errors.addItem(StringUtil.trim(tmpColl[i]));
+					    }	
+					   // trace(tmpColl.length);
+					    if(tmpColl.length == 0){
+					    	clearError(event);
+					    	return;
+					    }
+                        this.dataProvider = errors;
+                       // this.height = ERROR_MSG_HEIGHT * tmpColl.length;
+                       this.rowCount = tmpColl.length;
+                       this.maxHeight = 200;		       	  
+				    }
+			    }		    
+			}
+			
+			/**
+			 * This method will be used to display errors.
+			 * 
+			 */
+			public function showError(errorList:ArrayCollection):void {
+	            //clears the previous errors if any.
+	            removeError();
+	                        
+				if (errorList != null) {
+	                			    
+				    for each ( var err:String in errorList ) {
+	 			        if(StringUtil.trim(err) != XenosStringUtils.EMPTY_STR)
+					       	errors.addItem(StringUtil.trim(err));
+				    }
+				    
+					//No actual error is found	
+					if(errors.length == 0){
+    			    	removeError();
+				    	return;
+				    }
+                    
+                    this.dataProvider = errors;
+                    this.rowCount = errors.length;
+                    this.maxHeight = 200;
+                    this.includeInLayout=true;		       	  
+			    }
+			    		    
+			}
+    		/**
+    		 * This method will clear errors.
+    		 * 
+    		 */
+    		public function clearError(event:ResultEvent):void {
+    		    errors.removeAll();
+    		    this.includeInLayout=false;		    
+    		}
+    		/**
+    		 * This method will clear all the errors and hide the error component.
+    		 * 
+    		 */
+    		public function removeError():void {
+    		    errors.removeAll();
+    		    this.includeInLayout=false;		    
+    		}
+    		/**
+    		 * This method determines what type of icons to display with the messages in the List.
+    		 * 
+    		 * For example if the item is for Error then return the error Icon.
+    		 *             else if the item is for information then return the Info Icon.
+    		 * Here the item object should contain some specific field which will determine the icon type.
+    		 * 
+    		 */    		
+    		public function errInfoIconFunction(item:Object):Class{                
+                return iconSymbolError;       
+            }
+            /**
+            * Data Tip Function for displaying the content at Tool Tip.
+            * 
+            */
+			public function errDataTipFunction(item:Object):String {			    
+			    return item.toString();
+			}
+			public function isError():Boolean{
+				return errors.length>0;
+			}
+		]]>
+	</mx:Script>
+	
+</mx:List>

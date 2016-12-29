@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:Module 	xmlns:mx="http://www.adobe.com/2006/mxml" 
+			xmlns:tabs="*" xmlns:containers="com.nri.rui.core.containers.*" 
+			xmlns:flexlib="http://code.google.com/p/flexlib/" 
+			xmlns:cntrls="com.nri.rui.core.controls.*" 
+			xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+			layout="vertical" 
+			percentWidth="100" 
+			percentHeight ="100" 
+			horizontalScrollPolicy="off" 
+			verticalScrollPolicy="off" 
+			creationComplete="init()">
+			
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.Globals;
+			import mx.collections.ArrayCollection;
+			import mx.rpc.events.FaultEvent;
+			import com.nri.rui.core.controls.XenosHTTPService;
+			import mx.rpc.events.ResultEvent;
+			import com.nri.rui.core.controls.CustomChangeEvent;
+			import com.nri.rui.core.controls.TreeCombo;
+			import flash.utils.getQualifiedClassName;
+			import flash.utils.getDefinitionByName;
+			import com.nri.rui.core.controls.XenosAlert;
+			import com.nri.rui.core.controls.WizardPage;
+			import com.nri.rui.core.controls.CustomChangeEvent;
+			
+			import mx.events.ChildExistenceChangedEvent;
+			import mx.events.IndexChangedEvent;
+			import mx.events.FlexEvent;
+            import mx.resources.ResourceBundle;
+            import mx.core.Application;
+            
+            private static var CP_INTERNAL:String="INTERNAL";
+			private static var CP_BANKCUST:String="BANK/CUSTODIAN";
+			private static var CP_BROKER:String="BROKER";
+            
+			[Bindable]
+			public var submitResult:XML;
+			
+			[Bindable]private var urlModeBind:String="";
+			
+			private var noOfLoadedClasses:int = 0;
+			
+			private var childsArray:Array = new Array();
+			
+			[Bindable] private var cpType:String; 
+			
+			[Bindable] private var method:String; 
+			
+			private var populateTabsRequest:XenosHTTPService = new XenosHTTPService();
+			
+			
+			private function init():void {
+				parseLoaderUrl();
+				wizard.initUrl="ref/account"+urlModeBind+"Dispatch.action?method=" + method+"&SCREEN_KEY=60";
+				accountTypeSelection();
+				registerClassAlias("AccountFundTab", AccountFundTab);
+				registerClassAlias("AccountGeneralTab", AccountGeneralTab);
+				registerClassAlias("AccountContractTab", AccountContractTab); 
+				registerClassAlias("AccountDocumentTab", AccountDocumentTab);
+				registerClassAlias("AccountAddressTab", AccountAddressTab); 
+				registerClassAlias("AccountEaddressTab", AccountEaddressTab);
+				registerClassAlias("AccountCommissionTab", AccountCommissionTab);
+				registerClassAlias("AccountRestrictionTab", AccountRestrictionTab); 
+				registerClassAlias("AccountWithholdingTaxTab", AccountWithholdingTaxTab);
+				registerClassAlias("AccountCustodianTab", AccountCustodianTab);
+				addEventListener("confirmOk",confirmOkHandler);
+			}
+			
+			private function confirmOkHandler(event:CustomChangeEvent):void{
+				vstack.selectedIndex = 0;
+				wizard.dispatchEvent(new Event("entryConfirmOk"));
+			}
+			
+            private function accountTypeSelection():void {
+            	var rndNo:int = Math.random();
+                populateTabsRequest.url = "ref/account"+urlModeBind+"Dispatch.action?method=populateRUITabsForCpType&rnd=" + rndNo;
+                populateTabsRequest.addEventListener(FaultEvent.FAULT, handleError);
+                populateTabsRequest.addEventListener(ResultEvent.RESULT, handleResult);
+                populateTabsRequest.showBusyCursor = true;
+                populateTabsRequest.resultFormat = "xml";
+                populateTabsRequest.method = "POST";
+                var reqObj:Object = new Object();
+                reqObj['counterPartyType'] = cpType;
+                populateTabsRequest.request = reqObj;
+                populateTabsRequest.send();
+            }
+            
+       		/**
+             * This is the handler of HTTPService for tab population.
+             */             
+            private function handleResult(event:ResultEvent):void{
+                var rs:XML = XML(event.result);
+                if(rs.child("Errors").length() > 0) {
+                    var errorInfoList : ArrayCollection = new ArrayCollection();
+                    //populate the error info list              
+                    for each ( var error:XML in rs.Errors.error ) {
+                       errorInfoList.addItem(error.toString());
+                    }
+                    //Display the error
+                    wizard.errPage.showError(errorInfoList);
+                 } else {
+	             		wizard.populateVisibleTabs(rs);
+	             		populateTabs();
+                }
+            }
+            
+            
+            /**
+            * This is the fault handler of HTTPService
+            */ 
+            private function handleError(event:FaultEvent){
+                XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultDetail)));
+            }
+			
+			public function populateTabs():void{
+				var tabArray:Array = wizard.visibleTabs;
+				var indx:int = 0;
+				if(tabArray.length != 0){
+					for (var count:int = 0; count < tabArray.length; count++) {
+						var obj:Object = tabArray[count];
+						var dispObjClass:Class =  getDefinitionByName(obj['label'].toString()) as Class;
+						var myInstance:Object = new dispObjClass();
+						 wizard.viewStackInstance.addChild(WizardPage(myInstance));
+					}
+				}
+				wizard.dispatchEvent(new Event("moduleCreationComplete"));
+			}
+			
+            public function childAdded(event:ChildExistenceChangedEvent):void{
+            } 
+            
+             private function doViewStackChange(event:IndexChangedEvent):void{
+				if(event.newIndex==1){
+					confirmTab.confirmInitXML=wizard.submitResult;					
+					confirmTab.dispatchEvent(new CustomChangeEvent("visibleTabsEvent",wizard.visibleTabs));				
+				}
+			} 
+			
+			/**
+             * Extracts the mode,entity PK and A/c type.
+             */ 
+            public function parseLoaderUrl():void {
+                
+                try {
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    
+                    s = s.replace(myPattern, "");
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                    
+                    var entityPkName:String;
+                    var entityPkValue:String;
+                  
+                    if(params != null){
+	                    for (var i:int = 0; i < params.length; i++) {
+	                        var temp:Array = params[i].split("=");  
+	                        if (temp[0] == "cpType") {
+	                            this.cpType = temp[1];
+	                        }
+	                        else if(temp[0] == "method"){
+	                        	this.method = temp[1];
+	                        } 
+	                    }                    	
+                    }
+                    
+                    if(cpType==CP_INTERNAL){
+						urlModeBind="FundEntry";
+					}
+					else if(cpType==CP_BANKCUST){
+						urlModeBind="BankCustodianEntry";
+					}
+					else if(cpType==CP_BROKER){
+						urlModeBind="BrokerEntry";
+					}
+                    confirmTab.restoreXmlRequest.url = "ref/account"+urlModeBind+"Dispatch.action?method=submitAccountConfirm";
+					
+					wizard.submitUrl="ref/account"+urlModeBind+"Dispatch.action?method=submitAccountEntry"
+					wizard.switchTabUrl="ref/account"+urlModeBind+"Dispatch.action?method=switchEntryTab"+"&SCREEN_KEY=60"
+					wizard.resetUrl="ref/account"+urlModeBind+"Dispatch.action?method=resetAccountEntry"
+					
+					confirmTab.urlModeBind = urlModeBind;
+					
+                } catch (e:Error) {
+                    trace(e);
+                }
+            }
+		]]>
+	</mx:Script>
+	<mx:ViewStack width="100%" height="100%" id="vstack" creationPolicy="auto" change="doViewStackChange(event)">
+		<cntrls:WizardControl id="wizard" width="100%" height="100%"
+							  targetPagePropertyName = "targetTabNo"							  
+                              submitResult="{submitResult}" mode="entry"/>
+		<tabs:AccountConfirmTab id="confirmTab" width="100%" height="100%" confirmInitXML="{submitResult}" urlModeBind="{urlModeBind}" mode="entry" />
+	</mx:ViewStack>
+</mx:Module>

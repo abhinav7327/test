@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Unrealized Pl select Popup Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="init()">
+
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.Alert;
+			import mx.containers.TitleWindow;
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.controls.CheckBox;
+			import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+			
+			import com.nri.rui.core.controls.XenosAlert;
+						
+			[Embed(source="../../assets/img/inf/addcolunm.png")]		    
+			[Bindable]
+			private var icoColumns:Class;
+			[Bindable]
+		    private var queryResult:ArrayCollection= new ArrayCollection();
+		    [Bindable]
+    		private var selectedSummaryResult:ArrayCollection= new ArrayCollection();
+            public static var popupColumns:TitleWindow = null;
+            public var superObj:Object = null;
+            public var gridColumns:ArrayCollection = new ArrayCollection();	    
+			[Bindable]
+            public var rcvCnfPk:String="";
+            [Bindable]
+            public var pkArray:Array = new Array();
+			private function init():void{
+				parseUrlString();
+				var obj:Object = new Object();
+				obj.selectForRequeryArray = pkArray;
+				unrealizedPlSelectQueryRequest.request = obj;
+				unrealizedPlSelectQueryRequest.send();
+			}
+			
+          public function LoadSelectQueryPage(event:ResultEvent):void {
+     	
+			selectedSummaryResult.refresh(); 
+	     	if (null != event) {            
+	            if(null == event.result){
+	                selectedSummaryResult.removeAll(); // clear previous data if any as there is no result now.
+	                if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+	                    //errPage.clearError(event); //clears the errors if any
+	                    XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+	                } else { // Must be error
+	                  //  errPage.displayError(event);    
+	                }                
+	            }else {
+	                //errPage.clearError(event);                
+	                selectedSummaryResult.removeAll();
+	                if(event.result.unrealizedPlQueryActionForm != null){
+		                if(event.result.unrealizedPlQueryActionForm.listForSelection.listForSelection != null){   
+		                    if(event.result.unrealizedPlQueryActionForm.listForSelection.listForSelection is ArrayCollection) {
+		                            selectedSummaryResult = event.result.unrealizedPlQueryActionForm.listForSelection.listForSelection as ArrayCollection;
+		                    	} else {                            
+		                            selectedSummaryResult.addItem(event.result.unrealizedPlQueryActionForm.listForSelection.listForSelection);
+		                    		}
+		                    		
+		                }else{                    
+		                    XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+		                }
+	                }
+	            }
+        }else {
+            selectedSummaryResult.removeAll();
+            XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+        } 
+	        
+       }
+       
+               
+    public function parseUrlString():void {
+        var o:Object = new Object();
+        try {
+            // Remove everything before the question mark, including
+            // the question mark.
+            var myPattern:RegExp = /.*\?/; 
+            var s:String = this.loaderInfo.url.toString();
+            s = s.replace(myPattern, "");
+            // Create an Array of name=value Strings.
+            var params:Array = s.split("="); 
+            
+            if(params[0]=="unrealizedPlPkArray"){
+            	pkArray = params[1].split(",");
+            }
+        } catch (e:Error) {
+            trace(e);
+        }
+       
+    }
+    
+       public function closeHandeler():void{
+	      this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+	    }
+	    
+       public function confirm():void{
+       	var o:Object = new Object();
+       	o.selectForRequeryArray = pkArray;
+		unrealizedPlSelectForCalculation.request = o;
+       	unrealizedPlSelectForCalculation.send();
+       }
+       
+       public function LoadSysConfirmPage(event:ResultEvent):void{
+       	rslt.visible = false;
+       	rslt.includeInLayout = false;
+       	sysConfirm.visible = true;
+       	sysConfirm.includeInLayout = true;
+       	
+       }
+       
+		]]>
+	</mx:Script>
+		
+	<cntrls:XenosHTTPService id="unrealizedPlSelectQueryRequest" 
+         url="cam/unrealizedPlQueryDispatch.action?method=confirmForSelect" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         method="POST" useProxy="false" 
+         showBusyCursor="true" result="LoadSelectQueryPage(event)">
+    </cntrls:XenosHTTPService>
+    
+    <cntrls:XenosHTTPService id="unrealizedPlSelectForCalculation" 
+         url="cam/unrealizedPlQueryDispatch.action?method=selectForCalculation" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         method="POST" useProxy="false" 
+         showBusyCursor="true" result="LoadSysConfirmPage(event)">
+    </cntrls:XenosHTTPService>
+	
+	
+		<mx:VBox width="100%" height="100%" id="rslt" verticalGap="0" horizontalGap="0">			
+			<mx:DataGrid id="selectQueryResult" width="100%" height="100%" dataProvider="{selectedSummaryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto">
+				<mx:columns>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.referenceno')}" dataField="referenceNo" width="140"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.basedate')}" dataField="baseDateDisp"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" dataField="fundCode"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.accountno')}" dataField="accountNoDisp" />
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.accountName')}" dataField="accountName"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.securityid')}" dataField="securityId" textAlign="center" />
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.securityname')}" dataField="securityName"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.currency')}" dataField="issueCcY"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.unrealizedpl')}" dataField="formattedUnrealizedPl"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.tradingpl')}" dataField="profitLossForDisplay"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.quantity')}" dataField="formattedQuantity"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.bookvalue')}" textAlign="right" dataField="formattedBookValue"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.cost')}" textAlign="right" dataField="costForDisplay"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.marketvalue')}" textAlign="right" dataField="formattedMarketValue"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.marketprice')}" textAlign="right" dataField="formattedMarketPrice"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.pricetype')}" dataField="priceType"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.datasource')}" dataField="dataSource"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.vendorprice')}" textAlign="right" dataField="formattedVendorPrice"/>
+	               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('cam.unrealized.pl.query.label.diffflag')}" textAlign="left" dataField="diffMarketValueFlag"/>
+	            </mx:columns>
+	     	</mx:DataGrid>
+	     	<mx:HBox width="100%" styleName="ButtonBackPanel">
+	     		<mx:Button label="Submit" styleName="BtnStyle" click="this.confirm()"/>
+	     	</mx:HBox>
+		</mx:VBox>
+		
+		
+		<mx:VBox width="100%" height="100%" id="sysConfirm" visible="false" includeInLayout="false">
+		
+			<mx:Label width="100%" height="25" text="Transaction Completed" styleName="FormLabelHeading" />
+			
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+	     		<mx:Button label="Ok" styleName="BtnStyle" click="this.closeHandeler()"/>
+	     	</mx:HBox>
+			
+		</mx:VBox>
+</mx:Module>

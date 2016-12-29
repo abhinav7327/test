@@ -1,0 +1,131 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:form="http://www.springframework.org/tags/form"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:jsp="http://java.sun.com/JSP/Page" version="2.0">
+     
+<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+    <jsp:output omit-xml-declaration="yes" /> 
+    
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+        <jsp:body></jsp:body>
+    </jsp:element>   
+     
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+			  var grid_result_columns = [
+				{name:"<spring:message code="borrow.label.fundcode" htmlEscape="false"/>", field:"fundCode", id:"fundcode", width:90,formatter:Slick.Formatters.FundDetailViewFormatter,sortable:true},
+				{name:"<spring:message code="borrow.label.fundname" htmlEscape="false"/>", field:"fundName", id:"fundname", width:150, sortable:true},<!--wordwrap =true -->
+				{name:"<spring:message code="borrow.label.fundacno" htmlEscape="false"/>", field:"fundAccountNoDisplayStr", id:"fundacno", width:110,formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'fundAccountPk'},sortable:true},
+				{name:"<spring:message code="borrow.label.fundacname" htmlEscape="false"/>", field:"fundAccountShortName", id:"fundacname", width:150, sortable:true},
+				{name:"<spring:message code="borrow.label.brokeracno" htmlEscape="false"/>", field:"brokerAccountNoDisplayStr", id:"brokeracno", width:110,formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'brokerAccountPk'},sortable:true},	
+				{name:"<spring:message code="borrow.label.brokeracname" htmlEscape="false"/>", field:"brokerAccountShortName", id:"brokeracname", width:150, sortable:true},<!--wordwrap =true -->
+				{name:"<spring:message code="borrow.label.tradetype" htmlEscape="false"/>", field:"tradeType", id:"trdType", width:90, sortable:true},
+				{name:"<spring:message code="borrow.label.tradedate" htmlEscape="false"/>", field:"tradeDateStr", id:"tradedate", width:90, sortable:true},
+				{name:"<spring:message code="borrow.label.valuedate" htmlEscape="false"/>", field:"valueDateStr",id:"valuedate", width:90, sortable:true},
+				{name:"<spring:message code="borrow.label.referenceno" htmlEscape="false"/>", field:"referenceNoDisplayStr",id:"refNo", width:110, sortable:true, formatter:Slick.Formatters.SlrTradeDetails},
+				{name:"<spring:message code="borrow.label.orderno" htmlEscape="false"/>", field:"orderNo",id:"orderno", width:70, sortable:true},				
+				{name:"<spring:message code="borrow.label.securitycode" htmlEscape="false"/>", field:"securityCode",id:"securitycode", width:100,formatter:Slick.Formatters.InstrumentDetailViewFormater,sortable:true},
+				{name:"<spring:message code="borrow.label.securityname" htmlEscape="false"/>", field:"securityShortName",id:"securityname", width:150, sortable:true},<!--wordwrap =true -->				
+				{name:"<spring:message code="ref.common.label.alternatesecurityid" htmlEscape="false"/>", field:"alternateSecurity",id:"alternateSecurity", width:110, sortable:true},<!--wordwrap =true -->
+				{name:"<spring:message code="borrow.label.quantity" htmlEscape="false"/>", field:"quantityStr",id:"quantity", width:90, sortable:true,cssClass:'xenos-grid-number'},
+				{name:"<spring:message code="borrow.label.rate" htmlEscape="false"/>", field:"rateStr",id:"rate", width:90, sortable:true,cssClass:'xenos-grid-number'},				
+				{name:"<spring:message code="borrow.label.corporateactionflag" htmlEscape="false"/>", field:"corporateActionFlag", id:"corpActFlg", width:90, sortable:true},
+				{name:"<spring:message code="borrow.label.cnc" htmlEscape="false"/>", field:"callableFlag", id:"cnc", width:50, sortable:true},
+				{name:"<spring:message code="borrow.label.status" htmlEscape="false"/>", field:"statusDisplayStr",id:"statusFld", width:90,formatter:Slick.Formatters.CancelRecordFormatter,sortable:true},
+				{name:"<spring:message code="slr.sbr.callabledate" htmlEscape="false"/>", field:"callableDateStr",id:"callableDate", width:85, sortable:true},
+				{name:"<spring:message code="slr.sbr.putthroughflag" htmlEscape="false"/>", field:"putThroughFlag",id:"putThroughFlag", width:55, sortable:true},				
+				{name:"<spring:message code="slr.sbr.lendingdesk" htmlEscape="false"/>", field:"lendingDesk",id:"lendingDesk", width:90, sortable:true},
+				{name:"<spring:message code="slr.sbr.modifiedcontractflag" htmlEscape="false"/>", field:"modifiedContractFlag",id:"modifiedContractFlag", width:55, sortable:true},				
+				{name:"<spring:message code="slr.sbr.externalrefno" htmlEscape="false"/>", field:"externalRefNo",id:"externalRefNo", width:110, sortable:true},
+				{name:"<spring:message code="slr.sbr.matchstatus" htmlEscape="false"/>", field:"matchStatus",id:"matchStatus", width:90, sortable:true},
+				{name:"<spring:message code="slr.sbr.outstandingborrowquantity" htmlEscape="false"/>", field:"outstandingBorrowQuantityStr",id:"outstandingBorrowQuantity", width:140, sortable:true,cssClass:'xenos-grid-number'}
+              ];
+			var grid_result_settings = {
+                enableToolbar:true,                
+                buttons:{
+                    print:true, 
+                    xls:true,
+                    pdf:true,
+					xlsPref:true,
+                    columnPicker:true,  
+                    save:true   
+                },
+                pagingInfo:{
+                    isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+                    url: '/secure/slr/stockborrowreturn/query/count.json'
+                },
+                urls:{
+                    nextPage : '/secure/slr/stockborrowreturn/query/result.json?fetch=next',
+                    prevPage : '/secure/slr/stockborrowreturn/query/result.json?fetch=previous',
+                    pdfReport: '/secure/slr/stockborrowreturn/query/report.json?outputType=pdf',
+                    xlsReport: '/secure/slr/stockborrowreturn/query/report.json?outputType=xls',
+					xlsCurrent:'/secure/slr/stockborrowreturn/query/reportPref.json?outputType=xls'
+                },
+				events:{
+					onDataUpdate: function(data,continueUpdate){
+						for(i in data.value){							
+						}
+						continueUpdate(data);
+					}
+				}
+            };
+            var row_id = 0;         
+            var rec = {};
+			<xenos:out escapeXml="false">
+				<c:forEach items="${value}" var="dl">
+					rec = {};
+					row_id+=1;
+					rec.commandFormId="${requestScope['commandFormId']}";
+					rec.id = "xenos_" + row_id;					
+					rec.fundCode = "<c:out value="${dl.fundCode}"/>";
+					rec.fundName = "<c:out value="${dl.fundName}"/>";
+					rec.fundAccountPk = "<c:out value="${dl.fundAccountPk}"/>";
+					rec.fundAccountNoDisplayStr = "<c:out value="${dl.fundAccountNoDisplayStr}"/>";
+					rec.fundAccountShortName= "<c:out value="${dl.fundAccountShortName}" />";
+					rec.brokerAccountPk= "<c:out value="${dl.brokerAccountPk}" />";
+					rec.brokerAccountNoDisplayStr = "<c:out value="${dl.brokerAccountNoDisplayStr}" />";
+					rec.brokerAccountShortName= "<c:out value="${dl.brokerAccountShortName}" />"; 
+					rec.tradeType= "<c:out value="${dl.tradeType}" />";
+					rec.tradeDateStr= "<c:out value="${dl.tradeDateStr}" />";					
+					rec.valueDateStr= "<c:out value="${dl.valueDateStr}" />";
+					rec.referenceNoDisplayStr= "<c:out value="${dl.referenceNoDisplayStr}" />";
+					rec.orderNo= "<c:out value="${dl.orderNo}" />";
+					rec.securityCode= "<c:out value="${dl.securityCode}" />";
+					rec.securityShortName= "<c:out value="${dl.securityShortName}" />";
+					rec.alternateSecurity= "<c:out value="${dl.alternateSecurity}"/>";																
+					rec.quantityStr= "<c:out value="${dl.quantityStr}" />";
+					rec.rateStr= "<c:out value="${dl.rateStr}" />";					
+					rec.corporateActionFlag= "<c:out value="${dl.corporateActionFlag}" />";
+					rec.callableFlag= "<c:out value="${dl.callableFlag}" />";
+					rec.statusDisplayStr= "<c:out value="${dl.statusDisplayStr}" />";
+					rec.callableDateStr= "<c:out value="${dl.callableDateStr}" />";
+					rec.putThroughFlag= "<c:out value="${dl.putThroughFlag}" />";
+					rec.lendingDesk= "<c:out value="${dl.lendingDesk}" />";
+					rec.modifiedContractFlag= "<c:out value="${dl.modifiedContractFlag}" />";
+					rec.externalRefNo= "<c:out value="${dl.externalRefNo}" />";
+					rec.matchStatus= "<c:out value="${dl.matchStatus}" />";
+					rec.outstandingBorrowQuantityStr= "<c:out value="${dl.outstandingBorrowQuantityStr}" />";
+					rec.instrumentPk = "<c:out value="${dl.instrumentPk}" />";
+					rec.fundPk = "<c:out value="${dl.fundPk}" />";
+					rec.tradePk = "<c:out value="${dl.tradePk}" />";
+					grid_result_data.push(rec);
+				 </c:forEach>
+			 </xenos:out>
+        </jsp:body>
+    </jsp:element>	
+</jsp:root>

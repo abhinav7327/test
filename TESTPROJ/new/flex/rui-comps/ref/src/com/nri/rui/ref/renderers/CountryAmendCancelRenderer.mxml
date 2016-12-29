@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Item Renderer for CashAdjustEntryPopUp.  -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%">
+    <mx:Script>
+        <![CDATA[
+        	import mx.events.CloseEvent;            
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.Globals;
+            
+            import flash.events.MouseEvent;        
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            
+
+            [Bindable] public var _mode:String = "AMEND";
+
+    		/**
+        	 * Mouse Click event handler to open a popup with initialization and passing values.
+        	 * 
+        	 */ 
+            public function handleMouseClick(event:MouseEvent):void {
+        			
+        		var sPopup : SummaryPopup;	
+        		sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+        		//sPopup.addEventListener("RefreshChanges",handleRefreshChanges,false,0,true);
+        		if(_mode == "AMEND"){        			
+        		   sPopup.title = this.parentApplication.xResourceManager.getKeyValue('ref.countryamend.title.renderer.amend');
+        		}else{
+        			sPopup.title = this.parentApplication.xResourceManager.getKeyValue('ref.countryamend.title.renderer.cancel');
+        		}
+        		sPopup.addEventListener("OkSystemConfirm",handleOkSystemConfirm,false,0,true);
+        		
+                //set the width and height of the popup
+                sPopup.width = 850;
+        		sPopup.height = 500;    		
+        		/* sPopup.horizontalScrollPolicy="off";
+        		sPopup.verticalScrollPolicy="off"; */
+        		PopUpManager.centerPopUp(sPopup);        		
+        		
+        		var queryString:String="mode="+this._mode+"&countryPk="+data['countryPk'];
+        		
+        		//Setting the Module path with some parameters which will be needed in the module for internal processing.                                                       
+        		sPopup.moduleUrl = Globals.COUNTRY_ENTRY_SWF + Globals.QS_SIGN +queryString;
+        	}
+        	
+        	
+        	/**
+        	 * Event Handler for the custom event "OkSystemConfirm"
+        	 */
+        	public function handleOkSystemConfirm(event:Event):void {
+        		this.parentDocument.currentState = "";
+                if(_mode == "AMEND")
+                  this.parentDocument.dispatchEvent(new Event("amendReset"));
+                else if(_mode == "CANCEL")
+                  this.parentDocument.dispatchEvent(new Event("cancelReset"));
+                
+            }
+        ]]>
+    </mx:Script>
+    
+    <mx:Button id="editRemarks" styleName="{_mode == 'AMEND' ? 'BtnEdit' : 'BtnDelete'}" width="18" height="18" label="{_mode == 'AMEND' ? 'Edit' : 'Cancel'}" click="handleMouseClick(event)"/>
+</mx:VBox>

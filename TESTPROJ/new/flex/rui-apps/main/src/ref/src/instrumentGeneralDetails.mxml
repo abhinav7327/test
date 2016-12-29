@@ -1,0 +1,566 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%" 
+	xmlns:cntrls="com.nri.rui.core.controls.*" 
+	xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:rui="*"
+	updateComplete="com.nri.rui.core.controls.AutoScroll.updateDisplayList(event);" 
+	creationComplete="init()">
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import mx.utils.StringUtil;
+			import com.nri.rui.core.controls.XenosAlert;
+			import mx.collections.ArrayCollection;
+			import mx.binding.utils.BindingUtils;
+			import com.nri.rui.core.controls.AutoScroll;
+			import mx.controls.Label;
+			import mx.controls.Alert;
+			
+			[Bindable]
+			private var xmlData:XML = new XML();
+			[Bindable]
+			private var positionValue:String = '';
+			[Bindable]
+			private var _mode:String;
+			[Bindable]
+			private var secCodeRows:Number = 1;
+			[Bindable] private var warnInfoList : ArrayCollection = new ArrayCollection();
+			
+			public function get mode():String {
+				return _mode;
+			}
+			
+			public function set mode(md:String):void {
+				_mode=md;
+			}
+			public function init():void { 
+				
+				if(_mode=="entry" || _mode=="amend" || _mode=="cancel"){
+					positionLbl.visible = false;
+					positionVal.visible = false;
+					positionDateGrid.visible = false;
+					positionDateGrid.includeInLayout = false;
+				} else {
+					positionLbl.visible = true;
+					positionVal.visible = true;
+					positionDateGrid.visible = true;
+					positionDateGrid.includeInLayout = true;
+				}
+			}
+
+			public function loadModule(value:XML):void
+			{
+				this.xmlData = value;
+				
+				// Set positions value			
+				if(XenosStringUtils.isBlank(xmlData.instrumentPosition.secPositionIndicatXenosDisp) &&
+				   XenosStringUtils.isBlank(xmlData.instrumentPosition.secPositionIndicatMutualDisp) &&
+				   XenosStringUtils.isBlank(xmlData.instrumentPosition.secPositionIndicatAdvisoryDisp)){
+				   		positionValue = '';
+				   } else {
+				   		positionValue = xmlData.instrumentPosition.secPositionIndicatXenosDisp + ' / '
+				              + xmlData.instrumentPosition.secPositionIndicatMutualDisp + ' / '
+				              + xmlData.instrumentPosition.secPositionIndicatAdvisoryDisp ;
+				   }
+				   softWarn.showWarning(warnInfoList);
+				   
+				   
+				   
+				/* if(positionValue != null && !XenosStringUtils.isBlank(positionValue)){
+					positionValue = positionValue + '/' + xmlData.instrumentPosition.secPositionIndicatMutual;
+				} else {
+					positionValue = xmlData.instrumentPosition.secPositionIndicatMutual;
+				}
+				if(positionValue != null && !XenosStringUtils.isBlank(positionValue)){
+					positionValue = positionValue + '/' + xmlData.instrumentPosition.secPositionIndicatAdvisory;
+				} else {
+					positionValue = xmlData.instrumentPosition.secPositionIndicatAdvisory;
+				} */
+			}
+			
+			public function set xmlSource(xml:XML) : void
+			{
+				this.xmlData = xml;
+				if(XenosStringUtils.isBlank(xmlData.instrumentPosition.secPositionIndicatXenosDisp) &&
+				   XenosStringUtils.isBlank(xmlData.instrumentPosition.secPositionIndicatMutuaDisp) &&
+				   XenosStringUtils.isBlank(xmlData.instrumentPosition.secPositionIndicatAdvisoryDisp)){
+				   		positionValue = '';
+				   } else {
+				   		positionValue = xmlData.instrumentPosition.secPositionIndicatXenosDisp + ' / '
+				              + xmlData.instrumentPosition.secPositionIndicatMutualDisp + ' / '
+				              + xmlData.instrumentPosition.secPositionIndicatAdvisoryDisp ;
+				   } 
+				   adjustCodeGrid(); 
+			
+				warnInfoList = new ArrayCollection();
+				if(xml.child("softExceptionList").length()>0){
+				 	for each ( var warn:XML in xml.softExceptionList.item ) {
+		 			   warnInfoList.addItem(warn.value);
+					}
+		  		}
+		  		//softWarn.showWarning(warnInfoList);
+			}
+			private function dgDetailsView(evt:MouseEvent):void
+			{				
+				this.DgDetails.visible = !this.DgDetails.visible;
+			}	
+			
+			private function adjustCodeGrid():void {
+				if (instCodeInfo != null && instrumentCode != null) {
+					secCodeRows = instrumentCode.length;
+				}
+					
+			}
+		]]>
+	</mx:Script>
+	<mx:XMLListCollection id="instrumentCode" source="{xmlData.instrumentCrossRefsWrapper.instrumentCrossRefs}"/>
+	<mx:XMLListCollection id="instrumentCategory" source="{xmlData.categoriesWrapper.categories}" />
+	<mx:XMLListCollection id="instrumentNames" source="{xmlData.instrumentNameCrossRefsWrapper.instrumentNameCrossRefs}" />
+	<mx:XMLListCollection id="memos" source="{xmlData.memosWrapper.memos}" />
+	<rui:instrumentHeader id="header" setXml="{xmlData}" subTitle="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.general')}" styleName="LabelHeading" />
+	<mx:HBox width="100%" height="100%" styleName="Padding" >
+		<mx:VBox width="100%" height="100%" verticalGap="0" horizontalGap="0">
+		<cntrls:SoftWarningControl id="softWarn" height="20" width="100%" color="#0000FF" backgroundAlpha="0" borderStyle="none" fontWeight="bold"/>
+			<flexlib:WindowShade id="ws1" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws1" tabChildren="{ws1.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.securitycodeinfo')}" width="100%" >
+				<mx:HBox width="100%">
+				<mx:VBox width="100%" height="100%" id="detail">
+					<cntrls:CustomDataGrid id="instCodeInfo" width="100%" dataProvider="{instrumentCode}" horizontalScrollPolicy="off" verticalScrollPolicy="off" rowCount="{secCodeRows}">
+						<cntrls:columns>
+							<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.codetype')}" dataField="instrumentCodeType"/>
+							<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.code')}" dataField="securityId"/>
+						</cntrls:columns>
+					</cntrls:CustomDataGrid>	
+				</mx:VBox>	
+						
+					<mx:Grid width="100%" height="100%" verticalGap="0" horizontalGap="0" maxHeight="200">
+						<mx:GridRow width="100%" height="100%">
+							<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.instrumenttype')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="100%" height="100%">
+								<mx:Label text="{xmlData.instrumentPage.instrumentType}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%" height="100%">
+							<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.contractsize')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="100%" height="100%">
+								<mx:Label text="{xmlData.instrumentPage.contractSizeStr}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%" height="100%">
+							<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.countrycode')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="100%" height="100%">
+								<mx:Label text="{xmlData.instrumentPage.countryCode}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%" height="100%">
+							<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.issueccy')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="100%" height="100%">
+								<mx:Label text="{xmlData.instrumentPage.tradeCcy}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%" height="100%">
+							<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.mintradingunit')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="100%" height="100%">
+								<mx:Label text="{xmlData.instrumentPage.minTradingUnitStr}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%" height="100%">
+							<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.listedid')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="100%" height="100%">
+								<mx:Label text="{xmlData.instrumentPage.listedId}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%" height="100%">
+							<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.pricetype')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="100%" height="100%">
+								<mx:Label text="{xmlData.instrumentPage.priceUnit}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+						<mx:GridRow width="100%" height="100%">
+							<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.investmentcountrycode')}" styleName="FormLabelHeading" />
+							</mx:GridItem>
+							<mx:GridItem width="100%" height="100%">
+								<mx:Label text="{xmlData.instrumentPage.investmentCountryCode}" selectable="true"/>
+							</mx:GridItem>
+						</mx:GridRow>
+					</mx:Grid>
+				</mx:HBox>
+			</flexlib:WindowShade>			
+			<mx:Spacer height="10" />
+			<flexlib:WindowShade id="ws2" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws2" tabChildren="{ws2.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.instrumentnameinfo')}" width="100%" >
+				<mx:Grid verticalGap="0" horizontalGap="0" width="100%">
+					<mx:GridRow width="100%" height="100%">
+						<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.languagecode')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="100%" height="100%">
+							<mx:Label text="{xmlData.defaultCharsetCode}" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.shortname')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="100%" height="100%">
+							<mx:Label text="{xmlData.defaultShortName}" selectable="true"/>
+						</mx:GridItem>
+						<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+							<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.officialname')}" styleName="FormLabelHeading" />
+						</mx:GridItem>
+						<mx:GridItem width="100%" height="100%">
+							<mx:Label text="{xmlData.defaultOfficialName}" selectable="true"/>
+						</mx:GridItem>
+					</mx:GridRow>
+				</mx:Grid>
+				<mx:Spacer height="5" />
+				<mx:HBox width="100%" horizontalAlign="right" styleName="ButtonBackPanel">	
+					<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('ref.account.btn.label.details')}" styleName="BtnStyle" click="dgDetailsView(event)" />	
+				</mx:HBox>					
+				<mx:VBox id="DgDetails" creationComplete="DgDetails.visible = false" includeInLayout="{this.DgDetails.visible}" width="100%">
+					<mx:Spacer height="5" />
+					<cntrls:CustomDataGrid  width="100%" height="100%" dataProvider="{instrumentNames}">
+						<cntrls:columns>
+							<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.languagecode')}" dataField="charsetCode"/>
+							<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.shortname')}" dataField="shortName"/>
+							<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.officialname')}" dataField="officialName"/>
+						</cntrls:columns>				
+					</cntrls:CustomDataGrid>
+				</mx:VBox>
+			</flexlib:WindowShade>			
+			
+			<mx:Spacer height="10" />
+
+			<flexlib:WindowShade id="ws3" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws3" tabChildren="{ws3.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.basicattributes')}" width="100%" >
+			
+			<mx:Grid verticalGap="0" horizontalGap="0" width="100%" >
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.listeddate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.listedDate}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.delisteddate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.delistedDate}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.auctiondate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.auctionDateStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.issuestatus')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.issueStatus}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.issuer')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.issuerDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.whenissuedflag')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.whenIssuedFlagDisp}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.issuequantity')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.issueQuantityStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.outstandingquantity')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.outstandingQuantityStr}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.defaultform')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.defaultDeliveryMethodDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.transferagent')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.transferAgentCode}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.duallistedflag')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.dualListedFlagDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.defaultsettlementlocation')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.defaultSettlementLocationDisp}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				
+				
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.investmentsector')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.investmentSectorDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.mutualfundcategory')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.mutualFundCategoryDisp}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				
+				
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.datasource')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.dataSource}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.alternate.securitycode')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.alternateSecurityCode}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				
+		
+		
+					
+<!--				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.marketmake')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.marketMake}"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.issuestatus')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.issueStatus}"/>
+					</mx:GridItem>
+				</mx:GridRow>-->				
+				<!--<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.displaysequence')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.displaySeqStr}"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.auctiondate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.auctionDateStr}"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.transferagent')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.transferAgentCode}"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.clearinghouse')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.clearingHouse}"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.collateral')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.collateralFlagDisp}"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.marginable')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.marginableFlagDisp}"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.genericcusipflag')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.genericCusipFlagDisp}"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.datasource')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.dataSource}"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.marketmakerflag')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.marketMakerFlagDisp}"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.duallistedflag')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.dualListedFlagDisp}"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.defaultsettlementlocation')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.defaultSettlementLocationDisp}"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.defaultform')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.defaultDeliveryMethodDisp}"/>
+					</mx:GridItem>
+				</mx:GridRow>-->
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_regi_date')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.appRegiDateStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.created_by')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.createdBy}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.app_upd_date')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.appUpdDateStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.updated_by')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.updatedBy}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.creation_date')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.creationDateStr}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.label.update_date')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.updateDateStr}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.status')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label text="{xmlData.instrumentPage.status}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label id="positionLbl" text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.positions')}" styleName="FormLabelHeading"  />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label id="positionVal" text="{positionValue}"/>
+					</mx:GridItem>
+				</mx:GridRow>
+				<mx:GridRow id="positionDateGrid" width="100%" height="100%">
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label id="positionStartDatLbl" text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.positionsstartdate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label id="positionStartDatVal" text="{xmlData.instrumentPosition.investStartDateXenosDisp}" selectable="true"/>
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%" styleName="LabelBgColor">
+						<mx:Label id="positionEndDatLbl" text="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.positionsenddate')}" styleName="FormLabelHeading" />
+					</mx:GridItem>
+					<mx:GridItem width="100%" height="100%">
+						<mx:Label id="positionEndDatVal" text="{xmlData.instrumentPosition.investEndDateXenosDisp}" selectable="true"/>
+					</mx:GridItem>
+				</mx:GridRow>
+			</mx:Grid>
+			</flexlib:WindowShade>
+			
+			<mx:Spacer height="10"/>
+			
+			<flexlib:WindowShade id="ws4" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws4" tabChildren="{ws4.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.categoryinfo')}" width="100%" >
+			
+			<cntrls:CustomDataGrid width="100%" height="100%" dataProvider="{instrumentCategory}">
+				<cntrls:columns>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.categorytype')}" dataField="categoryType"/>
+					<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.categoryid')}" dataField="categoryId"/>
+				</cntrls:columns>
+			</cntrls:CustomDataGrid>	
+			</flexlib:WindowShade>
+			
+			<mx:Spacer height="10"/>
+			<!-- Memo Information -->
+			<flexlib:WindowShade id="ws5" click="com.nri.rui.core.controls.AutoScroll.currentObj = this.ws5" tabChildren="{ws5.opened}" label="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.memo')}" width="100%" >
+				<cntrls:CustomDataGrid width="100%" height="100%" dataProvider="{memos}">
+					<cntrls:columns>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.memo')}" dataField="memoCode"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.description1')}" dataField="description1"/>
+						<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.instrument.label.description2')}" dataField="description2"/>
+					</cntrls:columns>
+				</cntrls:CustomDataGrid>
+			</flexlib:WindowShade>
+			
+		</mx:VBox>	
+	</mx:HBox>
+</mx:Module>

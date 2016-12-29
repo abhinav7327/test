@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+    
+<cntrls:ResizeWindow xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:cntrls="com.nri.rui.core.controls.*" showCloseButton="true" width="230" paddingTop="40" paddingBottom="16" paddingRight="16" paddingLeft="16" verticalGap="8"
+    title="My Xenos" creationComplete="init()" styleName="PopupTitleWindow"
+    horizontalAlign="center" showEffect="WipeDown" hideEffect="WipeUp" addedEffect="WipeDown" removedEffect="WipeUp" >
+<mx:Metadata>
+   [Event( name="confirmationClick", type="flash.events.Event") ]
+   [Event( name="confirmMultipleWindowClick", type="flash.events.Event") ]
+   [Event( name=Globals.EVENT_MENU_ORIENTATION, type="flash.events.Event") ]
+</mx:Metadata>
+    
+    <mx:Script>
+        <![CDATA[
+            import mx.events.ItemClickEvent;
+            import mx.managers.PopUpManager;
+            import mx.events.ListEvent;    
+            import flexlib.mdi.effects.MDIEffectsDescriptorBase;
+            import flexlib.mdi.effects.effectsLib.MDILinearEffects;
+            import flexlib.mdi.effects.effectsLib.MDIVistaEffects;
+            import flexlib.mdi.containers.MDICanvas;
+            import com.nri.rui.core.startup.XenosApplication;
+            import com.nri.rui.core.Globals;
+
+            private var effectsList:Array;
+            private var stylesList:Array;
+            private var cssURL:String;
+            private var mdiCanvas:MDICanvas;
+            private var bConfirmCloseSelected:Boolean=false;
+            private var bConfirmMultipleWindowOpenSelected:Boolean=false;
+            private var bconfirmMultiWinEnabled:Boolean=true;            
+            [Bindable]
+            private var app:XenosApplication = XenosApplication.getInstance(Globals.DEFAULT_ENTERPRISE);
+            
+            private function initWindowConfirmations():void{
+                this.confirmCloseCb.addEventListener(MouseEvent.CLICK,confirmClose_mouseClickHandler);
+                this.confirmMultipleWindowCb.addEventListener(MouseEvent.CLICK,confirmMultipleWindowOpen_mouseClickHandler);
+            }
+            
+            private function initResultSettings():void{
+                if(app.visibleColumnsFrom == Globals.COLS_VISIBLE_FROM_ANY)
+                    this.radioAny.selected=true;
+                else if(app.visibleColumnsFrom == Globals.COLS_VISIBLE_FROM_FIRST)
+                    this.radioFirst.selected=true;
+                else if(app.visibleColumnsFrom == Globals.COLS_VISIBLE_FROM_LAST)
+                    this.radioLast.selected=true;
+                else //First time when the preference window is opened.
+                    app.visibleColumnsFrom=Globals.COLS_VISIBLE_FROM_ANY;
+                app.minimumVisibleColumns=numericStepper.value;
+            }
+            
+            private function init():void
+            {
+                effectsList = new Array();
+                
+                effectsList.push({data: flexlib.mdi.effects.effectsLib.MDIVistaEffects, label: "Vista"});
+                effectsList.push({data: flexlib.mdi.effects.effectsLib.MDILinearEffects, label: "Linear"});
+                effectsList.push({data: flexlib.mdi.effects.MDIEffectsDescriptorBase, label: "No effects"});
+                effectsListCb.dataProvider = effectsList;
+                
+                // these need refining, removing from explorer until then
+                stylesList = new Array();
+                stylesList.push({label: "Default"});
+                stylesList.push({label: "Windows XP"});
+                stylesList.push({label: "Mac OS9"});
+                stylesListCb.dataProvider = stylesList;
+                
+                this.effectsListCb.percentWidth=80;
+                this.stylesListCb.percentWidth=80;
+            }
+            private function confirmClose_mouseClickHandler(evt:MouseEvent):void
+            {
+              bConfirmCloseSelected=this.confirmCloseCb.selected;    
+              var confirmClickEvt:Event = new Event("confirmationClick");
+              this.dispatchEvent(confirmClickEvt);
+            }
+            
+            private function confirmMultipleWindowOpen_mouseClickHandler(evt:MouseEvent):void
+            {
+              bConfirmMultipleWindowOpenSelected=this.confirmMultipleWindowCb.selected;    
+              var confirmMultipleWindowOpenClickEvt:Event = new Event("confirmMultipleWindowClick");
+              this.dispatchEvent(confirmMultipleWindowOpenClickEvt);
+            }
+                        
+            public function set ConfirmCloseStatus(value:Boolean):void
+            {
+                this.confirmCloseCb.selected=value;
+            }
+            
+            public function set Top(value:int):void
+            {
+                this.x=value;
+            }
+            
+            public function set Left(value:int):void
+            {
+                this.y=value;
+            }
+            
+            public function set ConfirmMultipleWindowsOpenStatus(value:Boolean):void
+            {
+                this.confirmMultipleWindowCb.selected=value;
+            }
+            
+            public function get ConfirmCloseStatus():Boolean
+            {
+                return this.bConfirmCloseSelected;
+            }
+            
+            public function get ConfirmMultipleWindowsOpenStatus():Boolean
+            {
+                return this.bConfirmMultipleWindowOpenSelected;
+            }
+
+            public function set mdiParent(mdi:MDICanvas):void
+            {
+                mdiCanvas=mdi;
+            }
+            
+            public function set ConfirmMultipleWindowsEnabled(value:Boolean):void
+            {
+                this.bconfirmMultiWinEnabled=value;
+            }
+            
+            private function changeEffects():void
+            {
+                mdiCanvas.effectsLib = effectsListCb.selectedItem.data as Class;
+                //dashboardMdiCanvas.effectsLib = effectsListCb.selectedItem.data as Class;
+            }
+            
+            // currently not used
+            private function changeStyle(event:ListEvent):void
+            {
+                switch(ComboBox(event.target).selectedIndex)
+                {
+                    case 0 :
+                        cssURL = "assets/Default.swf";
+                        break;
+                    
+                    case 1 :
+                        cssURL = "assets/WindowsXP_default.swf";
+                        break;
+                    case 2 :
+                        cssURL = "assets/MacOS9.swf";
+                        break;
+                    
+                    default:
+                        break;
+                }
+                
+                StyleManager.loadStyleDeclarations(cssURL,true,false,ApplicationDomain.currentDomain);
+            }
+            private function radioGroup_itemClick(evt:ItemClickEvent):void{
+                if(evt.label=="First")
+                    app.visibleColumnsFrom=Globals.COLS_VISIBLE_FROM_FIRST;
+                else if(evt.label=="Last")
+                    app.visibleColumnsFrom=Globals.COLS_VISIBLE_FROM_LAST;
+                else if(evt.label=="Any")
+                    app.visibleColumnsFrom=Globals.COLS_VISIBLE_FROM_ANY;
+            }
+            /**
+             * ItemClickEvent handler for the Menu Orientation Radio Button Group
+             */
+            private function radioGrMenu_itemClick(evt:ItemClickEvent):void{
+                if(evt.label=="Horizontal"){                    
+                    app.horizontalMenu = true;
+                }else if(evt.label=="Vertical"){                    
+                    app.horizontalMenu = false;
+                }
+                //Create and dispatch a event named "MenuOrientationChanged"     
+                var confirmHrMenuClickEvt:Event = new Event(Globals.EVENT_MENU_ORIENTATION);
+                this.dispatchEvent(confirmHrMenuClickEvt)                    
+            }
+        ]]>
+    </mx:Script>
+    
+    <mx:Accordion width="100%" height="100%" borderStyle="none" backgroundAlpha="0">
+        <mx:Canvas label="Themes and Styles" backgroundAlpha="0">
+            <mx:VBox width="100%" paddingBottom="4" paddingTop="4">
+            <mx:FormItem width="100%">        
+                <mx:ComboBox id="effectsListCb" prompt="Select Effects" change="changeEffects()"/>
+                <mx:ComboBox id="stylesListCb" prompt="Select Styles"  change="changeStyle(event)"/>
+            </mx:FormItem>
+            </mx:VBox>
+        </mx:Canvas>
+        <mx:Canvas label="Window Confirmations" backgroundAlpha="0" >
+        <mx:VBox width="100%" paddingBottom="4" paddingTop="4">
+            <mx:FormItem width="100%" creationComplete="initWindowConfirmations()">
+                  <mx:CheckBox id="confirmCloseCb" label="Confirm Window close" selected="{app.confirmWindowClose}"/>
+                  <mx:CheckBox id="confirmMultipleWindowCb" label="Multiple windows open" enabled="{app.multiWindowsOpenEnabled}" selected="{app.multiWindowsOpen}"/>
+            </mx:FormItem>
+        </mx:VBox>
+        </mx:Canvas>
+        <mx:Canvas label="Result Settings" backgroundAlpha="0" >
+            <mx:VBox width="100%" paddingBottom="4" paddingTop="4">            
+            <mx:FormItem width="100%" creationComplete="initResultSettings()">
+                <mx:HBox width="100%">
+                    <mx:Label text="Min. Visible Flds"/>
+                    <mx:NumericStepper  value="{app.minimumVisibleColumns}" width="50%" id="numericStepper" minimum="1" maximum="8" enabled="{app.multiWindowsOpenEnabled}" creationComplete="{numericStepper.mx_internal::inputField.editable=false}" change="{app.minimumVisibleColumns=numericStepper.value}" />                
+                </mx:HBox>
+                <mx:HBox width="100%">
+                <mx:RadioButtonGroup id="radioGroup"  itemClick="radioGroup_itemClick(event);" />
+                <mx:RadioButton id="radioFirst"
+                                label="First"
+                                enabled="{app.multiWindowsOpenEnabled}"
+                                group="{radioGroup}" />
+                        <mx:RadioButton id="radioAny"
+                                label="Any"
+                                enabled="{app.multiWindowsOpenEnabled}"
+                                group="{radioGroup}" selected="true" />
+                        <mx:RadioButton id="radioLast"
+                                        label="Last"
+                                        enabled="{app.multiWindowsOpenEnabled}"
+                                        group="{radioGroup}" />
+                </mx:HBox>
+            </mx:FormItem>
+            </mx:VBox>
+        </mx:Canvas>
+        <mx:Canvas label="Menu Orientation" backgroundAlpha="0" >
+            <mx:VBox width="100%" paddingBottom="4" paddingTop="4">
+            <mx:FormItem width="100%">
+                <mx:HBox width="100%">
+                    <mx:RadioButtonGroup id="radioGrMenu"  itemClick="radioGrMenu_itemClick(event);" />
+                    <mx:RadioButton id="rdMenuHorizontal"
+                                    label="Horizontal"
+                                    selected="{app.horizontalMenu}"
+                                    group="{radioGrMenu}" />
+                    <mx:RadioButton id="rdMenuVertical"
+                                    label="Vertical"
+                                    selected="{!app.horizontalMenu}"                                
+                                    group="{radioGrMenu}"/>
+                        
+                </mx:HBox>
+                  
+            </mx:FormItem>
+        </mx:VBox>
+        </mx:Canvas>
+    </mx:Accordion>
+</cntrls:ResizeWindow>

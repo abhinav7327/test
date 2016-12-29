@@ -1,0 +1,427 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+			var isPrevious = <c:out value="${isPrevious}" />;
+            var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+			
+			<c:set var="operationObjective" value="${commandForm.operationObjective}" />			
+			
+            var grid_result_columns = [
+			
+				<c:if test="${operationObjective == 'QUERY'}">
+					{name:"<spring:message code="frx.inst.label.transtmitdaytime" htmlEscape="false"/>", field:"markedTag", id:"markedTag", width:100, sortable: true },
+					{name:"<spring:message code="frx.inst.label.inxrefno" htmlEscape="false"/>", field:"instructionReferenceNo", id:"instructionReferenceNo", width:170, formatter:Slick.Formatters.FrxInstructionRawFileViewFormater, sortable: true },
+					{name:"<spring:message code="frx.inst.label.fund" htmlEscape="false"/>", field:"fundCode", id:"fundCode", sortable: true, width:100, formatter:Slick.Formatters.FundDetailViewFormatter},
+				</c:if>
+				
+				
+				{name:"<spring:message code="frx.label.fundname" htmlEscape="false"/>", field:"fundName", id:"fundName", sortable: true, width:100},
+                {name:"<spring:message code="frx.inst.label.fundac" htmlEscape="false"/>", field:"fundAccountNo", id:"fundAccountNo", sortable: true, width:100, formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'fundAccountPk'}},
+				{name:"<spring:message code="frx.label.fundaccountname" htmlEscape="false"/>", field:"fundAccountName", id:"fundAccountName", sortable: true, width:100},
+                {name:"<spring:message code="frx.label.tradedate" htmlEscape="false"/>", field:"tradeDateStr", id:"tradeDateStr", width:70, sortable: true },
+				{name:"<spring:message code="frx.label.valuedate" htmlEscape="false"/>", field:"valueDateStr", id:"valueDateStr", width:70, sortable: true },
+                {name:"<spring:message code="frx.inst.label.fixingdate" htmlEscape="false"/>", field:"fixingDateStr", id:"fixingDateStr", width:70, sortable: true },
+                {name:"<spring:message code="frx.label.baseccy" htmlEscape="false"/>", field:"buyCcy", id:"buyCcy", width:50, sortable: true },
+                {name:"<spring:message code="frx.label.baseccyamt" htmlEscape="false"/>", field:"buyCcyAmntStr", id:"buyCcyAmntStr", width:100, cssClass: 'xenos-grid-number', sortable: true },
+                {name:"<spring:message code="frx.label.againstccy" htmlEscape="false"/>", field:"sellCcy", id:"sellCcy", width:50, sortable: true },
+                {name:"<spring:message code="frx.label.againstccyamt" htmlEscape="false"/>", field:"sellCcyAmntStr", id:"sellCcyAmntStr",cssClass: 'xenos-grid-number', width:100, sortable: true },
+                {name:"<spring:message code="frx.label.settleccy" htmlEscape="false"/>", field:"settleCcy", id:"settleCcy", width:100, sortable: true },
+                {name:"<spring:message code="frx.label.counterpartyacc" htmlEscape="false"/>", field:"cpAccountNo", id:"cpAccountNo", width:100, sortable: true, formatter:Slick.Formatters.AccountCommonDetailViewFormatter,accountDetailOptions:{pkFieldName:'cpAccountPk'} },
+                {name:"<spring:message code="frx.inst.label.counterpartyname" htmlEscape="false"/>", field:"cpAccountName", id:"cpAccountName", width:150, sortable: true },
+                {name:"<spring:message code="frx.label.tradetype" htmlEscape="false"/>", field:"tradeType", id:"tradeType", width:180, sortable: true},
+				{name:"<spring:message code="frx.inst.label.ndfopenclose" htmlEscape="false"/>", field:"ndfType", id:"ndfType", width:80, sortable: true },
+				{name:"<spring:message code="frx.label.exchangerate" htmlEscape="false"/>", field:"exchangeRate", id:"exchangeRate", cssClass: 'xenos-grid-number', width:100, sortable: true },
+				{name:"<spring:message code="frx.label.noexchangeflag" htmlEscape="false"/>", field:"noExchangeFlag", id:"noExchangeFlag", width:50, sortable: true },
+				{name:"<spring:message code="frx.inst.label.tradepurpose" htmlEscape="false"/>", field:"purposeOfTrade", id:"purposeOfTrade", width:70, sortable: true },
+				{name:"<spring:message code="frx.inst.label.executingbroker" htmlEscape="false"/>", field:"brokerBic", id:"brokerBic", width:200, sortable: true },
+				{name:"<spring:message code="frx.inst.label.fundaccrossref" htmlEscape="false"/>", field:"frxInstructionAccountNo", id:"frxInstructionAccountNo", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.fundacnamecrossref" htmlEscape="false"/>", field:"frxInstructionAccountName", id:"frxInstructionAccountName", width:120, sortable: true },
+				{name:"<spring:message code="frx.inst.label.deliveryagent" htmlEscape="false"/>", field:"buyDeliveryAgent", id:"buyDeliveryAgent", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.deliveryagentaccountno" htmlEscape="false"/>", field:"buyDeliveryAgentAccountNo", id:"buyDeliveryAgentAccountNo", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.buyintermediary" htmlEscape="false"/>", field:"buyIntermediary", id:"buyIntermediary", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.buyintermediaryaccountno" htmlEscape="false"/>", field:"buyIntermediaryAccountNo", id:"buyIntermediaryAccountNo", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.sellintermediary" htmlEscape="false"/>", field:"sellIntermediary", id:"sellIntermediary", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.sellintermediaryaccno" htmlEscape="false"/>", field:"sellIntermediaryAccountNo", id:"sellIntermediaryAccountNo", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.receivingagent" htmlEscape="false"/>", field:"sellRecievingAgent", id:"sellRecievingAgent", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.receivingagentacc" htmlEscape="false"/>", field:"sellRecievingAgentAccNo", id:"sellRecievingAgentAccNo", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.sellbeneficiaryinstitution" htmlEscape="false"/>", field:"sellBeneficiary", id:"sellBeneficiary", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.settlementdeliveryagent" htmlEscape="false"/>", field:"checkNegetivePLForRecAgent", id:"checkNegetivePLForRecAgent", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.settlementdeliveryagentaccno" htmlEscape="false"/>", field:"checkNegetivePLForRecAgentAccount", id:"checkNegetivePLForRecAgentAccount", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.settlementreceivingagent" htmlEscape="false"/>", field:"checkPossitivePLForRecAgent", id:"checkPossitivePLForRecAgent", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.settlementreceivingagentaccno" htmlEscape="false"/>", field:"checkPossitivePLForRecAgentAccount", id:"checkPossitivePLForRecAgentAccount", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.settlementintermediary" htmlEscape="false"/>", field:"stlDelRecIntermediary", id:"stlDelRecIntermediary", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.settlementintermediaryaccno" htmlEscape="false"/>", field:"stlDelRecIntermAccNo", id:"stlDelRecIntermAccNo", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.settlementbeneficiaryinstitution" htmlEscape="false"/>", field:"checkPossitivePLForBeneficiary", id:"checkPossitivePLForBeneficiary", width:100, sortable: true },
+				
+				<c:if test="${operationObjective == 'QUERY'}">
+					{name:"<spring:message code="frx.inst.label.transmission" htmlEscape="false"/>", field:"transmissionDisplay", id:"transmissionDisplay", width:80, sortable: true },
+					{name:"<spring:message code="frx.inst.label.ackstatus" htmlEscape="false"/>", field:"ackStatus", id:"ackStatus", width:130, sortable: true },
+					{name:"<spring:message code="frx.label.status" htmlEscape="false"/>", field:"frxStatus", id:"frxStatus", width:90, formatter:Slick.Formatters.CancelRecordFormatter, sortable: true },
+				</c:if>
+				
+				{name:"<spring:message code="frx.inst.label.func" htmlEscape="false"/>", field:"functionDisplay", id:"functionDisplay", width:100, sortable: true },
+				{name:"<spring:message code="frx.label.datasource" htmlEscape="false"/>", field:"dataSource", id:"dataSource", width:100, sortable: true },
+				{name:"<spring:message code="frx.inst.label.traderefverno" htmlEscape="false"/>", field:"tradeRefVerNo", id:"tradeRefVerNo", width:100, formatter:Slick.Formatters.FrxInstructionTradeDetailViewFormatter, sortable: true },				
+				{name:"<spring:message code="frx.inst.label.receiverbic" htmlEscape="false"/>", field:"receiverBic", id:"receiverBic", width:100, sortable: true }				
+				
+			];
+			
+			var xenos$ns$views$frxInstructionQueryResult$selectRowColor = function(row){
+				if($.trim(row.instructionReferenceNo)){
+					if(row.ackStatus=="OK" || row.actualTrx!="Y") {
+	           			return "#33CC99";
+	       			}else{
+	       				return  "#F97777";
+	       			}
+				}else{
+	   				return  "#F97777";
+	   			}
+			}
+			
+			var xenos$ns$views$frxInstructionQueryResult$selectColor = function(row) {
+            	if(row.operationObjective == "SEND_NEW"){
+            		if(row.cyan=="true") {
+						return "#00FFFF" ;
+	            	}
+					if(row.pink=="true"){
+						return "#FFCCFF";
+					}
+					if(row.yellow=="true") {
+						return "#FFFF00";
+					}
+					if(row.blue=="true") {
+						return "#9966FF";
+					}
+            	}
+            	
+				return ''; 
+			}
+			
+			var xenos$ns$views$frxInstructionQueryResult$enableValidRecords = function(row) {
+																				if(!(row.operationObjective == "MARK_AS_TRANSMITTED" || 
+																				(row.operationObjective == "SEND_NEW" &amp;&amp; !(row.cyan=="true" || 	
+																																			row.pink=="true" ||  
+																																			row.yellow=="true" || 
+																																			row.blue=="true")))) {
+																					return false;
+																				}
+																			  }
+			
+            var grid_result_settings = {
+				enableToolbar:true,
+				
+				<c:if test="${commandForm.operationObjective != 'QUERY'}">
+					consolidateActionFlag: true,
+					consolidateAttribute: {type:'check'},
+				</c:if>
+				
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,
+					columnPicker:true,	
+					xlsPref:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					url: '/secure/frx/forexinstruction/query/count.json'
+				},
+				resolveBgColor : function(row){		
+					
+					if(row.operationObjective == 'QUERY'){
+						return xenos$ns$views$frxInstructionQueryResult$selectRowColor(row);
+					}else if(row.operationObjective == 'SEND_NEW'){
+						return xenos$ns$views$frxInstructionQueryResult$selectColor(row);
+					}
+					return '';
+				},
+				urls:{
+					nextPage : '/secure/frx/forexinstruction/query/result.json?fetch=next',
+					prevPage : '/secure/frx/forexinstruction/query/result.json?fetch=previous',
+					pdfReport: '/secure/frx/forexinstruction/query/report.json?outputType=pdf',
+					xlsReport: '/secure/frx/forexinstruction/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/frx/forexinstruction/query/reportPref.json?outputType=xls'
+				},
+				consolidationActionCallback: function(rec) {
+					return xenos$ns$views$frxInstructionQueryResult$enableValidRecords(rec);
+                },
+				events:{
+					
+					onDataUpdate : function(data,callback){
+						for(i in data.value){							
+							data.value[i].fundAccountNo = data.value[i].fundPrefix+";"+data.value[i].fundAccountNo;
+							data.value[i].cpAccountNo   = xenos$ns$views$frxInstructionQueryResult$cpAccount(data.value[i].cpPrefix, data.value[i].cpAccountNo);
+							data.value[i].markedTag =     xenos$ns$views$frxInstructionQueryResult$markedTag(data.value[i]);
+							data.value[i].checkNegetivePLForRecAgent =     xenos$ns$views$frxInstructionQueryResult$checkNegetivePLForRecAgent(data.value[i]);
+							data.value[i].checkNegetivePLForRecAgentAccount = xenos$ns$views$frxInstructionQueryResult$checkNegetivePLForRecAgentAccount(data.value[i]);							
+							data.value[i].checkPossitivePLForRecAgent = xenos$ns$views$frxInstructionQueryResult$checkPossitivePLForRecAgent(data.value[i]);
+							data.value[i].checkPossitivePLForRecAgentAccount = xenos$ns$views$frxInstructionQueryResult$checkPossitivePLForRecAgentAccount(data.value[i]);
+							data.value[i].tradeRefVerNo = xenos$ns$views$frxInstructionQueryResult$tradeRefVerNo(data.value[i].versionNo, data.value[i].tradeRefNo);
+							data.value[i].checkPossitivePLForBeneficiary = xenos$ns$views$frxInstructionQueryResult$checkPossitivePLForBeneficiary(data.value[i]);
+							data.value[i].rowID = i;
+						}
+						callback(data);
+					}
+				},
+				afterRenderComplete : function(grid, $context){
+				
+					<c:if test="${operationObjective != 'QUERY'}">
+						$('.xenos-grid-pager', '.formContent').find('.right').children().first().prepend('<div class="left marginRight bgColorInfoIcon" title="Help"></div>');
+						
+						$('.bgColorInfoIcon').on('click',function(e){
+							$('#bgColorInfo').dialog({
+								title: 'Background Color info for pending records',
+								closeOnEscape: false,
+								draggable: true,
+								resizable:false,
+								show: 'fade',
+								hide: 'fade',
+								width: '450',
+								height: '190',
+								modal:false
+							});
+						});
+					</c:if>
+										
+				},
+				<c:if test="${operationObjective == 'QUERY'}">
+					defaultInvisibleColumns: ["fundName", "fundAccountName", "fixingDateStr", "cpAccountName", "noExchangeFlag", "frxInstructionAccountName", "buyDeliveryAgentAccountNo", "buyIntermediary", "buyIntermediaryAccountNo", "sellIntermediary", "sellIntermediaryAccountNo", "sellRecievingAgentAccNo", "sellBeneficiary", "checkNegetivePLForRecAgentAccount", "checkPossitivePLForRecAgentAccount", "stlDelRecIntermediary", "stlDelRecIntermAccNo", "checkPossitivePLForBeneficiary"]
+				</c:if>
+				<c:if test="${operationObjective != 'QUERY'}">
+					defaultInvisibleColumns: ["fundName", "fundAccountName", "fixingDateStr", "cpAccountName", "noExchangeFlag", "frxInstructionAccountName", "buyDeliveryAgentAccountNo", "buyIntermediary", "buyIntermediaryAccountNo", "sellIntermediary", "sellIntermediaryAccountNo", "sellRecievingAgentAccNo", "sellBeneficiary", "checkNegetivePLForRecAgentAccount", "checkPossitivePLForRecAgentAccount", "stlDelRecIntermediary", "stlDelRecIntermAccNo", "checkPossitivePLForBeneficiary","functionDisplay"]
+				</c:if>
+				
+			};
+            
+            var rec = {};
+			
+			var xenos$ns$views$frxInstructionQueryResult$markedTag = function(rec){
+				if($.trim(rec.instructionReferenceNo)!=""){
+					if(rec.actualTrx=="Y"){
+						return $.trim(rec.transmissionDateStr);
+					}else{
+						return '(Marked)';
+					}
+				}else{
+					return "";
+				}
+			}
+			
+			var xenos$ns$views$frxInstructionQueryResult$cpAccount = function(cpPrefix, cpAccountNo){
+				if($.trim(cpPrefix)==""){
+            		return cpAccountNo;
+            	}else{
+					return cpPrefix+ ';' +cpAccountNo;
+				}
+			}
+			
+			var xenos$ns$views$frxInstructionQueryResult$checkNegetivePLForRecAgent = function(rec){
+            	if(rec.ndfType=="OPEN"){
+            		return "";
+            	} else {
+            		if(rec.instructionType=="MT304"){ 
+	            		if(rec.profitLoss &lt; 0 ){
+	            			return "";
+	            		}else{
+							return rec.stlDelRecAgent;
+						}						
+	            	} else {
+	            		if(rec.instructionType=="MT202"){
+	            			return "";
+	            		} else {
+	            			return rec.stlDelRecAgent;
+	            		}
+	            	}	            	
+	            }
+            }
+			
+			var xenos$ns$views$frxInstructionQueryResult$checkNegetivePLForRecAgentAccount = function(rec){
+            	if(rec.ndfType=="OPEN"){
+            		return "";
+            	} else {
+            		if(rec.instructionType=="MT304"){ 
+	            		if(rec.profitLoss &lt; 0 ){
+	            			return "";
+	            		}else{
+							return rec.stlDelRecAgentAccNo;
+						}
+            		} else {
+            			if(rec.instructionType=="MT202"){
+	            			return "";
+	            		} else {
+	            			return rec.stlDelRecAgentAccNo;
+	            		}
+            		}
+	            }
+            }
+			
+			var xenos$ns$views$frxInstructionQueryResult$checkPossitivePLForRecAgent = function(rec){
+            	if(rec.ndfType=="OPEN"){
+            		return "";
+            	} else {
+            		if(rec.instructionType=="MT304"){
+            			if(rec.profitLoss >= 0 ){
+            				return "";
+            			}else{
+							return rec.stlDelRecAgent;
+						}
+            		} else {
+            			if(rec.instructionType=="MT210"){
+	            			return "";
+	            		} else {
+	            			return rec.stlDelRecAgent;
+	            		}
+            		}
+            	}
+            	
+            }
+			
+			var xenos$ns$views$frxInstructionQueryResult$checkPossitivePLForRecAgentAccount = function(rec){
+            	if(rec.ndfType=="OPEN"){
+            		return "";
+            	} else {
+            		if(rec.instructionType=="MT304"){
+	            		if(rec.profitLoss >= 0 ){
+	            			return "";
+	            		}else{
+							return rec.stlDelRecAgentAccNo;            			
+						}
+            		} else {
+            			if(rec.instructionType=="MT210"){
+	            			return "";
+	            		} else {
+	            			return rec.stlDelRecAgentAccNo;
+	            		}
+            		}
+	            }
+            }			
+			
+			var xenos$ns$views$frxInstructionQueryResult$checkPossitivePLForBeneficiary = function(rec){
+            	if(rec.ndfType=="OPEN"){
+            		return "";
+            	} else {
+            		if(rec.instructionType=="MT304"){
+	            		if(rec.profitLoss >= 0 ){
+	            			return "";
+	            		}else{
+							return rec.stlDelRecBeneficiary;            			
+						}	
+            		} else {
+	            		if(rec.instructionType=="MT210"){
+	            			return "";
+	            		} else {
+	            			return rec.stlDelRecBeneficiary;
+	            		}
+	            	}
+	            }
+            }
+			
+			var xenos$ns$views$frxInstructionQueryResult$tradeRefVerNo = function(versionNo, tradeRefNo){
+            	if(versionNo=="0"){
+            		return tradeRefNo;
+            	}
+            	else{
+            		return tradeRefNo+"-"+versionNo;
+            	}
+            }
+            
+			var row_id = 0;
+			
+			<xenos:out escapeXml="false">
+				<c:forEach items="${value}" var="dl">
+					rec = {};
+					row_id+=1;
+					rec.id = "xenos_" + row_id;
+					rec.operationObjective = "<c:out value="${dl.operationObjective}" />";
+					rec.cyan = "<c:out value="${dl.cyan}" />";
+					rec.blue = "<c:out value="${dl.blue}" />";
+					rec.pink = "<c:out value="${dl.pink}" />";
+					rec.yellow = "<c:out value="${dl.yellow}" />";
+					
+					
+					rec.transmissionDateStr = "<c:out value="${dl.transmissionDateStr}" />";
+					rec.instructionReferenceNo = "<c:out value="${dl.instructionReferenceNo}" />";
+					rec.actualTrx = "<c:out value="${dl.actualTrx}" />";
+					rec.fundPk = "<c:out value="${dl.fundPk}" />";
+					rec.fundCode = "<c:out value="${dl.fundCode}" />";
+					rec.fundName = "<c:out value="${dl.fundName}" />";
+					rec.fundAccountNo = "<c:out value="${dl.fundPrefix}" />" + ";" + "<c:out value="${dl.fundAccountNo}" />";
+					rec.fundAccountPk = "<c:out value="${dl.fundAccountPk}" />";
+					rec.fundAccountName = "<c:out value="${dl.fundAccountName}" />";				
+					rec.tradeDateStr = "<c:out value="${dl.tradeDateStr}" />";
+					rec.valueDateStr = "<c:out value="${dl.valueDateStr}" />";
+					rec.fixingDateStr = "<c:out value="${dl.fixingDateStr}" />";
+					rec.buyCcy = "<c:out value="${dl.buyCcy}" />";
+					rec.buyCcyAmntStr = "<c:out value="${dl.buyCcyAmntStr}" />";
+					rec.sellCcy = "<c:out value="${dl.sellCcy}" />";
+					rec.sellCcyAmntStr = "<c:out value="${dl.sellCcyAmntStr}" />";				
+					rec.settleCcy = "<c:out value="${dl.settleCcy}" />";
+					rec.cpAccountNo = xenos$ns$views$frxInstructionQueryResult$cpAccount("<c:out value="${dl.cpPrefix}" />", "<c:out value="${dl.cpAccountNo}" />");
+					rec.cpAccountPk = "<c:out value="${dl.cpAccountPk}" />";
+					rec.cpAccountName = "<c:out value="${dl.cpAccountName}" />";
+					rec.tradeType = "<c:out value="${dl.tradeType}" />";
+					rec.ndfType = "<c:out value="${dl.ndfType}" />";
+					rec.instructionType = "<c:out value="${dl.instructionType}" />";
+					rec.profitLoss = "<c:out value="${dl.profitLoss}" />";
+					rec.exchangeRate = "<c:out value="${dl.exchangeRate}" />";
+					rec.noExchangeFlag = "<c:out value="${dl.noExchangeFlag}" />";
+					rec.purposeOfTrade = "<c:out value="${dl.purposeOfTrade}" />";
+					rec.brokerBic = "<c:out value="${dl.brokerBic}" />";
+					rec.frxInstructionAccountNo = "<c:out value="${dl.frxInstructionAccountNo}" />";
+					rec.frxInstructionAccountName = "<c:out value="${dl.frxInstructionAccountName}" />";
+					rec.buyDeliveryAgent = "<c:out value="${dl.buyDeliveryAgent}" />";
+					rec.buyDeliveryAgentAccountNo = "<c:out value="${dl.buyDeliveryAgentAccountNo}" />";
+					rec.buyIntermediary = "<c:out value="${dl.buyIntermediary}" />";
+					rec.buyIntermediaryAccountNo = "<c:out value="${dl.buyIntermediaryAccountNo}" />";
+					rec.sellIntermediary = "<c:out value="${dl.sellIntermediary}" />";
+					rec.sellIntermediaryAccountNo = "<c:out value="${dl.sellIntermediaryAccountNo}" />";
+					rec.sellRecievingAgent = "<c:out value="${dl.sellRecievingAgent}" />";
+					rec.sellRecievingAgentAccNo = "<c:out value="${dl.sellRecievingAgentAccNo}" />";
+					rec.sellBeneficiary = "<c:out value="${dl.sellBeneficiary}" />";
+					rec.stlDelRecAgent = "<c:out value="${dl.stlDelRecAgent}" />";
+					rec.stlDelRecAgentAccNo = "<c:out value="${dl.stlDelRecAgentAccNo}" />";
+					rec.stlDelRecIntermediary = "<c:out value="${dl.stlDelRecIntermediary}" />";
+					rec.stlDelRecIntermAccNo = "<c:out value="${dl.stlDelRecIntermAccNo}" />";
+					rec.stlDelRecBeneficiary = "<c:out value="${dl.stlDelRecBeneficiary}" />";				
+					rec.transmissionDisplay = "<c:out value="${dl.transmissionDisplay}" />";
+					rec.ackStatus = "<c:out value="${dl.ackStatus}" />";
+					rec.frxStatus = "<c:out value="${dl.frxStatus}" />";
+					rec.functionDisplay = "<c:out value="${dl.functionDisplay}" />";
+					rec.dataSource = "<c:out value="${dl.dataSource}" />";
+					rec.frxTrdPk = "<c:out value="${dl.frxTrdPk}" />";
+					rec.receiverBic = "<c:out value="${dl.receiverBic}" />";
+					
+					rec.markedTag = xenos$ns$views$frxInstructionQueryResult$markedTag(rec);
+					rec.checkNegetivePLForRecAgent = xenos$ns$views$frxInstructionQueryResult$checkNegetivePLForRecAgent(rec);
+					rec.checkNegetivePLForRecAgentAccount = xenos$ns$views$frxInstructionQueryResult$checkNegetivePLForRecAgentAccount(rec);
+					rec.checkPossitivePLForRecAgent = xenos$ns$views$frxInstructionQueryResult$checkPossitivePLForRecAgent(rec);
+					rec.checkPossitivePLForRecAgentAccount = xenos$ns$views$frxInstructionQueryResult$checkPossitivePLForRecAgentAccount(rec);
+					rec.checkPossitivePLForBeneficiary = xenos$ns$views$frxInstructionQueryResult$checkPossitivePLForBeneficiary(rec);
+					rec.tradeRefVerNo = xenos$ns$views$frxInstructionQueryResult$tradeRefVerNo("<c:out value="${dl.versionNo}" />", "<c:out value="${dl.tradeRefNo}" />");
+					grid_result_data.push(rec);
+				</c:forEach>
+			</xenos:out>
+			
+        </jsp:body>
+    </jsp:element>
+
+</jsp:root>

@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" 
+	xmlns:cntrls="com.nri.rui.core.controls.*" 
+	xmlns:controls="*" 
+	xmlns:src="ref.src.*"
+	creationComplete="submitQueryResult()" width="100%" height="100%" >
+    
+    <mx:Script>
+        <![CDATA[
+        	import mx.managers.PopUpManager;
+        	import mx.core.IFlexDisplayObject;
+            import com.nri.rui.core.controls.XenosAlert;    
+            import com.nri.rui.core.Globals;
+            import mx.rpc.events.ResultEvent;
+            import mx.core.UIComponent;
+            import mx.collections.XMLListCollection;
+            import com.nri.rui.core.utils.XenosPopupUtils;
+            import com.nri.rui.core.utils.PrintUtils;
+            
+            [Bindable]
+            private var executionPk:String;
+            [Bindable]
+            private var executionRefNo:String;
+            [Bindable]
+            private var prefixStr:String = null;     
+            [Bindable]       
+            public var xmlSource:XML;
+            
+            public var o:Object = {};
+            
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split("&"); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if ( tempA[0] == Globals.EXECUTION_PK ) {
+                            o.executionPk = tempA[1];
+                        }else  if ( tempA[0] == Globals.EXECUTION_REF_NO ) {
+                            o.executionRefNo = tempA[1];
+                        }else  if ( tempA[0] == "prefix" ) {
+                            o.prefix = tempA[1];
+                            prefixStr = o.prefix;
+                        }                 
+                    }
+                
+                    executionPk = o.executionPk;       
+                    executionRefNo= o.executionRefNo;
+                    
+                } catch (e:Error) {
+                    trace(e);
+                }
+               
+            }
+            
+            private function submitQueryResult():void {
+
+                parseUrlString();
+                
+				var req : Object = new Object();
+		    	req.executionPk  = executionPk;
+		    	req.executionReferenceNo = executionRefNo;
+		    	executionQueryRequest.request = req;
+		    	executionQueryRequest.send();
+	            currentState = "Summary";
+		    	
+			    PopUpManager.centerPopUp(this);
+            }
+            
+            private function initPage(event:ResultEvent):void {
+                errPage.clearError(event);
+                xmlSource = event.result as XML;
+                if(xmlSource == null){
+                    //XenosAlert.error("No Information received for the Execution Pk = " + executionPk);
+                    XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+                }else if(xmlSource.Errors != null){
+                 	errPage.displayError(event);
+                }
+            }
+            /**
+             * This click Handler method alters the states on the basis of which is currently in display.
+             */
+            public function stateChangeHandler(event:MouseEvent):void {
+            	
+				if(currentState=="Summary")
+            		currentState = "Detail";
+            	else
+            		currentState = "Summary";
+            }
+        ]]>
+    </mx:Script>
+    
+    <cntrls:XenosHTTPService id="executionQueryRequest" url="oms/executionDispatch.action?method=viewExecutionDetails"
+        result="initPage(event)" showBusyCursor="true" method="POST" useProxy="false"
+        fault="XenosAlert.error('Error getting result :: '+event.fault.faultString);" resultFormat="e4x">
+    </cntrls:XenosHTTPService>
+    
+    <mx:states>
+    	<mx:State name="Summary">
+    		<mx:AddChild relativeTo="{accountMain}" position="lastChild">
+                <mx:target>
+		    		<mx:VBox id="SummaryBox" width="100%" height="100%" verticalGap="0" horizontalGap="0" >
+				        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+				        <controls:executionSummaryView dataProvider="{this.xmlSource}" width="100%" height="100%"/>
+				        <mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+				            <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('oms.label.view.dtl')}" click="stateChangeHandler(event)" styleName="BtnStyle"/>
+				        </mx:HBox>
+				    </mx:VBox>
+                </mx:target>
+            </mx:AddChild>
+    	</mx:State>
+    	<mx:State name="Detail">    		
+    		<mx:SetProperty target="{this.parentDocument}" name="title" value="{this.parentApplication.xResourceManager.getKeyValue('oms.title.exe.dtl')}"/>
+    		<mx:SetProperty target="{this.parentDocument}" name="width" value="{this.parentApplication.width - 100}"/>
+            <mx:SetProperty target="{this.parentDocument}" name="height" value="{this.parentApplication.height - 20}"/>
+            <mx:AddChild relativeTo="{accountMain}" position="lastChild"> 
+                <mx:target>
+                	<mx:VBox id="detailBox" width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+                		<mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="right">
+                			<mx:Button id="Print" styleName="PrintBtnStyle" toolTip="Print" 
+				        		click="PrintUtils.printDetail(this.edv.detailView)"/>
+				        	<mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('oms.label.view.summary')}" click="stateChangeHandler(event)" styleName="BtnStyle"/>
+				    	</mx:HBox>
+				    	<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">	                	
+	                    	<controls:executionDetailView width="100%" height="100%" dataProvider="{this.xmlSource}" id="edv"/>
+						</mx:Canvas>					
+					</mx:VBox>
+                </mx:target>
+            </mx:AddChild> 
+            <mx:SetProperty target="{this.parentDocument}" name="x" value="{(this.parentApplication.width - this.parentDocument.width)/2}"/>
+            <mx:SetProperty target="{this.parentDocument}" name="y" value="{(this.parentApplication.height - this.parentDocument.height)/2}"/>                		           
+    	</mx:State>
+    </mx:states>
+    <!-- Define Transition array with one Transition object.-->
+    <mx:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="accountTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[this.parentDocument]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="800"/>
+                <mx:Resize  duration="800"/>
+            </mx:Parallel>
+        </mx:Transition>
+    </mx:transitions>
+    
+    <mx:Canvas id="accountMain" width="100%" height="100%">
+    	
+    </mx:Canvas>
+    
+</mx:Module>

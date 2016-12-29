@@ -1,0 +1,88 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:form="http://www.springframework.org/tags/form"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+     xmlns:jsp="http://java.sun.com/JSP/Page">
+	 
+	<div class="formItemArea">
+		<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+		<jsp:output	omit-xml-declaration="yes" /> 
+		<div class="xenos-grid">
+            <spring:message text="" htmlEscape="false"/>
+          </div>
+		<jsp:element name="script">
+			<jsp:attribute name="type">text/javascript</jsp:attribute>
+			<jsp:body>
+					
+				var grid_result_data = [];
+				var grid_result_columns = [	
+					{name:"<spring:message code="ref.batchreport.label.useroperation" htmlEscape="false"/>", field:"userOperation", id:"userOperation", width:155, sortable:true,
+													options :{
+														transformToDisp:{
+															'EMAIL' : {dispVal :'Email'}
+														}	
+													},
+													formatter:Slick.Formatters.DisplayFormatter
+					}, 
+					{name:"<spring:message code="ref.batchreport.label.sendstatus" htmlEscape="false"/>", field:"sendStatus", id:"sendStatus", width:100, sortable:true,
+													options :{
+														transformToDisp:{
+															'SENT' : {dispVal :'Sent',cssClass:'grnTxt'},
+															'PENDING' : {dispVal :'Not Sent',cssClass:'orngTxt'},
+															'ERROR' : {dispVal :'Error',cssClass:'cancel'}
+														}	
+													},
+													formatter:Slick.Formatters.DisplayFormatter
+					},
+					{name:"<spring:message code="ref.batchreport.label.transmissiontime" htmlEscape="false"/>", field:"transmissionTimeStr", id:"transmissionTimeStr", width:100, sortable:true}
+					
+				];
+				
+				var grid_result_settings = {
+					enableToolbar:false,
+					consolidateActionFlag:false,
+					forceFitColumns : true,
+					buttons:{
+						print:false,	
+						xls:false,	
+						pdf:false,	
+						columnPicker:false,	
+						save:false	
+					},
+					pagingInfo:{
+						isNext : false
+					},
+					urls:{}
+				};
+				var row_id = 0;			
+				var rec = {};
+				<xenos:out escapeXml="false">
+					<c:forEach items="${commandForm.reportGenerationDetailList}" var="dl">
+						rec = {};
+						row_id+=1;
+						rec.id = "xenos_" + row_id;
+						rec.userOperation= "<c:out value="${dl.userOperation}" />"; 
+						rec.sendStatus= "<c:out value="${dl.sendStatus}" />"; 
+						rec.transmissionTimeStr= "<c:out value="${dl.transmissionTimeStr}" />";
+						grid_result_data.push(rec);
+					</c:forEach>
+				</xenos:out>
+		 </jsp:body>
+    </jsp:element>
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			var xenos$Dialog$Detail$Hook = function (container, btnContainer) {
+				var grid = $('.xenos-grid',container).xenosgrid(grid_result_data, grid_result_columns, grid_result_settings);
+				var gridHeight = parseInt(container.css('height'));
+				jQuery('.xenos-grid', container).css('height',gridHeight &lt; 120 ? 120: gridHeight);
+				grid.resizeCanvas();
+			};
+			</jsp:body>
+		</jsp:element>
+	</div>
+</jsp:root>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Item Renderer for displaying the Journal Detail for a specific journal Pk.  -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%">
+    <mx:Script>
+        <![CDATA[
+        	import com.nri.rui.core.utils.XenosStringUtils;
+        	import com.nri.rui.fam.FamConstants;
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.Globals;
+            
+            import flash.events.MouseEvent;        
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            
+    
+            [Embed(source="../../../../../assets/popup_icon.png")]
+    		[Bindable]
+    		private var icoSummary:Class;
+    		
+    		/**
+    	 * Mouse Click event handler to open a popup with initialization and passing values.
+    	 * 
+    	 */ 
+        public function handleMouseClick(event:MouseEvent):void {
+    		var sPopup : SummaryPopup;	
+    		sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+    		
+            //set the width and height of the popup
+            sPopup.width = parentApplication.width - 100;
+    		sPopup.height = parentApplication.height - 100;    		
+    		PopUpManager.centerPopUp(sPopup);
+    		
+    		var journalPk : String = null;
+            var journalType : String = null;
+            
+            var commandFormId: String = data.commandFormId;
+                       
+            if(!XenosStringUtils.isBlank(data.lcJournalPk)){
+            	journalPk = data.lcJournalPk;
+            	journalType = FamConstants.CURRENCY_CATEGORY_LC;
+            	//Journal Details (LC)
+            	sPopup.title = this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.label.journaldetails.lc');
+            }else if(!XenosStringUtils.isBlank(data.bcJournalPk)){
+            	journalPk = data.bcJournalPk;
+            	journalType = FamConstants.CURRENCY_CATEGORY_BC;
+            	//Journal Details (BC)
+            	sPopup.title = this.parentApplication.xResourceManager.getKeyValue('fam.transactionquery.label.journaldetails.bc');
+            }
+            
+            /*
+            var str: String="";
+             for (var p:String in data) {
+               str += p + ":" + data[p] + "\n";
+             }
+             XenosAlert.info(str); 
+            */                  
+            
+    		//Setting the Module path with some parameters which will be needed in the module for internal processing.
+    		sPopup.moduleUrl = Globals.FAM_JOURNAL_DETAILS_SWF + Globals.QS_SIGN + Globals.JOURNAL_PK + Globals.EQUALS_SIGN + journalPk + Globals.AND_SIGN + FamConstants.JOURNAL_TYPE + Globals.EQUALS_SIGN + journalType + Globals.AND_SIGN + Globals.COMMAND_FORM_ID + Globals.EQUALS_SIGN + commandFormId;
+	                                                               
+    		
+    	}
+        ]]>
+    </mx:Script>
+    <mx:Image id="dView" source="{icoSummary}" width="100%" verticalAlign="middle" horizontalAlign="center" buttonMode="true" useHandCursor="true" click="handleMouseClick(event)"/>
+</mx:VBox>

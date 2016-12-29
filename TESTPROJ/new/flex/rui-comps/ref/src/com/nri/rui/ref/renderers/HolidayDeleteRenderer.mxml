@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Item Renderer for CashAdjustEntryPopUp.  -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:cntrls="com.nri.rui.core.controls.*" implements="mx.controls.listClasses.IDropInListItemRenderer" width="100%" height="100%">
+    <mx:Script>
+        <![CDATA[
+        	import mx.rpc.events.FaultEvent;
+        	import mx.controls.listClasses.BaseListData;
+        	import mx.collections.ArrayCollection;
+        	import mx.controls.DataGrid;
+        	import mx.events.CloseEvent;            
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.Globals;
+            
+            import flash.events.MouseEvent;        
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            
+            // Make the listData property bindable.
+    		[Bindable("dataChange")]
+			private var _listData : BaseListData;
+			
+			private var dProvider:ArrayCollection=null;
+			protected var dgrid:DataGrid;
+			public function get listData() : BaseListData
+			{
+			return _listData;            
+			}                                        
+	
+			public function set listData( value : BaseListData ) : void
+			{
+				_listData = value;
+				
+				if(listData)
+				{
+					dgrid = DataGrid(listData.owner);
+					dProvider=dgrid.dataProvider as ArrayCollection ;
+				}					
+			}
+            
+
+    		/**
+        	 * Mouse Click event handler to delete holiday.
+        	 * 
+        	 */ 
+            public function handleMouseClick(event:MouseEvent):void {     
+            	var reqobj:Object=new Object();            
+            	reqobj.editIndexHoliday=dProvider.getItemIndex(data);
+            	reqobj.method="deleteHolidayEntry"; 			
+        		deleteRequest.request=reqobj;  
+        		deleteRequest.send();
+        		//remove from dgrid
+        		dProvider.removeItemAt(dProvider.getItemIndex(data));    		
+        	}
+        	
+        private function onFault(event:FaultEvent):void{
+        	XenosAlert.error(event.fault.message);
+        }
+        	        	
+            
+        ]]>
+    </mx:Script>
+    <cntrls:XenosHTTPService id="deleteRequest" method="POST" url="ref/holidayCancelDispatch.action?" fault="onFault(event)"/>
+    <mx:Button id="deleteHoliday" styleName="BtnDelete" width="18" height="18" label="Cancel" click="handleMouseClick(event)"/>
+</mx:VBox>

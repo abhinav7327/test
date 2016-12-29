@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:cntrls="com.nri.rui.core.controls.*" layout="absolute" width="100%" height="100%" creationComplete="submitDetailQuery()" xmlns:renderers="com.nri.rui.core.renderers.*">
+	
+	<mx:Script source="actionscripts/CompletionSecurityViewSummary.as" />
+	<mx:Script>
+		<![CDATA[
+			[Bindable]
+    		public var instrumentPk:String;
+			/**
+             * Retrieve and return the Account Name for dataTip.
+             */
+            private function getAccountName(item:Object):String {
+                return item.clientAccountNo;
+            }
+		]]>
+	</mx:Script>
+	 <!--The popup Query request HTTPService object-->
+     <cntrls:XenosHTTPService id="complSecurityDetail"
+     	 showBusyCursor="true"
+     	 method="POST" 
+     	 url="stl/stlCompletionSummaryDispatch.action?method=viewInit" 
+         result="onResult(event)" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         useProxy="false" 
+         resultFormat="xml">
+      <!--  <mx:request>
+        	<instrumentPk>{instrumentPk}</instrumentPk>
+        </mx:request>  -->
+    </cntrls:XenosHTTPService>
+    <mx:VBox width="100%" verticalGap="0" horizontalGap="0" height="100%">
+		 <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		 <cntrls:QueryResultHeader id="qh" pdfFunction="generatePdf" xlsFunction="generateXls" printFunction="printCompletionSecurityViewSummary"  width="100%" />
+		 <mx:VBox id="compSecViewSummary" width="100%" verticalGap="0" horizontalGap="0" height="100%">
+			 <mx:Label width="100%" text="{securityCodeDisplay} ({securityShortName})" fontWeight="bold" selectable="true"/>
+			 <mx:DataGrid id="secViewSummary" width="100%" height="100%" dataProvider="{summaryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto" creationComplete="bindDataGrid()">
+		            <mx:columns> 
+		               <mx:DataGridColumn headerText="" width="40" draggable="false" resizable="false" itemRenderer="com.nri.rui.core.renderers.ImgSummaryRenderer" />
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.compl.summary.stlrefno')}" dataField="settlementReferenceNo" width="130" itemRenderer="com.nri.rui.stl.renderers.SettlementInstructionDetailRenderer"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.compl.summary.cpac')}" dataField="clientAccountNo" showDataTips="true" dataTipFunction="getAccountName" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRenderer"/>
+		               <mx:DataGridColumn textAlign="left" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.compl.summary.cpacname')}" dataField="clientAccountName" visible="false" />
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.compl.summary.localac')}" dataField="localAccountNo" visible="false"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.settlementstatus')}" dataField="settlementStatus" />
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.instructiontype')}" dataField="instructionTypeDisplay"/>
+		               <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.label.ccy')}"  dataField="ccyCode"/>
+		               <mx:DataGridColumn textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.quantity')}"  dataField="quantityStr"/>
+		               <mx:DataGridColumn resizable="true" textAlign="right" headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.amount')}" dataField="amountStr" />
+		            </mx:columns>
+		    </mx:DataGrid>
+	    </mx:VBox>   
+	</mx:VBox>	 
+</mx:Module>

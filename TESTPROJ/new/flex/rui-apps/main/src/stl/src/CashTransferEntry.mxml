@@ -1,0 +1,874 @@
+<?xml version="1.0" encoding="utf-8"?>
+<containers:XenosEntryModule 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:containers="com.nri.rui.core.containers.*" 
+	xmlns:flexlib="http://code.google.com/p/flexlib/" 
+	xmlns:cntrls="com.nri.rui.core.controls.*" 
+	xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+	layout="vertical" 
+	percentWidth="100" 
+	percentHeight="100" 
+	horizontalScrollPolicy="off" 
+	verticalScrollPolicy="auto" 
+	creationComplete="loadResourceBundle()">
+    <mx:Script>
+    	<![CDATA[
+    		import com.nri.rui.core.Globals;
+    		import com.nri.rui.stl.Utility.SettlementUtils;
+    		import mx.resources.ResourceBundle;
+    	]]>
+    </mx:Script>
+	
+    <mx:Metadata>
+     	[ResourceBundle("stlResources")]
+     	[ResourceBundle("coreResources")]
+     	[ResourceBundle("refResources")]
+    </mx:Metadata>
+	<mx:Script source="actionscripts/CashTransfer.as"/> 
+	 
+    <containers:states>
+    	<mx:State name="result">
+            <mx:SetProperty target="{qry}" name="width" value="0%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="100%"/>
+        </mx:State>
+        <mx:State name="entryState">
+            <mx:SetProperty target="{qry}" name="width" value="100%"/>
+            <mx:SetProperty target="{rslt}" name="width" value="0%"/>
+        </mx:State>
+    </containers:states>
+    <!-- Define Transition array with one Transition object.-->
+    <containers:transitions>
+        <!-- A transition for changing from any state to any state. -->
+        <mx:Transition id="qryTransition" fromState="*" toState="*">
+            <!-- Define a Parallel effect as the top-level effect.-->
+            <mx:Parallel id="t1" targets="{[qry,rslt]}">
+                <!-- Define a Move and Resize effect.-->
+                <mx:Move  duration="400"/>
+                <!--<mx:Resize duration="400"/>-->
+            </mx:Parallel>
+        </mx:Transition>
+    </containers:transitions>
+       
+	<cntrls:XenosHTTPService id="wireInstructionDetailsDispatchReq" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultDetail)"
+         result="populateParticularFields(event)" showBusyCursor="true"
+         resultFormat="xml" method="POST"/>
+     
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+		<mx:VBox width="100%" height="100%">
+			<mx:ViewStack id="vstack" width="100%" height="100%" creationComplete="loadAll()" creationPolicy="all" >
+			<!--<mx:HBox id="hdbox1" width="100%" height="100%" styleName="Padding4" creationComplete="loadAll()"  >-->
+			<!--<containers:CollapsibleHDividedBox id="hdbox1" width="100%" height="100%" x="0" y="0" creationComplete="initPageStart()" paddingBottom="6" paddingLeft="6" paddingRight="6" paddingTop="6" >-->
+				
+				<mx:Canvas id="qry" width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+					<mx:VBox label="Entry Criteria" width="100%" height="100%" >
+						<mx:Label id="initLabel" text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.cashtransfer.entry')}" fontWeight="bold"/>
+						<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+						<mx:HRule strokeColor="#d2d9dc" strokeWidth="1" width="100%" />
+						<!--<flexlib:WindowShade id="ws1" tabChildren="{ws1.opened=false}" styleName="linkButtonWindowShade" label="Optional Fields - Group 1" width="100%">-->
+						
+						
+						
+						<mx:Grid id="commonGrid" width="100%" borderThickness="0">
+			            	<mx:GridRow id="wireTypeGridRow" width="100%">
+		                    	<mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.wiretype')}"  styleName="ReqdLabel"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="80%" borderThickness="0" colSpan="3">
+		                           <mx:ComboBox id="wireType" labelField="label" change="onChangeOfWireType()"/>
+		                        </mx:GridItem>
+			                </mx:GridRow>
+			                <mx:GridRow id="fundCodeCcyGridRow" width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundcode')}" styleName="ReqdLabel"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                            <xenospopup:FundPopUpHbox id="fundCodeBox" LMFlag="LM" focusOut="autoPopulateForm('OWN');" />
+		                        </mx:GridItem>
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                        	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.currency')}" styleName="ReqdLabel"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<cntrls:CurrencyHBox id="ccyBox" focusOut="autoPopulateForm('CC');"/>
+		                        	
+		                        	<mx:Label id="CashManagementLabel" text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.cashtransfer.entry.cashmanagement')}" 
+		                        		click="showPopUpForCashManagement();" styleName="TextLink" mouseChildren="false" useHandCursor="true" buttonMode="true"/>
+		                        	
+		                        </mx:GridItem>
+			                </mx:GridRow>
+			                <mx:GridRow id="cpAccountNoGridRow" width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.counterpartyaccountno')}" styleName="ReqdLabel"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="80%" borderThickness="0" colSpan="3">
+		                            <xenospopup:AccountPopUpHbox 
+			                            	id="cpAccountNo" LMFlagForFund="LM" focusOut="autoPopulateForm('CP');"/>
+		                        </mx:GridItem>
+			                </mx:GridRow>
+			                <mx:GridRow id="wireAmtValueDateGridRow" width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.wireamount')}" styleName="ReqdLabel"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                            <mx:TextInput id="wireAmount" focusOut="validateWireAmount(this.wireAmount);" restrict="{Globals.INPUT_PATTERN}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                        	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.valuedate')}" styleName="ReqdLabel"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:DateField id="valueDate"  formatString="YYYYMMDD" editable="true" width="90"/>
+		                        </mx:GridItem>
+			                </mx:GridRow>
+			                <mx:GridRow id="gleLedgerTradeDateGridRow" width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.gleledgercode')}" styleName="ReqdLabel"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                            <mx:ComboBox id="gleLedgerCode" labelField="label"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                        	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tradedate')}" styleName="ReqdLabel"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<mx:DateField id="tradeDate"  formatString="YYYYMMDD" editable="true" width="90"/>
+		                        </mx:GridItem>
+			                </mx:GridRow>
+			                <mx:GridRow id="inxTransSecurityGridRow" width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inxtransmission')}" styleName="ReqdLabel"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                            <mx:ComboBox id="inxTransmission" labelField="label" />
+		                        </mx:GridItem>
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                        	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.correspondingsecurityid')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="30%" borderThickness="0">
+		                        	<xenospopup:InstrumentPopUpHbox id="security"/>
+		                        </mx:GridItem>
+			                </mx:GridRow>
+			                <mx:GridRow id="remarksGridRow" width="100%">
+		                        <mx:GridItem width="20%" borderThickness="0">
+		                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.remarks')}"/>
+		                        </mx:GridItem>
+		                        <mx:GridItem width="80%" borderThickness="0" colSpan="3">
+		                            <mx:TextInput id="remarks" editable="true" width="700" maxChars="255"/>
+		                        </mx:GridItem>
+			                </mx:GridRow>
+				        </mx:Grid>
+
+						<mx:ViewStack id="wireViewStack" width="100%" height="100%">
+							
+							
+							<mx:VBox id="bankDetails" width="100%" height="100%" visible="false">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tobankdetails')}" fontWeight="bold" color="#0099FF"/>
+								<mx:Grid id="toBankDetails" borderThickness="0" width="100%" horizontalGap="0" verticalGap="0">
+									<mx:GridRow width="100%">
+				                        <mx:GridItem width="20%">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tobank')}" styleName="ReqdLabel"/>
+				                            <!--<mx:Image id="toBankPopupIcon" source="@Embed('../../assets/img/stl/popup_icon.png')" 
+               									verticalAlign="middle" horizontalAlign="center" click="showPopup(toBank,toBankName,toSettleAccount,'toBank');"/>-->
+               									<mx:Button id="toBankPopupIcon" label="List" click="showPopup(toBank,toBankName,toSettleAccount,'toBank');"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">	                            
+			                                <mx:TextInput id="toBank" editable="false"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="20%">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.bankname')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">
+				                           <mx:TextInput id="toBankName" editable="false"/>
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+			                    	<mx:GridRow width="100%">
+				                        <mx:GridItem width="20%">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tosettleaccount')}" styleName="ReqdLabel"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="80%" colSpan="3">	                            
+			                                <xenospopup:AccountPopUpHbox id="toSettleAccount" LMFlagForFund="LM" retContextItem="{returnContextItem}" click="resetBankFlag(this.toSettleAccount);" />
+			                                <mx:Label id="toSettleAccountLabel" />
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+								</mx:Grid>
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.frombankdetails')}" fontWeight="bold" color="#0099FF"/>
+								<mx:Grid id="fromBankDetails" borderThickness="0" width="100%" horizontalGap="0" verticalGap="0">
+									<mx:GridRow width="100%">
+				                        <mx:GridItem width="20%">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.frombank')}" styleName="ReqdLabel"/>
+				                            <!--<mx:Image id="fromBankPopupIcon" source="@Embed('../../assets/img/stl/popup_icon.png')" 
+               									verticalAlign="middle" horizontalAlign="center" click="showPopup(fromBank,fromBankName,fromSettleAccount,'fromBank');"/>-->
+               									<mx:Button id="fromBankPopupIcon" label="List" click="showPopup(fromBank,fromBankName,fromSettleAccount,'fromBank');"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">	                            
+			                                <mx:TextInput id="fromBank" editable="false"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="20%">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.bankname')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">
+				                           <mx:TextInput id="fromBankName" editable="false"/>
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+			                    	<mx:GridRow width="100%">
+				                        <mx:GridItem width="20%">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fromsettleaccount')}" styleName="ReqdLabel"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="80%" colSpan="3">	                            
+			                                <xenospopup:AccountPopUpHbox id="fromSettleAccount" LMFlagForFund="LM" retContextItem="{returnContextItem}" click="resetBankFlag(this.fromSettleAccount);"/>
+			                                <mx:Label id="fromSettleAccountLabel" />
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+								</mx:Grid>
+							</mx:VBox>
+						
+						
+						
+							<mx:VBox id="firmBankDetails" width="100%" height="100%" visible="false">
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.counterpartydetails')}" fontWeight="bold" color="#0099FF"/>
+								<mx:Grid id="cpDetails" borderThickness="0" width="100%" horizontalGap="0" verticalGap="0">
+									<mx:GridRow width="100%">
+				                        <mx:GridItem width="20%">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.cpbank')}"/>
+				                            <!--<mx:Image id="cpBankPopupIcon" source="@Embed('../../assets/img/stl/popup_icon.png')" 
+               									verticalAlign="middle" horizontalAlign="center" click="showPopupCP(cpBank,cpBankName,cpSettleAccount,'cpBank');"/>-->
+               									<mx:Button id="cpBankPopupIcon" label="List" click="showPopupCP(cpBank,cpBankName,cpSettleAccount,'cpBank');"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">	                            
+			                                <mx:TextInput id="cpBank" editable="false"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="20%">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.bankname')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">
+				                           <mx:TextInput id="cpBankName" editable="false"/>
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+			                    	<mx:GridRow width="100%">
+			                    		<mx:GridItem width="20%">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.cpsettleac')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="80%" colSpan="3">	                            
+			                                <mx:TextInput id="cpSettleAccount" editable="false"/>
+			                                <mx:Label id="cpSettleAccountLabel" />
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+			                    	<mx:GridRow width="100%">
+			                    		<mx:GridItem width="20%">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.beneficiaryname')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="80%" colSpan="3">	                            
+			                                <mx:TextInput id="cpBeneficiaryName" editable="false"/>
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+								</mx:Grid>
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ourdetails')}" fontWeight="bold" color="#0099FF"/>
+								<mx:Grid id="ourDetails" borderThickness="0" width="100%" horizontalGap="0" verticalGap="0">
+									<mx:GridRow width="100%">
+				                        <mx:GridItem width="20%">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ownbank')}" styleName="ReqdLabel"/>
+				                            <!--<mx:Image id="ownBankPopupIcon" source="@Embed('../../assets/img/stl/popup_icon.png')" 
+               									verticalAlign="middle" horizontalAlign="center" click="showPopup(ownBank,ownBankName,ownSettleAccount,'ourBank');"/>-->
+               									<mx:Button id="ownBankPopupIcon" label="List" click="showPopup(ownBank,ownBankName,ownSettleAccount,'ourBank');"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">
+			                                <mx:TextInput id="ownBank" editable="false"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="20%">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.bankname')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">
+				                           <mx:TextInput id="ownBankName" editable="false"/>
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+			                    	<mx:GridRow width="100%">
+			                    		<mx:GridItem width="20%">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ownsettleac')}" styleName="ReqdLabel"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="80%" colSpan="3">
+			                                <mx:TextInput id="ownSettleAccount" editable="false"/>
+			                                <mx:Label id="ownSettleAccountLabel" />
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+								</mx:Grid>
+							</mx:VBox>
+							
+						</mx:ViewStack>	
+
+						<mx:HBox width="100%" styleName="ButtonBackPanel">
+			   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="submit" styleName="BtnStyle" click="{this.dispatchEvent(new Event('entrySave'))}" />
+			               <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" id="reset" styleName="BtnStyle" click ="{this.dispatchEvent(new Event('entryReset'))}"/>
+				        </mx:HBox>
+			
+					</mx:VBox>
+				</mx:Canvas>
+				
+				
+				<!--
+								****************************************************************************
+				-->
+				
+				
+				<mx:VBox id="rslt" width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="auto" styleName="HDivideStyle" >			
+				    <mx:HBox id="uConfLabel" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" includeInLayout="false" visible="false">
+					    <mx:Image id="uConfImg" source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+					    <mx:Label id="usrCnfMessage" textAlign="left" fontWeight="bold" text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.cashtransfer.cancel.userconfirmation.areyousuretocancel')}" width="100%" selectable="true"/>		    
+				    </mx:HBox>
+				    <mx:HBox id="sConfLabel" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" includeInLayout="false" visible="false">
+					    <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>		    
+					    <mx:Label id="txnMessage" textAlign="left" fontWeight="bold" text="{this.parentApplication.xResourceManager.getKeyValue('inf.label.confirm.txn')}" selectable="true"/>
+					    <mx:Label id="referenceNoLabel" textAlign="left" fontWeight="bold" selectable="true"/>
+				    </mx:HBox>
+				    
+				    <mx:ViewStack id="subVstack" width="100%" height="{rslt.height}">
+				    
+					    <mx:VBox id="dispEntry" width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >
+				            <mx:Grid id="uConfEntryGrid" verticalGap="0" horizontalGap="0" width="100%">
+					            <mx:GridRow width="100%" id="uConfEntryWireTypeGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.wiretype')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="80%" colSpan="3">	                            
+		                                <mx:Label id="uConfEntryWireType"  text=""/>                        
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	<mx:GridRow width="100%" id="uConfEntryFundGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundcode')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">	                            
+		                                <mx:Label id="uConfEntryFundCode"  text=""/>                        
+			                        </mx:GridItem>
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundname')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">
+			                           <mx:Label id="uConfEntryFundName" text=""/>
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	<mx:GridRow width="100%" id="uConfEntryCurrencyGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.currency')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">
+			                           <mx:Label id="uConfEntryCurrency" text=""/>
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	
+		                    	<mx:GridRow width="100%" id="uConfEntryCpAccountNoGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.counterpartyaccountno')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">	                            
+		                                <mx:Label id="uConfEntryCpAccountNo"  text=""/>                        
+			                        </mx:GridItem>
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.counterpartyaccountname')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">	                            
+		                                <mx:Label id="uConfEntryCpAccountName"  text=""/>               
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	
+		                    	<mx:GridRow width="100%" id="uConfEntryFundAccountNoGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundaccountno')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">
+			                           <mx:Label id="uConfEntryFundAccountNo" text=""/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundaccountname')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">
+			                           <mx:Label id="uConfEntryFundAccountName" text=""/>
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	
+		                    	
+		                    	<mx:GridRow width="100%" id="uConfEntryWireAmountValueDateGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.wireamount')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">	                            
+		                                <mx:Label id="uConfEntryWireAmount"  text=""/>                        
+			                        </mx:GridItem>
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.valuedate')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">
+			                           <mx:Label id="uConfEntryValueDate" text=""/>
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	<mx:GridRow width="100%" id="uConfEntryGleLedgerCodeTradeDateGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.gleledgercode')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">	                            
+		                                <mx:Label id="uConfEntryGleLedgerCode"  text=""/>                        
+			                        </mx:GridItem>
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tradedate')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">
+			                           <mx:Label id="uConfEntryTradeDate" text=""/>
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	
+		                    	
+		                    	<mx:GridRow width="100%" id="uConfEntryInxTransmissionGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inxtransmission')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="80%" colSpan="3">	                            
+		                                <mx:Label id="uConfEntryInxTransmission" text=""/>
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	
+		                    	
+		                    	<mx:GridRow width="100%" id="uConfEntryCorrespondingSecurityIdGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.correspondingsecurityid')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">
+			                           <mx:Label id="uConfEntryCorrespondingSecurityId" text=""/>
+			                        </mx:GridItem>
+  									<mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.correspondingsecurityname')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">
+			                           <mx:Label id="uConfEntryCorrespondingSecurityName" text=""/>
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	
+		                    	
+		                    	
+		                    	
+		                    	
+		                    	
+		                    	<mx:GridRow width="100%" id="uConfEntryRemarksGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.remarks')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="80%" colSpan="3">
+			                           <mx:Label id="uConfEntryRemarks" text="" width="700"/>
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+				            </mx:Grid>
+				            
+				            <mx:ViewStack id="wireViewStackUConf" width="100%" height="100%">
+				            	
+				            	<mx:VBox id="bankVst" width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle">
+				            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tobankdetails')}" width="100%" fontWeight="bold" color="#0099FF"/>
+				            
+						            <mx:Grid verticalGap="0" horizontalGap="0" width="100%" id="uConfEntryToBankGrid">
+						            	<mx:GridRow width="100%">
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tobank')}" />
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%">	                            
+					                                <mx:Label id="uConfEntryToBank"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.bankname')}"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%">
+						                           <mx:Label id="uConfEntryToBankName"/>
+						                        </mx:GridItem>
+					                    	</mx:GridRow>
+					                    	<mx:GridRow width="100%">
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tosettleaccount')}"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%">	                            
+					                                <mx:Label id="uConfEntryToSettleAccountLabel" />
+					                                <mx:Label id="uConfEntryToSettleAccountLabelBracket" />
+						                        </mx:GridItem>
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tosettleaccountname')}"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%">	                            
+					                                <mx:Label id="uConfEntryToSettleAccountNameLabel" />
+						                        </mx:GridItem>
+					                    	</mx:GridRow>
+						            </mx:Grid>
+					            
+					            	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.frombankdetails')}" width="100%" fontWeight="bold" color="#0099FF"/>
+					            
+						            <mx:Grid verticalGap="0" horizontalGap="0" width="100%" id="uConfEntryFromBankGrid">
+						            	<mx:GridRow width="100%">
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.frombank')}"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%">	                            
+					                                <mx:Label id="uConfEntryFromBank"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.bankname')}"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%">
+						                           <mx:Label id="uConfEntryFromBankName"/>
+						                        </mx:GridItem>
+					                    	</mx:GridRow>
+					                    	<mx:GridRow width="100%">
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fromsettleaccount')}"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%"> 
+					                                <mx:Label id="uConfEntryFromSettleAccountLabel" />
+					                                <mx:Label id="uConfEntryFromSettleAccountLabelBracket" />
+						                        </mx:GridItem>
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fromsettleaccountname')}"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%">	                            
+					                                <mx:Label id="uConfEntryFromSettleAccountNameLabel" />
+						                        </mx:GridItem>
+					                    	</mx:GridRow>
+					            		</mx:Grid>
+				            	</mx:VBox>
+				            	
+				            	<mx:VBox id="firmVst" width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle">
+				            	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.counterpartydetails')}" fontWeight="bold" color="#0099FF"/>
+								<mx:Grid id="uConfEntryCpDetails" borderThickness="0" width="100%" horizontalGap="0" verticalGap="0">
+									<mx:GridRow width="100%">
+				                        <mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.cpbank')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">	                            
+			                                <mx:Label id="uConfEntryCpBank"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.bankname')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">
+				                           <mx:Label id="uConfEntryCpBankName"/>
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+			                    	<mx:GridRow width="100%">
+			                    		<mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.cpsettleac')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">	                            
+			                                <mx:Label id="uConfEntryCpSettleAccountLabel"/>
+			                                <mx:Label id="uConfEntryCpSettleAccountLabelBracket" />
+				                        </mx:GridItem>
+				                        <mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.cpsettleacname')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">	                            
+			                                <mx:Label id="uConfEntryCpSettleAccountNameLabel" />
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+			                    	<mx:GridRow width="100%">
+			                    		<mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.beneficiaryname')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="80%" colSpan="3">	                            
+			                                <mx:Label id="uConfEntryCpBeneficiaryName" />
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+								</mx:Grid>
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ourdetails')}" fontWeight="bold" color="#0099FF"/>
+								<mx:Grid id="uConfEntryOurDetails" borderThickness="0" width="100%" horizontalGap="0" verticalGap="0">
+									<mx:GridRow width="100%">
+				                        <mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ownbank')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">	                            
+			                                <mx:Label id="uConfEntryOwnBank" />
+				                        </mx:GridItem>
+				                        <mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.bankname')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">
+				                           <mx:Label id="uConfEntryOwnBankName" />
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+			                    	<mx:GridRow width="100%">
+			                    		<mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ownsettleac')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">
+			                                <mx:Label id="uConfEntryOwnSettleAccountLabel"/>
+			                                <mx:Label id="uConfEntryOwnSettleAccountLabelBracket" />
+				                        </mx:GridItem>
+				                        <mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ownsettleacname')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">	                            
+			                                <mx:Label id="uConfEntryOwnSettleAccountNameLabel" />
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+								</mx:Grid>
+				            	</mx:VBox>
+				            	
+				            </mx:ViewStack>
+				            
+				            
+					    </mx:VBox>
+					    
+					    <!--
+					    	****************************************************
+					    -->
+					    
+			            <mx:VBox id="disp" width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle" >
+                            <cntrls:XenosErrors id="errPageCxl" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>				            
+				            <mx:Grid id="uConfCancelGrid" verticalGap="0" horizontalGap="0" width="100%">
+					            <mx:GridRow width="100%" id="uConfCancelWireTypeGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.wiretype')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="80%" colSpan="3">	                            
+		                                <mx:Label id="uConfCancelWireType"  text=""/>                        
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	<mx:GridRow width="100%" id="uConfCancelFundCurrencyGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundcode')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">	                            
+		                                <mx:Label id="uConfCancelFundCode"  text=""/>                        
+			                        </mx:GridItem>
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundname')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">	                            
+		                                <mx:Label id="uConfCancelFundName"  text=""/>                        
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	<mx:GridRow width="100%" id="uConfCancelCurrencyGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.currency')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">
+			                           <mx:Label id="uConfCancelCurrency" text=""/>
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	<mx:GridRow width="100%" id="uConfCancelCpAccountGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.counterpartyaccountno')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">	                            
+		                                <mx:Label id="uConfCancelCpAccountNo"  text=""/>                        
+			                        </mx:GridItem>
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.counterpartyaccountname')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">	                            
+		                                <mx:Label id="uConfCancelCpAccountName"  text=""/>               
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	<mx:GridRow width="100%" id="uConfCancelFundAccountGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundaccountno')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">
+			                           <mx:Label id="uConfCancelFundAccountNo" text=""/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundaccountname')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">
+			                           <mx:Label id="uConfCancelFundAccountName" text=""/>
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	<mx:GridRow width="100%" id="uConfCancelWireAmountValueDateGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.wireamount')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">	                            
+		                                <mx:Label id="uConfCancelWireAmount"  text=""/>                        
+			                        </mx:GridItem>
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.valuedate')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">
+			                           <mx:Label id="uConfCancelValueDate" text=""/>
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	<mx:GridRow width="100%" id="uConfCancelGleLedgerCodeTradeDateGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.gleledgercode')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">	                            
+		                                <mx:Label id="uConfCancelGleLedgerCode"  text=""/>                        
+			                        </mx:GridItem>
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tradedate')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">
+			                           <mx:Label id="uConfCancelTradeDate" text=""/>
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	<mx:GridRow width="100%" id="uConfCancelInxTransmissionCorrespondingSecurityIdGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.inxtransmission')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">	                            
+		                                <mx:Label id="uConfCancelInxTransmission" text=""/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.correspondingsecurityid')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="30%">
+			                           <mx:Label id="uConfCancelCorrespondingSecurityId" text=""/>
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+		                    	<mx:GridRow width="100%" id="uConfCancelRemarksGrid">
+			                        <mx:GridItem width="20%" styleName="LabelBgColor">
+			                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.remarks')}" styleName="FormLabelHeading"/>
+			                        </mx:GridItem>
+			                        <mx:GridItem width="80%" colSpan="3">
+			                           <mx:Label id="uConfCancelRemarks" text="" width="700"/>
+			                        </mx:GridItem>
+		                    	</mx:GridRow>
+				            </mx:Grid>
+				            
+				            <mx:ViewStack id="wireViewStackUConfCancel" width="100%" height="100%">
+				            	
+				            	<mx:VBox id="bankVstCancel" width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle">
+				            		<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tobankdetails')}" color="#0099FF"/>
+				            
+						            <mx:Grid verticalGap="0" horizontalGap="0" width="100%" id="uConfCancelToBankGrid">
+						            	<mx:GridRow width="100%">
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tobank')}" />
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%">	                            
+					                                <mx:Label id="uConfCancelToBank"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.bankname')}"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%">
+						                           <mx:Label id="uConfCancelToBankName"/>
+						                        </mx:GridItem>
+					                    	</mx:GridRow>
+					                    	<mx:GridRow width="100%">
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tosettleaccount')}"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%">	                            
+					                                <mx:Label id="uConfCancelToSettleAccountLabel" />
+						                        </mx:GridItem>
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.tosettleaccountname')}"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%">	                            
+					                                <mx:Label id="uConfCancelToSettleAccountNameLabel" />
+						                        </mx:GridItem>
+					                    	</mx:GridRow>
+						            </mx:Grid>
+					            
+					            	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.frombankdetails')}" color="#0099FF"/>
+					            
+						            <mx:Grid verticalGap="0" horizontalGap="0" width="100%" id="uConfCancelFromBankGrid">
+						            	<mx:GridRow width="100%">
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.frombank')}"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%">	                            
+					                                <mx:Label id="uConfCancelFromBank"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.bankname')}"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%">
+						                           <mx:Label id="uConfCancelFromBankName"/>
+						                        </mx:GridItem>
+					                    	</mx:GridRow>
+					                    	<mx:GridRow width="100%">
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fromsettleaccount')}"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%">	                            
+					                                <mx:Label id="uConfCancelFromSettleAccountLabel" />
+						                        </mx:GridItem>
+						                        <mx:GridItem width="20%" styleName="LabelBgColor">
+						                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fromsettleaccountname')}"/>
+						                        </mx:GridItem>
+						                        <mx:GridItem width="30%">	                            
+					                                <mx:Label id="uConfCancelFromSettleAccountNameLabel" />
+						                        </mx:GridItem>
+					                    	</mx:GridRow>
+					            		</mx:Grid>
+				            	</mx:VBox>
+				            	
+				            	<mx:VBox id="firmVstCancel" width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle">
+				            	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.counterpartydetails')}" fontWeight="bold" color="#0099FF"/>
+								<mx:Grid id="uConfCancelCpDetails" borderThickness="0" width="100%" horizontalGap="0" verticalGap="0">
+									<mx:GridRow width="100%">
+				                        <mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.cpbank')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">	                            
+			                                <mx:Label id="uConfCancelCpBank"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.bankname')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">
+				                           <mx:Label id="uConfCancelCpBankName"/>
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+			                    	<mx:GridRow width="100%">
+			                    		<mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.cpsettleac')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="80%" colSpan="3">	                            
+			                                <mx:Label id="uConfCancelCpSettleAccountLabel"/>
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+			                    	<mx:GridRow width="100%">
+			                    		<mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.beneficiaryname')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="80%" colSpan="3">	                            
+			                                <mx:Label id="uConfCancelCpBeneficiaryName" />
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+								</mx:Grid>
+								<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ourdetails')}" fontWeight="bold" color="#0099FF"/>
+								<mx:Grid id="uConfCancelOurDetails" borderThickness="0" width="100%" horizontalGap="0" verticalGap="0">
+									<mx:GridRow width="100%">
+				                        <mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ownbank')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">	                            
+			                                <mx:Label id="uConfCancelOwnBank" />
+				                        </mx:GridItem>
+				                        <mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.bankname')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="30%">
+				                           <mx:Label id="uConfCancelOwnBankName" />
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+			                    	<mx:GridRow width="100%">
+			                    		<mx:GridItem width="20%" styleName="LabelBgColor">
+				                            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ownsettleac')}"/>
+				                        </mx:GridItem>
+				                        <mx:GridItem width="80%" colSpan="3">
+			                                <mx:Label id="uConfCancelOwnSettleAccountLabel"/>
+				                        </mx:GridItem>
+			                    	</mx:GridRow>
+								</mx:Grid>
+				            </mx:VBox>
+				            </mx:ViewStack>
+			            </mx:VBox>
+		            
+		            	
+					</mx:ViewStack>
+					<mx:HBox width="100%" styleName="ButtonBackPanel">
+					   <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" id="back" styleName="BtnStyle" click="doBack()"/>
+		   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('stl.label.confirm')}" id="uConfSubmit" styleName="BtnStyle" click="{this.dispatchEvent(new Event('entryConf'))}" /> 
+		   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" id="cancelSubmit" styleName="BtnStyle" click=" {this.dispatchEvent(new Event('cancelEntrySave'))}" includeInLayout="false" visible="false"/> 
+		   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('stl.label.confirm')}" id="uCancelConfSubmit" styleName="BtnStyle" click="{this.dispatchEvent(new Event('cancelEntryConf'))}" includeInLayout="false" visible="false"/>  
+		   	           <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('stl.label.sysconfirm')}" id="sConfSubmit" styleName="BtnStyle" click="{this.mode == 'entry' ? this.dispatchEvent(new Event('entrySysConf')) : this.dispatchEvent(new Event('cancelEntrySysConf'))}" includeInLayout="false" visible="false"/>               
+			        </mx:HBox>
+					
+				</mx:VBox>
+			</mx:ViewStack>
+	    </mx:VBox>
+    </mx:Canvas>
+</containers:XenosEntryModule>

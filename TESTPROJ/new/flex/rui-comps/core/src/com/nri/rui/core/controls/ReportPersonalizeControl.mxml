@@ -1,0 +1,518 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:TitleWindow 
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	styleName="PopupTitleWindow" 
+	width="220" 
+	height="400"	
+	creationComplete="init()" 
+	close="closeSelf();" 
+	resize="false">
+	
+    
+    <mx:Script>    
+        <![CDATA[
+        	import mx.containers.Canvas;        
+            import mx.controls.Label;
+            import mx.containers.Box;
+            import mx.core.Container;
+            
+            import mx.events.DragEvent;            
+            import mx.managers.DragManager;
+            import mx.managers.PopUpManager;            
+            import mx.core.DragSource;
+            import mx.core.UIComponent;
+            import mx.core.IUIComponent;            
+        	import mx.collections.XMLListCollection;
+        	import mx.collections.ArrayCollection;	        
+	        import mx.rpc.events.FaultEvent;
+	        import mx.rpc.events.ResultEvent;
+	        import mx.rpc.http.HTTPService;
+	        import mx.controls.CheckBox;
+	        import mx.controls.Image;
+            
+            [Bindable]private var icoColumns:Class;
+            
+	        [Bindable]public var reportType:String = "";
+	        [Bindable]public var moduleId:String = "";	        
+	        [Bindable]public var screenId:String = "";
+	        [Bindable]public var reportPackage:String = "";
+	        [Bindable]public var defaultPrefFile:String = "";
+	        [Bindable]private var prefResult:XMLList = null;
+	        [Bindable]private var prefColumnList:XMLListCollection = null;
+	        [Bindable]private var prefColumnArray:Array = new Array();
+	        [Bindable]private var gridRowIdx:int = 0;
+	        [Bindable]private var visibleColCount:int = 0;
+	        [Bindable]private var tempLocalY:int = 0;
+	        
+	        
+	        /**
+            * Initialize the window and call the respective functions in order of precendence.
+            * 
+            * @param void
+            * @return void
+            * */
+            private function init():void{               
+                setTitle();
+                getPreferenceService();
+            }	        
+	        
+	        /**
+	        * Set the report type which needs to be personalized.
+	        * 
+	        * @param {String} reportType The type of report being customized (excel or pdf).
+	        * @return void  
+	        * */
+	        public function setReportType(reportType:String):void{
+	            this.reportType = reportType;
+	        }
+	        
+	        /**
+	        * Set the module id.
+	        * 
+	        * @param {String} moduleId The application id of the module (e.g - trd, ncm, cam....).
+	        * @return void
+	        * */
+	        public function setModuleId(moduleId:String):void{
+	            this.moduleId = moduleId
+	        }
+	        
+	        /**
+	        * Set the screenId of the specific screen.
+	        * 
+	        * @param {String} screenId The report package class of the screen.
+	        * @return void
+	        * */
+	        public function setScreenId(screenId:String):void{
+	        	this.screenId = screenId;
+	        }
+	        
+	        /**
+	        * Set the default prefernce file name.
+	        * 
+	        * @param {String} defaultPrefFile The name of the file containing the default preferences.
+	        * @return void
+	        * */
+	        public function setDefaultPrefFile(defaultPrefFile:String):void{
+	            this.defaultPrefFile = defaultPrefFile;
+	        }	            
+	        
+	        /**
+	        * Handler to be called for the close event of this window.
+	        * 
+	        * @param void
+	        * @return void
+	        * */
+	        private function closeSelf():void {        	
+	            PopUpManager.removePopUp(this);
+	        }
+	        
+	        /**
+            * Handler to be called by the success alert of personalization result.
+            * 
+            * @param {event} Event The close event.
+            * @return void
+            * */
+	        private function removeSelf(event:Event):void{
+	            PopUpManager.removePopUp(this);
+	        }
+	        
+	        /**
+	        * Set the title for the report personalization window.
+	        * 
+	        * @param void
+	        * @return void
+	        * */
+	        private function setTitle():void{
+	        	if(this.reportType == 'excel'){
+	                this.title = this.parentApplication.xResourceManager.getKeyValue('inf.label.excelreportprefs.popup.title');
+	            }
+	            if(this.reportType == 'pdf'){
+	                this.title = this.parentApplication.xResourceManager.getKeyValue('inf.label.pdfreportprefs.popup.title');
+	            }
+	        }
+	        
+	        /**
+	        * Get pre-existing preferences if any.
+	        * 
+	        * @param void
+	        * @return void	        
+	        * */
+	        private function getPreferenceService():void{
+	        	var reqObj:Object = new Object();
+	        	
+	        	reqObj.moduleId = this.moduleId;
+	        	reqObj.screenId = this.screenId;	        		        	
+	        	reqObj.defaultPrefFile = this.defaultPrefFile;
+	        	
+	            var rnd:Number = Math.random();	            
+	            var p_service:XenosHTTPService = new XenosHTTPService();
+	            p_service.url = "ref/reportPreferencesDispatch.action?method=getReportPreference&rnd=" + rnd;	            
+	            p_service.resultFormat = "xml";
+	            p_service.method = "POST";
+	            p_service.request = reqObj;
+	            p_service.addEventListener(ResultEvent.RESULT, getPreferenceServiceResult);
+	            p_service.addEventListener(FaultEvent.FAULT, getPreferenceFaultHandler);
+	            p_service.send();
+	            disableBtns();        	
+	        }
+	        
+	        /**
+	        * Handler for get preference service call on successful result.
+	        * 
+	        * @param {ResultEvent} event The result event fired after <code>getPreferenceService()</code> execution.
+	        * @return void
+	        * */
+	        private function getPreferenceServiceResult(event:ResultEvent):void{
+	        	var resultObj:XML = XML(event.result);	        		        	
+	        	this.prefResult = new XMLList(resultObj.column);
+	        	prefColumnList = new XMLListCollection(prefResult);
+	        		        	
+	        	for each(var obj:XML in this.prefResult){
+	        		var colArr:Array = new Array();	        		
+	        		colArr.push(obj.@width);
+	        		colArr.push(obj.@order);
+	        		colArr.push(obj.@visible);
+	        		colArr.push(obj.@styleId);
+	        		colArr.push(obj.@dataType);
+	        		colArr.push(obj.@headerText);
+	        		colArr.push(obj.@headerTextKey);
+	        		colArr.push(obj.@headerStyleId);
+	        		colArr.push(obj.@field);	        		
+	        	  	prefColumnArray.push(colArr);	        	  	
+	        	}
+	        	
+	        	createCheckBoxes(prefColumnArray);
+	        	enableBtns();
+	        }
+	        
+	        /**
+	        * Sort the array based on order.
+	        * 
+	        * @param {Array} a The 1st array.
+	        * @param {Array} b The 2nd array.
+	        * @return {integer} 
+	        * 
+	        private function sortByOrder(a:Array, b:Array):int{
+	            if(a[1] as int > b[1] as int){
+	                return 1;
+	            }else if(a[1] as int < b[1] as int){
+	                return -1;
+	            }else{
+	                return 0;
+	            }	            
+	        }*/
+	            
+	        
+	        /**
+	        * Create the checkboxes dynamically once the field list is obtained.
+	        * 
+	        * @param {Array} arg The array of items containing the preference attributes.
+	        * @return void
+	        * */
+	        private function createCheckBoxes(arg:Array):void{
+	            for(var i:int=0; i < arg.length; i++){
+	                
+	                var cbObj:CheckBox = new CheckBox();
+	                cbObj.id = i.toString();	                
+	                cbObj.selected = (arg[i][2]=='true') ? true : false;
+	                cbObj.addEventListener(Event.CHANGE, updateVisibility);
+	                                   	               
+	                if(arg[i][2]=='true'){
+	                    visibleColCount++;
+	                }
+	                
+	                var lbl:Label = new Label();
+	                lbl.id = i.toString();
+	                lbl.text = arg[i][5];
+	                lbl.toolTip = this.parentApplication.xResourceManager.getKeyValue('inf.label.excelreportprefs.fieldhover.tooltip');
+	                lbl.useHandCursor = true;
+	                lbl.buttonMode = true;
+	                lbl.mouseChildren = false;	                	                
+	                lbl.addEventListener(MouseEvent.MOUSE_DOWN, addDrag);	                	                
+	                
+	                var cbCont:HBox = new HBox();
+	                cbCont.id = i.toString();
+	                cbCont.width = 200;
+	                cbCont.addChild(cbObj);	                
+	                cbCont.addChild(lbl);	                              
+	                	                
+	                prefVbox.addChild(cbCont);	                
+	            }
+	        }
+	        
+	        
+	        /**
+	        * Add drag and drop functionality to the HBox containing the checkbox.
+	        * 
+	        * @param {MouseEvent} e The mouse down event fired during mouse click.
+	        * @return void
+	        * */
+	        private function addDrag(e:MouseEvent):void{
+	            for(var i:int = 0; i < prefVbox.getChildren().length; i++){
+	                var obj:HBox = prefVbox.getChildAt(i) as HBox;
+	                obj.addEventListener(MouseEvent.MOUSE_DOWN, beginDrag);
+	            }
+	        }
+	        
+	        /**
+            * Remove drag and drop functionality to the HBox containing the checkbox
+            * to enable check/un-check of checkboxes.
+            * 
+            * @param void
+            * @return void
+            * */
+	        private function removeDrag():void{
+                for(var i:int = 0; i < prefVbox.getChildren().length; i++){
+                    var obj:HBox = prefVbox.getChildAt(i) as HBox;
+                    obj.removeEventListener(MouseEvent.MOUSE_DOWN, beginDrag);                    
+                }
+            }
+            
+            /**
+            * Update the array based on check/un-check of checkboxes.
+            * 
+            * @param {Event} e The event fired during checking/un-checking of the checkboxes.
+            * @return void
+            * */
+            private function updateVisibility(e:Event):void{                
+                var cbObj:CheckBox = e.currentTarget as CheckBox;
+                var idx:int = parseInt(cbObj.id);                
+                if(cbObj.selected == true){
+                    visibleColCount++;
+                    prefColumnArray[idx][2] = true;
+                }else{
+                    if(visibleColCount > 1){
+                        visibleColCount--;
+                        prefColumnArray[idx][2] = false;
+                    }else{
+                        XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.excelreportprefs.minvalue.validation'));
+                        cbObj.selected = true;
+                        return;        
+                    }
+                }               
+            }
+	        
+	        
+	        /**
+	        * Save the user preferences.
+	        * 
+	        * @param void
+	        * @return void
+	        * */
+	        private function savePreference():void{
+	        	var reqObj:Object = new Object();
+                reqObj.screenId = this.screenId;
+                reqObj.pref = getUpdatedPref();
+                
+                var rnd:Number = Math.random();                
+                var p_service:XenosHTTPService = new XenosHTTPService();
+                p_service.url = "ref/reportPreferencesDispatch.action?method=saveReportPreference&rnd=" + rnd;
+                p_service.resultFormat = "xml";
+                p_service.method = "POST";
+                p_service.request = reqObj;
+                p_service.addEventListener(ResultEvent.RESULT, savePreferenceResult);
+                p_service.addEventListener(FaultEvent.FAULT, getPreferenceFaultHandler);
+                p_service.send();
+                disableBtns();	        	
+	        }
+	        
+	        /**
+	        * Display a success message to the user on successful save of personalization.
+	        * 
+	        * @param {ResultEvent} event The result event fired after <code>savePreference()</code> execution.
+	        * @return void
+	        * */
+	        private function savePreferenceResult(event:ResultEvent):void{
+	        	var prefSaveResult:XML = XML(event.result);
+	        	if(this.reportType == "excel"){
+	        		XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.excelreportprefs.saved'), removeSelf);	        		
+	        	}
+	        	if(this.reportType == "pdf"){
+	        		XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.pdfreportprefs.saved'), removeSelf);	        		
+	        	}	        	
+	        }
+	        
+            /**
+            * Fault event handler for service calls.
+            * 
+            * @param {FaultEvent} event The fault event fired after <code>savePreference()</code> execution.
+	        * @return void 
+            * */
+            private function getPreferenceFaultHandler(event:FaultEvent):void{
+            	enableBtns();
+                XenosAlert.error(event.message.toString());
+            }
+            
+            /**
+            * Update the order of fields.
+            * 
+            * @param void
+            * @return {Array}
+            * */
+            private function getUpdatedPref():Array{
+                for(var i:int = 0; i < prefVbox.getChildren().length; i++){
+                    var obj:HBox = prefVbox.getChildAt(i) as HBox;
+                    var idx:int = parseInt(obj.id);
+                    prefColumnArray[idx][1] = i;
+                }
+                return prefColumnArray;
+            }
+            
+            
+            // ~************** DRAG and DROP functions ****************
+            /**
+            * Handle mouse move on checkboxes.
+            * 
+            * @param {MouseEvent} e The mouse event fired when a field is being dragged.
+            * @return void
+            * */
+            public function beginDrag(e:MouseEvent):void{            	
+                var di:UIComponent = e.currentTarget as UIComponent;
+                
+                var ds:DragSource = new DragSource();                                
+                          	
+	            var proxy:UIComponent = UIComponent(e.currentTarget);   
+                var bitmapData:BitmapData = new BitmapData(proxy.width, proxy.height);
+                bitmapData.draw(proxy);
+                
+                var bitmap:Bitmap = new Bitmap(bitmapData);
+                var image:Image = new Image();
+                image.source = bitmap;
+                
+                DragManager.doDrag(di, ds, e, image);
+            }
+            
+            /**
+            * Drop acceptance on drop target.
+            * 
+            * @param {DragEvent} e The drag event fired when the drag is stopped.
+            * @return void 
+            * */           
+            public function handler_dragEnter(e:DragEvent):void{            	                
+                DragManager.acceptDragDrop(UIComponent(e.currentTarget));                
+                DragManager.showFeedback(DragManager.MOVE);
+            }
+            
+            /**
+            * Drop handler after element has been dropped on drop target.
+            * 
+            * @param {DragEvent} e The drag event fired when the dragged item is dropped.
+            * @return void
+            * */            
+            public function handler_dragDrop(e:DragEvent):void{
+                var vBoxParent:VBox = e.currentTarget as VBox;
+                                
+                var newIdx:int = getNewIndex(e.localY, vBoxParent);               
+                vBoxParent.addChildAt(e.dragInitiator as UIComponent , newIdx);
+                
+                var cbCont:HBox = e.dragInitiator as HBox;
+                var cbContIdx:int = parseInt(cbCont.id);
+                                
+                // Remove the drag and drop event listener
+                removeDrag();  
+            }
+            
+            /**
+            * Drag over handler for highlighting the element on which the drag is hovering
+            * 
+            * @param {DragEvent} e The drga event fired when the dragged item hovers on the drop target
+            * @return void
+            * */            
+            public function handler_dragOver(e:DragEvent):void{	            	
+            	var vBoxParent:VBox = e.currentTarget as VBox;
+            	var parentCnv:Canvas = vBoxParent.parent as Canvas;
+            	            	
+            	for (var i:int=0; i < vBoxParent.getChildren().length; i++){            		
+            		var currChild:UIComponent = vBoxParent.getChildAt(i) as UIComponent;// Get the current element over which the dragged element is currently postioned.
+            		
+            		if(e.localY > currChild.y 
+            		&& e.localY < (currChild.y + currChild.height) 
+            		&& e.localX > currChild.x
+            		&& e.localX < (currChild.x + currChild.width)){ // Check if the dragged element is positioned over a certain element.
+                        currChild.setStyle('backgroundColor','#BCD2E0');                     		
+                    }else{                    
+                    	currChild.setStyle('backgroundColor','');
+                    }
+            	}            	
+            }
+            
+            
+            /**
+            * Dragged elements index calculation based on drag position.
+            * 
+            * @param {int} y The y co-ordinate of the item being dragged.
+            * @param {VBox} vb The entire VBox element containing the draggable items.
+            * @return {int} The updated index of the dragged item.
+            * */
+            private function getNewIndex(y:int,vb:VBox):int{                
+                for (var i:int=0; i < vb.getChildren().length; i++){                    
+                    var currChild:UIComponent = vb.getChildAt(i) as UIComponent; // Get the current element over which the dragged element is currently postioned.
+                    var lastChild:UIComponent = vb.getChildAt(vb.getChildren().length -1) as UIComponent; // Get the last child.                    
+                    
+                    if(y > currChild.y && y < (currChild.y + currChild.height)){ // Check if the dragged element is positioned over a certain element.                    	
+                    	if(currChild.getStyle('backgroundColor') > 0){
+                    		currChild.setStyle('backgroundColor','');
+                    	}
+                        break;
+                    }
+                    	
+                     
+                    if(i < vb.getChildren().length){ // Get the next element.
+                        var nextChild:UIComponent = vb.getChildAt(i+1) as UIComponent;                           
+                        if(y > (currChild.y + currChild.height) && y < nextChild.y){ // Check is a dragged element is positioned between 2 elements.                        	
+                            break;
+                        }
+                    }else{
+                        if(y > (currChild.y + currChild.height) && y < lastChild.y){ // Check is a dragged element is beyond the last checkbox.
+                            break;
+                        }
+                    }                    
+                }                            
+                return (i >= 0) ? i : 0;            
+            }
+            
+            
+            /**
+            * Enable the save button
+            * 
+            * @param void
+            * @return void
+            * */
+            private function enableBtns():void{
+            	savePrefs.enabled = true;
+            }
+            
+            /**
+            * Disable the save button
+            * 
+            * @param void
+            * @return void
+            * */
+            private function disableBtns():void{
+            	savePrefs.enabled = false;
+            }
+            
+        ]]>
+    </mx:Script>
+    	
+	<mx:Canvas width="100%" height="100%" horizontalScrollPolicy="off">	
+		<mx:VBox id="prefVbox" 
+			width="100%" 
+			height="90%" 
+			verticalGap="10" 
+			styleName="Padding4" 
+			horizontalScrollPolicy="off" 
+			dragEnter="handler_dragEnter(event)" 
+			dragDrop="handler_dragDrop(event)" 
+			dragOver="handler_dragOver(event)">
+		  		    		    		
+		</mx:VBox>
+	</mx:Canvas>	    	
+	
+	<mx:HBox id="btnHbox" width="100%" paddingBottom="15">    		
+		<mx:Button id="savePrefs" label="Save" styleName="BtnStyle" click="savePreference();"/>	    			    		    		
+	</mx:HBox>
+	
+</mx:TitleWindow>            

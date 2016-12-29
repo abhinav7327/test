@@ -1,0 +1,182 @@
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+			var isPrevious = <c:out value="${isPrevious}" />;
+            var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+			
+			<c:set var="operationObjective" value="${commandForm.operationObjective}" />			
+			
+            var grid_result_columns = [
+				
+				{name:"<spring:message code="stl.label.inx.stlrefnoversion" htmlEscape="false"/>", field:"referenceNo", id:"referenceNo", width:170, sortable: true,formatter:Slick.Formatters.SettlementDetailViewInstructionFormater},
+				{name:"<spring:message code="stl.label.fundaccountno" htmlEscape="false"/>", field:"fundAccountNo", id:"fundAccountNo", sortable: true, width:150},
+				{name:"<spring:message code="stl.label.fundaccountname" htmlEscape="false"/>", field:"fundAccountName", id:"fundAccountName", sortable: true, width:180},
+				{name:"<spring:message code="stl.label.tradedate" htmlEscape="false"/>", field:"tradeDateStr", id:"tradeDateStr", width:150, sortable: true },
+				{name:"<spring:message code="stl.label.inx.valuedate" htmlEscape="false"/>", field:"valueDateStr", id:"valueDateStr", width:150, sortable: true },
+				
+
+				{name:"<spring:message code="stl.stlqry.label.brokerAccount" htmlEscape="false"/>", field:"cpTradingAccount", id:"cpTradingAccount", width:180, sortable: true },
+				{name:"<spring:message code="stl.stlqry.label.brokerAccountname" htmlEscape="false"/>", field:"cpTradingAccountName", id:"cpTradingAccountName", width:180, sortable: true },
+
+				
+				{name:"<spring:message code="ref.account.label.buysell" htmlEscape="false"/>", field:"buysell", id:"buysell", width:100, sortable: true },
+				
+				{name:"<spring:message code="stl.label.securitycode" htmlEscape="false"/>", field:"instrumentCode",id:"instrumentCode", width:109,sortable:true},
+				{name:"<spring:message code="stl.label.securityname" htmlEscape="false"/>", field:"securityShortName",id:"securityShortName", width:180,sortable:true},
+				{name:"<spring:message code="stl.label.quantity" htmlEscape="false"/>", field:"instructionQuantityStr",id:"instructionQuantityStr",cssClass:'xenos-grid-number', width:101,sortable:true},
+				{name:"<spring:message code="stl.label.ccy" htmlEscape="false"/>", field:"ccyCode", id:"ccyCode", width:100, sortable: true },				
+			];
+			
+			
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag: false,
+				
+				buttons: {					
+					columnPicker:true,	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					url: basepath + '/count.json'
+				},
+				urls:{
+					nextPage : basepath + '/result.json?fetch=next',
+					prevPage : basepath + '/result.json?fetch=previous',
+				},
+				events:{
+					
+					onDataUpdate : function(data,callback){
+						for(i in data.value){							
+							data.value[i].referenceNo 	   = data.value[i].settlementReferenceNo+"-"+data.value[i].versionNo;
+							data.value[i].firmBrokerCode   = firmBrokerCode(data.value[i].brokerCode, data.value[i].displayAccountNo);
+							data.value[i].trxStatus   	   = trxStatus(data.value[i].status, data.value[i].transmissionStatus);
+							data.value[i].ackStatus        = ackStatus(data.value[i].acceptanceStatus, data.value[i].status, data.value[i].transReqdForCxl);
+							data.value[i].cxlAckStatus     = cxlAckStatus(data.value[i].cxlAcceptanceStatus, data.value[i].status, data.value[i].acceptanceStatus, data.value[i].actualTrxFlag, data.value[i].transReqdForCxl);
+						}
+						callback(data);
+					}
+				},
+				defaultInvisibleColumns: ["fundAccountName", "cpTradingAccountName"]
+			};
+            var row_id = 0;
+            var rec = {};
+			
+            var firmBrokerCode = function(brokerCode,displayAccountNo){
+				if($.trim(brokerCode)==""){
+            		return displayAccountNo + '()';
+            	}else{
+					return displayAccountNo + '(' + brokerCode + ')';
+				}
+			}
+			
+			var trxStatus = function(status,transmissionStatus){
+				if($.trim(status)=="CANCEL"){
+            		return 'CANCELLED';
+            	}else{
+					return transmissionStatus;
+				}
+			}
+			
+			var ackStatus = function(acceptanceStatus,status,transReqdForCxl){
+				if($.trim(status)=="NORMAL"){
+            		if(transReqdForCxl == "N") {
+            			return "(Marked)";
+            		} else {
+            			return $.trim(acceptanceStatus);
+            		}
+            	}
+            	
+            	return $.trim(acceptanceStatus);
+			}
+			
+			var cxlAckStatus = function(cxlAcceptanceStatus,status,acceptanceStatus,actualTrxFlag,transReqdForCxl){
+				if(status == "CANCEL") {
+            		if($.trim(actualTrxFlag)=="N"){
+            			return "(Marked)";
+            		} else if(transReqdForCxl == "N") {
+            			if(acceptanceStatus == "NG") {
+            				return "";
+            			} else {
+            				return "(Reset)";
+            			}
+            		} else if(transReqdForCxl == "Y") {
+            			return cxlAcceptanceStatus;
+            		} else if($.trim(transReqdForCxl) == "") {
+            			return "(Expired)";
+            		}
+            	}
+            	return "";
+			}
+			
+			<xenos:out escapeXml="false">
+				<c:forEach items="${value}" var="dl">
+					rec = {};
+					row_id+=1;
+					rec.id = "xenos_" + row_id;
+					
+					rec.operationObjective = "<c:out value="${dl.operationObjective}" />";
+					
+					rec.referenceNo = "<c:out value="${dl.settlementReferenceNo}" />" + "-" + "<c:out value="${dl.versionNo}" />";
+					rec.clientSettlementInfoPk  =   "<c:out value="${dl.clientSettlementInfoPk}" />";
+					rec.settlementInfoPk        =   "<c:out value="${dl.settlementInfoPk}" />";
+					rec.settlementReferenceNo   =   "<c:out value="${dl.settlementReferenceNo}" />";
+					rec.instructionRefNo =   "<c:out value="${dl.instructionRefNo}" />";
+					rec.fundAccountNo = "<c:out value="${dl.fundAccountNo}" />";
+					rec.fundAccountPk = "<c:out value="${dl.fundAccountPk}" />";
+					rec.fundAccountName = "<c:out value="${dl.fundAccountName}" />";
+					rec.tradeDateStr = "<c:out value="${dl.tradeDateStr}" />";
+					rec.valueDateStr = "<c:out value="${dl.valueDateStr}" />";
+					rec.cpTradingAccount = "<c:out value="${dl.cpTradingAccount}" />";
+					rec.cpTradingAccountName = "<c:out value="${dl.cpTradingAccountName}" />";
+					rec.deliverReceiveDisplay = "<c:out value="${dl.deliverReceiveDisplay}" />";
+					rec.instrumentCode = "<c:out value="${dl.instrumentCode}" />";
+					rec.securityShortName = "<c:out value="${dl.securityShortName}" />";
+					rec.altSecurityCode = "<c:out value="${dl.altSecurityCode}" />";
+					rec.instructionQuantityStr = "<c:out value="${dl.instructionQuantityStr}" />";
+					rec.isinCode = "<c:out value="${dl.isinCode}" />";
+					rec.ccyCode = "<c:out value="${dl.ccyCode}" />";
+					rec.originDataSource = "<c:out value="${dl.originDataSource}" />";
+					rec.instructionAmountStr = "<c:out value="${dl.instructionAmountStr}" />";
+					rec.cpBankDisplay = "<c:out value="${dl.cpBankDisplay}" />";
+					rec.cpAccountNo = "<c:out value="${dl.cpAccountNo}" />";
+					rec.participantId = "<c:out value="${dl.participantId}" />";
+					rec.participantId2 = "<c:out value="${dl.participantId2}" />";
+					rec.psetDisplay = "<c:out value="${dl.psetDisplay}" />";
+					rec.firmBank = "<c:out value="${dl.firmBank}" />";
+					rec.firmBankName = "<c:out value="${dl.firmBankName}" />";
+					rec.firmBrokerCode = firmBrokerCode("<c:out value="${dl.brokerCode}" />", "<c:out value="${dl.displayAccountNo}" />");
+					rec.trxStatus = trxStatus("<c:out value="${dl.status}" />", "<c:out value="${dl.transmissionStatus}" />");
+					rec.ackStatus = ackStatus("<c:out value="${dl.acceptanceStatus}" />", "<c:out value="${dl.status}" />", "<c:out value="${dl.transReqdForCxl}" />");
+					rec.csiStatus = "<c:out value="${dl.csiStatus}" />";
+					rec.cxlackstatus = cxlAckStatus("<c:out value="${dl.cxlAcceptanceStatus}" />", "<c:out value="${dl.status}" />", "<c:out value="${dl.acceptanceStatus}" />", "<c:out value="${dl.actualTrxFlag}" />", "<c:out value="${dl.transReqdForCxl}" />");
+					rec.freeTextType = "<c:out value="${dl.freeTextType}" />";
+					rec.freeTextValue = "<c:out value="${dl.freeTextValue}" />";
+					rec.unknownCpSsi = "<c:out value="${dl.unknownCpSsi}" />";
+					rec.preferredCodetypeNotset = "<c:out value="${dl.preferredCodetypeNotset}" />";
+					rec.psetNotset = "<c:out value="${dl.psetNotset}" />";
+					rec.pset70tag = "<c:out value="${dl.pset70tag}" />";
+					rec.cpTradingAccount = "<c:out value="${dl.cpTradingAccount}" />";
+					rec.cpTradingAccountName = "<c:out value="${dl.cpTradingAccountName}" />";
+					rec.buysell = "<c:out value="${dl.buysell}" />";
+					
+					grid_result_data.push(rec);
+				</c:forEach>
+			</xenos:out>		
+        </jsp:body>
+    </jsp:element>
+</jsp:root>

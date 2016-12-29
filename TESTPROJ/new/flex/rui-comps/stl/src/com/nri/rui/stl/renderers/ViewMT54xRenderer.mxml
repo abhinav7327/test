@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<comp:XVBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:comp="com.nri.rui.core.renderers.*" width="100%" height="100%" verticalAlign="middle" horizontalAlign="right" updateComplete="populateInstructionRefNo()" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+<mx:Script>
+	<![CDATA[
+		import mx.controls.dataGridClasses.DataGridColumn;
+		import mx.controls.DataGrid;
+		import com.nri.rui.core.Globals;
+		import com.nri.rui.stl.StlConstants;
+		import com.nri.rui.core.containers.SummaryPopup;
+		import mx.core.UIComponent;
+		import mx.managers.PopUpManager;
+		import com.nri.rui.core.controls.XenosAlert;
+		import com.nri.rui.core.utils.XenosStringUtils;
+		
+		[Embed(source="../../../../../../assets/icon_view.png")]
+		[Bindable]
+		private var icoView:Class;
+		[Bindable] private var instRefNo:String = null;
+		
+		
+		public function handleMouseClick(event:MouseEvent):void {
+			
+			var sPopup : SummaryPopup;	
+			sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,false));
+			
+			sPopup.title = this.parentApplication.xResourceManager.getKeyValue('stl.rawfile.title');
+			sPopup.width = parentApplication.width - 100;
+    		sPopup.height = parentApplication.height - 100;
+			PopUpManager.centerPopUp(sPopup);
+			
+			sPopup.moduleUrl =  Globals.SWIFT_FILE_VIEW+
+								Globals.QS_SIGN+"referenceNo"+
+								Globals.EQUALS_SIGN+instRefNo+
+								Globals.AND_SIGN+Globals.MODE+
+								Globals.EQUALS_SIGN+"MT54x";
+		}
+		
+		public function populateInstructionRefNo():void {
+			if(data!=null) {
+				
+				var dg:DataGrid = DataGrid(listData.owner);
+				var column:DataGridColumn = dg.columns[listData.columnIndex];
+				var datafield:String = column.dataField;
+				
+				if(datafield=='instructionRefNo') {
+					instRefNo=data.instructionRefNo;
+				} else if(datafield=='cxlInstructionRefNo') {
+					instRefNo=data.cxlInstructionRefNo;
+				}
+				
+				if(!XenosStringUtils.isBlank(instRefNo)) {
+					this.instRefNoImg.includeInLayout = true;
+					this.instRefNoImg.visible = true;
+				} else {
+					this.instRefNoImg.includeInLayout = false;
+					this.instRefNoImg.visible = false;
+				}
+			}
+		}
+		override public function set data(value:Object):void{
+			super.data = value;
+		}
+	]]>
+</mx:Script>
+	<mx:HBox id="instRefNoImg" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+		<mx:Label text="{instRefNo}"/>
+		<mx:Image id="swiftImage" source="{icoView}" click="handleMouseClick(event)" buttonMode="true" verticalAlign="middle" toolTip="Raw File (MT54x)"/>
+	</mx:HBox>
+</comp:XVBox>

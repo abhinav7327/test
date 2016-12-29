@@ -1,0 +1,747 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:VBox 	xmlns:mx="http://www.adobe.com/2006/mxml" 
+			xmlns:cntrls="com.nri.rui.core.controls.*" 
+			width="100%"  styleName="Padding"
+			horizontalScrollPolicy="off" verticalScrollPolicy="off"			
+			initialize="init()">
+			
+    
+    
+    <mx:Script>
+        <![CDATA[
+        	import com.nri.rui.core.startup.XenosApplication;
+        	import mx.core.Application;
+        	import mx.events.IndexChangedEvent;
+        	import mx.utils.StringUtil;
+        	import com.nri.rui.core.utils.XenosStringUtils;
+        	import mx.messaging.FlexClient;
+        	import mx.events.FlexEvent;
+            import mx.core.Container;
+            import mx.collections.ArrayCollection;
+            import mx.events.ItemClickEvent;
+            import mx.rpc.events.FaultEvent;
+            import mx.validators.ValidationResult;
+            import mx.events.ValidationResultEvent;
+            import mx.rpc.events.ResultEvent;
+            import mx.binding.utils.BindingUtils;
+            import mx.core.UIComponent;
+            import mx.containers.ViewStack;
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.Globals;
+            import com.nri.rui.core.controls.CustomChangeEvent;
+            
+            [Event(name="moduleCreationComplete", type="com.nri.rui.core.controls.CustomChangeEvent")]
+            private var app:XenosApplication = XenosApplication.getInstance(Globals.DEFAULT_ENTERPRISE);
+            private var _initUrl:String;
+            private var _submitUrl:String;
+            private var _switchTabUrl:String;
+            private var _resetUrl:String;
+            private var _populateTabsUrl:String;
+            [Bindable]
+            private var _submitResult:XML;
+            private var _defaultTab:WizardPage;
+            private var _targetPagePropertyName:String;
+            private var _viewMode:String = "entry";
+            [Bindable] var rs:XML = new XML();
+            // This array contains the required tabs for a particular instrument type 
+            private var _visibleTabs:Array = new Array();
+            
+            // This viewstack instance will contain all the vissible tabs
+            /* [Bindable]
+            private var _viewStackInstance:ViewStack = new ViewStack(); */
+            [Bindable]
+            private var _loaderUrl:String;
+            [Bindable] private var _mode:String;
+
+			/**
+			 * Array containing the short name of all the tabs, currently visible 
+			 * to the user. This acts as the data provider for the toggle button
+			 * bar instance. 
+			 */
+            [Bindable] private var _trailArray:Array = new Array();
+            
+            private var rndNo:Number = 0;
+            private var initRequest:XenosHTTPService = new XenosHTTPService();
+            private var populateTabsRequest:XenosHTTPService = new XenosHTTPService();
+            private var generalRequest:XenosHTTPService = new XenosHTTPService();
+            private var resetRequest:XenosHTTPService = new XenosHTTPService();
+            private var submitRequest:XenosHTTPService = new XenosHTTPService();
+            
+            // This integer variable stores the index of the target tab
+            // This variable is updated during tab switching
+            private var targetTabIndex:int = -1;
+            
+            // This is the name of the tab where the submit button will be enabled
+            [Bindable]public var lastMandatoryTab:String=null;
+			[Bindable]public var lastMandatoryTabIndex = -1;
+			
+			public function get targetPagePropertyName():String{
+                return _targetPagePropertyName;
+            }
+            
+            public function set targetPagePropertyName(targetPagePropertyStr:String):void{
+                _targetPagePropertyName = targetPagePropertyStr;
+            }
+            
+            public function get viewMode():String{
+                return _viewMode;
+            }
+            
+            public function set viewMode(mode:String):void{
+                _viewMode = mode;
+            }
+			
+            public function get visibleTabs():Array{
+                return _visibleTabs;
+            }
+            
+            public function set visibleTabs(obj:Array):void{
+                _visibleTabs = obj;
+            }
+            
+            public function get initUrl():String{
+                return _initUrl;
+            }
+            
+            public function set initUrl(url:String):void{
+                _initUrl = url;
+            }
+            
+            public function get submitUrl():String{
+                return _submitUrl;
+            }
+            
+            public function set submitUrl(url:String):void{
+                _submitUrl = url;
+            }
+            
+            public function get switchTabUrl():String{
+                return _switchTabUrl;
+            }
+            
+            public function set switchTabUrl(url:String):void{
+                _switchTabUrl = url;
+            }
+            
+            public function get resetUrl():String{
+                return _resetUrl;
+            }
+            
+            public function set resetUrl(url:String):void{
+                _resetUrl = url;
+            }
+            
+            public function get populateTabsUrl():String{
+                return _populateTabsUrl;
+            }
+            
+            public function set populateTabsUrl(url:String):void{
+                _populateTabsUrl = url;
+            }
+            
+            public function set submitResult(result:XML):void{
+                _submitResult = result;
+            }
+            
+            public function get submitResult():XML{
+                return _submitResult;
+            }
+            
+            public function set loaderUrl(loaderUrl:String):void {
+                _loaderUrl = loaderUrl;
+            }
+            
+            public function get loaderUrl():String {
+                return _loaderUrl;
+            }
+            
+            public function set mode(mode:String):void {
+                _mode = mode;
+            }
+            
+            public function get mode():String {
+                return _mode;
+            }
+            
+            /**
+             * GET the View Stack instance which contain all the tabs
+             */ 
+             /* public function get viewStackInstance():ViewStack{
+                return _viewStackInstance;
+            } */
+            
+            /**
+             * SET the View Stack instance which contain all the tabs
+             */ 
+            /* public function set viewStackInstance(vStack:ViewStack):void{
+                _viewStackInstance = vStack;
+            } */
+            
+            public function get trailArray():Array {
+                return _trailArray;
+            }
+            
+            public function set trailArray(obj:Array):void {
+                _trailArray = obj;
+            } 
+            
+            public function get defaultTab():WizardPage {
+                return _defaultTab;
+            }
+            
+            public function set defaultTab(tab:WizardPage):void {
+                _defaultTab = tab;
+            }            
+            
+            private function init():void {
+            	trace("Wizard Control init() on initialize");
+            	addEventListener("moduleCreationComplete", loadView);
+            	addEventListener("entryConfirmOk",entryConfirmOkHandler);
+            	//addEventListener("tabsPopulationComplete", tabsPopulate);
+            }
+            
+            /**
+             * Load the view stack into this wizard and update the trail array
+             */ 
+            private function loadView(event:Event):void {
+            	if(defaultTab != null){
+	                viewStackInstance.addChild(defaultTab);
+	                //trace("defaultTab.shortTitle :: " + defaultTab.shortTitle );
+	                if (mode != "amend") {
+	                	trailArray.push(defaultTab.shortTitle);
+	                	labelHeading.text = defaultTab.longTitle;
+	                }
+	                buttonBar.dataProvider = trailArray;
+	            }
+                //trace("Wizard Control initUrl = " + initUrl);
+                if(initUrl != null && initUrl != "") {
+                    initPage();
+                }
+                
+            }
+            
+           /**
+            * This is the 'entryConfirmOk' event handler.
+            * This handler is called after entry system confirmation.
+            */ 
+            private function entryConfirmOkHandler(event:Event):void{
+				viewStackInstance.selectedIndex = 0;
+            	trace("viewStackInstance.selectedIndex :: " + viewStackInstance.selectedIndex);
+            	changeButtonState();
+            	targetTabIndex = 0;
+            	trace("previous :: " + prev.enabled.toString())
+            	updateTrail();
+            	trace("Button bar length :: " + trailArray.length);
+            	initPage();
+            }
+            
+            private function tabsPopulate(event:Event):void{
+            	trace("childAdded " + viewStackInstance.numChildren + event.type);
+            	populateData();
+            }
+            
+            /**
+             * Populates the visible tabs array and sets the last mandatory
+             * tab, if any.
+             * <p/>
+             * Enables or disables the 'Next' button depending upon the length
+             * of visible tabs array.
+             * <p/>
+             * Enables or disables the 'Submit' button depending upon the
+             * last mandatory tab.
+             */ 
+            public function populateVisibleTabs(xml:XML):void {
+            	//trailArray = new Array();
+            	// populate the visible tabs array
+            	if(xml.instrumentPage.instrumentTypeChanged == "true")
+            		resetTrail();
+            	
+             	if (xml.tabArray){
+             		visibleTabs = new Array();
+					for each(var obj:Object in xml.tabArray.item){
+						visibleTabs.push(obj);
+					}
+				}
+				trace("visibleTabs :: " + visibleTabs);
+				trace("visibleTabs.length :: " + visibleTabs.length);
+				// get the name of the last mandatory tab.
+				if (xml.lastMandatoryTab) {
+					lastMandatoryTab = xml.lastMandatoryTab;
+				}
+				trace("lastMandatoryTab :: " + lastMandatoryTab);
+				// calculate the viewstack index of last mandatory tab.
+                for(var indx:int = 0; indx < visibleTabs.length; indx++){
+					if(lastMandatoryTab == String(Object(visibleTabs[indx]).value)){
+						lastMandatoryTabIndex = indx;
+					}
+                }
+				if (visibleTabs.length > 0) {
+	                if (visibleTabs.length > 1) {
+	                	next.enabled = true;
+	                }else{
+	                	next.enabled = false;
+	                }
+	
+	                if(Object(visibleTabs[0]).value == lastMandatoryTab){
+	                	submitbtn.enabled = true;
+	                }else{
+	                	submitbtn.enabled = false;
+	                }
+	   			}
+	   			if(this.viewMode == "amend"){
+	   				submitbtn.enabled = true;
+	   			}
+	   			while(viewStackInstance.numChildren>1){
+	   				if(viewStackInstance.getChildAt(viewStackInstance.numChildren -1)){
+	   					viewStackInstance.removeChildAt(viewStackInstance.numChildren -1);
+	   				}
+	   			}  
+	   			trace("viewStackInstance.numChildren :: " + viewStackInstance.numChildren);
+	   			trace("viewStackInstance.selectedChild" + viewStackInstance.selectedChild);
+	   			if(viewStackInstance.numChildren>0){
+		   			WizardPage(viewStackInstance.selectedChild).mode=this.mode;
+		   			WizardPage(viewStackInstance.selectedChild).initPage(xml);
+		   		}
+	   			errPage.removeError();
+	   			buttonBar.dataProvider = trailArray;
+            }
+            
+            private function resetTrail():void{
+            	while(trailArray.length != 1){
+            		trailArray.pop();
+            	}
+            	trace("trailArray.length :: " + trailArray.length);
+            }
+            
+            /**
+             * Invoke the HTTP service to initialize the page.
+             */ 
+            private function initPage():void {
+            	rndNo = Math.random();
+                initRequest.url = initUrl + "&rnd=" + rndNo;
+                initRequest.addEventListener(FaultEvent.FAULT, errorHandler);
+                initRequest.addEventListener(ResultEvent.RESULT, initResult);
+                initRequest.showBusyCursor = true;
+                initRequest.resultFormat = "xml";
+                initRequest.method = "POST";
+                initRequest.send();
+                if(viewStackInstance.selectedIndex != 0)
+                	viewStackInstance.selectedIndex = 0;
+            }            
+            
+            /**
+             * Initialize the http-service
+             * params url(request url)
+             */ 
+            private function initService(url:String):void{
+                rndNo= Math.random();
+                generalRequest.url = url + "&rnd=" + rndNo;
+                generalRequest.addEventListener(FaultEvent.FAULT, errorHandler);
+                generalRequest.addEventListener(ResultEvent.RESULT, resultPage);
+                generalRequest.showBusyCursor = true;
+                generalRequest.method = "POST";
+                generalRequest.resultFormat = "xml";
+                
+            }
+            
+            /**
+             * Initialize the http-service
+             * params url(request url)
+             */ 
+            private function resetService(url:String):void{
+                rndNo = Math.random();
+                resetRequest.url = url + "&rnd=" + rndNo;
+                resetRequest.addEventListener(FaultEvent.FAULT, errorHandler);
+                resetRequest.addEventListener(ResultEvent.RESULT, resetPage);
+                resetRequest.showBusyCursor = true;
+                resetRequest.method = "POST";
+                resetRequest.resultFormat = "xml";
+                
+            }            
+            
+            /**
+             * This method is used to send HTTPService 
+             */
+            private function sendService(targetPageNo:int):void {
+                
+                var validationResult:ValidationResultEvent = WizardPage(viewStackInstance.selectedChild).validate();
+                if (validationResult.type == ValidationResultEvent.INVALID) {
+                    var errorMsg:String = validationResult.message;
+                    XenosAlert.error(errorMsg);
+                    buttonBar.selectedIndex = viewStackInstance.selectedIndex;
+                } else {
+                	var reqObj:Object = WizardPage(viewStackInstance.selectedChild).populateRequest();
+                    reqObj[targetPagePropertyName] = targetPageNo;
+                   // reqObj.pageNo = getPageNo();
+                    generalRequest.request = reqObj;
+                    generalRequest.send();
+                }
+            }
+            
+
+            /**
+             * click handler of Previous button( set the previous child as the selected child
+             */ 
+            private function doPrevious():void { 
+                targetTabIndex = viewStackInstance.selectedIndex - 1;
+                initService(switchTabUrl);
+                sendService(int(visibleTabs[targetTabIndex].value));
+            }
+            
+            /**
+             * click handler of Next button( set the next child as the selected child)
+             */ 
+            private function doNext():void {
+            	targetTabIndex = viewStackInstance.selectedIndex + 1;
+                initService(switchTabUrl);
+                sendService(int(visibleTabs[targetTabIndex].value));
+            }
+            
+            /**
+             * Reset page data 
+             */ 
+            private function doReset():void {
+            	resetService(resetUrl);
+            	resetRequest.send();
+            }
+            
+            /**
+             * Method called when user click submit button in wizard 
+             **/
+            private function doSubmit():void{
+                rndNo= Math.random();
+                submitRequest.url = submitUrl + "&rnd=" + rndNo;
+                submitRequest.addEventListener(FaultEvent.FAULT,errorHandler);
+                submitRequest.addEventListener(ResultEvent.RESULT,submitResultHandler);
+                submitRequest.showBusyCursor = true;
+                submitRequest.resultFormat = "xml";
+                
+                var reqObj:Object = WizardPage(viewStackInstance.selectedChild).populateRequest();
+                reqObj[targetPagePropertyName] = viewStackInstance.selectedIndex;
+                submitRequest.request = reqObj;
+                var validationResult:ValidationResultEvent = WizardPage(viewStackInstance.selectedChild).validate();
+                if(validationResult.type==ValidationResultEvent.INVALID){
+                    var errorMsg:String=validationResult.message;
+                    XenosAlert.error(errorMsg);
+                }else{  
+                    submitRequest.send();                       
+                }
+                
+            }
+            
+            /**
+             * This method is used to change the state of buttons (previous,next,reset)
+             * 
+             * after the processing of every request
+             */            
+            public function changeButtonState():void {
+
+				if (this.viewMode == "amend") {
+            		submitbtn.enabled = true;
+            	} else {
+					if (viewStackInstance.selectedIndex >= lastMandatoryTabIndex || lastMandatoryTabIndex == -1) {
+						submitbtn.enabled = true;
+					} else {
+						submitbtn.enabled = false;
+					}
+            	}
+                
+                if (viewStackInstance.selectedIndex == 0) {
+                    prev.enabled = false;
+                } else {
+                    prev.enabled = true;
+                }
+
+				if (this.viewMode == "amend") {
+	                if (viewStackInstance.selectedIndex + 1 == viewStackInstance.numChildren) {
+	                    next.enabled = false;
+	                } else {
+	                    next.enabled = true;
+	                }					
+				} else {
+	                if (viewStackInstance.selectedIndex + 1 == viewStackInstance.numChildren && viewStackInstance.selectedIndex != 0) {
+	                    next.enabled = false;
+	                } else {
+	                    next.enabled = true;
+	                }
+	   			}
+            }
+
+            //~ Event Handlers            
+            
+            /**
+            * This is the handler of HTTPService for (switchTab, reset) actions
+            */ 
+            private function resultPage(event:ResultEvent):void {
+                rs = XML(event.result);
+            	if (rs.child("Errors").length() > 0) {
+                    var errorInfoList : ArrayCollection = new ArrayCollection();
+                    //populate the error info list              
+                    for each ( var error:XML in rs.Errors.error ) {
+                       errorInfoList.addItem(error.toString());
+                    }
+                    errPage.showError(errorInfoList);//Display the error
+                    buttonBar.selectedIndex = viewStackInstance.selectedIndex;
+                } else {                
+					WizardPage(viewStackInstance.selectedChild).controlStateChangeHandler();
+	            	viewStackInstance.addEventListener(IndexChangedEvent.CHANGE, initializePage);
+					viewStackInstance.selectedIndex = targetTabIndex;
+					trace("before trailArray length :: " + trailArray.length);
+					if (this.viewMode != "amend") {
+						if(!checkDuplicateChild(WizardPage(viewStackInstance.selectedChild).shortTitle.toString())){
+						    trailArray.push(WizardPage(viewStackInstance.selectedChild).shortTitle.toString());
+						    buttonBar.dataProvider = trailArray;
+						}
+						//updateTrail();			
+					}
+					trace("after trailArray length :: " + trailArray.length);
+					trace("targetTabIndex :: " + targetTabIndex);
+					buttonBar.selectedIndex = targetTabIndex;
+					changeButtonState();
+					errPage.removeError();
+                }
+                generalRequest.removeEventListener(ResultEvent.RESULT, resultPage);
+                
+            }
+            
+            /**
+            * This is the handler of HTTPService for (switchTab, reset) actions
+            */ 
+            private function resetPage(event:ResultEvent):void {
+                rs = XML(event.result);
+            	if (rs.child("Errors").length() > 0) {
+                    var errorInfoList : ArrayCollection = new ArrayCollection();
+                    //populate the error info list              
+                    for each ( var error:XML in rs.Errors.error ) {
+                       errorInfoList.addItem(error.toString());
+                    }
+                    errPage.showError(errorInfoList);//Display the error
+                    
+                } else {
+                	// Repopulate tabs if required
+                	if (rs.hasOwnProperty("repopulateTabs")) {
+                		if (rs.repopulateTabs != null 
+                			&& XenosStringUtils.equals(rs.repopulateTabs.toString(),
+                											"true")) {
+                			populateVisibleTabs(rs);
+                			this.parentDocument.populateTabs();
+                		} 
+                	} 
+                	trace("visibleTabs :: " + visibleTabs);
+                	trace("rs.targetTabNo :: " + rs.targetTabNo);
+                	for(var i:int=0; i<visibleTabs.length; i++){
+                		if(rs.child("targetTabNo").length()>0 && visibleTabs[i].value.toString() == rs.targetTabNo.toString()){
+                			trace("selectedIndex :: " + i);
+                			viewStackInstance.selectedIndex = i;
+                			break;
+                		}
+                	}
+                	WizardPage(viewStackInstance.selectedChild).mode=this.mode;
+					WizardPage(viewStackInstance.selectedChild).initPage(rs);
+					buttonBar.selectedIndex = viewStackInstance.selectedIndex;
+            		resetRequest.removeEventListener(ResultEvent.RESULT, resetPage);
+					errPage.removeError();
+                }                
+                
+            }            
+            
+           /**
+            * 
+            */ 
+            public function populateData():void{
+            	if (rs.child("Errors").length() > 0) {
+                    var errorInfoList : ArrayCollection = new ArrayCollection();
+                    //populate the error info list              
+                    for each ( var error:XML in rs.Errors.error ) {
+                       errorInfoList.addItem(error.toString());
+                    }
+                    errPage.showError(errorInfoList);//Display the error
+                    buttonBar.selectedIndex = viewStackInstance.selectedIndex;
+                } else {
+                	if (this.viewMode == "amend") {
+						for (var i:int = 1; i < viewStackInstance.numChildren; i++) {
+							trailArray.push(WizardPage(viewStackInstance.getChildAt(i)).shortTitle.toString());
+						}
+						WizardPage(viewStackInstance.selectedChild).mode=this.mode;
+	                 	WizardPage(viewStackInstance.selectedChild).initPage(rs);
+	                    buttonBar.selectedIndex = 0;                		
+                	} else {
+	                	WizardPage(viewStackInstance.selectedChild).controlStateChangeHandler();
+	                	viewStackInstance.addEventListener(IndexChangedEvent.CHANGE, initializePage);
+						viewStackInstance.selectedIndex = targetTabIndex;
+						if(!checkDuplicateChild(WizardPage(viewStackInstance.selectedChild).shortTitle.toString())){
+						    trailArray.push(WizardPage(viewStackInstance.selectedChild).shortTitle.toString());
+						    buttonBar.dataProvider = trailArray;
+						}
+						changeButtonState();
+						updateTrail();
+						errPage.removeError();
+                	}
+                    labelHeading.text = WizardPage(viewStackInstance.selectedChild).longTitle;
+                }
+            }
+            
+           /**
+            * 
+            */ 
+            private function initializePage(e:IndexChangedEvent):void {
+            	WizardPage(viewStackInstance.selectedChild).mode=this.mode;
+            	WizardPage(viewStackInstance.selectedChild).initPage(rs);
+            	labelHeading.text = WizardPage(viewStackInstance.selectedChild).longTitle;
+            	ViewStack(e.currentTarget).removeEventListener(IndexChangedEvent.CHANGE, initializePage);
+            }
+            
+           /**
+            * 
+            */ 
+            private function updateTrail():void{
+            	//var arrLength:int = trailArray.length;
+            	/* for(var i:int=(viewStackInstance.selectedIndex+1); i<arrLength; i++){
+            		trailArray.pop();
+            	} */
+            	//buttonBar.dataProvider = trailArray;
+            	trace("trailArray length :: " + trailArray.length);
+            	buttonBar.selectedIndex = targetTabIndex;
+            }
+            
+            /**
+             * This is the handler of HTTPService for initialization.
+             */             
+            private function initResult(event:ResultEvent):void {
+            	
+                var rs:XML = XML(event.result);
+                if(rs.child("Errors").length() > 0) {
+                    var errorInfoList : ArrayCollection = new ArrayCollection();
+                    //populate the error info list              
+                    for each ( var error:XML in rs.Errors.error ) {
+                       errorInfoList.addItem(error.toString());
+                    }
+                    //Display the error
+                    errPage.showError(errorInfoList);
+                 } else {
+                 	if(visibleTabs.length == 0){
+						populateVisibleTabs(rs);
+						parentDocument.populateTabs();
+                 	}
+                 	if(trailArray.length == 0){
+                 		trailArray.push(WizardPage(viewStackInstance.selectedChild).shortTitle);
+	                	buttonBar.dataProvider = trailArray;
+                 	}
+					trace("viewStackInstance.selectedChild :: " + viewStackInstance.selectedChild);
+					WizardPage(viewStackInstance.selectedChild).mode=this.mode;
+                 	WizardPage(viewStackInstance.selectedChild).initPage(rs);
+                    buttonBar.selectedIndex = viewStackInstance.selectedIndex;
+					labelHeading.text = WizardPage(viewStackInstance.selectedChild).longTitle;
+                }
+                initRequest.removeEventListener(ResultEvent.RESULT, initResult);
+            }
+            
+
+            
+            /**
+            * This is the fault handler of HTTPService
+            */ 
+            private function errorHandler(event:FaultEvent):void {
+                XenosAlert.error('Error Occured :  ' + event.fault.faultDetail);
+            }
+            
+            private function submitResultHandler(event:ResultEvent):void{
+                var rs:XML = XML(event.result);
+                if(rs.child("Errors").length()>0) {
+                    var errorInfoList : ArrayCollection = new ArrayCollection();
+                    //populate the error info list              
+                    for each ( var error:XML in rs.Errors.error ) {
+                       errorInfoList.addItem(error.toString());
+                    }
+                    if(rs.child("targetPageNo").length() > 0){
+						for(var indx:int=0; indx<visibleTabs.length; indx++){
+							trace("visibleTabs[indx].value :: " + visibleTabs[indx].value);
+							trace("rs.targetPageNo :: " + rs.targetPageNo);
+							if(visibleTabs[indx].value == rs.targetPageNo.toString()){
+								viewStackInstance.selectedIndex = indx;
+								buttonBar.selectedIndex = indx;
+								labelHeading.text = WizardPage(viewStackInstance.selectedChild).longTitle;
+								break;
+							}
+						}
+					} 
+                    errPage.showError(errorInfoList);//Display the error
+					                   
+                 }else{ 
+                    //change to confirmation Tab
+                        submitResult=rs;
+                        if(parent is ViewStack){
+                            (parent as ViewStack).selectedIndex=1;
+                        }
+                        errPage.removeError();
+                }
+            }
+            
+            /**
+            * This method is the handler of ItemClickEvent for the ToggleButtonBar
+            * This method listen to click on any item of the  ToggleButtonBar
+            */ 
+            private function selectThisChild(event:ItemClickEvent):void {
+                if (event.index == viewStackInstance.selectedIndex) {
+                	return;
+                }
+                targetTabIndex = event.index;
+                initService(switchTabUrl);
+                sendService(int(visibleTabs[targetTabIndex].value));
+            }       
+            
+
+			//~ Helpers
+			
+			/**
+			 * Gets the current page number. The index is 1 based.
+			 */
+			private function getPageNo():int {
+				return viewStackInstance.selectedIndex + 1;
+			}
+			
+            /**
+            * This method is used to check whether any duplicate child is entered
+            * into the toggle button bar or not
+            * return true if duplicate
+            */ 
+            private function checkDuplicateChild(title:String):Boolean{
+                for each(var trailObj:String in trailArray){
+                    if(trailObj == title){
+                        return true;
+                    }
+                }
+                return false;
+            }   
+            
+                    
+            
+        ]]>
+    </mx:Script>
+    <mx:ToggleButtonBar id="buttonBar" height="20" buttonMode="true" dataProvider="{trailArray}" styleName="newToggleButtonBar" itemClick="selectThisChild(event)" />
+	<mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+	<mx:Label id="labelHeading" fontWeight="bold"/>
+    <mx:VBox width="100%" height="{(app.mdiWindowInstance.height)*0.75}">
+	    <mx:VBox width="100%" height="100%">
+	    	<cntrls:XenosErrors id="errPage" width="100%" height="40" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+	    	<mx:HRule strokeColor="#94acb7" strokeWidth="2" width="100%" />
+	    	<mx:Canvas id="canvas" width="100%" height="100%" styleName="Padding">
+				<mx:ViewStack id="viewStackInstance" width="{canvas.width}" height="{canvas.height}"></mx:ViewStack>
+			</mx:Canvas>
+	
+	    </mx:VBox>
+    </mx:VBox>
+    <mx:VBox width="100%" height="40">
+    	<mx:HBox width="100%">
+	        <mx:Button id="prev" label="Previous" styleName="BtnStyle" click="doPrevious()" enabled="false"/>
+	        <mx:Button id="next" label="Next" styleName="BtnStyle" click="doNext()" enabled="false"/>
+	        <mx:Button id="resetBtn" label="Reset" styleName="BtnStyle" click="doReset()"/>
+	        <mx:Button id="submitbtn" label="Submit" styleName="BtnStyle" enabled="false" click="doSubmit()"/>
+	    </mx:HBox>	
+
+    </mx:VBox>
+    		
+		    
+</mx:VBox>

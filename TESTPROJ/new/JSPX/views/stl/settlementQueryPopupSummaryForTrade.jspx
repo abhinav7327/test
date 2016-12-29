@@ -1,0 +1,179 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+    
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" /> 
+
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+		 <jsp:attribute name="src"><c:url value="/scripts/xenos.formatters.js"/></jsp:attribute>
+		  <jsp:body></jsp:body>
+    </jsp:element>	 
+	<jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+
+        <jsp:body>
+			var isNext = <c:out value="${isNext}" />;
+			var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [	
+			
+				{name:"<spring:message code="stl.stlqry.label.settlementrefno" htmlEscape="false"/>", field:"settlementReferenceNo",id:"settlementReferenceNo", width:199,sortable:true,formatter:Slick.Formatters.SettlementDetailViewFormaterForInfo,isForAuth:false},
+				{name:"<spring:message code="stl.label.fundcode" htmlEscape="false"/>", field:"fundCode",id:"fundCode", width:91,sortable:true,formatter:Slick.Formatters.FundDetailViewFormatter},
+				{name:"<spring:message code="stl.label.fundaccountno" htmlEscape="false"/>", field:"fundAccountNo", id:"fundAccountNo", width:100, formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'fundAccountPk'}, sortable: true},
+				{name:"<spring:message code="stl.stlqry.label.tradedate" htmlEscape="false"/>", field:"tradeDateStr",id:"tradeDateStr", width:91,sortable:true},
+				{name:"<spring:message code="stl.stlqry.label.valuedate" htmlEscape="false"/>", field:"valueDateStr",id:"valueDateStr", width:91,sortable:true},
+				{name:"<spring:message code="stl.stlqry.label.tradetype" htmlEscape="false"/>", field:"tradeType",id:"tradeType", width:90,sortable:true},
+				{name:"<spring:message code="stl.stlqry.label.securitycode" htmlEscape="false"/>", field:"instrumentCode",id:"instrumentCode", width:109,sortable:true,formatter:Slick.Formatters.InstrumentDetailViewFormater},
+				{name:"<spring:message code="stl.stlqry.label.altSecurityId" htmlEscape="false"/>", field:"altSecurityDisplayString",id:"altSecurityDisplayString", width:143,sortable:true},  
+				{name:"<spring:message code="stl.stlqry.label.securityname" htmlEscape="false"/>", field:"securityShortName",id:"securityShortName", width:160,sortable:true},
+				{name:"<spring:message code="stl.label.instructiontype" htmlEscape="false"/>", field:"instructionTypeDisplay",id:"instructionTypeDisplay", width:143,sortable:true},
+				
+				{name:"<spring:message code="stl.label.outstandingsecurity" htmlEscape="false"/>", field:"outstandingQntyStr",id:"outstandingQntyStr",cssClass:'xenos-grid-number', width:143,sortable:true},
+				{name:"<spring:message code="stl.label.originalsecurity" htmlEscape="false"/>", field:"originalQuantityStr",id:"originalQuantityStr",cssClass:'xenos-grid-number', width:143,sortable:true},
+				{name:"<spring:message code="stl.stlqry.label.ccy" htmlEscape="false"/>", field:"ccyCode",id:"ccyCode",width:55,sortable:true},
+				
+				{name:"<spring:message code="stl.label.outstandingcash" htmlEscape="false"/>", field:"outstandingAmtStr",id:"outstandingAmtStr",cssClass:'xenos-grid-number', width:101,sortable:true},
+				{name:"<spring:message code="stl.label.originalcash" htmlEscape="false"/>", field:"originalAmountStr",id:"originalAmountStr",cssClass:'xenos-grid-number', width:101,sortable:true},
+				{name:"<spring:message code="stl.stlqry.label.senderrefno" htmlEscape="false"/>", field:"swiftReferenceNo",id:"swiftReferenceNo", width:150,sortable:true,formatter:Slick.Formatters.NegetiveBalanceFormatter},
+				{name:"<spring:message code="stl.label.ouraccountbrkno" htmlEscape="false"/>", field:"firmAccNoDisplayString",id:"firmAccNoDisplayString", width:130,sortable:true,formatter:Slick.Formatters.NegetiveBalanceFormatter},
+				{name:"<spring:message code="stl.label.corporateactioneventtype" htmlEscape="false"/>", field:"subEventTypeDisplayString",id:"subEventTypeDisplayString", width:150,sortable:true},
+				{name:"<spring:message code="stl.label.settlestatus" htmlEscape="false"/>", field:"settlementStatus",id:"settlementStatus", width:101,sortable:true},
+				{name:"<spring:message code="stl.stlqry.label.status" htmlEscape="false"/>", field:"statusString",id:"statusString", width:75,sortable:true,formatter:Slick.Formatters.CancelRecordFormatter}
+				
+            ];
+
+			
+				var grid_result_settings = {
+				isNormalResultGridInPopUp:true,
+				enableToolbar:true,
+				forceFitColumns:false,
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+                    pageNo : pageNo,
+					
+				},
+				buttons:{
+					print:true					
+				},
+				urls:{
+					nextPage : '/secure/stl/settlement/query/result.json?fetch=next',
+					prevPage : '/secure/stl/settlement/query/result.json?fetch=previous'					
+				},
+				events:{
+					onDataUpdate : function(data,callback){
+						for(i in data.value){
+							if(data.value[i].instrumentCode == null || data.value[i].instrumentCode == ''){
+								data.value[i].instrumentCode = data.value[i].correspondingSecurityId;	
+								data.value[i].securityShortName= data.value[i].correspondingSecurityName;							
+							}
+							if(data.value[i].failStatus == 'FAIL'){
+							   data.value[i].settlementStatus= data.value[i].failStatus;
+							}else{
+							   data.value[i].settlementStatus= data.value[i].settleStatusString;
+							}
+							data.value[i].fundAccountPk = data.value[i].inventoryAccountPk;
+							data.value[i].settlementReferenceNo = data.value[i].settlementReferenceNo+"-"+data.value[i].versionNo;
+						}
+						callback(data);
+					}
+				}
+				
+			};
+
+	        var row_id = 0;			
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+              rec.commandFormId="${requestScope['commandFormId']}";
+				rec.id = "xenos_" + row_id;
+				rec.clientSettlementInfoPk="<c:out value="${dl.clientSettlementInfoPk}" />";				
+				rec.instrumentPk = "<c:out value="${dl.instrumentPkUi}"/>";
+				rec.ccyPk = "<c:out value="${dl.ccyPk}" />";	                
+				rec.settlementInfoPk= "<c:out value="${dl.settlementInfoPk}" />";
+				rec.settlementReferenceNo= "<c:out value="${dl.settlementReferenceNo}-${dl.versionNo}" />";
+				rec.senderReferenceNo= "<c:out value="${dl.senderReferenceNo}" />";
+	            rec.settlementStatus=
+						"<c:choose>
+							<c:when test="${dl.failStatus == 'FAIL'}">
+								<c:out value="${dl.failStatus}"/>
+							</c:when>
+							<c:otherwise>
+								<c:out value="${dl.settleStatusString}"/>
+							</c:otherwise>
+						</c:choose>";
+	            rec.instructionTypeDisplay= "<c:out value="${dl.instructionTypeDisplay}" />";				
+				rec.tradeDateStr= "<c:out value="${dl.tradeDateStr}" />";
+	            rec.valueDateStr= "<c:out value="${dl.valueDateStr}" />";
+	            rec.accountNo= "<c:out value="${dl.displayAccountNo}" />";
+				
+	            rec.instrumentCode= 
+				      "<c:choose>
+						 <c:when test="${dl.instrumentCode == null || dl.instrumentCode == ''}">
+							<c:out value="${dl.correspondingSecurityId}"/>
+						 </c:when>
+						<c:otherwise>
+							<c:out value="${dl.instrumentCode}"/>
+						</c:otherwise>
+					  </c:choose>";
+	            rec.ccyCode= "<c:out value="${dl.ccyCode}" />";
+	            rec.statusString= "<c:out value="${dl.statusString}" />";	            
+				rec.tradeType= "<c:out value="${dl.tradeType}"/>";
+				
+				rec.fundAccountNo= "<c:out value="${dl.fundAccountNo}"/>";
+				rec.fundCode= "<c:out value="${dl.fundCode}"/>";
+				rec.fundPk = "<c:out value="${dl.fundPk}"/>";
+				rec.fundAccountPk = "<c:out value="${dl.inventoryAccountPk}"/>";
+				rec.securityShortName= 
+				    "<c:choose>
+						 <c:when test="${dl.instrumentCode == null || dl.instrumentCode == ''}">
+							<c:out value="${dl.correspondingSecurityName}"/>
+						 </c:when>
+						<c:otherwise>
+						    <c:out value="${dl.securityShortName}"/>
+						</c:otherwise>
+					  </c:choose>";
+				rec.outstandingQntyStr= "<c:out value="${dl.outstandingQntyStr}"/>";
+				rec.originalQuantityStr= "<c:out value="${dl.originalQuantityStr}"/>";
+				rec.outstandingAmtStr= "<c:out value="${dl.outstandingAmtStr}"/>";
+				rec.originalAmountStr= "<c:out value="${dl.originalAmountStr}"/>";
+				rec.swiftReferenceNo= "<c:out value="${dl.swiftReferenceNo}"/>";
+				rec.firmAccNoDisplayString= "<c:out value="${dl.firmAccNoDisplayString}"/>";
+				rec.subEventTypeDisplayString= "<c:out value="${dl.subEventTypeDisplayString}"/>";
+				
+	            grid_result_data.push(rec);
+			 </c:forEach>
+			 </xenos:out>
+			
+			
+
+			
+			(function(){
+				var grid;
+				grid_result_settings.isNormalResultGridInPopUp=true;
+				grid = $('#settlementInfo').xenosgrid(grid_result_data, grid_result_columns, grid_result_settings);
+				var newHeight=$('.gridHeightCalculate').closest('.ui-dialog-content ').height();
+				$('.gridHeightCalculate').css('height', (newHeight - 50));
+				grid.resizeCanvas();
+			})();
+			
+        </jsp:body>
+    </jsp:element>
+	<div id="settlementInfo" class="xenos-grid gridHeightCalculate" style="padding:2px 2px 0px 2px;"><spring:message text="" htmlEscape="false"/></div>
+</jsp:root>
+
+            	
+            	

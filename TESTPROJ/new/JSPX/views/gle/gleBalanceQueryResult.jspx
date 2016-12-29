@@ -1,0 +1,202 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+    xmlns:c="http://java.sun.com/jsp/jstl/core" 
+	xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+	xmlns:spring="http://www.springframework.org/tags" 
+	xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+	xmlns:xenos="http://www.nri.co.jp/xenos"
+	xmlns:jsp="http://java.sun.com/JSP/Page">
+	
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	<c:set var="trialBalanceIdPresent" value="${(empty commandForm.trialBalanceId  and (commandForm.consolidateTB=='false'))}"/>
+	<c:set var="colsTot" value="3"/>
+    <c:set var="colsVal" value="2"/>
+	<c:if test="${trialBalanceIdPresent}">
+         <c:set var="colsTot" value="4"/>
+    </c:if>
+    <jsp:element name="script">
+        <jsp:attribute name="type">text/javascript</jsp:attribute>
+        <jsp:body>
+            var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [];
+				grid_result_columns.push({name:"<spring:message code="gle.balance.query.label.currencycode" htmlEscape="false"/>", field:"ccyId",id:"ccyId", width:100});
+				grid_result_columns.push({name:"<spring:message code="gle.balance.query.label.ledgercodename" htmlEscape="false"/>", field:"shortName",id:"shortName", width:100});
+				grid_result_columns.push({name:"<spring:message code="gle.balance.query.label.subledgercode" htmlEscape="false"/>", field:"subLedgerCode",id:"subLedgerCode", width:100});
+				<c:if test="${trialBalanceIdPresent}">
+				grid_result_columns.push({name:"<spring:message code="gle.balance.query.label.trialbalanceid" htmlEscape="false"/>", field:"trialBalanceId",id:"trialBalanceId", width:100});
+				</c:if>
+				grid_result_columns.push({name:"<spring:message code="gle.balance.query.label.lastactivitydate" htmlEscape="false"/>", field:"lastActivityDateDisplay",id:"lastActivityDateDisplay", width:100,cssClass:'xenos-grid-date'});
+				grid_result_columns.push({name:"<spring:message code="gle.balance.query.label.amount" htmlEscape="false"/>", field:"amount",id:"amount", width:200,
+					columns: [
+						{name:"<spring:message code="gle.balance.query.label.debit" htmlEscape="false"/>", field:"debitBalanceStr",id:"debitBalanceStr",cssClass:'xenos-grid-number', width:100},
+						{name:"<spring:message code="gle.balance.query.label.credit" htmlEscape="false"/>", field:"creditBalanceStr",id:"creditBalanceStr",cssClass:'xenos-grid-number', width:100}
+					]
+				});
+	
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:false,
+				forceFitColumns:true,
+				autoAdjustColumnWidth:false,
+				emptyColumnCheck : false,
+				enableColumnReorder : false,
+				multiHeader : true,
+				buttons: {
+					print:true,	
+					xls:true,	
+					pdf:true,
+					xlsPref:true,
+					columnPicker:true,	
+					save:true	
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+					url: '/secure/gle/balance/query/count.json',
+					//disablePager: true
+				},
+				urls:{
+					nextPage : '/secure/gle/balance/query/result.json?fetch=next',
+					prevPage : '/secure/gle/balance/query/result.json?fetch=previous',
+					pdfReport: '/secure/gle/balance/query/report.json?outputType=pdf',
+					xlsReport: '/secure/gle/balance/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/gle/balance/query/reportPref.json?outputType=xls'
+				},
+				afterRenderComplete : function(grid,$context){
+					grid.resizeCanvas();
+					if (grid.getOptions().forceFitColumns) {
+						grid.autosizeColumns();
+					}
+					grid.setColumns(grid.getColumns(), true);
+				},
+				getItemMetadata : function(row){
+					var  rowData = this.getItem(row); 
+					if(rowData.rowInformation <![CDATA[&&]]> rowData.rowInformation.spanRequired == 'Y'){
+						return {
+							"columns": {
+								'shortName': {
+								  "colspan": "${colsTot}"
+								},
+								
+								'debitBalanceStr' : {
+									"colspan": "${colsVal}"
+								}
+							},
+							cssClasses : rowData.rowInformation.cssClasses
+						};
+					}
+				},
+				
+				events:{
+					onDataUpdate : function(data,callback){
+						var resultObj = [];
+						var row_id = 0;
+						var rec = {};
+							for(i in data.value){
+							debugger;
+							rec = {};
+							row_id+=1;
+							rec.id = "xenos_" + row_id;
+							rec.ccyId= data.value[i].ccyId;
+							rec.shortName= data.value[i].shortName;
+							rec.subLedgerCode= data.value[i].subLedgerCode;
+							rec.trialBalanceId= data.value[i].trialBalanceId;
+							rec.lastActivityDateDisplay = data.value[i].lastActivityDateDisplay;
+							rec.debitBalanceStr= data.value[i].debitBalanceStr;
+							rec.creditBalanceStr = data.value[i].creditBalanceStr;	
+							resultObj.push(rec);							
+							if(data.value[i].printSubTotal == "Y" &amp;&amp; data.value[i].subTotalReqd == true){
+								rec = {};
+								row_id+=1;
+								rec.id = "xenos_" + row_id;
+								rec.shortName = "<spring:message code="gle.balance.query.label.subtotal" htmlEscape="false" />";
+								rec.rowInformation = {spanRequired:'Y', cssClasses:'highlight-row-subTotal'};
+								rec.debitBalanceStr = data.value[i].balanceTBStr;
+								if(data.value[i].subTotalDebitCreditFlag == 'C'){
+									rec.debitBalanceStr = rec.debitBalanceStr + "[CR]";
+								}else{
+									rec.debitBalanceStr = rec.debitBalanceStr + "[DR]";
+								}
+								resultObj.push(rec);
+							}
+							if(data.value[i].printGrandTotal == "Y"){
+								rec = {};
+								row_id+=1;
+								rec.id = "xenos_" + row_id;
+								rec.shortName = "<spring:message code="gle.balance.query.label.grandtotal" htmlEscape="false" />";
+								rec.rowInformation = {spanRequired:'Y', cssClasses:'highlight-row-total'};
+								rec.debitBalanceStr = data.value[i].sumAmountStr;
+								if(data.value[i].totalDebitCreditFlag == 'C'){
+									rec.debitBalanceStr = rec.debitBalanceStr + "[CR]";
+								}else{
+									rec.debitBalanceStr = rec.debitBalanceStr + "[DR]";
+								}
+								resultObj.push(rec);
+							}
+						}
+						callback({value:resultObj, isNext:data.isNext, isPrevious:data.isPrevious});
+					}
+				}
+			};
+            var row_id = 0;
+            var rec = {};
+			<xenos:out escapeXml="false">
+            <c:forEach items="${value}" var="dl">
+                rec = {};
+                row_id+=1;
+				rec.id = "xenos_" + row_id;
+				rec.ccyId= "<c:out value="${dl.ccyId}" />";
+				rec.shortName= "<c:out value="${dl.shortName}" />";
+				rec.subLedgerCode= "<c:out value="${dl.subLedgerCode}" />";
+				rec.trialBalanceId= "<c:out value="${dl.trialBalanceId}" />";
+				rec.lastActivityDateDisplay = "<c:out value="${dl.lastActivityDateDisplay}" />";
+				rec.debitBalanceStr= "<c:out value="${dl.debitBalanceStr}" />";
+				rec.creditBalanceStr = "<c:out value="${dl.creditBalanceStr}" />";
+                grid_result_data.push(rec);
+				
+				<c:if test="${dl.printSubTotal=='Y' and dl.subTotalReqd=='true'}">
+					rec = {};
+					row_id+=1;
+					rec.id = "xenos_" + row_id;
+					rec.shortName ="<spring:message code="gle.balance.query.label.subtotal" htmlEscape="false" />";
+					rec.rowInformation = {spanRequired:'Y', cssClasses:'highlight-row-subTotal'};
+					rec.debitBalanceStr = "<c:out value="${dl.balanceTBStr}" />";
+					<c:choose>
+					<c:when test="${dl.subTotalDebitCreditFlag=='C'}">
+						rec.debitBalanceStr = rec.debitBalanceStr + "[CR]";
+                    </c:when>
+					<c:otherwise>
+						rec.debitBalanceStr = rec.debitBalanceStr + "[DR]";
+					</c:otherwise>
+					</c:choose>
+					grid_result_data.push(rec);
+				</c:if>
+				<c:if test="${dl.printGrandTotal=='Y'}">
+					rec = {};
+					row_id+=1;
+					rec.id = "xenos_" + row_id;
+					rec.shortName = "<spring:message code="gle.balance.query.label.grandtotal" htmlEscape="false" />";
+					rec.rowInformation = {spanRequired:'Y', cssClasses:'highlight-row-total'};
+					rec.debitBalanceStr = "<c:out value="${dl.sumAmountStr}" />";
+					<c:choose>
+					<c:when test="${dl.totalDebitCreditFlag=='C'}">
+						rec.debitBalanceStr = rec.debitBalanceStr + "[CR]";
+                    </c:when>
+					<c:otherwise>
+						rec.debitBalanceStr = rec.debitBalanceStr + "[DR]";
+					</c:otherwise>
+					</c:choose>
+					grid_result_data.push(rec);
+				</c:if>
+            </c:forEach>
+			</xenos:out>
+        </jsp:body>
+    </jsp:element>
+</jsp:root>

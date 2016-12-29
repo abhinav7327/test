@@ -1,0 +1,444 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" 
+				xmlns:cntrls="com.nri.rui.core.controls.*" layout="vertical" paddingTop="40" paddingBottom="16" paddingRight="16" paddingLeft="16" styleName="PopupTitleWindow" title="{this.parentApplication.xResourceManager.getKeyValue('ref.fininst.label.nameinfo')}" creationComplete="focusManager.setFocus(okButton);">-->
+<cntrls:XenosPopup xmlns:mx="http://www.adobe.com/2006/mxml" 
+				   xmlns:cntrls="com.nri.rui.core.controls.*" 
+				   xmlns:containers="com.nri.rui.core.containers.*"  layout="vertical" paddingTop="40" paddingBottom="16" paddingRight="16" paddingLeft="16" styleName="PopupTitleWindow" title="{this.parentApplication.xResourceManager.getKeyValue('ref.fininst.label.nameinfo')}" showCloseButton="true" close="fNameDetailsCloseHandler(event)">
+	
+
+	<mx:Script>
+		<![CDATA[
+			import mx.events.CloseEvent;
+			import com.nri.rui.core.startup.XenosApplication;
+			import mx.managers.PopUpManager;
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import com.nri.rui.core.controls.XenosAlert;
+			import mx.rpc.events.ResultEvent;
+			import mx.collections.ArrayCollection;
+			import com.nri.rui.core.Globals;
+			import mx.core.Application;
+			
+			[Bindable]
+    		public var charCodeColl:ArrayCollection;
+    		[Bindable]
+    		public var finInstNameDetails:ArrayCollection ;
+    		[Bindable]
+    		public var editIndex:int;
+    		
+    		public var isForEdit:Boolean = false;
+    		public var isForDelete:Boolean = false;
+    		[Bindable]public var mode:String = "";
+    		[Bindable]
+    		public var confirm:Boolean = false;
+    		/* [Bindable]
+    		private var app : XenosApplication =  XenosApplication.getInstance(Globals.DEFAULT_ENTERPRISE); */
+    		/**
+    		 * Handler for the Add button to enter the Name details
+    		 * for the FinInst Entry. It validates whether the mandatory fields
+    		 * are entered and send the Http Service to add the value
+    		 * in the action form.
+    		 */ 
+    		private function addNameDetails(e:Event):void{
+    			var validate:Boolean= false;
+    			validate = validateNameDetails();
+    			if(validate){
+    				sendHttpRequest();
+		    	}
+    		}
+    		/**
+    		 * Http Service is being sent after populating the request
+    		 * parameters to add the Name Details.ie. dispatch action 
+    		 * is being called.
+    		 */
+    		private function sendHttpRequest():void{
+    			
+    			isForEdit = false;
+    			var reqObj:Object = populateRequestParams(!isForEdit);
+    			if(this.mode == "entry"){
+	    			addFinInstNameEntry.url="ref/finInstEntryDispatch.action?"
+	    	    }else if(this.mode == "amendment"){
+	    			addFinInstNameEntry.url="ref/finInstAmendDispatch.action?"
+	    		}
+    			addFinInstNameEntry.request = reqObj;
+    			addFinInstNameEntry.addEventListener(ResultEvent.RESULT,resultHandler);
+    			
+    			addFinInstNameEntry.send();
+    		}
+    		/**
+    		 * Populating the request parameters to add a FinInstName Details.
+    		 */
+    		private function populateRequestParams(flagForEntry:Boolean):Object{
+    			var reqObj:Object = new Object();
+    			if (flagForEntry == true)
+    				reqObj.method = "addNameDetails";
+    			else{
+    				reqObj.method = "updateNameDetails";
+    				reqObj['editIndexFinInstName'] = editIndex;	
+    			}
+    			
+    			reqObj.charsetCode = (this.charCodeId.selectedItem != null ? this.charCodeId.selectedItem : "");
+    			reqObj.shortName = this.shortName.text;
+    			reqObj.officialName1 = this.offName1.text;
+    			reqObj.officialName2 = this.offName2.text;
+    			reqObj.officialName3 = this.offName3.text;
+    			reqObj.officialName4 = this.offName4.text;
+    			return reqObj;
+    		}
+    		/**
+    		 * The result handler for the Http Service to add the finInst name
+    		 */  
+    		private function resultHandler(event:ResultEvent):void{
+    			var rs : XML = XML(event.result);
+    			if (null != event) {
+    		
+		    		if(rs.child("finInstNameCrossRefs").length() > 0){
+		    			var nameCrossRef:XML = XML(rs.finInstNameCrossRefs);
+		    			finInstNameDetails.removeAll();
+		    			
+		        		if(nameCrossRef.child("finInstNameCrossRef").length()>0) {
+		        			errPage.clearError(event);
+		        			//dpDeliveryEaddressList.removeAll();
+		        			try {
+		            			for each ( var rec:XML in nameCrossRef.finInstNameCrossRef ) {
+			 				    	//trace("xml str.."+rec.toXmlString());
+			 				    	finInstNameDetails.addItem(rec);
+						    	}
+						    	modifyFinInstNameDetails();
+						    }catch(e:Error){
+							    //XenosAlert.error(e.toString() + e.message);
+							    XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					    	}
+		        		}
+		        		
+		        		showHideAddBtn(isForEdit);
+		        		if(!isForDelete){
+				     		resetFinInstNameFields();
+				     	}
+		        	}else if(rs.child("Errors").length()>0) {
+		    			//some error found
+					 	var errorInfoList : ArrayCollection = new ArrayCollection();
+		                //populate the error info list 			 	
+					 	for each ( var error:XML in rs.Errors.error ) {
+			 			   errorInfoList.addItem(error.toString());
+						}
+					 	errPage.showError(errorInfoList);//Display the error
+		    		}else {
+		    			XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					 	finInstNameDetails.removeAll(); // clear previous data if any as there is no result now.
+					 	errPage.removeError(); //clears the errors if any
+					 }
+		    	}
+		    	addFinInstNameEntry.removeEventListener(ResultEvent.RESULT,resultHandler);
+    		}
+    		/**
+    		 * Add the properties selected and index to the list values.
+    		 */
+    		private function modifyFinInstNameDetails():void{
+		     	var i :int = 0;
+		     	for(;i<finInstNameDetails.length;i++){
+		     		if(this.mode == "close" || confirm){
+		     			finInstNameDetails[i].selected = false;
+		     		}else{
+			     		finInstNameDetails[i].selected = true;
+			     	}
+			     	finInstNameDetails[i].index = i;
+			     }
+			     
+			     (addFinInstName.dataProvider as ArrayCollection).refresh();
+		     }
+		    /**
+		    * Validates if all the mandatory fields have been required for
+		    * FinInst Name details have been entered. CharCode, ShortName and
+		    * Default Official Name are required.
+		    */  
+    		private function validateNameDetails():Boolean{
+    			var alertStr:String = XenosStringUtils.EMPTY_STR;
+    			var code:String = (this.charCodeId.selectedItem != null ? this.charCodeId.selectedItem.toString() : "");
+    			if(XenosStringUtils.isBlank(code)) 
+			    {
+			         alertStr += this.parentApplication.xResourceManager.getKeyValue('ref.fininst.msg.error.missing.charsetcode') + "\n";
+			         this.charCodeId.setFocus();
+			    }
+		    	if(XenosStringUtils.isBlank(this.shortName.text)){
+		    		alertStr += this.parentApplication.xResourceManager.getKeyValue('ref.fininst.msg.error.missing.shortname') + "\n";
+		    		this.shortName.setFocus();
+		    	}
+		    	if(XenosStringUtils.isBlank(this.offName1.text)){
+		    		alertStr += this.parentApplication.xResourceManager.getKeyValue('ref.fininst.msg.error.missing.officialname1') + "\n";
+		    		this.offName1.setFocus();
+		    	}
+		    	if(!XenosStringUtils.equals(alertStr,XenosStringUtils.EMPTY_STR)){
+		    		XenosAlert.error(alertStr);
+		    		return false;
+		    	}
+    			
+    			return true;
+    		}
+    		/**
+    		 * This function determines which button should be shown among Add, 
+    		 * or Cancel / Save. If a record is being edited then Cancel/Save is
+    		 * shown, else Add is shown.
+    		 */  
+    		private function showHideAddBtn(editFlag:Boolean):void{
+     	
+		     	cxlNameInfo.includeInLayout = editFlag;
+		     	cxlNameInfo.visible = editFlag;
+		     	saveNameInfo.includeInLayout = editFlag;
+		     	saveNameInfo.visible = editFlag;
+		     	addNameInfo.includeInLayout = !editFlag;
+		     	addNameInfo.visible = !editFlag;
+		     
+		    }
+		    /**
+		    * This function will clear all fields which have been filled
+		    * to add or modify the data for the FinInstNameDetails.
+		    */ 
+		    private function resetFinInstNameFields():void{
+		    	this.charCodeId.selectedIndex =0;
+		    	this.shortName.text = XenosStringUtils.EMPTY_STR;
+		    	this.offName1.text = XenosStringUtils.EMPTY_STR;
+		    	this.offName2.text = XenosStringUtils.EMPTY_STR;
+		    	this.offName3.text = XenosStringUtils.EMPTY_STR;
+		    	this.offName4.text = XenosStringUtils.EMPTY_STR;
+		    }
+		    /**
+		    * This handler is called when the Cancel button is clicked after
+		    * the user decides to cancel the changes during edit.
+		    */ 
+    		private function cxlNameDetails(e:Event):void{
+    			isForEdit = false;
+     			var requestObj :Object = new Object();
+     			requestObj.method="cancelNameDetails";
+     			if(this.mode == "entry"){
+	    			addFinInstNameEntry.url="ref/finInstEntryDispatch.action?"
+	    	    }else if(this.mode == "amendment"){
+	    			addFinInstNameEntry.url="ref/finInstAmendDispatch.action?"
+	    		}
+     			addFinInstNameEntry.request = requestObj;
+     			// Done to reset if any other data has been clicked for modification.
+		     	// and without saving another record has been clicked
+		     	// for modification.
+		     	modifyFinInstNameDetails();
+		     	showHideAddBtn(isForEdit);
+		     	resetFinInstNameFields();
+		     	
+		     	var dp : ArrayCollection = addFinInstName.dataProvider as ArrayCollection;
+		     	dp.refresh();
+		     	
+		     	addFinInstNameEntry.send();
+		     			
+    		}
+    		/**
+		    * This handler is called when the Save button is clicked after
+		    * the user decides to save the changes during edit.
+		    */
+    		private function saveNameDetails(e:Event):void{
+    			isForEdit = false;
+    			isForDelete = false;
+    			var validate:Boolean= false;
+    			validate = validateNameDetails();
+    			if(validate){
+			     	var requestObj :Object = populateRequestParams(isForEdit);
+			     	if(this.mode == "entry"){
+		    			addFinInstNameEntry.url="ref/finInstEntryDispatch.action?"
+		    	    }else if(this.mode == "amendment"){
+		    			addFinInstNameEntry.url="ref/finInstAmendDispatch.action?"
+		    		}
+			    	addFinInstNameEntry.request = requestObj;
+			    	addFinInstNameEntry.addEventListener(ResultEvent.RESULT,resultHandler);
+			    	
+			    	addFinInstNameEntry.send();
+			    }
+    		}
+    		/**
+    		 * Function invoked when the OK button is clicked after all information
+    		 * regarding the FinInstName Details has been entered. This will send a 
+    		 * HTTP request when bulk validation is done and if result comes back 
+    		 * correctly, the popup is closed.
+    		 */
+    		private function okHandler(e:Event):void{
+    			//finInstNameSubmit.send();
+    			FinInstEntry(this.owner).app.submitButtonInstance = FinInstEntry(this.owner).defaultBtn;
+    			PopUpManager.removePopUp(this);
+    		}
+    		/**
+    		 * When the Reset button is clicked, this function is invoked.
+    		 */
+    		private function resetHandler(e:Event):void{
+    			isForDelete = false;
+    			var reqObj :Object = new Object();
+    			//reqObj.method = "resetNameDetails";
+    			if(this.mode == "entry"){
+    				reqObj.method = "resetNameDetails";
+	    			finInstNameReset.url="ref/finInstEntryDispatch.action?"
+	    	    }else if(this.mode == "amendment"){
+	    	    	reqObj.method = "resetNameDetailsForAmend";
+	    			finInstNameReset.url="ref/finInstAmendDispatch.action?"
+	    		}
+	    		finInstNameReset.request = reqObj;
+    			finInstNameReset.send();
+       		}
+       		
+       		private function fNameDetailsCloseHandler(e:CloseEvent):void{
+       			if(!confirm){
+       				resetHandler(new Event(MouseEvent.CLICK));
+       			}
+       			PopUpManager.removePopUp(this);
+       		}
+       		
+       		/**
+    		 * When the Edit button of each record is clicked.
+    		 */
+    		 
+    		public function finInstNameDetailsEdit(e:Event,indx:int):void{
+    			editIndex = indx;
+     			var editableObj : XML = finInstNameDetails[indx];
+     			// Done to reset if any other data has been clicked for modification.
+		     	// and without saving another record has been clicked
+		     	// for modification.
+		     	modifyFinInstNameDetails();
+		     	
+		     	editableObj.selected=false;
+		     	for each(var item:String in charCodeColl){
+		     		if(XenosStringUtils.equals(item,editableObj.charsetCode)){
+		     			this.charCodeId.selectedItem = item;
+		     			break;
+		     		}
+		     	}
+		     	this.shortName.text = editableObj.shortName;
+		    	this.offName1.text = editableObj.officialName1;
+		    	this.offName2.text = editableObj.officialName2;
+		    	this.offName3.text = editableObj.officialName3;
+		    	this.offName4.text = editableObj.officialName4;
+		    	var dp : ArrayCollection = addFinInstName.dataProvider as ArrayCollection;
+		     	dp.setItemAt(editableObj,indx);
+		     	dp.refresh();
+		     	
+		     	isForEdit = true;
+		     	showHideAddBtn(isForEdit);
+    		}
+    		/**
+    		 * When the Delete button of each record is clicked.
+    		 */
+    		public function finInstNameDetailsDelete(e:Event,delIndex:int):void{
+    			isForDelete = true;
+     	
+		     	var requestObj :Object = new Object();
+		     	requestObj.method="deleteNameDetails";
+		     	requestObj['editIndexFinInstName'] = delIndex;
+		     	
+		     	addFinInstNameEntry.request = requestObj;
+		     	if(this.mode == "entry"){
+	    			addFinInstNameEntry.url="ref/finInstEntryDispatch.action?"
+	    	    }else if(this.mode == "amendment"){
+	    			addFinInstNameEntry.url="ref/finInstAmendDispatch.action?"
+	    		}
+		     	addFinInstNameEntry.addEventListener(ResultEvent.RESULT,resultHandler);
+		     	
+		     	addFinInstNameEntry.send();
+    		}
+    		
+    		
+		    /**
+    		 * Result handler for the Reset button handler.
+    		 */
+			private function resetFinInstNameHandler(e:ResultEvent):void{
+		     	resultHandler(e);
+		    }
+		]]>
+	</mx:Script>
+	
+	<cntrls:XenosHTTPService id="addFinInstNameEntry"  fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))" 
+             useProxy="false" resultFormat="xml" showBusyCursor="true" method="POST"/> 
+    
+    <!--<cntrls:XenosHTTPService id="finInstNameSubmit" url="ref/finInstEntryDispatch.action?method=finInstEAddressDetailCommit" fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString)" 
+             useProxy="false" result="commitFinInstnameHandler(event)" resultFormat="xml" showBusyCursor="true"/>-->   
+    
+    <cntrls:XenosHTTPService id="finInstNameReset"  fault="XenosAlert.error(Application.application.xResourceManager.getKeyValue('ref.msg.common.info.errorfaultstr', new Array(event.fault.faultString)))" 
+             useProxy="false" result="resetFinInstNameHandler(event)" resultFormat="xml" showBusyCursor="true"/>
+                      
+	<mx:VBox width="100%" height="100%">
+		<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" borderStyle="none" backgroundAlpha="0"/>
+		<mx:Grid borderThickness="0" width="100%" id="inputGrid">
+			<mx:GridRow width="100%">
+    			<mx:GridItem width="20%" borderThickness="0">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fininst.label.languagecode')}" styleName="ReqdLabel"/>
+                </mx:GridItem>
+                <mx:GridItem  width="30%" borderThickness="0">
+                	<mx:ComboBox id="charCodeId" dataProvider="{charCodeColl}" labelField="label" width="160" itemRenderer="mx.controls.Label"/>
+                </mx:GridItem>
+                <mx:GridItem width="20%" borderThickness="0">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fininst.label.shortname')}" styleName="ReqdLabel"/>
+                </mx:GridItem>
+                <mx:GridItem  width="30%" borderThickness="0">
+                	<mx:TextInput id="shortName" maxChars="35" restrict="{Globals.INPUT_PATTERN}"/>
+                </mx:GridItem>
+             </mx:GridRow>
+             <mx:GridRow width="100%">
+    			<mx:GridItem width="20%" borderThickness="0">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fininst.label.officialname1')}" styleName="ReqdLabel"/>
+                </mx:GridItem>
+                <mx:GridItem  width="30%" borderThickness="0">
+                	<mx:TextInput id="offName1" maxChars="70" restrict="{Globals.INPUT_PATTERN}"/>
+                </mx:GridItem>
+                 <mx:GridItem width="20%" borderThickness="0">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fininst.label.officialname2')}" />
+                </mx:GridItem>
+                <mx:GridItem  width="30%" borderThickness="0">
+                	<mx:TextInput id="offName2" maxChars="70" restrict="{Globals.INPUT_PATTERN}"/>
+                </mx:GridItem>
+             </mx:GridRow>
+             <mx:GridRow width="100%">
+    			<mx:GridItem width="20%" borderThickness="0">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fininst.label.officialname3')}" />
+                </mx:GridItem>
+                <mx:GridItem  width="30%" borderThickness="0">
+                	<mx:TextInput id="offName3" maxChars="70" restrict="{Globals.INPUT_PATTERN}"/>
+                </mx:GridItem>
+                 <mx:GridItem width="20%" borderThickness="0">
+                    <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('ref.fininst.label.officialname4')}" />
+                </mx:GridItem>
+                <mx:GridItem  width="30%" borderThickness="0">
+                	<mx:TextInput id="offName4" maxChars="70" restrict="{Globals.INPUT_PATTERN}"/>
+                </mx:GridItem>
+             </mx:GridRow>
+             <mx:GridRow width="100%">
+				<mx:GridItem width="100%" borderThickness="0" colSpan="4" horizontalAlign="right">
+				 	<mx:Button id="addNameInfo" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.add')}" styleName="BtnStyle" click="addNameDetails(event)"/>
+				 	<mx:Button id="cxlNameInfo" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.cancel')}" styleName="BtnStyle" click="cxlNameDetails(event)" includeInLayout="false" visible="false"/>
+				 	<mx:Button id="saveNameInfo" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.save')}" styleName="BtnStyle" click="saveNameDetails(event)" includeInLayout="false" visible="false"/>
+				 </mx:GridItem>
+			</mx:GridRow>
+		</mx:Grid>
+		
+		<cntrls:CustomDataGrid id="addFinInstName" width="100%" height="100%" dataProvider="{finInstNameDetails}" variableRowHeight="true" horizontalScrollPolicy="on" creationComplete="modifyFinInstNameDetails()">
+	       <cntrls:columns>
+	       
+	       	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fininst.label.languagecode')}" dataField="charsetCode"  showDataTips="true"/>
+	      	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fininst.label.shortname')}" dataField="shortName"  showDataTips="true"/>
+	      	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fininst.label.officialname1')}" dataField="officialName1"  showDataTips="true"/>
+	      	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fininst.label.officialname2')}" dataField="officialName2"  showDataTips="true"/>
+	      	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fininst.label.officialname3')}" dataField="officialName3"  showDataTips="true"/>
+	      	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fininst.label.officialname4')}" dataField="officialName4"  showDataTips="true"/>
+	      	<mx:DataGridColumn headerText=" " minWidth="140">
+	      		<mx:itemRenderer>
+	      			<mx:Component>
+	      				<mx:HBox width="100%" styleName="ButtonBackPanel" horizontalAlign="center">
+	      					<mx:Button styleName="BtnEdit" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.edit')}" width="18" height="18" click="outerDocument.finInstNameDetailsEdit(event,data.index)" enabled="{(data.selected == 'true')?true:false}"/>
+	      					<mx:Button styleName="BtnDelete" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.delete')}" width="18" height="18" click="outerDocument.finInstNameDetailsDelete(event,data.index)" enabled="{(data.selected == 'true')?true:false}"/>
+	      				</mx:HBox>
+	      			</mx:Component>
+	      		</mx:itemRenderer>
+	      	</mx:DataGridColumn> 
+	       </cntrls:columns>
+	    </cntrls:CustomDataGrid>  
+		 
+		<mx:HBox width="100%" styleName="ButtonBackPanel"> 
+		 	<!--<mx:Button id="okButton" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" click="okHandler(event)"/>-->
+		 	<cntrls:XenosButton id="okButton" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" click="okHandler(event)"/>
+        	<mx:Button id="resetButton" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.reset')}" styleName="BtnStyle" click="resetHandler(event)"/>
+        </mx:HBox>
+	</mx:VBox>	
+<!--</mx:TitleWindow>-->
+</cntrls:XenosPopup>

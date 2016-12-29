@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" width="100%" height="100%"
+    xmlns:v="com.nri.rui.view.*" 
+    xmlns:c="com.nri.rui.core.containers.*"
+    xmlns:cntrls="com.nri.rui.core.controls.*"
+    xmlns:code="http://code.google.com/p/flexlib/" preinitialize="loadResourceManager()"
+    initialize="loadDefaultStyles()" visible="false"> <!--creationCompleteEffect="showEffects"-->
+     <mx:Script>
+        <![CDATA[
+            import com.nri.rui.core.controls.XenosAlert;
+            import mx.controls.Alert;
+            import mx.collections.*;
+            
+            import mx.events.StyleEvent;
+            import com.nri.rui.core.Globals;
+            [Bindable]
+             public var userid : String = SharedObject.getLocal(Globals.LSO_USER,Globals.LSO_PATH).data.uname;
+             
+             [Bindable]
+             public var userName : String = "";
+             
+             private function changeAppState(event : StyleEvent):void {
+                 StyleManager.loadStyleDeclarations("assets/Default.swf",true);
+                 currentState = "changestyle";
+                 
+             }              
+            
+               public function sizeTopPanel():void
+               {
+                   if (topPanel.height<=0) {
+                   topPanel.height=40;
+                   }
+                   else if (topPanel.height>=0){
+                   topPanel.height=0;
+                   }
+               }               
+
+        ]]>
+     </mx:Script>
+    <mx:states>
+        <mx:State name="changestyle">
+            <mx:SetProperty target="{Application.application}" name="visible" value="true"/>            
+        </mx:State>
+    </mx:states>
+    
+     
+
+    <!--<mx:Parallel id="showEffects">
+       <mx:Zoom id="myZoomShow" 
+                zoomHeightFrom="0.0" 
+                zoomWidthFrom="0.0" 
+                zoomHeightTo="1.0" 
+                zoomWidthTo="1.0"
+            />
+       <mx:Fade alphaFrom="0" alphaTo="1" duration="8000" />
+
+    </mx:Parallel>-->
+    <mx:Script source="actionscripts/Main.as"/>
+    <!--<mx:Style source="assets/themes/Default.css"/>-->
+    <mx:HTTPService id="logout" url="logout.action" method="POST" result="onResult(event)" fault="onFault(event)" />
+    <cntrls:XenosHTTPService id="userIdAccess" url="ref/userImplDispatchAction.action?method=getUserInfo" result="displayUserInfo(event)" fault="onFaultUserInfo(event)"/>
+    <cntrls:XenosHTTPService id="navHr" url="ref/menuLoaderDispatch.action?method=menuLoader" resultFormat="e4x" result="resultHandler(event)" fault="faultHandler(event)"/>
+    <cntrls:XenosHTTPService id="ccyRequest" url="ref/menuLoaderDispatch.action?method=currencyListLoader" resultFormat="e4x" result="ccyResultHandler(event)" fault="XenosAlert.error('Failed to load currency list.');"/>
+    <cntrls:XenosHTTPService id="instrumentRequest" url="ref/menuLoaderDispatch.action?method=instrumentTreeLoader" resultFormat="e4x" result="instruResultHandler(event)" fault="XenosAlert.error('Failed to load instrument tree.');"/>
+    <cntrls:XenosHTTPService id="bbInstrumentRequest" url="ref/menuLoaderDispatch.action?method=bloombergInstrumentTreeLoader" resultFormat="e4x" result="bbInstrumentResultHandler(event)" fault="XenosAlert.error('Failed to load BB instrument tree.');"/>
+    <cntrls:XenosHTTPService id="marketRequest" url="ref/menuLoaderDispatch.action?method=marketTreeLoader" resultFormat="e4x" result="marketResultHandler(event)" fault="XenosAlert.error('Failed to load market tree.');"/>
+    <cntrls:XenosHTTPService id="retentionDateRequest" url="ref/menuLoaderDispatch.action?method=retentionDateLoader" resultFormat="e4x" result="retentionDateResultHandler(event)" fault="XenosAlert.error('Failed to load retention dates.');"/>
+    <!-- The Window Header -->
+    
+    
+    <mx:VBox width="100%" height="100%" verticalGap="0" horizontalGap="0">        
+        
+        <!-- Start Top Panel Area -->                
+        <mx:HBox id="topPanel" width="100%" height="40" verticalAlign="middle" resizeEffect="Resize" >
+            
+            <mx:ApplicationControlBar id="appCtrlBar" width="100%" height="40" dock="true" styleName="AppTopHeaderBg">
+        
+                <mx:Label id="lblProject" text="" styleName="AppTitle" left="22" width="75" verticalCenter="0"/>
+                <mx:Image source="@Embed('assets/themes/default/skin/acb_separator.png')" width="2" height="36" verticalCenter="0"/>
+                <mx:Label id="uID" text="Welcome {userName}" styleName="Welcome" width="400" verticalCenter="0" />
+                
+                <mx:HBox width="100%" height="100%" backgroundAlpha="0" verticalCenter="0" verticalAlign="middle" horizontalAlign="right" paddingLeft="0" paddingRight="0">
+                            
+                    <mx:Button width="34" height="34" icon="@Embed('assets/themes/default/skin/acb_cascade.png')" styleName="RoundButton" buttonMode="true" toolTip="Cascade" click="cascadeWindows()"/>
+                    <mx:Button width="34" height="34" icon="@Embed('assets/themes/default/skin/acb_tile.png')" styleName="RoundButton" buttonMode="true" click="tileWindows()" toolTip="Tile" />
+                    <mx:Button width="34" height="34" styleName="NavBtnStyle" buttonMode="true" click="navOpenHandler()" toolTip="Navigation" verticalCenter="0" id="navOpener"/>
+                    <mx:Button width="34" height="34" icon="@Embed('assets/themes/default/skin/acb_fullscreen.png')" styleName="RoundButton" buttonMode="true" toolTip="Fullscreen" click="toggle()" verticalCenter="0"/>
+                    <mx:Button width="34" height="34" id="btnPrefernces" icon="@Embed('assets/themes/default/skin/acb_preferences.png')" styleName="RoundButton" buttonMode="true" toolTip="My Xenos" click="showPreference()" verticalCenter="0" />
+                    <mx:Image width="2" height="36" source="@Embed('assets/themes/default/skin/acb_separator.png')" verticalCenter="0"/>
+                    <mx:Button width="34" height="34" id="btnChangePasswd" icon="@Embed('assets/themes/default/skin/nam_changepwd.png')" styleName="RoundButton" buttonMode="true" toolTip="Change Passwd" click="showChangePasswdWindow()" verticalCenter="0" />
+                    <mx:Button width="34" height="34" icon="@Embed('assets/themes/default/skin/acb_signout.png')" styleName="RoundButton" buttonMode="true" toolTip="Logout" verticalCenter="0" click="doLogout()"/>
+                </mx:HBox>
+            
+            </mx:ApplicationControlBar>
+            
+        </mx:HBox>
+        
+        <mx:VBox width="100%" height="8" verticalAlign="middle" horizontalAlign="center" >
+            <mx:Button width="75" height="8" buttonMode="true" styleName="collapseUp" click="sizeTopPanel();" toggle="true"/>
+        </mx:VBox>
+        
+        <mx:HBox id="hbMenuBox" width="100%" horizontalAlign="left" verticalGap="0" horizontalGap="0">
+            <mx:MenuBar id="hrMenu" width="100%" height="{Globals.MENU_HEIGHT}" dataProvider="{app.cachedItems.menuList}" 
+                        labelFunction="fixLabel" selectedIndex="0" showRoot="false" includeInLayout="true" change="changeHandler(event);" 
+                        menuBarItemRenderer="com.nri.rui.core.renderers.MenuBarItemRenderer" verticalCenter="0" horizontalCenter="0"/>            
+        </mx:HBox>        
+        <!-- End Top Panel Area -->
+        
+        <mx:VBox horizontalGap="0" width="100%" height="100%" styleName="Padding4">            
+            <c:XenosMDICanvas id="mdiCanvas" creationComplete="onCreationComplete(mdiCanvas)" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="AppMainBgStyle" width="100%" height="100%" />            
+        </mx:VBox>
+
+    </mx:VBox>    
+        <code:WindowShade visible="false" includeInLayout="false"/>         
+</mx:Application>
+

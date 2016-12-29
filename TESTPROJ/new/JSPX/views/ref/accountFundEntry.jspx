@@ -1,0 +1,1061 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+	 xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+	 xmlns:xenos="http://www.nri.co.jp/xenos"
+	 xmlns:xenosfn ="http://www.nri.co.jp/jstl/functions"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles">
+	 
+	<div class="entryContainer">
+	    <jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	    <jsp:output	omit-xml-declaration="yes" />
+
+	 
+		<jsp:element name="script">
+			<jsp:attribute name="type">text/javascript</jsp:attribute>		
+			<jsp:body>
+			  
+				var xenos$Wizard$onPageLoad${commandForm.uniqueId} = function($xenos$Wizard){
+				
+					xenos.loadScript([
+						{path: xenos.context.path + '/scripts/ref/fundAccountEntry.js', async: false},
+						{path: xenos.context.path + '/scripts/inf/datevalidation.js', async: false},
+						{path: xenos.context.path + '/scripts/inf/utilCommons.js', async: false}
+					]);
+					if("${commandForm.account.counterPartyDetailType}" == "INTERNAL" <![CDATA[&&]]> "${commandForm.options.actionType}" == "ENTRY"){
+						$("#formActionArea > div > div > .wizSubmit > .inputBtnStyle").css('display','none');
+						$("#formActionArea > div > div > .wizPrev > .inputBtnStyle").css('display','none');
+					}
+
+					$("#iconRequired").prop("disabled", true);
+					$("#tfRequired").prop("disabled", true);
+					$("#gemsRequired").prop("disabled", true);
+					$("#formaRequired").prop("disabled", true);
+					$("#cashViewerReqd").prop("disabled", true);
+
+					
+						var context = $xenos$Wizard.$context;
+						var baseUrl = xenos.context.path + context.find('form').attr('action');
+						
+						var actionType = "<c:out value="${commandForm.options.actionType}" />";
+						if($.trim(actionType) == 'AMEND'){
+							if("${commandForm.fund.isFundAmendable}" == "N") {
+								$('#fundCategory',context).attr('disabled',true);
+								$('#baseCurrency',context).attr('disabled',true);
+								$('#currencyPopup',context).attr('disabled',true);
+							}
+						}
+						else if($.trim(actionType) == 'REOPEN'){
+							if("${commandForm.fund.isFundAmendable}" == "N") {
+								$('#fundCategory',context).attr('disabled',true);
+								$('#baseCurrency',context).attr('disabled',true);
+								$('#currencyPopup',context).attr('disabled',true);
+							}
+						}
+						
+						var defaultAccountFlag = "<c:out value="${commandForm.account.defaultAccountFlag}" />";
+						if($.trim(defaultAccountFlag) == "Y") {
+							if($.trim(actionType) == 'AMEND') {
+								$('#fundCode',context).attr('disabled',true);
+								$('#officeId',context).attr('disabled',true);
+							}
+							else if($.trim(actionType) == 'REOPEN') {
+								$('#fundCode',context).attr('disabled',true);
+								$('#officeId',context).attr('disabled',true);
+							}
+						}
+						
+						
+						var forexInstEntryResult = [],
+							rowId = 0,		
+							item = {},
+							forexInstEntryGrid = null,
+							forexInstEntryList = [];
+							
+						var fundCodeEntryXRefResult = [],
+							rowId = 0,		
+							item = {},
+							fundCodeEntryXRefGrid = null,
+							fundCodeEntryList = [];
+						/**
+						* A common request handler to be used server communication.
+						*/
+						var xenos$Handler$RequestHandler = xenos$Handler$function({						
+							get: {
+								contentType: 'json',
+								requestType: xenos$Handler$default.requestType.asynchronous
+							},	
+							settings: {
+								beforeSend: function(request) {
+									request.setRequestHeader('Accept', 'application/json');
+								},
+								type: 'POST'
+							}
+						});
+
+					
+					var forexInstEntryColumns = [		
+							{name:"<spring:message code="ref.fund.label.settlementccy" htmlEscape="false"/>",   	field:"settlementCcy",	id:"settlementCcy", 	sortable:false},
+							{name:"<spring:message code="ref.fund.label.forexccy" htmlEscape="false"/>", 		    field:"forexCcy",		id:"forexCcy",	     	sortable:false}
+							
+						];
+						
+						var forexInstEntryGridConf = {
+							editMode 					: 	'both',																
+							editCallback 				: 	editForexInstEntryHandler,
+							deleteCallback				:	deleteForexInstEntryHandler,
+							forceFitColumns				:	true
+						};
+						rowId=0;
+
+						<xenos:out escapeXml="false">
+							<c:forEach items="${commandForm.forexInstructionRules}" var="dl">
+								item = {};
+								rowId+=1;
+								item.id 			= "xenos_" + rowId;
+								item.settlementCcy 	= "<c:out value="${dl.settlementCcy}" />";
+								item.forexCcy 		= "<c:out value="${xenosfn:escapeJS(dl.forexCcy)}" />";
+								forexInstEntryResult.push(item);
+							</c:forEach>
+						</xenos:out>					
+						forexInstEntryGrid = $('#forexInstEntryGrid',context).xenoseditablegrid(forexInstEntryResult, forexInstEntryColumns, forexInstEntryGridConf);	
+					
+					
+					var fundCodeEntryXRefColumns = [		
+							{name:"<spring:message code="ref.fund.label.fundcodetype" htmlEscape="false"/>",   	field:"fundCodeType",	id:"fundCodeType", 	sortable:false},
+							{name:"<spring:message code="ref.fund.label.code" htmlEscape="false"/>", 		    field:"code",		    id:"code",	     	sortable:false}
+							
+						];
+						
+						var fundCodeEntryXRefGridConf = {
+							editMode 					: 	'both',																
+							editCallback 				: 	editFundCodeEntryHandler,
+							deleteCallback				:	deleteFundCodeEntryHandler,
+							editEnableCallback			:	isEditable,
+							forceFitColumns				:	true
+						};
+						rowId=0;
+
+						<xenos:out escapeXml="false">
+							<c:forEach items="${commandForm.fundCrossRefs}" var="dl">
+								item = {};
+								rowId+=1;
+								item.id 			= "xenos_" + rowId;
+								item.fundCodeType 	= "<c:out value="${dl.fundCodeType}" />";
+								item.code 	= "<c:out value="${xenosfn:escapeJS(dl.fundCode)}" />";
+								fundCodeEntryXRefResult.push(item);
+							</c:forEach>
+						</xenos:out>					
+						fundCodeEntryXRefGrid = $('#fundCodeEntryGrid',context).xenoseditablegrid(fundCodeEntryXRefResult, fundCodeEntryXRefColumns, fundCodeEntryXRefGridConf);	
+
+					
+						/**
+						* Validate Forex Inst Entry attributes.
+						*/
+						function validateOtherAttributes1(){
+							var validationMessages = [];
+							var settlementCcy = $.trim($('#settlementCcy',context).val());
+							var forexCcy = $.trim($('#forexCcy',context).val());
+													
+							if(VALIDATOR.isNullValue(settlementCcy)){
+								validationMessages.push(xenos$REF$i18n.account.common.stl_curr_empty);
+							}
+							if(VALIDATOR.isNullValue(forexCcy)){
+								validationMessages.push(xenos$REF$i18n.account.common.forex_curr_empty);
+							}
+							if (validationMessages.length > 0){
+								 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+								 return false;
+							}else {
+								   xenos.utils.clearGrowlMessage();
+							}
+							return true;
+						}
+						
+						/**
+						* Validate Fund Code Entry attributes.
+						*/
+						function validateOtherAttributes(){
+							var validationMessages = [];
+							var fundCodeType = $.trim($('#fundCodeType',context).val());
+							var code = $.trim($('#code',context).val());
+													
+							if(VALIDATOR.isNullValue(fundCodeType)){
+								validationMessages.push(xenos$REF$i18n.fininst.general.finInstCodeType_empty);
+							}
+							if(VALIDATOR.isNullValue(code)){
+								validationMessages.push(xenos$REF$i18n.account.common.fin_inst_code);
+							}
+							if (validationMessages.length > 0){
+								 xenos.utils.displayGrowlMessage(xenos.notice.type.error, validationMessages);
+								 return false;
+							}else {
+								   xenos.utils.clearGrowlMessage();
+							}
+							return true;
+						}
+						
+					/**
+					* Populate Forex Inst request parameters.
+					*/
+					function populateForexInstEntryRequestParam(){
+						
+						var reqObj = {
+									  "forexInstructionRule.settlementCcy"	:	$.trim($('#settlementCcy',context).val()),
+									  "forexInstructionRule.forexCcy"		:	$.trim($('#forexCcy',context).val())
+									};
+						return reqObj;
+					}
+					
+					/**
+					* Populate Name X Ref request parameters.
+					*/
+					function populateFundCodeEntryRequestParam(){
+						var reqObj = {
+									  "fundXref.fundCodeType"	:	$.trim($('#fundCodeType',context).val()),
+									  "fundXref.fundCode"		:	$.trim($('#code',context).val())
+									};
+						return reqObj;
+					}
+		  
+					/**
+					* Populate Forex Inst form.
+					*/
+					function populateForexInstEntryForm(result){
+						if(result.forexInstructionRule){
+							$('#settlementCcy',context).val(result.forexInstructionRule.settlementCcy);
+							$('#forexCcy',context).val(result.forexInstructionRule.forexCcy);
+							$('input[type=text],textarea,select', 'div.formItemBlock').filter(':enabled:visible:first').focus();
+						}
+					}
+					
+					/**
+					* Populate Name X Ref form.
+					*/
+					function populateFundCodeEntryXRefForm(result){
+						
+						if(result.fundXref){
+							$('#fundCodeType',context).val(result.fundXref.fundCodeType);
+							$('#code',context).val(result.fundXref.fundCode);
+							$('input[type=text],textarea,select', 'div.formItemBlock').filter(':enabled:visible:first').focus();
+						}
+					}  
+					
+					
+					/**
+					* New Forex Inst add handler.
+					*/
+					
+					function addForexInstEntryHandler(e){
+						
+						var valid = validateOtherAttributes1();
+						if(valid){
+							var requestUrl = baseUrl + "/addForexInstXref.json?commandFormId=" + $('[name=commandFormId]').val();
+							xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																	settings: {data : populateForexInstEntryRequestParam()},
+																	onJsonContent :  function(e, options, $target, content) {
+																		if(content.success == true){
+																			upsertForexInstEntry( content.value[0]);
+																			xenos.utils.clearGrowlMessage();
+																			if(content.value[0].forexInstructionRules.length == 1){
+																				$("#cxlforextagreqd").prop('disabled',true);
+																				$('<input type="hidden" id="cxlforextagreqdHidden" value="Y" name="fund.instructionCxlFxReqd" />').appendTo("#disabledFieldsDataAppender");
+																			}
+																		} else {
+																			xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																		}
+																	}
+																 }
+													);
+						}
+					}
+					
+					/**
+					* New Name X Ref add handler.
+					*/
+					
+					function addFundCodeEntryHandler(e){
+						var valid = validateOtherAttributes();
+						if(valid){
+							var requestUrl = baseUrl + "/addFundCodeXref.json?commandFormId=" + $('[name=commandFormId]').val();
+							xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																	settings: {data : populateFundCodeEntryRequestParam()},
+																	onJsonContent :  function(e, options, $target, content) {
+																		if(content.success == true){
+																			upsertFundCodeEntry( content.value[0]);
+																			xenos.utils.clearGrowlMessage();
+																		} else {
+																			xenos.utils.displayGrowlMessage(xenos.notice.type.error, content.value[0]);
+																		}
+																	}
+																 }
+													);
+						}
+					}
+					
+					/**
+					* Forex Inst Edit handler
+					*/
+					function editForexInstEntryHandler(rowIndex, dataContext){
+						
+						var requestUrl = baseUrl + "/editForexInstXref.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																settings: {data : {"editIndexForexInstructionRule" : rowIndex}},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		populateForexInstEntryForm(content.value[0]);
+																		$('.editBtnForexInstEntry',context).css('display','block'); 
+																		$('.addForexInstEntry',context).css('display','none');
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+					}
+					
+					/**
+					* Name X Ref Edit handler
+					*/
+					function editFundCodeEntryHandler(rowIndex, dataContext){
+						
+						var requestUrl = baseUrl + "/editFundCodeXref.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																settings: {data : {"editIndexFundXref" : rowIndex}},
+																onJsonContent :  function(e, options, $target, content) {
+																	if(content.success == true){
+																		populateFundCodeEntryXRefForm(content.value[0]);
+																		$('.editBtnFundCodeEntryXRef',context).css('display','block'); 
+																		$('.addFundCodeEntryXRef',context).css('display','none');
+																	} else {
+																		xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																	}
+																	return true;
+																}
+															 }
+												);
+					}
+					
+					/**
+					* Forex Inst Delete handler
+					*/
+					function deleteForexInstEntryHandler(rowIndex, dataContext){
+					
+						var requestUrl = baseUrl + "/deleteForexInst/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+							xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																	onJsonContent :  function(e, options, $target, content) {
+																		if(content.success == true){
+																			upsertForexInstEntry(content.value[0]);
+																			$('.editBtnForexInstEntry',context).hide();
+																			$('.addForexInstEntry',context).show();
+																			if(content.value[0].forexInstructionRules.length == 0){
+																				$("#cxlforextagreqd").prop('disabled',false);
+																				$("#disabledFieldsDataAppender #cxlforextagreqdHidden").remove();
+																			}
+																		} else {
+																			xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																		}
+																	}
+																 }
+													);
+					}
+					
+					/**
+					* Name X Ref Delete handler
+					*/
+					function deleteFundCodeEntryHandler(rowIndex, dataContext){
+					
+						var requestUrl = baseUrl + "/deleteFundCodeXref/"+ rowIndex + ".json?commandFormId=" + $('[name=commandFormId]').val();
+							xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																	onJsonContent :  function(e, options, $target, content) {
+																		
+																		if(content.success == true){
+																			upsertFundCodeEntry(content.value[0]);
+																			$('.editBtnFundCodeEntryXRef',context).hide();
+																			$('.addFundCodeEntryXRef',context).show();
+																		} else {
+																			xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																		}
+																	}
+																 }
+													);
+					}
+					
+					/**
+					* Forex Inst update handler.
+					*/
+					function updateForexInstEntryHandler(e){				
+						var valid = validateOtherAttributes1();
+						if(valid){
+							var requestUrl = baseUrl + "/updateForexInst.json?commandFormId=" + $('[name=commandFormId]').val();
+							
+							xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																	settings: {data : populateForexInstEntryRequestParam()},
+																	onJsonContent :  function(e, options, $target, content) {
+																		if(content.success == true){
+																			upsertForexInstEntry(content.value[0]);
+																			$('.editBtnForexInstEntry',context).css('display','none'); 
+																			$('.addForexInstEntry',context).css('display','block'); 
+																		} else {
+																			xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																		}
+																	}
+																 }
+													);
+						}
+					}
+					
+					/**
+					* Name X Ref update handler.
+					*/
+					function updateFundCodeEntryHandler(e){				
+						var valid = validateOtherAttributes();
+						if(valid){
+							var requestUrl = baseUrl + "/updateFundCodeXref.json?commandFormId=" + $('[name=commandFormId]').val();
+							
+							xenos$Handler$RequestHandler.generic(e, {	requestUri: requestUrl,
+																	settings: {data : populateFundCodeEntryRequestParam()},
+																	onJsonContent :  function(e, options, $target, content) {
+																		if(content.success == true){
+																			upsertFundCodeEntry(content.value[0]);
+																			$('.editBtnFundCodeEntryXRef',context).css('display','none'); 
+																			$('.addFundCodeEntryXRef',context).css('display','block'); 
+																		} else {
+																			xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																		}
+																	}
+																 }
+													);
+						}
+					}
+					
+					/**
+					* Forex Inst cancel handler.
+					*/
+					function cancelForexInstEntryHandler(e){
+						var requestUrl = baseUrl + "/cancelForexInst.json?commandFormId=" + $('[name=commandFormId]').val();
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																		if(content.success == true){
+																			upsertForexInstEntry(content.value[0]);
+																			$('.editBtnForexInstEntry',context).css('display','none'); 
+																			$('.addForexInstEntry',context).css('display','block'); 
+																		} else {
+																			xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																		}
+																		return true;
+																	}
+																 }
+													);
+					}
+					
+					/**
+					* Name X Ref cancel handler.
+					*/
+					function cancelFundCodeEntryHandler(e){
+						var requestUrl = baseUrl + "/cancelFundCodeXref.json?commandFormId=" + $('[name=commandFormId]').val();
+		
+						xenos$Handler$RequestHandler.generic(undefined, {	requestUri: requestUrl,
+																onJsonContent :  function(e, options, $target, content) {
+																		if(content.success == true){
+																			upsertFundCodeEntry(content.value[0]);
+																			$('.editBtnFundCodeEntryXRef',context).css('display','none'); 
+																			$('.addFundCodeEntryXRef',context).css('display','block'); 
+																		} else {
+																			xenos.postNotice(xenos.notice.type.error, content.value[0]);
+																		}
+																		return true;
+																	}
+																 }
+													);
+					}
+					
+					/**
+					* A function to check whether edit or delete is possible or not.
+					*/
+					function isEditable(columnName,dataContext){
+						if($.trim(dataContext['fundCodeType']) == "${commandForm.otherAttributes.defaultAccountNoType}")
+							return false;
+						return true;
+					}
+					
+					/**
+					* Insert/ Update Forex Inst's.
+					*/
+					function upsertForexInstEntry(data){
+						var result = data.forexInstructionRules;
+						if(result){
+							forexInstEntryGrid.clearData();
+							for(var i in result){
+								item = {};
+								rowId+=1;
+								item.id 				= "xenos_" + rowId;
+								item.settlementCcy 		= $.trim(result[i].settlementCcy);
+								item.forexCcy 			= $.trim(result[i].forexCcy);
+								
+								forexInstEntryGrid.addOrUpdateRow(item,{});
+							}
+							populateForexInstEntryForm(data);
+						}
+					}
+					
+					/**
+					* Insert/ Update Name X Ref(s).
+					*/
+					function upsertFundCodeEntry(data){
+						var result = data.fundCrossRefs;
+						if(result){
+							fundCodeEntryXRefGrid.clearData();
+							for(var i in result){
+								item = {};
+								rowId+=1;
+								item.id 				= "xenos_" + rowId;
+								item.fundCodeType 		= $.trim(result[i].fundCodeType);
+								item.code 				= $.trim(result[i].fundCode);
+								
+								fundCodeEntryXRefGrid.addOrUpdateRow(item,{});
+							}
+							populateFundCodeEntryXRefForm(data);
+						}
+					}
+					
+					$('#addForexInstEntryBtn',context).bind('click',addForexInstEntryHandler);
+					$('#updateForexInstEntryBtn',context).bind('click',updateForexInstEntryHandler);
+					$('#cancelForexInstEntryBtn',context).bind('click',cancelForexInstEntryHandler);
+					
+					$('#addFundCodeEntryBtn',context).bind('click',addFundCodeEntryHandler);
+					$('#updateFundCodeEntryBtn',context).bind('click',updateFundCodeEntryHandler);
+					$('#cancelFundCodeEntryBtn',context).bind('click',cancelFundCodeEntryHandler);					
+					
+					var submitValidateHook = function() {					
+						//if(validateForEmpty()){
+						//	if (isEmptyGridEntered()){
+						//		xenos.utils.displayGrowlMessage(xenos.notice.type.error, "No records to submit.");
+						//		return false;
+						//	}else {
+						//		xenos.utils.clearGrowlMessage();
+						//		return true;
+						//	}
+						//}else{
+						//	return false;
+						//}					
+					};
+					
+					var nextValidateHook = function() {
+						var isValid = validateOnNextForFundTabEmpty();
+						return isValid;
+					};
+					
+					var unloadHook = function(){
+						$('#addForexInstEntryBtn',context).unbind('click',addForexInstEntryHandler);
+						$('#updateForexInstEntryBtn',context).unbind('click',updateForexInstEntryHandler);
+						$('#cancelForexInstEntryBtn',context).unbind('click',cancelForexInstEntryHandler);
+						
+						$('#addFundCodeEntryBtn',context).unbind('click',addFundCodeEntryHandler);
+						$('#updateFundCodeEntryBtn',context).unbind('click',updateFundCodeEntryHandler);
+						$('#cancelFundCodeEntryBtn',context).unbind('click',cancelFundCodeEntryHandler);
+						
+						
+						$xenos$Wizard.deregister('submit',submitValidateHook);
+						$xenos$Wizard.deregister('next',nextValidateHook);
+						$xenos$Wizard.deregister('unload',unloadHook);
+						
+						forexInstEntryGrid.destroy();
+						fundCodeEntryXRefGrid.destroy();
+					}
+		
+					
+						$xenos$Wizard.register('next',nextValidateHook);
+						$xenos$Wizard.register('submit',submitValidateHook);
+						$xenos$Wizard.register('unload',unloadHook);
+						
+						xenos.utils.afterFormRenderScuts();
+					
+					/**
+					* To check if no records are entered in the grid
+					*/
+					function isEmptyGridEntered(){
+						var gridData = [];
+						
+						var gridLength = $('#forexInstEntryGrid').data().gridInstance.getData().getItems();
+						
+						var gridLength = $('#fundCodeEntryGrid').data().gridInstance.getData().getItems();
+						if(gridLength.length > 0)
+							return false;	//Grid is not empty
+						else 
+							return true;	//Grid is empty
+					}
+					
+					
+					/**
+					* To Enable disable Forex Instruction section
+					*/
+					var value = $("#cxlforextagreqd").val() != null ? $("#cxlforextagreqd").val() : "";
+					if(value != "Y"){
+						$("#settlementCcy").prop('disabled',true);
+						$("#forexCcy").prop('disabled',true);
+						$("#settlementCcyBtn").prop('disabled',true);
+						$("#forexCcyBtn").prop('disabled',true);
+						$("#addForexInstEntryBtn").prop('disabled',true);
+					}else{
+						$("#settlementCcy").prop('disabled',false);
+						$("#forexCcy").prop('disabled',false);
+						$("#settlementCcyBtn").prop('disabled',false);
+						$("#forexCcyBtn").prop('disabled',false);
+						$("#addForexInstEntryBtn").prop('disabled',false);
+					}
+					
+					if(${not empty commandForm.forexInstructionRules}){
+						$("#cxlforextagreqd").prop('disabled',true);
+					}
+					
+					onChangeFundCategory(false);
+					onChangeLMOffice(false);
+					
+					function onChangeFundCategory(onChange){
+						var fundCategoryVal = $("#fundCategory option:selected").val();
+							var index = 0;
+							var index1 = 0;
+							var index2 = 0;
+							var index3 = 0;
+							if(fundCategoryVal == "") {
+								$("#gemsRequired option").eq(0).prop('selected', true);
+								$("#gemsRequired").prop("disabled", true);
+								$("#formaRequired option").eq(0).prop('selected', true);
+								$("#formaRequired").prop("disabled", true);
+								$("#cashViewerReqd option").eq(0).prop('selected', true);
+								$("#cashViewerReqd").prop("disabled", true);
+							}
+							if(onChange) {
+								if(fundCategoryVal == "ADVISORY_FUND") {
+									index = getIndexOfDropdownValue($("#gemsRequired"),"Y");
+									$("#gemsRequired option").eq(index).prop('selected', true);
+									$("#gemsRequired").prop("disabled", false);
+									
+									$("#disabledFieldsDataAppender #gemsRequiredHidden").remove();
+									
+									index1 = getIndexOfDropdownValue($("#formaRequired"),"N");
+									$("#formaRequired option").eq(index1).prop('selected', true);
+									$("#formaRequired").prop("disabled", true);
+									index2 = getIndexOfDropdownValue($("#cashViewerReqd"),"N");
+									$("#cashViewerReqd option").eq(index2).prop('selected', true);
+									$("#cashViewerReqd").prop("disabled", true);
+									index3 = getIndexOfDropdownValue($("#lmPositionCustody"),"N");
+									$("#lmPositionCustody option").eq(index3).prop('selected', true);
+								}
+								if(fundCategoryVal == "MUTUAL_FUND") {
+									index = getIndexOfDropdownValue($("#gemsRequired"),"N");
+									$("#gemsRequired option").eq(index).prop('selected', true);
+									$("#gemsRequired").prop("disabled", true);
+									index1 = getIndexOfDropdownValue($("#formaRequired"),"Y");
+									$("#formaRequired option").eq(index1).prop('selected', true);
+									$("#formaRequired").prop("disabled", false);
+									$("#disabledFieldsDataAppender #formaRequiredHidden").remove();
+									index2 = getIndexOfDropdownValue($("#cashViewerReqd"),"Y");
+									$("#cashViewerReqd option").eq(index2).prop('selected', true);
+									$("#cashViewerReqd").prop("disabled", false);
+									$("#disabledFieldsDataAppender #cashViewerReqdHidden").remove();
+									index3 = getIndexOfDropdownValue($("#lmPositionCustody"),"Y");
+									$("#lmPositionCustody option").eq(index3).prop('selected', true);
+								}
+							}else{
+								if(fundCategoryVal == "ADVISORY_FUND") {
+									index1 = getIndexOfDropdownValue($("#formaRequired"),"N");
+									$("#formaRequired option").eq(index1).prop('selected', true);
+									$("#formaRequired").prop("disabled", true);
+									$('<input type="hidden" id="formaRequiredHidden" value="N" name="fund.formaRequired" />').appendTo("#disabledFieldsDataAppender");
+									index2 = getIndexOfDropdownValue($("#cashViewerReqd"),"N");
+									$("#cashViewerReqd option").eq(index2).prop('selected', true);
+									$("#cashViewerReqd").prop("disabled", true);
+									$('<input type="hidden" id="cashViewerReqdHidden" value="N" name="fund.cashViewerReqd" />').appendTo("#disabledFieldsDataAppender");
+									$("#gemsRequired").prop("disabled", false);
+								}
+								if(fundCategoryVal == "MUTUAL_FUND") {
+									index = getIndexOfDropdownValue($("#gemsRequired"),"N");
+									$("#gemsRequired option").eq(index).prop('selected', true);
+									$("#gemsRequired").prop("disabled", true);
+									$('<input type="hidden" id="gemsRequiredHidden" value="N" name="fund.gemsRequired" />').appendTo("#disabledFieldsDataAppender");
+									//index1 = getIndexOfDropdownValue($("#cashViewerReqd"),"Y");
+									//$("#cashViewerReqd option").eq(index1).prop('selected', true);
+									$("#cashViewerReqd").prop("disabled", false);
+									//index2 = getIndexOfDropdownValue($("#formaRequired"),"Y");
+									//$("#formaRequired option").eq(index2).prop('selected', true);
+									$("#formaRequired").prop("disabled", false);
+								}
+							}
+						}
+					
+					
+					
+					/**
+					* To Enable disable Fields depending on Office (LM)
+					*/
+					function onChangeLMOffice(onChange) {
+						var lmOfficeVal = $("#officeId option:selected").val();
+						var index = 0;
+						var index1 = 0;
+						var index2 = 0;
+						if(lmOfficeVal == "") {
+							$("#iconRequired option").eq(0).prop('selected', true);
+							$("#iconRequired").prop("disabled", true);
+							index = getIndexOfDropdownValue($("#tfRequired"),"N");
+							$("#tfRequired option").eq(index).prop('selected', true);
+							$("#tfRequired").prop("disabled", true);
+						}else if (onChange) {
+							if(lmOfficeVal == "UK") {
+								index1 = getIndexOfDropdownValue($("#iconRequired"),"Y");
+								$("#iconRequired option").eq(index1).prop('selected', true);
+								$("#iconRequired").prop("disabled", false);
+								index2 = getIndexOfDropdownValue($("#tfRequired"),"Y");
+								$("#tfRequired option").eq(index2).prop('selected', true);
+								$("#tfRequired").prop("disabled", false);
+							}else {
+								index1 = getIndexOfDropdownValue($("#iconRequired"),"N");
+								$("#iconRequired option").eq(index1).prop('selected', true);
+								$("#iconRequired").prop("disabled", false);
+								index2 = getIndexOfDropdownValue($("#tfRequired"),"N");
+								$("#tfRequired option").eq(index2).prop('selected', true);
+								$("#tfRequired").prop("disabled", false);
+							}
+						}else {
+							$("#iconRequired").prop("disabled", false);
+							$("#tfRequired").prop("disabled", false);
+						}
+					}
+						
+						function getIndexOfDropdownValue(list,value){
+							var index = 0;
+							if(value == "" || value == null || value == undefined){
+								return index;
+							}
+							for(var i = 0; i <![CDATA[<]]> list.children('option').length; i++){
+								if(list.children('option').eq(i).val() == value){
+									index = i;
+									break;
+								}
+							}
+							return index;
+						}
+						
+						
+
+										
+				}
+				
+				
+			</jsp:body>
+		</jsp:element>
+		
+		<c:if test="${success =='false'}">
+			<ul class="xenosError">
+				<c:forEach items="${value}" var="dl">		
+				<li><spring:message text="${dl}" htmlEscape="false"/></li>	
+				</c:forEach>
+			</ul>	
+		</c:if>
+		
+		<spring:message code="form.button.label.add" htmlEscape="false" var="formadd_label"/>
+		<spring:message code="form.button.label.save" htmlEscape="false" var="formsave_label"/>
+		<spring:message code="form.button.label.cancel" htmlEscape="false" var="formcancel_label"/>
+	 
+		<div>
+			<h1><spring:message code="ref.account.title" htmlEscape="false"/> - <spring:message code="ref.account.label.fundConfirmation" htmlEscape="false"/></h1>
+			<div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.account.label.fundinfo" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse" id="drvMoreSection"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>
+		
+			<div class="entryBlkArea">
+				<div class="formItemBlock topitems dottedBg" id="basicFund">
+					<div class="formItem">
+						<form:label path="commandForm.fund.fundCode" class="required"><spring:message code="ref.account.label.fundcode" htmlEscape="false"/></form:label>
+						<span><form:input id="fundCode" value="" path="commandForm.fund.fundCode" class="textBox" onblur="$('#trialBalanceId').val(this.value);" maxlength="20"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.fundName" class="required"><spring:message code="ref.fund.label.fundName" htmlEscape="false"/></form:label>
+						<span><form:input id="fundName" value="" path="commandForm.fund.fundName" class="textBox" maxlength="40"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.officeId" class="required"><spring:message code="ref.fund.label.officelm" htmlEscape="false"/></form:label>
+						<form:select id="officeId" path="commandForm.fund.officeId" class="dropdowninput" onchange="onChangeLMOffice(true);">
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.fundOfficeList}"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.fundCategory" class="required"><spring:message code="ref.fund.label.fundCategory" htmlEscape="false"/></form:label>
+						<form:select id="fundCategory" path="commandForm.fund.fundCategory" class="dropdowninput" onchange="onChangeFundCategory(true);">
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.fundCategoryList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.baseCurrency" class="required"><spring:message code="ref.fund.label.baseCurrency" htmlEscape="false"/></form:label>
+						<span><form:input id="baseCurrency" value="" path="commandForm.fund.baseCurrency" class="textBox" /></span>
+						<div class="popupBtn"><input type="button" tgt="baseCurrency" class="popupBtnIco" popType="currency" id="currencyPopup"/></div>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.lmPositionCustody" class="required"><spring:message code="ref.fund.label.lmpositioncustody" htmlEscape="false"/></form:label>
+						<form:select id="lmPositionCustody" path="commandForm.fund.lmPositionCustody" class="dropdowninput" >
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.lmPositionCustodyFlagList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.startDateStr"><spring:message code="ref.fund.label.startDateStr" htmlEscape="false"/></form:label>
+						<span><form:input value="" path="commandForm.fund.startDateStr" id="startDateStr" class="dateinput" onblur="if(!checkDate(this))
+																							{xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage
+																							(xenos.i18n.datevalidationmessage.incorrect_date,[this.value]))}else{formatDate(this)};"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.closeDateStr"><spring:message code="ref.fund.label.closeDateStr" htmlEscape="false"/></form:label>
+						<span><form:input value="" path="commandForm.fund.closeDateStr" id="closeDateStr" class="dateinput" onblur="if(!checkDate(this))
+																							{xenos.postNotice(xenos.notice.type.error, xenos.utils.evaluateMessage
+																							(xenos.i18n.datevalidationmessage.incorrect_date,[this.value]))}else{formatDate(this)};"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.taxFeeInclusion" class="required"><spring:message code="ref.fund.label.taxfeeinclusion" htmlEscape="false"/></form:label>
+						<form:select id="taxFeeInclusion" path="commandForm.fund.taxFeeInclusion" class="dropdowninput" >
+								<form:options items="${commandForm.dropDownListValues.taxFeeInclusionList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.lmImValidationFlag" class="required"><spring:message code="ref.fund.label.lmimvalidationflag" htmlEscape="false"/></form:label>
+						<form:select id="lmImValidationFlag" path="commandForm.fund.lmImValidationFlag" class="dropdowninput" >
+								<form:options items="${commandForm.dropDownListValues.lmImValidationFlagList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.instructionCxlFxReqd"><spring:message code="ref.fund.label.cxlforextagreqd" htmlEscape="false"/></form:label>
+						<form:select id="cxlforextagreqd" path="commandForm.fund.instructionCxlFxReqd" class="dropdowninput" onchange="changeCxlForexTagReqd();">
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.cxlForexTagReqdList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.swiftReceiveOfficeId"><spring:message code="ref.fund.label.swiftreceiveoffice" htmlEscape="false"/></form:label>
+						<form:select id="swiftReceiveOfficeId" path="commandForm.fund.swiftReceiveOfficeId" class="dropdowninput" >
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.swiftReceiveOfficeList}"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.instructionCopyRcvBic"><spring:message code="ref.fund.label.instruction.copy.rcv.bic" htmlEscape="false"/></form:label>
+						<span><form:input id="instructionCopyRcvBic" value="" path="commandForm.fund.instructionCopyRcvBic" class="textBox" /></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.copyInstructionType"><spring:message code="ref.fund.label.copy.instruction.type" htmlEscape="false"/></form:label>
+						<form:select id="copyInstructionType" path="commandForm.fund.copyInstructionType" class="dropdowninput" >
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.copyInstructionTypeList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.shortSellFlag"><spring:message code="ref.fund.label.shortsellflag" htmlEscape="false"/></form:label>
+						<form:select id="shortSellFlag" path="commandForm.fund.shortSellFlag" class="dropdowninput" >
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.shortSellFlagList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+				<div class="lineHide">
+					<spring:message text="" htmlEscape="false" />
+				</div>
+			</div>
+
+			<div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.fund.label.interfacecontrol" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse" id="drvMoreSection"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>
+		
+			<div class="entryBlkArea">
+				<div class="formItemBlock topitems dottedBg" id="interface">
+					<div class="formItem">
+						<form:label path="commandForm.fund.iconRequired" class="required"><spring:message code="ref.fund.label.iconrequired" htmlEscape="false"/></form:label>
+						<form:select id="iconRequired" path="commandForm.fund.iconRequired" class="dropdowninput" >
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.iconRequiredList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.tfRequired" class="required"><spring:message code="ref.fund.label.tfrequired" htmlEscape="false"/></form:label>
+						<form:select id="tfRequired" path="commandForm.fund.tfRequired" class="dropdowninput" >
+								<form:options items="${commandForm.dropDownListValues.tfRequiredList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.gemsRequired" class="required"><spring:message code="ref.fund.label.gemsrequired" htmlEscape="false"/></form:label>
+						<form:select id="gemsRequired" path="commandForm.fund.gemsRequired" class="dropdowninput" >
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.gemsRequiredList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.formaRequired" class="required"><spring:message code="ref.fund.label.formarequired" htmlEscape="false"/></form:label>
+						<form:select id="formaRequired" path="commandForm.fund.formaRequired" class="dropdowninput" >
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.formaRequiredList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.cashViewerReqd" class="required"><spring:message code="ref.fund.label.cashviewerrequired" htmlEscape="false"/></form:label>
+						<form:select id="cashViewerReqd" path="commandForm.fund.cashViewerReqd" class="dropdowninput" >
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.cashViewerRequiredList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fund.fbpIfRequired" class="required"><spring:message code="ref.fund.label.fbpifreqd" htmlEscape="false"/></form:label>
+						<form:select id="fbpIfRequired" path="commandForm.fund.fbpIfRequired" class="dropdowninput" >
+								<form:options items="${commandForm.dropDownListValues.fbpifRequiredList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			</div>
+
+			<div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.fund.label.forexinstrinfo" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler" id="drvMoreSection"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>
+		
+			<div class="entryBlkArea">
+				<div class="formItemBlock topitems dottedBg" id="forexInstrInfo">
+					<div class="formItem">
+						<form:label path="commandForm.forexInstructionRule.settlementCcy"><spring:message code="ref.fund.label.settlementccy" htmlEscape="false"/></form:label>
+						<span><form:input value="" id="settlementCcy" path="commandForm.forexInstructionRule.settlementCcy"  class="textBox" /></span>
+						<div class="popupBtn"><input id="settlementCcyBtn" type="button" tgt="settlementCcy" class="popupBtnIco" popType="currency"/></div>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>		
+					<div class="formItem">
+						<form:label path="commandForm.forexInstructionRule.forexCcy"><spring:message code="ref.fund.label.forexccy" htmlEscape="false"/></form:label>
+						<span><form:input id="forexCcy" value="" path="commandForm.forexInstructionRule.forexCcy"  class="textBox" /></span>
+						<div class="popupBtn"><input id="forexCcyBtn" type="button" tgt="forexCcy" class="popupBtnIco" popType="currency"/></div>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>		
+				
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+					<div id="formActionArea" class="gridBtnMargin AddBtnformActionAreaBg">
+						<div class="right">
+							<div class="btnWrapStyle submitBtn gridAddBtn">
+								<span class="addForexInstEntry" style="display:block"><input id="addForexInstEntryBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+							</div>
+							<span class="editBtnForexInstEntry" style="display:none">	
+									<div class="btnWrapStyle submitBtn"><input id="updateForexInstEntryBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+									<div class="btnWrapStyle resetBtn"><input id="cancelForexInstEntryBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+							</span>
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					<div class="entryGrid">
+						<div id="forexInstEntryGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			</div>
+
+			<div class="moreHandle">
+				<h1 class="msgHead"><spring:message code="ref.fund.label.fundcodeinfo" htmlEscape="false"/>
+					<div class="handleBlock">
+						<span class="handler collapse" id="drvMoreSection"><spring:message text="" htmlEscape="false"/></span>
+					</div>
+				</h1>
+			</div>
+		
+			<div class="entryBlkArea">
+				<div class="formItemBlock topitems dottedBg" id="fundCodeDiv">
+					<div class="formItem">
+						<form:label path="commandForm.fundXref.fundCodeType" class="required"><spring:message code="ref.fund.label.fundcodetype" htmlEscape="false"/></form:label>
+						<form:select id="fundCodeType" path="commandForm.fundXref.fundCodeType" class="dropdowninput" >
+								<form:option value=""/>
+								<form:options items="${commandForm.dropDownListValues.fundCodeTypeList}" itemLabel="label" itemValue="value"/>
+						</form:select>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="formItem">
+						<form:label path="commandForm.fundXref.fundCode" class="required"><spring:message code="ref.fund.label.code" htmlEscape="false"/></form:label>
+						<span><form:input id="code" value="" path="commandForm.fundXref.fundCode" class="textBox" maxlength="20"/></span>
+						<span class="remove" title="Remove this field" style="display: none;"><spring:message text="" htmlEscape="false"/></span>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+
+					<div id="formActionArea" class="gridBtnMargin AddBtnformActionAreaBg">
+						<div class="right">
+							<div class="btnWrapStyle submitBtn gridAddBtn">
+								<span class="addFundCodeEntryXRef" style="display:block"><input id="addFundCodeEntryBtn" type="button" value="${formadd_label}" class="inputBtnStyle"/></span>
+							</div>
+							<span class="editBtnFundCodeEntryXRef" style="display:none">	
+									<div class="btnWrapStyle submitBtn"><input id="updateFundCodeEntryBtn" type="button" value="${formsave_label}" class="inputBtnStyle"/></div>
+									<div class="btnWrapStyle resetBtn"><input id="cancelFundCodeEntryBtn" type="button" value="${formcancel_label}" class="inputBtnStyle"/></div>
+							</span>
+						</div>
+						<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					</div>
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+					<div class="entryGrid">
+						<div id="fundCodeEntryGrid" class="xenos-grid" style="width:100%;height:150px;"><spring:message text="" htmlEscape="false"/></div>
+					</div>					
+					<div class="clear"><spring:message text="" htmlEscape="false"/></div>
+				</div>
+			</div>
+		</div>
+		<div id="disabledFieldsDataAppender"></div>
+		
+		<c:if test="${commandForm.options.actionType == 'ENTRY' || commandForm.options.actionType == 'COPY'}">
+			<input id="trialBalanceId" type="hidden" value="" name="fund.trialBalanceId" />
+		</c:if>
+
+		<spring:eval expression="T(java.lang.System).currentTimeMillis()" var="myId"/>
+		<input type="hidden" id="${myId}"/>
+		
+	</div>
+</jsp:root>

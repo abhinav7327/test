@@ -1,0 +1,139 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+
+
+<jsp:root version="2.0"
+     xmlns:jsp="http://java.sun.com/JSP/Page"
+     xmlns:c="http://java.sun.com/jsp/jstl/core"
+     xmlns:form="http://www.springframework.org/tags/form"
+     xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+     xmlns:spring="http://www.springframework.org/tags"
+     xmlns:tiles="http://tiles.apache.org/tags-tiles"
+     xmlns:sessionConversation="http://www.nri.co.jp/sessionConversation"
+     xmlns:util="urn:jsptagdir:/WEB-INF/tags/util">
+	 
+<div id="formContainer" class="blueBg paddingFour">
+     
+    <jsp:directive.page contentType="text/html;charset=UTF-8"/>
+    <jsp:output omit-xml-declaration="yes"/>
+	<jsp:element name="script">
+    <jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+		  xenos$onReady$Array.push(function() {
+			var scripts = [
+			  {path: xenos.context.path + '/scripts/jquery.event.drag-2.0.min.js'},
+			  {path: xenos.context.path + '/scripts/slick.core.js'},
+			  {path: xenos.context.path + '/scripts/slick.dataview.js'},
+			  {path: xenos.context.path + '/scripts/slick.grid.js'},
+			  {path: xenos.context.path + '/scripts/xenos.rowselectionmodel.js'},
+			  {path: xenos.context.path + '/scripts/xenos.editable.grid.js'},
+			  {path: xenos.context.path + '/scripts/ref/xenos-wizard.js'}
+			];
+
+			xenos.loadScript(scripts, {
+			  ordered: true,
+			  success: function() {
+				var winWidth = $('#formContainer').width();
+				var growlMargin = ((winWidth - 400)/2) + 'px';
+				$('.xenosErrormsg').css('left',growlMargin) ;	
+			  }
+			});
+		  });
+		</jsp:body>
+	  </jsp:element>
+    <div class="transBg paddingFour">
+      <form:form id="queryForm" modelAttribute="commandForm" method="POST" action="${commandForm.baseUrl}">
+		<sessionConversation:sessionConversationId attributeName="commandForm"/>
+		<input type="hidden" name="screenId" value="${commandForm.screenId}" />
+		<!-- <input type="hidden" name="versionNo" value="${commandForm.versionNo}" /> -->
+        <form:hidden path="prevPage" />
+        <form:hidden path="currPage" />
+        <form:hidden path="nextPage" />
+        <form:hidden path="submitPage" />
+		
+        <!-- Form Header Area -->
+        <div class="formHeader headHeit">
+            <div class="title whiteFont left">
+				<c:if test="${commandForm.viewOption=='CONFIRM'}">
+					<h1><spring:message code="inf.title.entry.user.confirmation" htmlEscape="false" /></h1>
+				</c:if>
+				<c:if test="${commandForm.viewOption=='OKAY'}">
+					<h1><spring:message code="inf.title.entry.system.confirmation" htmlEscape="false" /></h1>
+				</c:if>
+            </div>
+            <c:if test="${success =='false'}">
+				<div class="formTabErrorIco entryFinalError right"><a href="#" title="Error message">Error</a></div>
+            </c:if>
+			<c:if test="${(success =='true') and (commandForm.viewOption=='OKAY')}">
+				<div class="formTabSuccessIco entryFinalError right"><a href="#" title="Error message">Error</a></div>
+            </c:if>
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+        </div>
+        <!-- /Form Header Area -->
+        
+        <!-- Form Content Area -->
+        <div class="formContent paddingFour">
+            <c:if test="${success =='false'}">
+            <!-- Error message Area -->
+            <div class="xenosErrormsg">
+                <div id="xenosErrormsgClose"><spring:message text="" htmlEscape="false"/></div>
+                <div class="xenosErrorBoxBg">
+                    <div class="left errorIcon"><spring:message text="" htmlEscape="false"/></div>
+                    <div class="content">
+                        <ul>
+                            <c:forEach items="${value}" var="dl">		
+                            <li><spring:message text="${dl}" htmlEscape="false"/></li>	
+                            </c:forEach>
+                        </ul>	
+                    </div>
+                    
+                </div>
+                <div class="btmShadow"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            </c:if>			
+           			
+			<c:if test="${(success =='true') and (commandForm.viewOption=='OKAY')}">
+				<div class="xenosErrormsg">
+					<div id="xenosErrormsgClose"></div>
+					<div class="xenosErrorBoxBg">
+						<div class="left successIcon"></div>
+						<div class="content"><spring:message code="inf.label.confirm.txn" htmlEscape="false" /></div>
+					</div>
+					<div class="btmShadow"></div>
+				</div>
+			</c:if>
+			
+          <tiles:insertAttribute name="detailView"/>
+
+          <div id="formActionArea">
+			<div class="right">
+                <spring:message code="form.button.label.back" htmlEscape="false" var="formback_label"/>
+                <spring:message code="form.button.label.confirm" htmlEscape="false" var="formconfirm_label"/>
+                <spring:message code="form.button.label.next" htmlEscape="false" var="formnext_label"/>
+                <spring:message code="form.button.label.cancel" htmlEscape="false" var="formcxl_label"/>
+                <spring:message code="form.button.label.ok" htmlEscape="false" var="formok_label"/>
+                <div class="formBtnBlock">
+                    <c:if test="${commandForm.prevPage > -1}">
+                        <div class="btnWrapStyle wizPrev"><input type="submit" class="inputBtnStyle" value="${formback_label}" /></div>
+                    </c:if>
+                    <c:if test="${commandForm.nextPage > -1}">
+                        <div class="btnWrapStyle wizNext"><input type="submit" value="${formnext_label}" class="inputBtnStyle"/></div>
+                    </c:if>
+                    <c:if test="${commandForm.viewOption != 'OKAY'}">
+                        <div class="btnWrapStyle wizConfirm submitBtn"><input type="submit" value="${formconfirm_label}" class="inputBtnStyle"/></div>
+                    </c:if>
+                    <c:if test="${commandForm.viewOption == 'OKAY'}">
+                        <div class="btnWrapStyle wizOk submitBtn"><input type="submit" value="${formok_label}" class="inputBtnStyle"/></div>
+                    </c:if>
+                </div>
+                <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+            </div>
+            <div class="clear"><spring:message text="" htmlEscape="false"/></div>
+          </div>
+        </div>
+        <!-- /Form Content Area -->
+      </form:form>
+    </div>
+</div>
+</jsp:root>

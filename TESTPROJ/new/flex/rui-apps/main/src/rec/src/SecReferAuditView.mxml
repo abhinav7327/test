@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- MXML module for Audit View.  -->
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+    xmlns:cntrls="com.nri.rui.core.controls.*"
+    xmlns:xenospopup="com.nri.rui.ref.popupImpl.*"
+    percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" 
+    verticalScrollPolicy="off" creationComplete="init()">
+    <mx:Script>
+        <![CDATA[
+            
+        	import mx.utils.StringUtil;
+            import mx.events.StateChangeEvent;
+            import flash.events.Event;
+            import mx.events.CloseEvent;
+            import mx.collections.XMLListCollection;
+            import mx.controls.advancedDataGridClasses.AdvancedDataGridColumn;
+            import com.nri.rui.core.utils.XenosStringUtils;
+            import mx.binding.utils.BindingUtils;
+            import mx.collections.ArrayCollection;
+            import com.nri.rui.core.controls.XenosAlert;
+            import mx.managers.FocusManager;
+            import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+            import mx.rpc.events.FaultEvent;
+            import mx.controls.Alert;
+            import com.nri.rui.core.Globals;
+             import mx.events.CloseEvent;
+            
+ 	        [Bindable]
+ 	        public var displayEdit : cashEditRemarks;
+ 	        [Bindable]
+ 	        public var displayForceMatchEdit : cashEditForceMatch;
+            
+            [Bindable]private var rowNum : String = "";
+            
+            [Bindable]private var viewType : String = "";
+            
+            [Bindable]
+            private var objForm:Object = null;
+            [Bindable]
+            private var secAuditDetails:ArrayCollection  = new ArrayCollection();
+            [Bindable]
+            private var objActQryView:Object = null;
+		    
+		    [Bindable]
+		    private var rs:XML = new XML();
+
+
+            /**
+             * Extracts the parameters and set them to some variables for query criteria from the Module Loader Info.
+             * 
+             */ 
+            public function parseUrlString():void {
+                try {
+                    // Remove everything before the question mark, including
+                    // the question mark.
+                    var myPattern:RegExp = /.*\?/; 
+                    var s:String = this.loaderInfo.url.toString();
+                    s = s.replace(myPattern, "");
+                    // Create an Array of name=value Strings.
+                    var params:Array = s.split(Globals.AND_SIGN); 
+                     // Print the params that are in the Array.
+                    var keyStr:String;
+                    var valueStr:String;
+                    var paramObj:Object = params;
+                  
+                    // Set the values of the salutation.
+                    for (var i:int = 0; i < params.length; i++) {
+                        var tempA:Array = params[i].split("=");  
+                        if(tempA[0] == "rowNum"){
+                            rowNum = tempA[1];
+//                            XenosAlert.info("rowNum = " + rowNum);
+                        }  
+                        if(tempA[0] == "viewType"){
+                            viewType = tempA[1];
+//                            XenosAlert.info("rowNum = " + rowNum);
+                        } 
+                    }
+                } catch (e:Error) {
+                    trace(e);
+                }               
+            }
+            /**
+             * Initializes the module and send the submit request.
+             * 
+             */     
+            private function init():void{
+                
+                parseUrlString();
+                
+                var rndNo:Number = Math.random();
+                auditViewInitHttpService.url= "rec/recXenosSecBalDispatch.action?rnd=" + rndNo;
+                
+                var req : Object = new Object();
+                req.method="viewAuditPopUp";
+                req.rowNum=rowNum;
+                req.viewType=viewType;
+                auditViewInitHttpService.request=req;
+                
+                auditViewInitHttpService.send();
+                PopUpManager.centerPopUp(this);
+            }
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function initHttpService_fault(evt:FaultEvent):void {
+                XenosAlert.error("Unable to Perform the requested operation." + evt.fault.faultString + evt.fault.faultDetail);
+            }
+            /**
+             * Result handler for the init submit Request. 
+             * 
+             */ 
+            private function initHttpService_result(event:ResultEvent):void { 
+		 		rs = XML(event.result);
+		 		
+                var tempResult:ArrayCollection = new ArrayCollection();     
+		 		if (null != event) {
+		 			if(rs.child("Errors").length()>0){ 
+						// i.e. Must be error, display it .
+						var errorInfoList : ArrayCollection = new ArrayCollection();
+						//populate the error info list 			 	
+						for each ( var error:XML in rs.Errors.error ) {
+							errorInfoList.addItem(error.toString());
+						}
+						errPage.showError(errorInfoList);//Display the error
+			      	}else {
+			      	 	errPage.removeError();	      	 	
+                        
+                        objForm = rs;
+                        /* if(event.result.recXenosSecBalActionForm.secAuditDetailsList!=null){
+	                        	
+	                        if(event.result.recXenosSecBalActionForm.secAuditDetailsList.secAuditPopUpView is ArrayCollection){
+	                        	secAuditDetails=event.result.recXenosSecBalActionForm.secAuditDetailsList.secAuditPopUpView as ArrayCollection;
+	                        }else{
+	                        	secAuditDetails.addItem(event.result.recXenosSecBalActionForm.secAuditDetailsList.secAuditPopUpView);
+	                        }
+                        } */
+                           
+	                        for each ( var rec:XML in rs.secAuditDetailsList.secAuditPopUpView ) {
+	                        	secAuditDetails.addItem(rec);
+							}       
+                        
+                        	remarksCont.visible=true;
+                        	remarksCont.includeInLayout=true;
+                        var remarkItr:int=0;
+                      //  XenosAlert.info("secAuditDetails.length :: "+secAuditDetails.length);
+                       // XenosAlert.info("secAuditDetails[remarkItr] :: "+secAuditDetails[0].remarks);
+                        for(remarkItr=0;remarkItr<secAuditDetails.length;remarkItr++){
+                        	secAuditDetails[remarkItr].rowNumber = remarkItr ;
+                        }
+                        
+                    } 
+                }
+            }
+            /**
+             * Close this window.
+             */ 
+            private function doClose(event:MouseEvent):void{
+                this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+            }
+
+            /**
+             * Error Handler for the submit request.
+             * 
+             */ 
+            private function submit_fault(evt:FaultEvent):void {
+                XenosAlert.error("Unable to Perform the requested operation." + evt.fault.faultString + evt.fault.faultDetail);
+            }
+            
+            
+            /**
+             * Result handler for the submit Request. 
+             * 
+             */ 
+            
+            private function submit_result(event:ResultEvent):void { 
+                
+                if (null != event) {  
+                    if(null == event.result.recXenosSecBalActionForm){ 
+                        if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+                            errPage.clearError(event); //clears the errors if any
+                            XenosAlert.info("No Result Found!");
+                        } else { // Must be error
+                            errPage.displayError(event);    
+                        }                                   
+                    }else {
+                        errPage.clearError(event);
+                        
+                        objForm = event.result.recXenosSecBalActionForm;
+                        
+                        if(objForm != null){
+                            if(objForm.submitFlg == true){
+                                if(objForm.errorFlg == false){
+                                    
+                                    this.parentDocument.dispatchEvent(new Event("RefreshChanges"));
+                                    this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+                                }
+                            }
+                        }
+                    } 
+             }
+        }           
+        
+        public function editRemarks(event:Event,obj:Object):void {
+        	
+        	displayEdit = cashEditRemarks (
+        	PopUpManager.createPopUp(this, cashEditRemarks, true));
+        	PopUpManager.centerPopUp(displayEdit);
+	        displayEdit.title="Remarks Edit Popup";
+	        displayEdit.showCloseButton=true;
+	        displayEdit.addEventListener("close", removeRemarksPopup);
+	        displayEdit["cancelButton"].addEventListener("click", removeRemarksPopup);  
+	        displayEdit["okButton"].addEventListener("click", editRemarksConf);
+	        //displayEdit.uId=obj.userId;
+	        displayEdit.userIdPopUp.employeeText.text=obj.userId;
+	        displayEdit.remarks=obj.remarks;
+	        displayEdit.cashAdjustPk=obj.adjPk;
+	        displayEdit.rowNumber=obj.rowNumber;
+	        
+        }   
+        
+        
+    /**
+     * Remove popup
+      */    
+                      
+	  private function removeRemarksPopup(event:Event):void {
+		PopUpManager.removePopUp(displayEdit);
+	  } 
+        public function editRemarksConf(event:Event):void {
+        	
+        	
+	        var validationMessage:String = "";    	
+	        var validationMessageCommon:String = " cannot be blank";
+        	
+	        if(XenosStringUtils.isBlank(displayEdit.remarkTxt.text)){
+	        	validationMessage="remarks "+validationMessageCommon;
+	        }
+//	        if(XenosStringUtils.isBlank(displayEdit.userIdPopUp.employeeText.text)){
+//	        	validationMessage="userId "+validationMessageCommon;
+//	        }
+	        if(validationMessage!=""){
+	        	XenosAlert.error(validationMessage);
+	        }else{
+	        	
+                var rndNo:Number = Math.random();
+	        	editAuditPopupConf.url="rec/recXenosSecBalDispatch.action?rnd=" + rndNo;
+	        	
+		        var requestObj :Object = new Object;
+		        
+		        requestObj.method="editRemarks";
+		        requestObj.auditType="REMARKS";
+		        requestObj.rowNum=displayEdit.rowNumber;
+		        requestObj.remarks=displayEdit.remarkTxt.text;
+		        requestObj.userId=displayEdit.userIdPopUp.employeeText.text;
+		        requestObj.secAdjjustPk=displayEdit.cashAdjustPk;
+		        
+		        editAuditPopupConf.request=requestObj;
+		        
+		        editAuditPopupConf.send();	        
+	        	
+	        }
+	        
+        }
+		        
+	
+        
+       public function editConfResult(event:ResultEvent):void {
+       	   //removeRemarksPopup(new MouseEvent(MouseEvent.CLICK));
+       	   secAuditDetails.removeAll();
+       	  // init();
+       	  
+       	  
+            if(event.result.recXenosSecBalActionForm == null){           	
+                if(null == event.result.XenosErrors){ // i.e. No result but no Error found.
+                    displayEdit.errPage.clearError(event);
+                    removeRemarksPopup(new MouseEvent(MouseEvent.CLICK));
+                }else{
+                   displayEdit.errPage.displayError(event);
+                }
+                init();
+            }else{            	
+            if(event.result.recXenosSecBalActionForm.secAuditDetailsList!=null){
+                	
+	            	displayEdit.errPage.clearError(event);
+	                	
+                if(event.result.recXenosSecBalActionForm.secAuditDetailsList.secAuditPopUpView is ArrayCollection){
+                	secAuditDetails=event.result.recXenosSecBalActionForm.secAuditDetailsList.secAuditPopUpView as ArrayCollection;
+                }else{
+                	secAuditDetails.addItem(event.result.recXenosSecBalActionForm.secAuditDetailsList.secAuditPopUpView);
+                }
+	       	        removeRemarksPopup(new MouseEvent(MouseEvent.CLICK));
+	            	
+                  }
+            }
+//            if(event.result.recXenosSecBalActionForm.secAuditDetailsList!=null){
+//                	
+//                if(event.result.recXenosSecBalActionForm.secAuditDetailsList.secAuditPopUpView is ArrayCollection){
+//                	secAuditDetails=event.result.recXenosSecBalActionForm.secAuditDetailsList.secAuditPopUpView as ArrayCollection;
+//                }else{
+//                	secAuditDetails.addItem(event.result.recXenosSecBalActionForm.secAuditDetailsList.secAuditPopUpView);
+//                }
+//            }
+            	remarksCont.visible=true;
+            	remarksCont.includeInLayout=true;
+        
+            var remarkItr:int=0;
+            for(remarkItr=0;remarkItr<secAuditDetails.length;remarkItr++){
+            	secAuditDetails[remarkItr].rowNumber=remarkItr;
+            }
+       }	
+       
+       
+        ]]>
+    </mx:Script>    
+    
+    <cntrls:XenosHTTPService id="auditViewInitHttpService" 
+            useProxy="false"
+            fault="initHttpService_fault(event);"
+            result="initHttpService_result(event)" showBusyCursor="true" resultFormat="xml">
+           <!-- <mx:request>
+                <method>viewAuditPopUp</method>
+                <rowNum>{rowNum}</rowNum>
+                <viewType>{viewType}</viewType>
+            </mx:request> -->
+     </cntrls:XenosHTTPService>
+    <cntrls:XenosHTTPService id="editAuditPopupConf" 
+            useProxy="false"
+            fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+            result="editConfResult(event)" showBusyCursor="true">
+     </cntrls:XenosHTTPService>
+    <!--mx:HTTPService id="deleteAuditPopupConf" 
+            useProxy="false"
+            fault="XenosAlert.error('Error Occured :  ' + event.fault.faultString)"
+            result="deleteConfResult(event)" showBusyCursor="true">
+     </mx:HTTPService>-->
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    	
+    <mx:VBox width="100%" height="100%" id="rslt" horizontalScrollPolicy="auto" verticalScrollPolicy="auto">
+    
+        <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none" paddingLeft="10" paddingRight="10"/>
+	       
+	        
+	        <mx:VBox id="remarksCont" visible="false" includeInLayout="false">
+	        	       	
+	           <mx:Label text="Remarks" width="100%" fontWeight="bold" />
+	            
+	        <mx:DataGrid id="remarksAuditPopupViewDg" width="100%" height="100%" dataProvider="{secAuditDetails}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="off" rowCount="{secAuditDetails.length + 2}">
+	        	<mx:columns>
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.userid')}" dataField="userId" />
+	        		<!--<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.cash.label.remarks')}" dataField="remarks" />-->
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.remarks')}">
+         					<mx:itemRenderer>
+         						<mx:Component>
+         							<mx:VBox maxHeight="100" maxWidth="200" >
+         								<mx:TextArea text="{data.remarks}" width="100%" maxHeight="100" editable="false" selectable="true"/>	
+         							</mx:VBox>         						
+         						</mx:Component>
+         					</mx:itemRenderer>
+         			</mx:DataGridColumn>
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.creationTime')}" dataField="creationTime" />
+	        		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('rec.xenos.sec.bal.label.enterBy')}" dataField="enterBy"/>
+	        		<mx:DataGridColumn headerText="" width="40">
+	        			<mx:itemRenderer>
+	        				<mx:Component>	        				
+				               <mx:HBox width="100%" height="100%">
+	        					     <mx:Button id="editRemarks" styleName="BtnEdit" width="18" height="18" label="Edit" click="parentDocument.editRemarks(event,data)" />				               	
+				               </mx:HBox>
+	        				</mx:Component>
+	        			</mx:itemRenderer>
+	        		</mx:DataGridColumn>
+	        	</mx:columns>
+	         </mx:DataGrid> 
+	        </mx:VBox>  
+            
+     </mx:VBox>
+    </mx:Canvas>
+</mx:Module>

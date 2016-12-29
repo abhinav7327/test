@@ -1,0 +1,144 @@
+<!--$Id$-->
+<!--$Author$-->
+<!--$Date$-->
+<jsp:root version="2.0" 
+xmlns:c="http://java.sun.com/jsp/jstl/core" 
+xmlns:fn="http://java.sun.com/jsp/jstl/functions" 
+xmlns:spring="http://www.springframework.org/tags" 
+xmlns:util="urn:jsptagdir:/WEB-INF/tags/util" 
+xmlns:xenos="http://www.nri.co.jp/xenos" 
+xmlns:jsp="http://java.sun.com/JSP/Page">
+	<jsp:directive.page contentType="text/html;charset=UTF-8" /> 
+	<jsp:output	omit-xml-declaration="yes" />
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:attribute name="src">
+			<c:url value="/scripts/xenos.formatters.js"/>
+		</jsp:attribute>
+		<jsp:body></jsp:body>
+	</jsp:element>
+	<jsp:element name="script">
+		<jsp:attribute name="type">text/javascript</jsp:attribute>
+		<jsp:body>
+			var isNext = <c:out value="${isNext}" />;
+            var isPrevious = <c:out value="${isPrevious}" />;
+			var pageNo = <c:out value="${pageNo}" />;
+            var grid_result_data = [];
+            var grid_result_columns = [
+            	{name:"<spring:message code="drv.label.closeoutdetail.button" 		htmlEscape="false"/>", field:"viewCloseoutDetails", 	id:"viewCloseoutDetails", 	sortable:false,	width:50,  formatter:Slick.Formatters.DrvCloseoutDetailsViewFormatter},
+                {name:"<spring:message code="drv.label.contractreferenceno" 		htmlEscape="false"/>", field:"contractReferenceNo", 	id:"contractReferenceNo", 	sortable:true, 	width:160, formatter:Slick.Formatters.DrvContractDetailViewFormater},
+                {name:"<spring:message code="drv.label.fundaccountno" 				htmlEscape="false"/>", field:"inventoryAccountNo", 		id:"inventoryAccountNo", 	sortable:true, 	width:130, formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'fundAccountPk'}},
+				{name:"<spring:message code="drv.label.fundaccountname" 			htmlEscape="false"/>", field:"inventoryAccountName", 	id:"inventoryAccountName", 	sortable:true, 	width:160},
+				{name:"<spring:message code="drv.label.fundcode" 					htmlEscape="false"/>", field:"fundCode", 				id:"fundCode", 				sortable:true, 	width:100, formatter:Slick.Formatters.FundDetailViewFormatter},
+                {name:"<spring:message code="drv.label.fundname" 					htmlEscape="false"/>", field:"fundName", 				id:"fundName", 				sortable:true, 	width:120},
+                {name:"<spring:message code="drv.label.accountno" 					htmlEscape="false"/>", field:"cpAccountNo", 			id:"cpAccountNo", 			sortable:true, 	width:150, formatter:Slick.Formatters.AccountCommonDetailViewFormatter, accountDetailOptions:{pkFieldName:'brokerAccountPk'}},
+                {name:"<spring:message code="drv.label.brkaccountname" 				htmlEscape="false"/>", field:"cpAccountName", 			id:"cpAccountName", 		sortable:true, 	width:160},
+                {name:"<spring:message code="drv.label.securitycode" 				htmlEscape="false"/>", field:"securityId", 				id:"securityId", 			sortable:true,	width:120, formatter:Slick.Formatters.InstrumentDetailViewFormater},
+				{name:"<spring:message code="drv.label.securityshortname" 			htmlEscape="false"/>", field:"securityShortName", 		id:"securityShortName", 	sortable:true, 	width:160},
+				{name:"<spring:message code="ref.common.label.alternatesecurityid" 	htmlEscape="false"/>", field:"alternateSecCodeDisp", 	id:"alternateSecCodeDisp", 	sortable:true,	width:150},
+				{name:"<spring:message code="drv.label.underlyingshortname" 		htmlEscape="false"/>", field:"underlyingShortName", 	id:"underlyingShortName", 	sortable:true, 	width:170},
+				{name:"<spring:message code="drv.label.openlongbalance" 			htmlEscape="false"/>", field:"openLongBalanceDisp", 	id:"openLongBalanceDisp", 	sortable:true, 	width:140, cssClass:'xenos-grid-number'},
+				{name:"<spring:message code="drv.label.openshortbalance" 			htmlEscape="false"/>", field:"openShortBalanceDisp", 	id:"openShortBalanceDisp", 	sortable:true, 	width:140, cssClass:'xenos-grid-number'},
+				{name:"<spring:message code="drv.label.totalclosedoutqty" 			htmlEscape="false"/>", field:"totalClosedOutQty", 		id:"totalClosedOutQty", 	sortable:true, 	width:170, cssClass:'xenos-grid-number'},
+				{name:"<spring:message code="drv.label.expirystatus" 				htmlEscape="false"/>", field:"expiryStatus", 			id:"expiryStatus", 			sortable:true, 	width:100}
+            ];
+            var grid_result_settings = {
+				enableToolbar:true,
+				consolidateActionFlag:true,
+				emptyColumnCheck:false,
+				buttons: {
+					print:true,
+					xls:true,
+					pdf:true,
+					xlsPref:true,
+					columnPicker:true,
+					save:true
+				},
+				pagingInfo:{
+					isNext : isNext,
+					isPrevious : isPrevious,
+					pageNo : pageNo,
+					url: '/secure/drv/closeout/query/count.json'
+				},
+				urls:{
+					nextPage : '/secure/drv/closeout/query/result.json?fetch=next',
+					prevPage : '/secure/drv/closeout/query/result.json?fetch=previous',
+					pdfReport: '/secure/drv/closeout/query/report.json?outputType=pdf',
+					xlsReport: '/secure/drv/closeout/query/report.json?outputType=xls',
+					xlsCurrent: '/secure/drv/closeout/query/reportPref.json?outputType=xls'
+				},
+				events:{
+					onDataUpdate : function(data,callback){
+						for(i in data.value){
+							data.value[i].contractReferenceNo= data.value[i].contractReferenceNo + "-" + data.value[i].versionNo;
+							data.value[i].rowNum = i;
+						}
+						callback(data);
+					}
+				},
+				defaultInvisibleColumns: ["inventoryAccountName", "cpAccountName"]
+			};
+			var row_id = 0;
+            var rec = {};
+            <xenos:out escapeXml="false">
+            	<c:forEach items="${value}" var="dl">
+            		rec = {};
+                	row_id+=1;
+					rec.id = "xenos_" + row_id;
+                	rec.contractReferenceNo 	= "<c:out value="${dl.contractReferenceNo}" />" + "-" + "<c:out value="${dl.versionNo}"/>";
+                	rec.contractPk 				= "<c:out value="${dl.contractPk}" />";
+                	rec.fundAccountPk 			= "<c:out value="${dl.fundAccountPk}" />";
+					rec.inventoryAccountNo 		= "<c:out value="${dl.inventoryAccountNo}" />";
+					rec.inventoryAccountName 	= "<c:out value="${dl.inventoryAccountName}" />";
+					rec.fundCode 				= "<c:out value="${dl.fundCode}" />";
+					rec.fundPk					= "<c:out value="${dl.fundPk}" />";
+                	rec.fundName 				= "<c:out value="${dl.fundName}" />";
+                	rec.brokerAccountPk 		= "<c:out value="${dl.brokerAccountPk}" />";
+                	rec.cpAccountNo 			= "<c:out value="${dl.cpAccountNo}" />";
+                	rec.cpAccountName 			= "<c:out value="${dl.cpAccountName}" />";
+                	rec.securityId 				= "<c:out value="${dl.securityId}" />";
+                	rec.instrumentPk 			= "<c:out value="${dl.instrumentPk}" />";
+                	rec.securityShortName 		= "<c:out value="${dl.securityShortName}" />";
+                	rec.alternateSecCodeDisp 	= "<c:out value="${dl.alternateSecCodeDisp}" />";
+                	rec.underlyingShortName 	= "<c:out value="${dl.underlyingShortName}" />";
+                	rec.openLongBalanceDisp 	= "<c:out value="${dl.openLongBalanceDisp}" />";
+					rec.openShortBalanceDisp 	= "<c:out value="${dl.openShortBalanceDisp}" />";
+					rec.totalClosedOutQty 		= "<c:out value="${dl.totalClosedOutQty}" />";
+                	rec.expiryStatus 			= "<c:out value="${dl.expiryStatus}" />";
+					rec.rowNum					= row_id - 1;
+                	grid_result_data.push(rec);
+            	</c:forEach>
+            </xenos:out>
+		</jsp:body>
+	</jsp:element>
+	<!-- consolidate button for amend and cancel -->			
+	<div id="consolidateAct" class="consolidateActionArea" style="display:none;" >	  
+		<c:forEach items="${navAction}" var="record">
+			<a class="consolidateActLink" href="${record.actionUrl}">
+				<c:choose>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'DRVCLOEN')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-entryIco.png" title="${record.actionName}" id="entry" status="ready" alt="Entry" /></c:when>
+					<c:when test="${fn:containsIgnoreCase(record.actionId, 'DRVCLOCL')}"><img src="${pageContext.request.contextPath}/images/xenos/icon/ca-cancelIco.png" title="${record.actionName}"  id="cancel" status="ready" alt="Cancel" /></c:when>
+					<c:otherwise><img src="./images/xenos/icon/ca-noIco.png" title="${record.actionName}" alt="${record.actionId}" /></c:otherwise>
+				</c:choose>
+			</a>
+		</c:forEach>	  
+	</div>
+	<c:choose>
+		<c:when test="${commandForm.actionMode == 'closeoutentry'}">
+			<jsp:element name="script">
+				<jsp:attribute name="type">text/javascript</jsp:attribute>
+				<jsp:attribute name="src"><c:url value="/scripts/drv/drvCloseoutEntryConsolidation.js"/></jsp:attribute>
+				<jsp:body></jsp:body>
+			</jsp:element>
+		</c:when>
+	</c:choose>
+	<c:choose>
+		<c:when test="${commandForm.actionMode == 'closeoutquery'}">
+			<jsp:element name="script">
+				<jsp:attribute name="type">text/javascript</jsp:attribute>
+				<jsp:attribute name="src"><c:url value="/scripts/drv/drvCloseoutCancelConsolidation.js"/></jsp:attribute>
+				<jsp:body></jsp:body>
+			</jsp:element>
+		</c:when>
+	</c:choose>
+</jsp:root>

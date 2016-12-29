@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Item Renderer for Trade Amend/Cancel.  -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%">
+    <mx:Script>
+        <![CDATA[
+        	import mx.core.Application;
+        	import com.nri.rui.core.utils.XenosStringUtils;
+        	import mx.events.CloseEvent;            
+            import com.nri.rui.core.controls.XenosAlert;
+            import com.nri.rui.core.containers.SummaryPopup;
+            import com.nri.rui.core.Globals;
+            
+            import flash.events.MouseEvent;        
+            import mx.core.UIComponent;
+            import mx.managers.PopUpManager;
+            
+            [Bindable] public var _mode:String = "amend";
+            private var sPopup : SummaryPopup;
+    		/**
+        	 * Mouse Click event handler to open a popup with initialization and passing values.
+        	 * 
+        	 */ 
+            public function handleMouseClick(event:MouseEvent):void {
+	        			
+	        			sPopup = SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));	
+	        		    if(_mode == "amend"){        			
+		        		   sPopup.title = this.parentApplication.xResourceManager.getKeyValue('slr.contract.label.tradeamend');
+		        		   sPopup.addEventListener(CloseEvent.CLOSE,closeHandler,false,0,true);
+			               sPopup.width = 1000;
+			        	   sPopup.height = 550;    		
+			        	   PopUpManager.centerPopUp(sPopup);
+			        	   sPopup.moduleUrl = "assets/appl/slr/SlrTradeEntryModule.swf" + Globals.QS_SIGN + "mode" + Globals.EQUALS_SIGN + this._mode+ Globals.AND_SIGN + "contractPk"+ Globals.EQUALS_SIGN + data.contractPk;
+		        		}else if(_mode == "cancel"){
+		        			sPopup.title = this.parentApplication.xResourceManager.getKeyValue('slr.label.contractcxlinfo');
+		        		    sPopup.addEventListener(CloseEvent.CLOSE,closeHandler,false,0,true);
+			                sPopup.width = 1000;
+			        	    sPopup.height = 550;    		
+			        	    PopUpManager.centerPopUp(sPopup);
+			        	    sPopup.moduleUrl = "assets/appl/slr/SlrTradeEntryModule.swf" + Globals.QS_SIGN + "mode" + Globals.EQUALS_SIGN + this._mode+ Globals.AND_SIGN + "contractPk"+ Globals.EQUALS_SIGN + data.contractPk;
+		        		}else if(_mode == "action"){
+		        		   sPopup.title = this.parentApplication.xResourceManager.getKeyValue('slr.label.slrcontractdetailforaxn');
+		        		   sPopup.addEventListener(CloseEvent.CLOSE,closeHandler,false,0,true);
+			               sPopup.width = 1000;
+			        	   sPopup.height = 550;    		
+			        	   PopUpManager.centerPopUp(sPopup);
+			        	   sPopup.moduleUrl = "assets/appl/slr/ActionQueryDetail.swf" + Globals.QS_SIGN + "mode" + Globals.EQUALS_SIGN + this._mode+ Globals.AND_SIGN + "contractPk"+ Globals.EQUALS_SIGN + data.contractPk;
+		        		}
+	        		    //sPopup.title = "SLR Trade Amendment Entry ";
+	        		    
+	        		
+        		}
+        	
+        	
+        	/**
+        	 * Event Handler for the custom event "OkSystemConfirm"
+        	 */
+        	public function closeHandler(event:Event):void {
+                if(_mode == "amend" || _mode == "action")
+                  this.parentDocument.dispatchEvent(new Event("amendSubmit"));
+                else if(_mode == "cancel")
+                  this.parentDocument.dispatchEvent(new Event("cancelSubmit"));
+                  
+                  sPopup.removeMe();
+            }
+        ]]>
+    </mx:Script>
+    
+    <mx:Button id="editRemarks" styleName="{_mode == 'amend'||_mode == 'action' ? 'BtnEdit' : 'BtnDelete'}" width="18" height="18" label="{_mode == 'amend' ? Application.application.xResourceManager.getKeyValue('slr.tooltip.edit') :(_mode == 'action'? Application.application.xResourceManager.getKeyValue('slr.tooltip.action'):Application.application.xResourceManager.getKeyValue('slr.tooltip.cxl'))}" click="handleMouseClick(event)"/>
+</mx:VBox>

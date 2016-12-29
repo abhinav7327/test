@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:controls="*" layout="vertical" styleName="PopupTitleWindow" creationComplete="fetchRptCount()">
+<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.renderers.NullValueRenderer;
+			import mx.utils.StringUtil;
+			import com.nri.rui.core.controls.XenosAlert;
+			
+			import com.nri.rui.core.utils.XenosStringUtils;
+			import com.nri.rui.stl.StlConstants;
+			
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.collections.ArrayCollection;
+			import flash.events.Event;
+ 
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			
+			import flash.events.TimerEvent;
+    		import flash.utils.Timer;
+			
+			[Bindable]public var summaryReport:ArrayCollection= new ArrayCollection();
+			
+			[Bindable]public var trxRefNo:String = XenosStringUtils.EMPTY_STR;
+			[Bindable]public var totalEligibleRecordsFetched:Number = 0;
+			[Bindable]public var totalProcessed:Number = 0;
+			[Bindable]public var totalFailed:Number = 0;
+			[Bindable]public var totalRptExpected:Number = 0;
+			[Bindable]public var totalRptProcessed:Number = 0;
+			[Bindable]public var totalRptFailed:Number = 0;
+			
+			public var requestTimer:Timer = null;
+			private var intervalConst:Number = 1000;
+    		private var intervalVar:Number = 20;
+    		private var isRefreshClicked:Boolean = false;
+    		private var errMsg:String = XenosStringUtils.EMPTY_STR;
+			
+			private function execute():void {
+				okButton.enabled = false;
+				var reqObj : Object = new Object();
+				reqObj.SCREEN_KEY = 13024;
+				reqObj.method = "transmitBulkInxExecute";
+				reqObj.rnd = Math.random()+"";
+				bulkTransmitExecuteRequest.request = reqObj; 
+				bulkTransmitExecuteRequest.send();
+								
+				heading.text = this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.process.running');
+				this.title = this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.advfund.status');
+				
+				okButton.includeInLayout = false;
+				okButton.visible = false;
+				
+				cancelButton.includeInLayout = false;
+				cancelButton.visible = false;
+				
+				chkAutoRefresh.includeInLayout = true;
+				chkAutoRefresh.visible = true;
+				
+				refreshButton.includeInLayout = true;
+				refreshButton.visible = true;
+				
+				grid1.includeInLayout = false;
+				grid1.visible = false;
+				
+				grid2.includeInLayout = true;
+				grid2.visible = true;
+				
+				requestTimer = new Timer(intervalConst*intervalVar, 0); //XenosApplication.getInstance(Globals.DEFAULT_ENTERPRISE).getAppTimer();
+			    requestTimer.addEventListener("timer", timerHandler);
+			    requestTimer.start();
+			}
+			public function timerHandler(event:TimerEvent):void {
+				//XenosAlert.info("Hello");
+				sendBulkInxLogRequest();
+			}
+			private function sendBulkInxLogRequest():void {
+				var reqObj : Object = new Object();
+				reqObj.method = "fetchBulkInxLogData";
+				reqObj.SCREEN_KEY = 13025;
+				queryBulkInxLogRequest.request = reqObj; 
+				queryBulkInxLogRequest.send();
+			}
+			private function endProcessing(event:ResultEvent):void {
+				var rs:XML = XML(event.result);
+				okButton.enabled = true;
+				if (null != event) {
+					if(rs.child("trxRefNoBulkInx").length()>0) {
+						errPage.clearError(event);
+						trxRefNo = rs.child("trxRefNoBulkInx");
+						heading.text = this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.process.running')+trxRefNo;
+					} else if(rs.child("Errors").length()>0) {
+						var errorInfoList : ArrayCollection = new ArrayCollection();
+						//populate the error info list                  
+		                for each ( var error:XML in rs.Errors.error ) {
+		                    errorInfoList.addItem(error.toString());
+		                    errMsg = error.toString();
+		                }
+		                errPage.showError(errorInfoList);
+					}
+				}
+			}
+			
+			private function removeMe(event:Event):void {
+		    	this.dispatchEvent(new Event("OkSystemConfirm"));
+		    	PopUpManager.removePopUp(this);
+		 	}
+		 	
+		 	private function updateBulkLogStatus(event:ResultEvent):void {
+		 		
+		 		if(event.result.trxMaintenanceQueryActionForm.inxBulkTransLog!=null) {
+		 			
+		 			if(chkAutoRefresh.selected || (isRefreshClicked==true)) {
+			 			this.totProcessed.text = event.result.trxMaintenanceQueryActionForm.inxBulkTransLog.recordProcessedCount;
+			 			this.totFailed.text    = event.result.trxMaintenanceQueryActionForm.inxBulkTransLog.recordFailCount;
+			 			this.totReportProcessed.text = event.result.trxMaintenanceQueryActionForm.inxBulkTransLog.reportProcessedCount;
+			 			this.totReportFailed.text = event.result.trxMaintenanceQueryActionForm.inxBulkTransLog.reportFailCount;
+			 		}
+			 		this.totReportProcessedHyperLink.text = event.result.trxMaintenanceQueryActionForm.inxBulkTransLog.reportProcessedCount;
+			 		if(XenosStringUtils.equals(event.result.trxMaintenanceQueryActionForm.inxBulkTransLog.processStatus,StlConstants.COMPLETE)) {
+			 			requestTimer.stop();
+			 			
+			 			totalProcessed = new Number(event.result.trxMaintenanceQueryActionForm.inxBulkTransLog.recordProcessedCount);
+			 			
+			 			this.title = this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.advfund.system.confirmation');
+			 			
+			 			heading.text = this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.process.completed')+trxRefNo
+			 							+"\n"+this.parentApplication.xResourceManager.getKeyValue('stl.trxmaintenance.message.total.bulk.transmit.records.total.processed')
+			 							+totalProcessed+" Record(s)";
+			 			
+			 			manipulateButtons();
+						//this.parentDocument.title = this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.system.confirmation');
+						totReportProcessed.includeInLayout = false;
+						totReportProcessed.visible = false;
+						
+						totReportProcessedHyperLink.includeInLayout = true;
+						totReportProcessedHyperLink.visible = true;
+						
+						getReportDetails();
+				 	}		 			
+		 		} else {
+		 			requestTimer.stop();
+			 			
+		 			heading.text = this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.process.completed')+trxRefNo
+		 							+"\n"+this.parentApplication.xResourceManager.getKeyValue('stl.trxmaintenance.message.total.bulk.transmit.records.total.processed')
+		 							+"0 Record(s)";
+		 			
+		 			manipulateButtons();
+					//this.parentDocument.title = this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.system.confirmation');
+		 		}
+		 		isRefreshClicked = false;
+		 	}
+		 	
+		 	private function refresh(event:Event):void {
+		 		sendBulkInxLogRequest();
+		 		isRefreshClicked = true;
+		 	}
+		 	
+		 	private function fillRecordCount(event:ResultEvent):void {
+		 		this.totReportExpectedUC.text = event.result.trxMaintenanceQueryActionForm.expectedReportCount;
+		 		this.totReportExpected.text   = event.result.trxMaintenanceQueryActionForm.expectedReportCount;
+		 	}
+		 	
+		 	private function fetchRptCount():void {
+		 		var reqObj : Object = new Object();
+				reqObj.method = "getBulkInxReportCount";
+				getExpectedReportCount.request = reqObj; 
+				getExpectedReportCount.send();
+		 	}
+		 	
+		 	private function manipulateButtons():void {
+		 		chkAutoRefresh.includeInLayout = false;
+				chkAutoRefresh.visible = false;
+			
+				refreshButton.includeInLayout = false;
+				refreshButton.visible = false;
+				
+				okBtn.includeInLayout = true;
+				okBtn.visible = true;
+		 	}
+		 	
+			private function getFundAccountNo(item:Object, column:DataGridColumn):String{
+	    		return item.prefix+";"+item.fundAccountNo;
+	    	}
+	    	
+	    	private function getReportDetails():void {
+	    		var reqObj : Object = new Object();
+	    		reqObj.trxRefNo = trxRefNo;
+				reqObj.method = "getBulkTransmitReportDetails";
+				getReportDetailsRequest.request = reqObj; 
+				getReportDetailsRequest.send();
+	    	}
+	    	
+	    	private function fetchReportResults(event:ResultEvent):void {
+	    		 
+	    		 if (null != event) {
+	    		 	summaryReport.removeAll();
+	    		 	if(event.result.trxMaintenanceQueryActionForm.bulkTransReportList!=null) {
+	    		 		 try {
+                    			if(event.result.trxMaintenanceQueryActionForm.bulkTransReportList.bulkTransReport is ArrayCollection) {
+                    				summaryReport = event.result.trxMaintenanceQueryActionForm.bulkTransReportList.bulkTransReport as ArrayCollection;
+                    			} else {
+                    				summaryReport.addItem(event.result.trxMaintenanceQueryActionForm.bulkTransReportList.bulkTransReport);
+                    			}
+                    			
+	    		 		 } catch(e:Error) {
+		                    trace(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred')+e);
+		                    XenosAlert.error(e.getStackTrace());
+		                }
+	    		 	}
+	    		 } else {
+	    		 	summaryReport.removeAll();
+	    		 }
+	    	}
+	    	
+	    	private function manipulateReportDetails():void {
+	    		reportSummaryHeading.includeInLayout = true;
+	    		reportSummaryHeading.visible = true;
+	    		reportSummary.includeInLayout = true;
+	    		reportSummary.visible = true;
+	    	}
+]]>
+	</mx:Script>
+	<cntrls:XenosHTTPService id="bulkTransmitExecuteRequest" 
+         url="stl/trxMaintenanceAdvFundQueryDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultDetail)"
+         result="endProcessing(event)" showBusyCursor="true" resultFormat="xml"/>
+         
+    <cntrls:XenosHTTPService id="queryBulkInxLogRequest" 
+         url="stl/trxMaintenanceAdvFundQueryDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultDetail)"
+         result="updateBulkLogStatus(event)" showBusyCursor="true" />
+         
+    <cntrls:XenosHTTPService id="getExpectedReportCount" 
+         url="stl/trxMaintenanceAdvFundQueryDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultDetail)"
+         result="fillRecordCount(event)" showBusyCursor="true" />
+         
+    <cntrls:XenosHTTPService id="getReportDetailsRequest" 
+         url="stl/trxMaintenanceAdvFundQueryDispatch.action?" 
+         fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultDetail)"
+         result="fetchReportResults(event)" showBusyCursor="true" />
+         
+	<mx:Canvas width="100%" height="100%">
+		<mx:VBox width="100%" height="100%">
+			
+			<cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		
+	    	<mx:HBox width="100%" styleName="ButtonBackPanel">
+				<mx:Grid width="100%" horizontalGap="0" verticalGap="0" borderThickness="0">
+					<mx:GridRow width="100%" horizontalGap="0" verticalGap="0" borderThickness="0">
+	    				<mx:GridItem width="100%" horizontalGap="0" verticalGap="0" borderThickness="0">
+	    					<mx:Image id="uConfImg" source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+	    					<mx:Label id="heading" text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.user.confirmation.warning')}" height="40" fontWeight="bold" minWidth="620"/>
+	    				</mx:GridItem>
+	    			</mx:GridRow>
+	    		</mx:Grid>
+			</mx:HBox>
+			
+	 		<mx:Grid id="grid1"  width="100%" borderThickness="0" verticalGap="0" horizontalGap="0">
+				<mx:GridRow width="100%" borderThickness="0">
+				 	<mx:GridItem width="70%"  styleName="LabelBgColor">
+					 	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.summary.records')}" fontWeight="bold" styleName="FormLabelHeading"/>
+					 </mx:GridItem>
+					 <mx:GridItem width="30%" />
+				 </mx:GridRow>
+				 <mx:GridRow width="100%" borderThickness="0">
+				 	<mx:GridItem width="70%"  styleName="LabelBgColor">
+					 	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.normal.records')}"  styleName="FormLabelHeading"/>
+					 </mx:GridItem>
+					 <mx:GridItem width="30%"  textAlign="right">
+					 	<mx:Label id="totSubmittedUC" text="{totalEligibleRecordsFetched}" textAlign="right" minWidth="120"/>
+					 </mx:GridItem>
+				 </mx:GridRow>
+				 <mx:GridRow width="100%" borderThickness="0">
+				 	<mx:GridItem width="70%"  styleName="LabelBgColor">
+					 	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.inx.report.records')}"  styleName="FormLabelHeading"/>
+					 </mx:GridItem>
+					 <mx:GridItem width="30%"  textAlign="right">
+					 	<mx:Label id="totReportExpectedUC" text="{totalRptExpected}" textAlign="right" minWidth="120"/>
+					 </mx:GridItem>
+				 </mx:GridRow>
+			</mx:Grid>
+			
+			<mx:Grid id="grid2"  width="100%" includeInLayout="false" visible="false" borderThickness="0" verticalGap="0" horizontalGap="0">
+				<mx:GridRow width="100%"  borderThickness="0">
+				 	<mx:GridItem width="50%" >
+					 	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.summary.records')}" fontWeight="bold"  styleName="FormLabelHeading" />
+					 </mx:GridItem>
+					 <mx:GridItem width="17%"  textAlign="center">
+					 	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.submitted')}" fontWeight="bold" minWidth="120"  styleName="FormLabelHeading" textAlign="right"/>
+					 </mx:GridItem>
+					 <mx:GridItem width="17%"  textAlign="center">
+					 	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.processed')}" fontWeight="bold" minWidth="120"  styleName="FormLabelHeading" textAlign="right"/>
+					 </mx:GridItem>
+					 <mx:GridItem width="16%"  textAlign="center">
+					 	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.failed')}" fontWeight="bold" minWidth="120"  styleName="FormLabelHeading" textAlign="right"/>
+					 </mx:GridItem>
+				 </mx:GridRow>
+				 <mx:GridRow width="100%" borderThickness="0">
+				 	<mx:GridItem width="50%"  styleName="LabelBgColor">
+					 	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.normal.records')}"  styleName="FormLabelHeading" />
+					 </mx:GridItem>
+					 <mx:GridItem width="17%"  textAlign="right">
+					 	<mx:Label id="totSubmitted" text="{totalEligibleRecordsFetched}" textAlign="right" minWidth="120"/>
+					 </mx:GridItem>
+					 <mx:GridItem width="17%" textAlign="right" >
+					 	<mx:Label id="totProcessed" text="{totalProcessed}" textAlign="right" minWidth="120"/>
+					 </mx:GridItem>
+					 <mx:GridItem width="16%" textAlign="right" >
+					 	<mx:Label id="totFailed" text="{totalFailed}" textAlign="right" minWidth="120"/>
+					 </mx:GridItem>
+				 </mx:GridRow>
+				 <mx:GridRow width="100%" borderThickness="0">
+				 	<mx:GridItem width="50%"  styleName="LabelBgColor">
+					 	<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.stlinx.lbl.bulk.transmit.inx.report.records')}"  styleName="FormLabelHeading" />
+					 </mx:GridItem>
+					 <mx:GridItem width="17%" textAlign="right">
+					 	<mx:Label id="totReportExpected" text="{totalRptExpected}" textAlign="right" minWidth="120"/>
+					 </mx:GridItem>
+					 <mx:GridItem width="17%" textAlign="right" >
+					 	<mx:Label id="totReportProcessed" text="{totalRptProcessed}" textAlign="right" minWidth="120"/>
+					 	<mx:Label id="totReportProcessedHyperLink" text="{totalRptProcessed}" textAlign="right" minWidth="120" useHandCursor="true" mouseChildren="false" buttonMode="true" styleName="TextLink" includeInLayout="false" visible="false" color="#0174DF" click="manipulateReportDetails();"/>
+					 </mx:GridItem>
+					 <mx:GridItem width="16%" textAlign="right" >
+					 	<mx:Label id="totReportFailed" text="{totalRptFailed}" textAlign="right" minWidth="120"/>
+					 </mx:GridItem>
+				 </mx:GridRow>
+			</mx:Grid>
+			
+			<mx:HBox width="100%" styleName="ButtonBackPanel">
+			 	<mx:Button id="okButton" label="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ok')}" click="execute()" styleName="BtnStyle"/>
+		    	<mx:Button id="cancelButton" label="{this.parentApplication.xResourceManager.getKeyValue('stl.label.cancel')}" click="removeMe(event);" styleName="BtnStyle"/>
+		    	<mx:CheckBox id="chkAutoRefresh" label="{this.parentApplication.xResourceManager.getKeyValue('stl.label.auto.refresh')}" selected="true" includeInLayout="false" visible="false" />
+		    	<mx:Button id="refreshButton" label="{this.parentApplication.xResourceManager.getKeyValue('stl.label.refresh')}" click="refresh(event);" styleName="BtnStyle" includeInLayout="false" visible="false"/>
+		    	<mx:Button id="okBtn" label="{this.parentApplication.xResourceManager.getKeyValue('stl.label.ok')}" click="removeMe(event);" styleName="BtnStyle" includeInLayout="false" visible="false"/>
+			</mx:HBox>
+			
+			<mx:HBox id="reportSummaryHeading" width="100%" styleName="ButtonBackPanel" includeInLayout="false" visible="false">
+		 		<mx:Grid width="100%" horizontalGap="0" verticalGap="0" borderThickness="0">
+					<mx:GridRow width="100%" horizontalGap="0" verticalGap="0" borderThickness="0">
+		 				<mx:GridItem horizontalGap="0" verticalGap="0" borderThickness="0" textAlign="center">
+		    				<mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('stl.label.instruction.transaction.report')}" fontWeight="bold" selectable="true" />
+		    			</mx:GridItem>
+		    		</mx:GridRow>
+		    	</mx:Grid>
+		    </mx:HBox>
+		    	
+		    <mx:DataGrid id="reportSummary" width="100%" height="100%" dataProvider="{summaryReport}" sortableColumns="false" variableRowHeight="true" verticalScrollPolicy="on" horizontalScrollPolicy="auto" includeInLayout="false" visible="false">
+		    	<mx:columns>		    	
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.reportReferenceNo')}" minWidth="200" dataField="reportReferenceNo" />
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.fundaccountno')}" minWidth="200" dataField="fundAccountPk" labelFunction="getFundAccountNo" itemRenderer="com.nri.rui.core.renderers.AdvAccountDetailsRenderer"/>
+		    		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('stl.label.downloadReport')}" dataField="" itemRenderer="com.nri.rui.stl.renderers.InstructionReportXlsPdfRenderer" />
+		    	</mx:columns>
+		    </mx:DataGrid>
+			
+		</mx:VBox>
+	</mx:Canvas>
+</mx:TitleWindow>

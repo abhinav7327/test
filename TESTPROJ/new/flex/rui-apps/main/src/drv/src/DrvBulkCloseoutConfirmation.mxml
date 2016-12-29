@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" 
+			xmlns:containers="com.nri.rui.core.containers.*" 
+			xmlns:flexlib="http://code.google.com/p/flexlib/" 
+			xmlns:cntrls="com.nri.rui.core.controls.*" 
+			xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" 
+			layout="vertical" 
+			percentWidth="100" 
+			percentHeight ="100" 
+			horizontalScrollPolicy="off" 
+			verticalScrollPolicy="off" 
+			creationComplete="init()">
+
+	<mx:Script source="actionscripts/DrvBulkCloseoutConfirmation.as"/>
+             
+   <cntrls:XenosHTTPService id="loadSystemConf" 
+         					 url="drv/drvBulkCloseoutDispatch.action?" 
+         					 fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)"
+         					 method="POST" 
+             				 useProxy="false"
+         					 result="loadSystemConfPage(event)" 
+         					 resultFormat="xml" 
+         					 showBusyCursor="true"/>
+         					 
+    <mx:Canvas width="100%" height="100%" horizontalScrollPolicy="auto"  verticalScrollPolicy="auto">
+		    <mx:VBox width="100%" height="100%" id="rslt" styleName="HDivideStyle">
+		    	<mx:Label id="confLbl" width="100%" text="{this.parentApplication.xResourceManager.getKeyValue('drv.bulk.closeout.popup.user.conf.title')}" fontWeight="bold"/>
+		    	<mx:HBox id="hb"  styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" visible="false" verticalAlign="middle" includeInLayout="false">           
+		            <mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+		            <mx:Label text="{this.parentApplication.xResourceManager.getKeyValue('inf.label.confirm.txn')}" fontWeight="bold"/>  
+		         </mx:HBox>
+				<cntrls:XenosErrors id="errPageConf" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+		        <cntrls:SoftWarningControl id="softWarning" width="100%" color="#0000FF" backgroundAlpha="0" borderStyle="none" fontWeight="bold"/>
+				<mx:ViewStack id="confStack" width="100%" height="100%">
+					<mx:VBox id="usrConfVBox" width="100%" height="100%">
+						<cntrls:XenosAdvancedDataGrid id="usrConf" width="100%" height="100%" dataProvider="{selectedQryRslt}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto">
+							<cntrls:groupedColumns>
+								<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.opentrades')}">
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradereferenceno')}" dataField="tradeReferenceNo"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.openbalqty')}" textAlign="right" dataField="openBalanceQuantityStr"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.price')}" textAlign="right" dataField="priceStr"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.closebalqty')}" textAlign="right" dataField="userProvidedQtyStr"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.long.short')}" dataField="longShort"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradedate')}" dataField="tradeDateStr"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.valuedate')}" dataField="valueDateStr"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.executionoffice')}" dataField="openExecutionOffice"/>									
+								</mx:AdvancedDataGridColumnGroup>
+								<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.closetrades')}">
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.openbalqty')}" textAlign="right" dataField="openBalanceQuantityStrForCloseTrade"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.price')}" textAlign="right" dataField="userProvidedPriceStr"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.closebalqty')}" textAlign="right" dataField="userProvidedQtyStr"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.long.short')}" dataField="longShort"/>
+								    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradedate')}" dataField="tradeDateStrforClosetrade"/>
+								    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.valuedate')}" dataField="valueDateStrforClosetrade"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.executionoffice')}" dataField="closeExecutionOffice"/>									
+								</mx:AdvancedDataGridColumnGroup>
+								<mx:AdvancedDataGridColumnGroup headerText="">
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.pl')}" textAlign="right" dataField="calculatedProfitLossStr"/>
+								</mx:AdvancedDataGridColumnGroup>
+							</cntrls:groupedColumns>
+						</cntrls:XenosAdvancedDataGrid>
+					</mx:VBox>
+					<mx:VBox id="sysConfVBox" width="100%" height="100%">
+						<cntrls:XenosAdvancedDataGrid id="sysConf" width="100%" height="100%" dataProvider="{selectedQryRslt}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto">
+							<cntrls:groupedColumns>
+								<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.opentrades')}">
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradereferenceno')}" dataField="tradeReferenceNo"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.openbalqty')}" textAlign="right" dataField="openBalanceQuantityStr"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.price')}" textAlign="right" dataField="priceStr"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.closebalqty')}" textAlign="right" dataField="userProvidedQtyStr"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.long.short')}" dataField="longShort"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradedate')}" dataField="tradeDateStr"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.valuedate')}" dataField="valueDateStr"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.executionoffice')}" dataField="openExecutionOffice"/>									
+								</mx:AdvancedDataGridColumnGroup>
+								<mx:AdvancedDataGridColumnGroup headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.closetrades')}">
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradereferenceno')}" dataField="closeTradeReferenceNo"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.openbalqty')}" textAlign="right" dataField="openBalanceQuantityStrForCloseTrade"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.price')}" textAlign="right" dataField="userProvidedPriceStr"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.closebalqty')}" textAlign="right" dataField="userProvidedQtyStr"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.long.short')}" dataField="longShort"/>
+								    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.tradedate')}" dataField="tradeDateStrforClosetrade"/>
+								    <mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.valuedate')}" dataField="valueDateStrforClosetrade"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.executionoffice')}" dataField="closeExecutionOffice"/>	
+								</mx:AdvancedDataGridColumnGroup>
+								<mx:AdvancedDataGridColumnGroup headerText="">
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.closeoutreferenceno')}" dataField="closeoutReferenceNo"/>
+									<mx:AdvancedDataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('drv.label.pl')}" textAlign="right" dataField="calculatedProfitLossStr"/>
+								</mx:AdvancedDataGridColumnGroup>
+							</cntrls:groupedColumns>
+						</cntrls:XenosAdvancedDataGrid>
+					</mx:VBox>
+					
+				</mx:ViewStack>
+		     	<mx:HBox>
+		     		<mx:Button id="btnBack" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.back')}" styleName="BtnStyle" click="this.closeHandeler();"/>
+		     		<cntrls:XenosButton id="btnConfirm" label="{this.parentApplication.xResourceManager.getKeyValue('drv.ui.btn.confirm')}" styleName="BtnStyle" click="this.goToSystemConfirmation()"/>
+		     		<cntrls:XenosButton id="btnOk" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" click="this.closeHandeler();" visible="false" includeInLayout="false"/>
+		     	</mx:HBox>
+		    </mx:VBox>
+    </mx:Canvas>
+</mx:Module>

@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Mxml file for Trade Cnf Match Popup Implementation -->
+
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="com.nri.rui.core.containers.*" xmlns:flexlib="http://code.google.com/p/flexlib/" xmlns:cntrls="com.nri.rui.core.controls.*" xmlns:xenospopup="com.nri.rui.ref.popupImpl.*" layout="vertical" percentWidth="100" percentHeight ="100" horizontalScrollPolicy="off" verticalScrollPolicy="off" creationComplete="init()">
+
+	<mx:Script>
+		<![CDATA[
+			import com.nri.rui.core.Globals;
+			import com.nri.rui.core.startup.XenosApplication;
+			import mx.containers.TitleWindow;
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			import mx.controls.dataGridClasses.DataGridColumn;
+			import mx.controls.CheckBox;
+			import mx.managers.PopUpManager;
+            import mx.rpc.events.ResultEvent;
+            
+    		import mx.events.ModuleEvent;
+			
+			import com.nri.rui.core.controls.XenosAlert;
+    		import com.nri.rui.core.utils.XenosStringUtils;
+    								
+			[Bindable]
+		    private var queryResult:ArrayCollection= new ArrayCollection();
+			[Bindable]
+			private var rs:XML = new XML();
+			[Bindable]
+			private var refreshRequired:Boolean = false;
+		    [Bindable]
+		    private var app:XenosApplication = XenosApplication.getInstance(Globals.DEFAULT_ENTERPRISE);
+		    
+			/**
+			 * initial load method.
+			 */
+			 private function init():void {
+			 	var obj:Object=new Object();
+				obj.unique= new Date().getTime() + "" ;
+				obj.SCREEN_KEY = 11008;
+		    	obj.fromPage = "queryResult";
+		    	obj.traversableIndex = "2";
+				ncmAuthorizationConfirmRequest.request = obj;
+				ncmAuthorizationConfirmRequest.send();
+				rslt2.visible=false;
+     			rslt2.includeInLayout =false;
+     			app.submitButtonInstance = userConfSubmit;
+			}		
+			
+			/**
+			 * Method to change the current state.
+			 */
+			 private function changeCurrentState():void{
+                currentState = "conf";
+            }
+            
+			/**
+			 * Loads the authorization confirmation page.
+			 */
+	         public function loadMatchQueryPage(event:ResultEvent):void {
+	         	refreshRequired = false;
+				rs = XML(event.result);
+				if (null != event) {
+					if(rs.child("resultView2List").resultView2.length()>0) {
+						errPage.clearError(event);
+			            queryResult.removeAll();
+						try {
+						    for each ( var rec:XML in rs.resultView2List.resultView2) {
+			 				    queryResult.addItem(rec);
+						    }
+						}catch(e:Error){
+						    XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					    }
+					} else if(rs.child("Errors").length()>0) {
+		                //some error found
+					 	queryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	var errorInfoList : ArrayCollection = new ArrayCollection();
+		                //populate the error info list 			 	
+					 	for each ( var error:XML in rs.Errors.error ) {
+			 			   errorInfoList.addItem(error.toString());
+						}
+					 	errPage.showError(errorInfoList);//Display the error
+					} else {
+					 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					 	queryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	errPage.removeError(); //clears the errors if any
+					}
+		        }
+	         }
+	         
+			/**
+			 * Loads the authorization confirmation ok page.
+			 */
+		     public function loadSystemQueryPage(event:ResultEvent):void {
+		     	userConfSubmit.enabled=true;
+		     	refreshRequired = false;
+		 		rs = XML(event.result);
+		 		if (null != event) {
+		 			if(rs.child("Errors").length()>0){ 
+						// i.e. Must be error, display it .
+						var errorInfoList : ArrayCollection = new ArrayCollection();
+						//populate the error info list 			 	
+						for each ( var error:XML in rs.Errors.error ) {
+							errorInfoList.addItem(error.toString());
+						}
+						errPage.showError(errorInfoList);//Display the error
+						refreshRequired = true; 
+			      	} else if(rs.child("resultView2List").resultView2.length()>0) {
+			      	 	errPage.removeError();	      	
+			     		rslt2.visible=true;
+			     		rslt2.includeInLayout =true;
+			     		rslt1.visible=false;
+			     		rslt1.includeInLayout =false;
+			     		app.submitButtonInstance = sysConfSubmit;
+			     		this.parentDocument.title = this.parentApplication.xResourceManager.getKeyValue('ncm.authorization.entry.header.sys.conf');
+			        } else {
+					 	XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('inf.label.query.noresult'));
+					 	queryResult.removeAll(); // clear previous data if any as there is no result now.
+					 	errPage.removeError(); //clears the errors if any
+					 	refreshRequired = true; 
+			        }
+		     	} else {
+		     		XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('ncm.query.error.prompt.event.null'));
+		     	}
+			}
+	        
+			/**
+			 * Submits the selected entries for authorization.
+			 */	         
+			 public function submitConfirm():void {
+			 	userConfSubmit.enabled=false;
+		     	var i:Number;
+		        var obj:Object=new Object();
+				obj.method="doConfirmAuhtorization";
+				obj.unique= new Date().getTime() + "" ;
+				obj.SCREEN_KEY = 11009;
+				ncmAuthorizationSysConfirmRequest.request=obj;
+				ncmAuthorizationSysConfirmRequest.send();
+			} 
+			 
+			/**
+			 * After authorization confirmation ok this method returnes to query result page.
+			 */  
+			 public function submitOkConfirm():void {
+		        var obj:Object=new Object();
+				obj.method="okSystemConformation";
+			    obj.unique= new Date().getTime() + "" ;
+				ncmAuthorizationOkConfirmRequest.request=obj;
+			    ncmAuthorizationOkConfirmRequest.send();
+			    refreshRequired = true;
+			}   
+			
+			/**
+			 * Back to query result page.
+			 */
+		     public function submitClose():void {
+		     	var obj:Object=new Object();
+				obj.method="backToQueryResult";
+				obj.unique= new Date().getTime() + "" ;
+				ncmAuthorizationOkConfirmRequest.request=obj;
+				ncmAuthorizationOkConfirmRequest.send();
+		     }  
+
+		   /**
+		    * Closes the handler to close the popup.
+		    */
+			 public function closeHandeler():void{
+				this.parentDocument.dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+			}
+			
+			/**
+			 * Back to query result page. 
+			 */
+			 public function backToQueryResultPage():void {
+			 	app.submitButtonInstance = null;
+			 	if (refreshRequired) {
+					this.parentDocument.dispatchEvent(new Event("RefreshChanges"));
+				} else {
+					this.parentDocument.dispatchEvent(new Event("EnterKeyEnable"));
+				}
+				closeHandeler();
+			}
+	         
+			/**
+             * Extract the value of the colum cell removing the prefix added at '0'th index.
+             */ 
+            private function extractPrecisionedValue(item:Object, column:DataGridColumn):String{
+                var strData:String = item[column.dataField];
+                if(!XenosStringUtils.isBlank(strData) && strData.charAt(0)=="F"){
+                    if(strData.length == 1)
+                        return XenosStringUtils.EMPTY_STR;
+                    else
+                        return strData.substring(1);
+                }else{
+                    return item[column.dataField];                    
+                }
+            }
+			
+		]]>
+	</mx:Script>
+			
+	<cntrls:XenosHTTPService id="ncmAuthorizationConfirmRequest" 
+         url="ncm/ncmAuthQueryDispatch.action?method=submitQuery" fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)" 
+             method="POST" useProxy="false" result="loadMatchQueryPage(event)" showBusyCursor="true" resultFormat="xml"/>	
+    <cntrls:XenosHTTPService id="ncmAuthorizationSysConfirmRequest" 
+         url="ncm/ncmAuthQueryDispatch.action?method=doConfirmAuhtorization" fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString);userConfSubmit.enabled=true;" 
+             method="POST" useProxy="false" result="loadSystemQueryPage(event)" showBusyCursor="true" resultFormat="xml"/>	
+    <cntrls:XenosHTTPService id="ncmAuthorizationOkConfirmRequest" 
+         url="ncm/ncmAuthQueryDispatch.action?method=okSystemConformation" fault="XenosAlert.error(this.parentApplication.xResourceManager.getKeyValue('inf.label.error.occurred') + event.fault.faultString)" 
+             method="POST" useProxy="false" result="backToQueryResultPage()" showBusyCursor="true"/>				
+   <!--<cntrls:XenosHTTPService id="ncmAuthorizationDestroyRequest" 
+         url="ncm/ncmAuthQueryDispatch.action?method=backToQueryResult" fault="XenosAlert.error('Error Occured Initialize :  ' + event.fault.faultString)" 
+             method="POST" useProxy="false" showBusyCursor="true"/>
+			-->
+			
+    	<mx:VBox width="100%" height="100%" id="rslt1" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle">
+    	     <cntrls:XenosErrors id="errPage" width="100%" color="#FF0000" backgroundAlpha="0" borderStyle="none"/>
+	    	<mx:DataGrid id="authorizationSummary1" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto">
+	            <mx:columns>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.authorizationstatus')}" dataField="authorizationStatus"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.referenceno')}" headerWordWrap="false" minWidth="140" dataField="referenceNo" itemRenderer="com.nri.rui.ncm.renderers.AdjustmentQueryDetailRenderer"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" dataField="fundCode" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer"/>
+	                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundName')}" dataField="fundName"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.bankcustodiancode')}" dataField="bankCode" itemRenderer="com.nri.rui.core.renderers.FinancialInstitutionDetailsRenderer"/>
+	                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.bankname')}" dataField="bankName"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.bankaccountno')}" dataField="accountDisplayName" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRenderer"/>
+	                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.bankaccountname')}" dataField="accountName"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.gleledgercode')}" dataField="gleLedgerCode" />
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.ccycode')}" dataField="ccy"/>
+  		          	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.securitycode')}" dataField="securityCode" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer"/>
+  		          	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.security.alternatesecurity')}" dataField="alternateSecurity"  width="200" visible="true"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.adjustmentdate')}" dataField="adjustmentInOutDisplayDate"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.adjustmenttype')}" dataField="adjustmentTypeDisp"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.amount')}" textAlign="right" dataField="amountDisp" labelFunction="extractPrecisionedValue" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" />
+            		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.groupid')}" textAlign="right" dataField="groupId"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.entryby')}" dataField="createdBy" visible="false"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.updatedby')}" dataField="updatedBy" visible="false"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.status')}" dataField="status" visible="false" itemRenderer="com.nri.rui.core.renderers.StatusRenderer"/>
+	            </mx:columns>
+		    </mx:DataGrid>  
+	     	<mx:HBox id="t1" width="100%" styleName="ButtonBackPanel" includeInLayout="true" visible="true">            
+                <cntrls:XenosButton id="userConfSubmit" label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.submit')}" styleName="BtnStyle" click="this.submitConfirm();"/>
+                <mx:Button label="{this.parentApplication.xResourceManager.getKeyValue('ncm.form.button.label.back')}" styleName="BtnStyle" click="this.submitClose();"/>
+            </mx:HBox>
+		</mx:VBox>
+
+    	<mx:VBox width="100%" height="100%" id="rslt2" horizontalScrollPolicy="off" verticalScrollPolicy="off" styleName="HDivideStyle">
+	    	<mx:HBox id="hb1" styleName="ButtonBackPanel" verticalGap="0" horizontalGap="0" width="100%" height="32" verticalAlign="middle" >
+	    		<mx:Image source="@Embed('../../assets/themes/default/skin/alert_info.png')" width="28" height="28" verticalAlign="middle"/>
+	    		<mx:Label text=" {this.parentApplication.xResourceManager.getKeyValue('ncm.authorization.entry.label.transaction.complete')}" fontWeight="bold" selectable="true"/>	
+	    	</mx:HBox>
+	    	<mx:DataGrid id="authorizationSummary2" width="100%" height="100%" dataProvider="{queryResult}" sortableColumns="false" variableRowHeight="true" horizontalScrollPolicy="auto">
+	            <mx:columns>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.authorizationstatus')}" dataField="authorizationStatus"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.referenceno')}" headerWordWrap="false" minWidth="140" dataField="referenceNo" itemRenderer="com.nri.rui.ncm.renderers.AdjustmentQueryDetailRenderer"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundcode')}" dataField="fundCode" itemRenderer="com.nri.rui.core.renderers.FundDetailsRenderer"/>
+	                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ref.fund.label.fundName')}" dataField="fundName"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.bankcustodiancode')}" dataField="bankCode" itemRenderer="com.nri.rui.core.renderers.FinancialInstitutionDetailsRenderer"/>
+	                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.bankname')}" dataField="bankName"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.bankaccountno')}" dataField="accountDisplayName" itemRenderer="com.nri.rui.core.renderers.AccountDetailsRenderer"/>
+	                <mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.bankaccountname')}" dataField="accountName"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.gleledgercode')}" dataField="gleLedgerCode" />
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.ccycode')}" dataField="ccy"/>
+ 		           	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.securitycode')}" dataField="securityCode" itemRenderer="com.nri.rui.core.renderers.InstrumentDetailsRenderer"/>
+ 		           	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.security.alternatesecurity')}" dataField="alternateSecurity"  width="200" visible="true"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.adjustmentdate')}" dataField="adjustmentInOutDisplayDate"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.adjustmenttype')}" dataField="adjustmentTypeDisp"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.amount')}" textAlign="right" dataField="amountDisp" labelFunction="extractPrecisionedValue" itemRenderer="com.nri.rui.core.renderers.NegativeNumberRenderer" />
+            		<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.groupid')}" textAlign="right" dataField="groupId"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.entryby')}" dataField="createdBy" visible="false"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.authorizationqry.label.updatedby')}" dataField="updatedBy" visible="false"/>
+	            	<mx:DataGridColumn headerText="{this.parentApplication.xResourceManager.getKeyValue('ncm.label.status')}" dataField="status" visible="false" itemRenderer="com.nri.rui.core.renderers.StatusRenderer"/>
+	            </mx:columns>
+		    </mx:DataGrid>  
+	     	<mx:HBox id="t2" width="100%" styleName="ButtonBackPanel" includeInLayout="true" visible="true">            
+                <cntrls:XenosButton label="{this.parentApplication.xResourceManager.getKeyValue('inf.form.button.label.ok')}" styleName="BtnStyle" id="sysConfSubmit" click="this.submitOkConfirm();"/>            
+            </mx:HBox>
+		</mx:VBox>
+
+</mx:Module>			

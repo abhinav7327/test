@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:VBox implements="mx.controls.listClasses.IDropInListItemRenderer" xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%" rollOver="createBigTip()" rollOut="destroyBigTip()" >
+	<mx:Script>
+   	<![CDATA[
+   		import com.nri.rui.core.controls.XenosAlert;
+   		import com.nri.rui.core.utils.XenosStringUtils;
+   		import mx.automation.delegates.controls.ToolTipAutomationImpl;
+   		import com.nri.rui.core.Globals;
+   		import mx.controls.listClasses.BaseListData;
+   		import mx.controls.listClasses.ListData;
+   		import mx.controls.ToolTip;
+   		import mx.managers.ToolTipManager;
+   		import mx.utils.StringUtil;
+   		//import mx.controls.dataGridClasses.DataGridColumn;
+   		import mx.controls.advancedDataGridClasses.AdvancedDataGridColumn;
+   		//import mx.controls.DataGrid;
+   		import mx.controls.AdvancedDataGrid;
+   		
+  		[Embed(source="../../../../../assets/icon_details.png")]
+		[Bindable]
+		private var icoSummary:Class;
+		public var myTip:ToolTip;
+		
+		// Internal variable for the property value.
+		private var _listData:BaseListData;
+		private const SPACE : String = ' ';
+		// Make the listData property bindable.
+		[Bindable("dataChange")]
+		public var maxKeyValueLen:int;
+		public var maxToolTipWidth:int = 400;
+		public var buffer:int = 20;
+		public var defaultCharSize:int = 8;
+		
+		// Define the getter method.
+		public function get listData():BaseListData
+		{
+			return _listData;
+		}
+		
+		// Define the setter method,
+		public function set listData(value:BaseListData):void
+		{
+			_listData = value;
+		}
+
+
+		
+		protected function showDetails():String{
+			
+			var totalContent:String = "";  		
+    		var keys:Array = new Array();
+			var values:Array = new Array();	
+			var maxLen : int = 0;		
+			//New code
+			if(listData){
+				//var dg :DataGrid = DataGrid(listData.owner);
+				var dg : AdvancedDataGrid = AdvancedDataGrid(listData.owner);
+				for(var col:int=1;col< dg.columns.length;col++){
+					//var dgc : DataGridColumn = DataGridColumn(dg.columns[col]);
+					var dgc : AdvancedDataGridColumn = AdvancedDataGridColumn(dg.columns[col]);		
+					var str : String = StringUtil.trim(dgc.headerText);
+						keys.push(str);
+						if(maxLen <= str.length) {
+							maxLen = str.length;
+						}
+					var val : String = StringUtil.trim(data[dgc.dataField]);
+						values.push(val);
+				}
+
+				for( var i:int =0;i<keys.length;i++){
+				  	var keyValue:String = "";
+				  	var value:String = "";
+				  	keyValue = keys[i].toString();
+				  	for(var j:int = String(keys[i]).length-1; j < maxLen;j++){
+				  		keyValue += SPACE;
+				  	}
+				  	
+				  	keyValue += ":"+SPACE;
+				  	
+				  	if(String(values[i]).indexOf("object")>0){
+						value = Globals.EMPTY_STRING;
+					}else {
+						value = values[i];
+					}
+				  	
+				  	if(value != Globals.EMPTY_STRING && value.charAt(0)=="F"){				  		
+						if(value.length > 1)
+						{
+							value = value.substring(1);
+							if(!isNaN(Number(value)))
+								value = values[i].toString().substring(1);
+							else
+								value = values[i];
+						}
+						else
+							value = "";
+					}
+					
+					keyValue += value;
+					
+					if((keyValue.length * defaultCharSize) > maxToolTipWidth)
+						keyValue += "\n";
+					
+					if(keyValue.length > maxKeyValueLen)
+							maxKeyValueLen = keyValue.length;
+					
+					totalContent += keyValue + "\n";
+					keyValue = "";
+				 }
+			}
+		return totalContent;
+		}
+		private function destroyBigTip():void {
+        	ToolTipManager.destroyToolTip(myTip);
+    	}
+
+		private function createBigTip():void {
+       		
+       		var content : String = showDetails();
+	        var rect:Rectangle = this.getRect(this);
+			var pt:Point = this.localToGlobal(rect.bottomRight);
+			
+			myTip = ToolTip(ToolTipManager.createToolTip(content,pt.x,pt.y));
+			if(maxKeyValueLen * defaultCharSize > maxToolTipWidth)
+				myTip.width = maxToolTipWidth + buffer;
+			else
+				myTip.width = maxKeyValueLen * defaultCharSize + buffer;
+			
+			myTip.height += 30;
+			
+	        myTip.setStyle("backgroundColor","#273e53");
+	        myTip.setStyle("color","#ffffff");
+	        myTip.setStyle("backgroundAlpha","0.9");
+	     	myTip.setStyle("fontFamily","Courier"); 
+	     	//myTip.setStyle("borderThickness","1");
+	     	//myTip.setStyle("borderStyle","solid");
+	     	myTip.setStyle("fontSize","8");
+	     				
+			var screen:Rectangle = systemManager.screen;
+			var screenRight:Number = screen.x + screen.width;
+			if (myTip.x + myTip.width > screenRight)
+				myTip.move(screenRight - myTip.width, myTip.y);
+			if(myTip.y + myTip.height >= screen.height + buffer)
+				myTip.move(pt.x, pt.y + (height - myTip.height));
+			else
+				myTip.move(pt.x, pt.y + (height - myTip.height)/2);
+		}
+
+    		]]>
+	</mx:Script>
+	  
+      <mx:Image id="sView" source="{icoSummary}" width="100%" verticalAlign="middle" horizontalAlign="center" buttonMode="true"   />
+</mx:VBox>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Button label="List" xmlns:mx="http://www.adobe.com/2006/mxml" horizontalGap="0" xmlns:xenos="com.nri.rui.core.controls.*" click="showPopUp(recContextItem,retContextItem);">
+     
+     <mx:Script>
+        <![CDATA[
+        	import mx.utils.StringUtil;
+        	import mx.controls.TextInput;
+        	import com.nri.rui.core.Globals; 
+        	import com.nri.rui.core.controls.XenosAlert;
+        //start of script   
+        import mx.managers.PopUpManager;
+        import com.nri.rui.core.utils.HiddenObject;        
+        import com.nri.rui.ref.popupImpl.OurBankListPopupForSecIO;
+        import mx.collections.ArrayCollection;
+        import mx.core.UIComponent;
+        
+           [Bindable]
+           //Items returning through context - Non display objects
+           public var retContextItem:ArrayCollection = new ArrayCollection();
+           [Bindable]
+           //Items receiving through context - Non display objects
+           public var recContextItem:ArrayCollection = new ArrayCollection();
+           
+           //This boolean check whether fund code is empty or not
+           [Bindable]
+           public var accountCheck:Boolean = true;
+           
+           [Bindable]
+           public var bankCode:TextInput;
+           [Bindable]
+           public var settleAc:TextInput;
+           
+           public var fundAcNo:String = "";
+           
+           private var popUpPoint:Point = new Point();
+   
+        /*
+         * Open the PopUp Window.
+         * Cast the return value of the createPopUp() method
+         * to AccountPopup, the name of the component containing
+         *  the PopupWindow container
+         */
+        private function showPopUp(recCtxItems:ArrayCollection,
+                                   retCtxItem:ArrayCollection):void {
+                        
+            if(accountCheck == true){
+            	if(fundAcNo == null || StringUtil.trim(fundAcNo) ==""){
+            		XenosAlert.info(this.parentApplication.xResourceManager.getKeyValue('ref.fund.alert.accnomissing'));
+            		return;
+            	}
+            	
+	            if (recCtxItems == null){
+	                recCtxItems = new ArrayCollection();
+	            }
+	            
+	            if (retCtxItem == null){
+	                retCtxItem = new ArrayCollection();
+	            }
+	            //create the account popup        
+	            var ourBankPopup:OurBankListPopupForSecIO=OurBankListPopupForSecIO
+	            (PopUpManager.createPopUp( UIComponent(this.parentApplication), OurBankListPopupForSecIO , true));
+	        
+	            
+	            //Center the Popup Window in the Application's container
+	            PopUpManager.centerPopUp(ourBankPopup);
+	            
+	            ourBankPopup.retTxtInput=bankCode;	
+	            ourBankPopup.retSettleAc=settleAc;
+	            
+	            // Pass a reference to the returnning context items
+	            ourBankPopup.returnContextItems = retCtxItem;
+	            // Pass a reference to the popup context items
+	            ourBankPopup.receiveCtxItems = recCtxItems;
+	            
+	            ourBankPopup.popUpQueryPage.resultFormat = "xml";
+	            //initialize the account popup
+	            ourBankPopup.initPopup();
+	       }
+            
+        }
+        private function focusHandler():Boolean {
+   			
+   			//XenosAlert.info("focus out");
+   			dispatchEvent(new Event("inputEvent"));
+   			return true;
+   		}
+        //end of script
+        ]]>
+    </mx:Script>
+</mx:Button>

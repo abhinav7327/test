@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Item Renderer for Nostro Adjustment Cancel.  -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%">
+    <mx:Script>
+        <![CDATA[
+            import com.nri.rui.core.Globals;
+        	import com.nri.rui.core.containers.SummaryPopup;
+        	import com.nri.rui.core.utils.XenosStringUtils;
+        	import com.nri.rui.ncm.NcmConstants;
+        	
+        	import flash.events.MouseEvent;
+	        import mx.core.UIComponent;
+	        import mx.managers.PopUpManager;
+	
+            [Embed(source="../../../../../assets/delete.png")]
+    		[Bindable]
+    		private var icoSummary:Class;    
+    		
+    		private function setUp():void{
+    		    var visibleFlag : Boolean = data.ncmEntryPk == null ? false :true;
+    			imgDel.buttonMode = visibleFlag;
+    			imgDel.useHandCursor = visibleFlag;
+    			imgDel.mouseChildren = !visibleFlag;
+    			if(visibleFlag){
+    				imgDel.addEventListener(MouseEvent.CLICK, handleMouseClick);
+    			}
+    			else{
+    				if(imgDel.hasEventListener(MouseEvent.CLICK))
+    					imgDel.removeEventListener(MouseEvent.CLICK,handleMouseClick);    				    				
+    			}
+    		}
+    		
+    		public function handleMouseClick(event:MouseEvent):void {
+			
+    			var sPopup : SummaryPopup;	
+    			sPopup= SummaryPopup(PopUpManager.createPopUp(UIComponent(this.parentApplication),SummaryPopup,true));
+    			sPopup.addEventListener("OkSystemConfirm",handleOkSystemConfirm);
+    			
+    			sPopup.title = parentApplication.xResourceManager.getKeyValue('ncm.nostro.adjustment') + " " + parentApplication.xResourceManager.getKeyValue('inf.title.cancel');
+    			sPopup.width = 750;
+    			sPopup.height = 360;
+    			PopUpManager.centerPopUp(sPopup);		
+    			var ncmEntryPk : String = data.ncmEntryPk;
+    			sPopup.moduleUrl = NcmConstants.NOSTRO_ADJUSTMENET_CANCEL_SWF+Globals.QS_SIGN+NcmConstants.NCM_ENTRY_PK+Globals.EQUALS_SIGN+ncmEntryPk;
+			
+		    }
+		    /**
+        	 * Event Handler for the custom event "OkSystemConfirm"
+        	 */
+        	public function handleOkSystemConfirm(event:Event):void {                
+                this.parentDocument.submitQuery();
+            }
+        ]]>
+    </mx:Script>
+    
+    <mx:Image id="imgDel" source="{icoSummary}" width="100%" verticalAlign="middle" horizontalAlign="center" buttonMode="true" creationComplete="setUp()" toolTip="Delete"/>
+</mx:VBox>
